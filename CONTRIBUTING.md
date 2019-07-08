@@ -54,7 +54,7 @@ https://github.com/jonschlinkert/markdown-toc
     * model hyperparameter tuning
     * plotting
     * validation steps
-- The `.py files` must be stored into the directory `src/mod_risk_fpd/` or a subdirectory of the same
+- The `.py files` must be stored into the directory `/pyrisk/` or a subdirectory of the same
 - Written functions should follow the [Technical Standards](#technical-standards)
 
 
@@ -102,13 +102,15 @@ new_object = (
 )
 ```
 
-### Code for feature generation
-* Feature generation code is developed in Spark.</br>
-* Every set of features that needs to be grouped together, needs to be in separate `.py` modules.
-* Every python file used for feature generation, needs to be in `src/features`
-* Every python module that calculates a set of features, needs to take in input the necessary `pyspark` dataframes.
-Other necessary parameters are allowed, but they need to be predefined. 
-
+### Code for model validation modules
+* Model validation modules assume that trained models passed for validation are developed in skitlearn framework (have predict_proba and other standard functions)
+* Every python file used for model validation, needs to be in `/pyrisk/`
+* Every python module that validate the model needs to take at minimum three inputs: 
+    - model - model trained in skitlearn framework
+    - credit_data - pandas DataFrame with features and targets
+    - X - array/list with names of featuers
+    - Y - string with name of the target variables
+    - Other necessary parameters are allowed, but they need to be predefined
 * An example in pseudocode of a function generating the features is as follows:
 
 ```python 
