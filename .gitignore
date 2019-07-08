@@ -1,3 +1,7 @@
 tests/.pytest_cache
 tests/__pycache__
 notebooks/private
+.idea
+
+__pycache__
+*/__pycache__

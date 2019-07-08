@@ -1,0 +1,15 @@
+image: python:3.6-alpine
+
+stages:
+  - test
+
+before_script:
+  - pip install pytest
+  - python setup.py sdist
+
+test_merger_requests:
+  stage: test
+  script:
+  -   pytest tests/test_dummy.py
+  only:
+  - merge_requests
