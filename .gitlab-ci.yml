@@ -7,4 +7,5 @@ before_script:
   - pip install pytest
 
 run_tests:
-  - pytest tests/test_dummy
+  script:
+  -   pytest tests/test_dummy
