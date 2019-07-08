@@ -1,7 +1,7 @@
 import pandas as pd
 import os
 
-def load_data(file_name = 'sample_credit_data.pkl'):
+def lending_club(file_name = 'sample_credit_data.pkl'):
     """Sample test loan default data from Lending Club https://www.lendingclub.com/. Only a sample of all loans and available features is provided
 
     Metadata:
@@ -33,6 +33,6 @@ def load_data(file_name = 'sample_credit_data.pkl'):
 
     """
 
-    credit_df = pd.read_pickle(os.path.join('..','data',file_name))
+    credit_df = pd.read_pickle(os.path.join('data',file_name))
 
     return credit_df
