@@ -16,10 +16,9 @@ https://github.com/jonschlinkert/markdown-toc
 - [Technical Standards](#technical-standards)
   * [Python](#python)
   * [Jupyter notebooks](#jupyter-notebooks)
-  * [Code for feature generation](#code-for-feature-generation)
+  * [Code for model validation modules](#code-for-model-validation-modules)
   * [Functions for multiple modules](#functions-for-multiple-modules)
   
-- [Feature Naming](#feature-naming)
 - [Project Data](#project-data)
 - [Code Reviews](#code-reviews)
   * [What to review](#what-to-review)
