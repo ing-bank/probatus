@@ -1,0 +1,3 @@
+tests/.pytest_cache
+tests/__pycache__
+notebooks/private
