@@ -114,13 +114,13 @@ new_object = (
 * An example in pseudocode of a function generating the features is as follows:
 
 ```python 
-def transactional_features(core_table, transactions):
+def KS_test(model, credit_data, X, Y):
     """
     Description of the function
     """
     # does operations with the tables and returns the feature
     
-    return transactional__features
+    return ks__scores
 ```
 * Functions should not exceed 10-15 lines of code. If more code is needed, try to put together snippets of code into 
 other functions. This make the code more readable, and easier to test.
@@ -226,73 +226,6 @@ An example:
  defined in `helpers.py`
  - A function converts all IDs from String to Integers could be defined in `helpers.py`
 
-
-
-### Feature Naming
-#### General convention
-It's important that feature naming follows a convention, so that every user can understand what the features means<br>
-1. **feature names should be in English!** ;)
-2. every feature name needs to start with `feat_`
-3. the next set of string should indicate to which group of features does it apply. For example:
-    - features related to the transactional account usage, should start with `feat_trx_` (created by `src/features/transactions.py`)
-    - features related to the credit card used, should start with `feat_cc_` (created by `src/features/credit_card.py`)
-    - features related to the previous debt episodes, should start with `feat_debt_` (created by `src/features/debt.py`)
-    - features related to the previous payments, should start with `feat_pay_` (created by `src/features/.py`)
-    
-4. the following part of the name should describe the feature. When applicable, follow the following order:
-    - Type of aggregations (`count`,`mean`,`std_dev`,`trend`...)
-    - Filters (`inflows`,`leq_100_eur`)
-    - Time windows (`D_-30_0`, `M_-2_0`) ([see below](#time-intervals-convention))
-    - Any other information
-    
-    - As example: the features that counts the number of inflows in the range 100-200TL in 
-    the 2 months previous to the debt episode should be named as follows:
-    `feat_trx_count_inflow_heq_100_leq_200_M_-2_0` (which reads as  `features transactions counts inflows higher or 
-    equal than 100 lower or equal than 200 in the months between 0 and 2)
-    
-    - Another example: average DPD in the 6 months previous to the debt episode should be named as follows:
-    `feats_pay_mean_dpd_M_-6_0`
-    
-     - Another example: total DPD in the 6 months previous to the debt episode should be named as follows:
-    `feats_pay_sum_dpd_M_-6_0`
-    
-    
-  
-#### Time intervals naming convention
-When a time interval is used to compute a feature, it should follow the following conventions:
-`<interval_type>_<start_interval_included_<end_interval_included>`
-
-- <interval_type>: use `M` for calendar Months, `D` for Days
-- <start_interval_included>: use integer positive number
-- <end_interval_included>: use integer positive number
-
-In every case discussed, 0 represents the day or calendar month of the debt episode. <br>
-**Example**: <br>
-if the debt episode is on the 5th of February 2018, then:
-- `D 0` refers to the 5th of February 2018
-- `D -1` refers to the 4th of February 2018
-- `M 0` refers to the month of February 2018
-- `M -2` refers fo December 2017
-
-**Interval Example**:<br>
-Keeping the previous example of the debt episode on the 5th of February 2018, if our features is computed on 
-the following intervals:
-- October 2017 (included) until January 2018 (included), then the feature should be named `M_-4_-1` (reads as
-period from 4 calendar months ago to 1 calendar month ago, all included)
-- 6th January 2018 (included) until 4th February 2018 (included), then the feature should be named `D_-30_-1` (reads as
-period from 30 days ago to 1 day ago, all included)
-
-
-
-#### Exceptions
- Of course, not all the features can follow the naming logic described above. Steps 1,2,3 of the General convention are
- still applicable, but step 4. might not be.<br>
- A few examples below:
-    - requested amount: `feat_app_requested_amount` (Feature about the application requested amount)
-    - postal code: `feat_soc_postal_code` (Feature about socio/demographic infromation postal_code)
-    ...
-    
-
     
 
 ### Line endings (optional)
@@ -305,7 +238,7 @@ If you do run into trouble, please see our [dealing with windows line endings gu
 ## Project Data
 
 - **Do not commit data to git!**. As git preserves history, onces data has been pushed to gitlab it is **very** difficult to remove.
-- Very small .csv files can be permitted when used for testing, metadata or configuration purposes
+- Very small .csv/.pkl files can be permitted when used for examples, testing, metadata or configuration purposes
 - Source data should never be edited, instead create a reproducible pipeline with the immutable source data as input
 - Large files should go into HDFS, preferably in the parquet format or stored in Hive, depending on your development environment
 - Use the `/data` folder to store project data. This is .gitignore-ed directory by default
