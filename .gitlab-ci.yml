@@ -9,6 +9,6 @@ before_script:
 test_merger_requests:
   stage: test
   script:
-  -   pytest tests/test_dummy.py
+  -   pytest tests
   only:
   - merge_requests
