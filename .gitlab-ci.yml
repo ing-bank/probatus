@@ -1,0 +1,10 @@
+image: python:3.6-alpine
+
+stages:
+  - test
+
+before_script:
+  - pip install pytest
+
+run_tests:
+  - pytest tests/test_dummy
