@@ -1,12 +1,14 @@
 image: python:3.6-alpine
 
-#stages:
-#  - test
+stages:
+  - test
 
 before_script:
   - pip install pytest
 
-run_tests:
-#  stage: test
+test_merger_requests:
+  stage: test
   script:
   -   pytest tests/test_dummy.py
+  only:
+  - merge_requests
