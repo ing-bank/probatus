@@ -1,4 +1,5 @@
-image: python:3.6-alpine
+#image: python:3.6-alpine
+image: continuumio/miniconda3:latest
 
 stages:
   - test
@@ -10,7 +11,10 @@ before_script:
 test_merge_requests:
   stage: test
   script:
-  -  python setup.py install
-  -  pytest tests
+    - conda create -n gitlab_test python=3.6
+    - source activate gitlab_test
+    - pip install pytest
+    - python setup.py install
+    - pytest tests
   only:
   - merge_requests
