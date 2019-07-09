@@ -1,7 +1,8 @@
 import pandas as pd
 import os
+from sklearn.model_selection import train_test_split
 
-def lending_club(file_name = 'sample_credit_data.pkl'):
+def lending_club(file_name = 'sample_credit_data.pkl', modelling_mode = True):
     """Sample test loan default data from Lending Club https://www.lendingclub.com/. Only a sample of all loans and available features is provided
 
     Metadata:
@@ -27,12 +28,27 @@ def lending_club(file_name = 'sample_credit_data.pkl'):
 
     Args:
         file_name (str) : name of the file which will be loaded from the data folder
+        modelling_mode (bool) : True if you to get x_train, x_test, y_train, y_test
 
     Returns:
         credit_df (pandas.DataFrame): DataFrame with loan defaults data from lending club
+        X_train (array): features for the train set 
+        X_test (array): features for the test set 
+        y_train (array): targets for the train set 
+        y_test (array): targets for the test set 
 
     """
 
     credit_df = pd.read_pickle(os.path.join('data',file_name))
 
-    return credit_df
+    X_train = []
+    X_test = []
+    y_train = []
+    y_test = []
+
+    if modelling_mode:
+        y = credit_df[['default']]
+        X = credit_df.drop(['id', 'loan_issue_date','default'], axis = 1)
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.33, random_state=42, stratify = y)
+
+    return credit_df, X_train, X_test, y_train, y_test
