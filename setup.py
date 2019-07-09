@@ -7,9 +7,9 @@ try:
     else:
         version = os.environ['CI_JOB_ID']
 except:
-    version = 'local'
+    version = 'local-5'
 
-     
+
 setuptools.setup(
     name='pyrisk',
     version=version,
@@ -18,6 +18,7 @@ setuptools.setup(
     author_email='ml_risk_and_pricing_aa@ing.com',
     license='ING Open Source',
     packages=setuptools.find_packages(),
+    package_data={'pyrisk': ['datasets/data/*.pkl']},
     url='https://gitlab.com/ing_rpaa/pyrisk',
     zip_safe=False
 )
