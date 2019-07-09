@@ -2,9 +2,11 @@ image: python:3.6-alpine
 
 stages:
   - test
+  - deploy
 
 before_script:
   - pip install pytest
+  - pip install twine
   - python setup.py sdist
 
 test_merge_requests:
@@ -13,3 +15,15 @@ test_merge_requests:
   -   pytest tests
   only:
   - merge_requests
+  except:
+    - tags
+
+deploy_production:
+  stage: deploy
+  variables:
+    TWINE_USERNAME: $PRODUCTION_USERNAME
+    TWINE_PASSWORD: $PRODUCTION_PASSWORD
+  script:
+    - twine upload --repository-url https://test.pypi.org/legacy/ dist/*
+  only:
+    - tags
