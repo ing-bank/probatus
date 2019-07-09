@@ -15,7 +15,7 @@ setup(
     author='RPAA ING',
     author_email='ml_risk_and_pricing_aa@ing.com',
     license='ING Open Source',
-    packages=['pyrisk'],
+    packages=setuptools.find_packages(),
     url='https://gitlab.com/ing_rpaa/pyrisk',
     zip_safe=False
 )
