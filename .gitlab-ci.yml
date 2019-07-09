@@ -5,7 +5,7 @@ stages:
 
 before_script:
   - pip install pytest
-  - python setup.py sdist
+  #- python setup.py sdist
 
 test_merge_requests:
   stage: test
