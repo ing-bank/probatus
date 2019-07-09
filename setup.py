@@ -1,4 +1,4 @@
-from setuptools import setup
+import setuptools
 import os
 
 try:
@@ -8,7 +8,8 @@ try:
         version = os.environ['CI_JOB_ID']
 except:
     version = 'local'
-setup(
+    
+setuptools.setup(
     name='pyrisk',
     version=version,
     description='Validate your models like a lion',
