@@ -1,5 +1,6 @@
 import pandas as pd
 import os
+from pkg_resources import resource_filename
 
 def lending_club(file_name = 'sample_credit_data.pkl'):
     """Sample test loan default data from Lending Club https://www.lendingclub.com/. Only a sample of all loans and available features is provided
@@ -33,6 +34,8 @@ def lending_club(file_name = 'sample_credit_data.pkl'):
 
     """
 
-    credit_df = pd.read_pickle(os.path.join('data',file_name))
+    filepath = resource_filename("pyrisk", os.path.join('datasets/data',file_name))
+
+    credit_df = pd.read_pickle(filepath)
 
     return credit_df
