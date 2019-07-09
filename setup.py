@@ -8,7 +8,8 @@ try:
         version = os.environ['CI_JOB_ID']
 except:
     version = 'local'
-    
+
+     
 setuptools.setup(
     name='pyrisk',
     version=version,
