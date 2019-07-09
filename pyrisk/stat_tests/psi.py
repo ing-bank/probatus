@@ -27,13 +27,15 @@ def psi(d1, d2, buckets = 10, verbose = False):
     for i in range(0, len(expected_pct)):
         if expected_pct[i] == 0:
             expected_pct[i] = 0.0001
-            print(f"PSI: Bucket {i} has zero counts; may result in over-estimated (larger) PSI value. Decreasing the \
-                  the number of buckets may also help avoid buckets with zero counts.")
+            if verbose:
+                print(f"PSI: Bucket {i} has zero counts; may result in over-estimated (larger) PSI value. Decreasing \
+                        the number of buckets may also help avoid buckets with zero counts.")
     for i in range(0, len(actual_pct)):
         if actual_pct[i] == 0:
             actual_pct[i] = 0.0001
-            print(f"PSI: Bucket {i} has zero counts; may result in over-estimated (larger) PSI value. Decreasing the \
-                  the number of buckets may also help avoid buckets with zero counts.")
+            if verbose:
+                print(f"PSI: Bucket {i} has zero counts; may result in over-estimated (larger) PSI value. Decreasing \
+                        the number of buckets may also help avoid buckets with zero counts.")
         
     psi_value = np.sum((actual_pct - expected_pct) * np.log(actual_pct / expected_pct))
 
