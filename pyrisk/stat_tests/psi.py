@@ -1,9 +1,11 @@
 import numpy as np
 
+
 def psi(d1, d2, buckets = 10):
 
     """Calculates the Population Stability Index, a simple statistical test that quantifes the similarity of two 
-    distributions. Commonly used in the banking / risk modeling industry.
+    distributions. Commonly used in the banking / risk modeling industry. Only works on categorical data or bucketted
+    numerical data.
 
     Args:
         d1 (np.array) : first distribution ("expected")
@@ -16,10 +18,10 @@ def psi(d1, d2, buckets = 10):
 
     """
 
-    expected_pct = np.histogram(d1, buckets)[0] / len(d1)
-    actual_pct = np.histogram(d2, buckets)[0] / len(d2)
+    expected_pct = simple_bins(d1, buckets)[0] / len(d1)
+    actual_pct = simple_bins(d2, buckets)[0] / len(d2)
 
-    # Necessary to avoid divide by zero. Should have negligible impact in PSI value.
+    # Necessary to avoid divide by zero. Should have negligible impact on PSI value.
     for i in range(0, len(expected_pct)):
         if expected_pct[i] == 0:
             expected_pct[i] = 0.0001
@@ -33,7 +35,7 @@ def psi(d1, d2, buckets = 10):
 
     if psi_value < 0.1:
         print('\nPSI: No significant population change.')
-    elif psi_value >= 0.1 and psi_value < 0.2:
+    elif 0.1 <= psi_value < 0.2:
         print('\nPSI: Moderate population change.')
     elif psi_value >= 0.2:
         print('\nPSI: Significant population change.')
