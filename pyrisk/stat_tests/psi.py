@@ -1,4 +1,5 @@
 import numpy as np
+from pyrisk.binning import simple_bins
 
 
 def psi(d1, d2, buckets = 10):
