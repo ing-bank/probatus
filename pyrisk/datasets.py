@@ -1,14 +1,17 @@
 import pandas as pd
 import os
 
-def lending_club(file_name = 'sample_credit_data.pkl'):
-    """Sample test loan default data from Lending Club https://www.lendingclub.com/. Only a sample of all loans and available features is provided
+
+def lending_club(file_name='sample_credit_data.pkl'):
+    """Sample test loan default data from Lending Club https://www.lendingclub.com/. Only a sample of all loans and
+    available features is provided
 
     Metadata:
         id                         object - Loan ID
         loan_issue_date    datetime64[ns] - Date when loan was issued. All dates are set to fist day of the month
         default                     int64 - Flag if the loan went to default or not. 
-                                            Default is defined as one of statuses: 'Late (31-120 days)', 'Late (16-30 days)', 'Default'
+                                            Default is defined as one of statuses: 'Late (31-120 days)', 'Late (16-30
+                                            days)', 'Default'
         loan_amnt                 float64 - Amount requested
         funded_amnt               float64 - Amount granted
         term                        int64 - Term of the loan in months
@@ -33,6 +36,6 @@ def lending_club(file_name = 'sample_credit_data.pkl'):
 
     """
 
-    credit_df = pd.read_pickle(os.path.join('data',file_name))
+    credit_df = pd.read_pickle(os.path.join('data', file_name))
 
     return credit_df
