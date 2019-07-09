@@ -24,6 +24,6 @@ deploy_production:
     TWINE_USERNAME: $PRODUCTION_USERNAME
     TWINE_PASSWORD: $PRODUCTION_PASSWORD
   script:
-    - twine upload --repository-url https://test.pypi.org/legacy dist/*
+    - twine upload --repository-url https://test.pypi.org/legacy/ dist/*
   only:
     - tags
