@@ -10,6 +10,7 @@ before_script:
 test_merge_requests:
   stage: test
   script:
-  -   pytest tests
+  -  python setup.py install
+  -  pytest tests
   only:
   - merge_requests
