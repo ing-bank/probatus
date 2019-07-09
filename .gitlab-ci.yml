@@ -7,9 +7,9 @@ before_script:
   - pip install pytest
   - python setup.py sdist
 
-test_merger_requests:
+test_merge_requests:
   stage: test
   script:
-  -   pytest tests/test_dummy.py
+  -   pytest tests
   only:
   - merge_requests
