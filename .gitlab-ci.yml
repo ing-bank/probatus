@@ -3,10 +3,12 @@ image: continuumio/miniconda3:latest
 
 stages:
   - test
+  - deploy
 
 before_script:
   - pip install pytest
-  #- python setup.py sdist
+  - pip install twine
+
 
 test_merge_requests:
   stage: test
@@ -18,3 +20,16 @@ test_merge_requests:
     - pytest tests
   only:
   - merge_requests
+  except:
+    - tags
+
+deploy_production:
+  stage: deploy
+  variables:
+    TWINE_USERNAME: $PRODUCTION_USERNAME
+    TWINE_PASSWORD: $PRODUCTION_PASSWORD
+  script:
+    - python setup.py sdist
+    - twine upload --repository-url https://test.pypi.org/legacy/ dist/*
+  only:
+    - tags
