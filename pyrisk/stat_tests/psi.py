@@ -11,9 +11,9 @@ def psi(d1, d2, verbose = False):
     with number of buckets chosen.
 
     Args:
-        d1 (np.array or pd.core.series.Series) : first distribution ("expected")
-        d2 (np.array or pd.core.series.Series) : second distribution ("actual")
-        verbose (bool)                         : print useful interpretation info to stdout (default False)
+        d1 (np.ndarray or pd.core.series.Series) : first distribution ("expected")
+        d2 (np.ndarray or pd.core.series.Series) : second distribution ("actual")
+        verbose (bool)                           : print useful interpretation info to stdout (default False)
 
     Returns:
         psi_value (float) : measure of the similarity between d1 & d2. (range 0-inf, with 0 indicating identical
@@ -22,9 +22,9 @@ def psi(d1, d2, verbose = False):
     """
 
     if isinstance(d1, pd.core.series.Series):
-        d1 = np.ndarray(d1)
+        d1 = np.array(d1)
     if isinstance(d2, pd.core.series.Series):
-        d2 = np.ndarray(d2)
+        d2 = np.array(d2)
 
     expected_pct = d1 / len(d1)
     actual_pct = d2 / len(d2)
