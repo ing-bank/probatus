@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-from pyrisk.binning import simple_bins, quantile_bins
+from pyrisk.binning.binning import simple_bins, quantile_bins, agglomerative_clustering_binning
 
 
 def test_simple_bins():
@@ -20,3 +20,18 @@ def test_quantile_bins():
     assert boundaries[-1] == max(x)
     assert counts[0] == pytest.approx(len(x) / bins, abs=1)
     assert np.std(counts) == pytest.approx(0, abs=1)
+
+
+def test_agglomerative_clustering():
+    def log_function(x):
+        return 1 / (1 + np.exp(-10 * x))
+
+    x = [log_function(x) for x in np.arange(-1, 1, 0.01)]
+    bins = 4
+    counts, boundaries = agglomerative_clustering_binning(x, bins)
+    assert sum(counts) == len(x)
+    assert boundaries[0] == min(x)
+    assert boundaries[-1] == max(x)
+    assert boundaries[1] == pytest.approx(0.11, abs=0.1)
+    assert boundaries[2] == pytest.approx(0.58, abs=0.1)
+    assert boundaries[3] == pytest.approx(0.87, abs=0.1)
