@@ -1,27 +1,22 @@
-from pyrisk.binning import simple_bins
 from scipy import stats
 
 
-def ks(d1, d2, buckets = 0, verbose = False):
-    """Calculates the Kolmogorov-Smirnov statistic on 2 samples.
+def ks(d1, d2, verbose = False):
+    """
+    Calculates the Kolmogorov-Smirnov statistic on 2 samples. Any binning/bucketing of the distributions/samples
+    should be done before passing them to this function.
 
     Args:
         d1 (np.array)  : first sample
         d2 (np.array)  : second sample
-        buckets (int)  : number of buckets (bins) for discretizing the distribution (default 0)
         verbose (bool) : helpful interpretation msgs printed to stdout (default False)
 
     Returns:
+        ks (float)     : KS test stat
         pvalue (float) : P value of rejecting the null hypothesis (that the two distributions are identical)
-
     """
 
-    if buckets == 0:
-        ks, pvalue = stats.ks_2samp(d1, d2)
-    else:
-        d1_bucketed = simple_bins(d1, buckets)[0]
-        d2_bucketed = simple_bins(d2, buckets)[0]
-        ks, pvalue = stats.ks_2samp(d1_bucketed, d2_bucketed)
+    ks, pvalue = stats.ks_2samp(d1, d2)
 
     if verbose:
         print('\nKS: pvalue =', pvalue)
@@ -33,4 +28,4 @@ def ks(d1, d2, buckets = 0, verbose = False):
         else:
             print('\nKS: Null hypothesis cannot be rejected. Distributions not statistically different.')
 
-    return pvalue
+    return ks, pvalue
