@@ -5,7 +5,7 @@ from pyrisk.datasets import lending_club
 model = lending_club_model()
 credit_df, x_train, x_test, y_train, y_test = lending_club()
 
-def test_lending_club_shape():
+def test_fit_calibration():
     assert fit_calibration(model, x_train, x_test, y_test, y_train, 2, 'sigmoid') != None
     assert fit_calibration(model, x_train, x_test, y_test, y_train, 2, 'mle') != None
     assert fit_calibration(model, x_train, x_test, y_test, y_train, 2, 'isotonic') != None
