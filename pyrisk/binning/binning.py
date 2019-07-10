@@ -37,3 +37,17 @@ def agglomerative_clustering_binning(x, bin_count):
     boundaries = [cluster_minimum_values[0]] + boundaries + [cluster_maximum_values[-1]]
     counts = df.groupby('label')['label'].count().values
     return counts, boundaries
+
+
+def quantile_bins(x, bin_count):
+    """
+    Create bins with equal number of elements
+    :param x: array with a feature which has to be binned
+    :param bin_count: integer with the number of bins
+    :return: tuple containing counts per bin and the boundaries of the bins
+    """
+    out, boundaries = pd.qcut(x, q=bin_count, retbins=True)
+    df = pd.DataFrame({'x': x})
+    df['label'] = out
+    counts = df.groupby('label').count().values.flatten()
+    return counts, boundaries
