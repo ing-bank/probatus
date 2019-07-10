@@ -10,8 +10,8 @@ def test_psi_returns_zero():
 
 
 def test_psi_returns_large():
-    d1 = np.random.normal(size = 1000)
-    d2 = np.random.weibull(1, size = 1000) - 1
+    d1 = np.histogram(np.random.normal(size = 1000), 10)[0]
+    d2 = np.histogram(np.random.weibull(1, size = 1000) - 1, 10)[0]
     assert psi(d1, d2) > 1.0
 
 
@@ -19,10 +19,10 @@ def test_psi_returns_large():
 def test_ks_returns_one():
     d1 = np.random.normal(size = 1000)
     d2 = d1
-    assert ks(d1, d2) == 1.0
+    assert ks(d1, d2)[1] == 1.0
 
 
 def test_psi_returns_small():
     d1 = np.random.normal(size = 1000)
     d2 = np.random.weibull(1, size = 1000) - 1
-    assert ks(d1, d2) < 0.001
+    assert ks(d1, d2)[1] < 0.001
