@@ -15,7 +15,8 @@ def simple_bins(x, bin_count):
                 second element of list contains the bin boundaries [X1,X2)
 
     """
-    return np.histogram(x, bins=bin_count)
+    counts, boundaries = np.histogram(x, bins=bin_count)
+    return counts, boundaries
 
 
 def agglomerative_clustering_binning(x, bin_count):
