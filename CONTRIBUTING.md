@@ -13,6 +13,7 @@ https://github.com/jonschlinkert/markdown-toc
 - [Code development](#code-development)
   * [Jupyter notebooks](#jupyter-notebooks)
   * [Functions in .py files](#functions-in-.py-files)
+
 - [Technical Standards](#technical-standards)
   * [Python](#python)
   * [Jupyter notebooks](#jupyter-notebooks)
@@ -55,7 +56,9 @@ https://github.com/jonschlinkert/markdown-toc
     * validation steps
 - The `.py files` must be stored into the directory `/pyrisk/` or a subdirectory of the same
 - Written functions should follow the [Technical Standards](#technical-standards)
-
+- Verbosity
+    * There should be no print statements to stdout by default.
+    * If you want optional printing to stdout, add the argument `verbose` to your function, by default set to `False`.
 
 
 
