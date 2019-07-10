@@ -1,6 +1,7 @@
 import numpy as np
-from pyrisk.stat_tests.psi import psi
+
 from pyrisk.stat_tests.ks import ks
+from pyrisk.stat_tests.psi import psi
 
 
 def test_psi_returns_zero():
@@ -13,7 +14,6 @@ def test_psi_returns_large():
     d1 = np.histogram(np.random.normal(size = 1000), 10)[0]
     d2 = np.histogram(np.random.weibull(1, size = 1000) - 1, 10)[0]
     assert psi(d1, d2) > 1.0
-
 
 
 def test_ks_returns_one():

@@ -1,3 +1,4 @@
+import pandas as pd
 from scipy import stats
 
 
@@ -7,14 +8,19 @@ def ks(d1, d2, verbose = False):
     should be done before passing them to this function.
 
     Args:
-        d1 (np.array)  : first sample
-        d2 (np.array)  : second sample
-        verbose (bool) : helpful interpretation msgs printed to stdout (default False)
+        d1 (np.array or pd.core.series.Series) : first sample
+        d2 (np.array or pd.core.series.Series) : second sample
+        verbose (bool)                         : helpful interpretation msgs printed to stdout (default False)
 
     Returns:
         ks (float)     : KS test stat
         pvalue (float) : P value of rejecting the null hypothesis (that the two distributions are identical)
     """
+
+    if isinstance(d1, pd.core.series.Series):
+        d1 = np.ndarray(d1)
+    if isinstance(d2, pd.core.series.Series):
+        d2 = np.ndarray(d2)
 
     ks, pvalue = stats.ks_2samp(d1, d2)
 
