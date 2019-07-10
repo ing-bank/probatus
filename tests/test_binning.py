@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-from pyrisk.binning.binning import simple_bins, quantile_bins, agglomerative_clustering_binning
+from pyrisk.binning import simple_bins, quantile_bins, agglomerative_clustering_binning
 
 
 def test_simple_bins():
