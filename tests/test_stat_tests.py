@@ -1,6 +1,8 @@
 import numpy as np
-from pyrisk.stat_tests.psi import psi
+
+from pyrisk.stat_tests.es import es
 from pyrisk.stat_tests.ks import ks
+from pyrisk.stat_tests.psi import psi
 
 
 def test_psi_returns_zero():
@@ -15,7 +17,6 @@ def test_psi_returns_large():
     assert psi(d1, d2) > 1.0
 
 
-
 def test_ks_returns_one():
     d1 = np.random.normal(size = 1000)
     d2 = d1
@@ -26,3 +27,15 @@ def test_psi_returns_small():
     d1 = np.random.normal(size = 1000)
     d2 = np.random.weibull(1, size = 1000) - 1
     assert ks(d1, d2)[1] < 0.001
+
+
+def test_es_returns_one():
+    d1 = np.random.normal(size = 1000)
+    d2 = d1
+    assert es(d1, d2)[1] == 1.0
+
+
+def test_es_returns_small():
+    d1 = np.random.normal(size = 1000)
+    d2 = np.random.weibull(1, size = 1000) - 1
+    assert es(d1, d2)[1] < 0.001
