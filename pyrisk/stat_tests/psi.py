@@ -4,7 +4,8 @@ import pandas as pd
 
 def psi(d1, d2, verbose = False):
 
-    """Calculates the Population Stability Index, a simple statistical test that quantifies the similarity of two
+    """
+    Calculates the Population Stability Index, a simple statistical test that quantifies the similarity of two
     distributions. Commonly used in the banking / risk modeling industry. Only works on categorical data or bucketed
     numerical data. Distributions must be binned/bucketed before passing them to this function. Note that the PSI varies
     with number of buckets chosen.

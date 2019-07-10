@@ -1,5 +1,6 @@
 import pandas as pd
 from scipy import stats
+import numpy as np
 
 
 def ks(d1, d2, verbose = False):
