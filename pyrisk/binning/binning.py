@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-from sklearn.clustering import AgglomerativeClustering
+from sklearn.cluster import AgglomerativeClustering
 
 
 def simple_bins(x, bin_count):
