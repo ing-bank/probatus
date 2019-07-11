@@ -13,6 +13,12 @@ class Bucketer(object):
     def __init__(self):
         self.fitted = False
 
+    def __repr__(self):
+        repr_ = f"{self.__class__.__name__}\n\tbincount: {self.bin_count}"
+        if self.fitted:
+            repr_ += f"\nResults:\n\tcounts: {self.counts}\n\tboundaries: {self.boundaries}"
+        return repr_
+
     def fit(self, x):
         """ Create bucketing on the array x
 
