@@ -1,9 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from pyrisk.stat_tests.es import es
-from pyrisk.stat_tests.ks import ks
-from pyrisk.stat_tests.psi import psi
+from pyrisk.stat_tests import es, ks, psi
 
 
 def test_psi_returns_zero():
