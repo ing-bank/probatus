@@ -1,5 +1,6 @@
 import pickle
 import os
+from pkg_resources import resource_filename
 
 def lending_club_model(file_name = 'sample_credit_model.pkl'):
     """Sample Random Forest model trained on the lending club loan data.
@@ -21,6 +22,6 @@ def lending_club_model(file_name = 'sample_credit_model.pkl'):
     """
 
     filepath = resource_filename("pyrisk", os.path.join('datasets/data',file_name))
-    credit_clf = pickle.load(open(file_name), 'rb'))
+    credit_clf = pickle.load(open(filepath, 'rb'))
 
     return credit_clf
