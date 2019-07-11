@@ -1,18 +1,21 @@
 from pyrisk.calibration import *
 from pyrisk.models import lending_club_model
 from pyrisk.datasets import lending_club
+from pyrisk.calibration import Calibrator
 
-model = lending_club_model()
-credit_df, x_train, x_test, y_train, y_test = lending_club()
+def test_get_calibrator():
+    model = lending_club_model()
+    credit_df, x_train, x_test, y_train, y_test = lending_club()
+    my_calibrator = Calibrator(methods = ['sigmoid','isotonic','nonliear'], folds = 3, bins =10)
+    my_calibrator.fit(model,x_train,x_test,y_test,y_train)
+    check = my_calibrator.get_calibs()
+    assert check['sigmoid'] != None
 
-def test_fit_calibration():
-    assert fit_calibration(model, x_train, x_test, y_test, y_train, 2, 'sigmoid') != None
-    assert fit_calibration(model, x_train, x_test, y_test, y_train, 2, 'mle') != None
-    assert fit_calibration(model, x_train, x_test, y_test, y_train, 2, 'isotonic') != None
-
-def test_mle_calibration_model():
-    assert mle_calibration_model(x_train, x_test, y_test, y_train, model) != None
-
-def test_model_calibration():
-    dict_cl = model_calibration(model, x_train, x_test, y_test, y_train, ['sigmoid'], False, 10, 2)
-    assert list(dict_cl.keys()) == ['sigmoid']
+def test_fit_calibrator():
+    model = lending_club_model()
+    credit_df, x_train, x_test, y_train, y_test = lending_club()    
+    my_calibrator = Calibrator(methods = ['sigmoid','isotonic','nonliear'], folds = 3, bins =10)
+    my_calibrator.fit(model,x_train,x_test,y_test,y_train)
+    check = my_calibrator.get_calibs()
+    cl = check['sigmoid']
+    assert cl.predict_proba(x_test) == my_calibrator.score('sigmoid',x_test, model)
