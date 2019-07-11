@@ -63,7 +63,7 @@ class Calibrator(object):
         return clf
 
 
-    def calibration_plot(self, x_test, y_test, method, model, calibration):
+    def calibration_plot(self, x_test, y_test, method_name, model, calibration):
         """
         Populate the calibration plot canvas 
 
@@ -72,18 +72,18 @@ class Calibrator(object):
             x_test (np.array) : numpy array with features on test set
             y_test (np.array) : numpy array with target on test set
             bins (int) : number of bins used for calculating the calibration metrics
-            method (str) : calibration method
+            method_name (str) : calibration method
             model (object) : a model object which has predict_proba method
             
         """
-        if method == 'nonliear':
+        if method_name == 'nonliear':
             x_test = model.predict_proba(x_test)[:,1]
             x_test = x_test.reshape(x_test.shape[0], 1)
             x_test = np.concatenate((x_test,x_test**2,x_test**3),axis=1)
 
         y_test_predict_proba = calibration.predict_proba(x_test)[:, 1]
         fraction_of_positives, mean_predicted_value = calibration_curve(y_test, y_test_predict_proba, n_bins = self.bins)
-        plt.plot(mean_predicted_value, fraction_of_positives, 's-', label=f'Calibrated - {method}')
+        plt.plot(mean_predicted_value, fraction_of_positives, 's-', label=f'Calibrated - {method_name}')
 
 
     def fit(self, model, x_train, x_test, y_test, y_train):
