@@ -1,5 +1,5 @@
 from sklearn.datasets import make_classification
-from pyrisk.validation import propensity_check
+from pyrisk.sample_similarity.validation import propensity_check
 from sklearn.ensemble import RandomForestClassifier
 import numpy as np
 
