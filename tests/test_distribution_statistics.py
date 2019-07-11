@@ -22,3 +22,12 @@ def test_distribution_statistics_tuple_output():
     res = myTest.fit(d1, d2)
     assert myTest.fitted
     assert isinstance(res, tuple)
+
+def test_distribution_statistics_ks_no_binning():
+    d1 = np.histogram(np.random.normal(size=1000), 10)[0]
+    d2 = np.histogram(np.random.weibull(1, size=1000) - 1, 10)[0]
+    myTest = DistributionStatistics('ks', binning_strategy=None)
+    assert not myTest.fitted
+    res = myTest.fit(d1, d2)
+    assert myTest.fitted
+    assert isinstance(res, tuple)
