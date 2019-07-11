@@ -61,10 +61,10 @@ def psi(d1, d2, verbose = False, n = None, m = None):
         elif psi_value > 0.25:
             print('\nPSI > 0.25: Significant distribution change; investigate.')
 
-    alpha = [0.95, 0.99, 0.999]
-    z_alpha = stats.norm.ppf(alpha)
-    psi_critvals = ((1 / n) + (1 / m)) * (b - 1) + z_alpha * ((1 / n) + (1 / m)) * np.sqrt(2 * (b - 1))
-    if verbose:
+    if verbose and n and m:
+        alpha = [0.95, 0.99, 0.999]
+        z_alpha = stats.norm.ppf(alpha)
+        psi_critvals = ((1 / n) + (1 / m)) * (b - 1) + z_alpha * ((1 / n) + (1 / m)) * np.sqrt(2 * (b - 1))
         print('\nPSI: Critical values defined according to Yurdakul 2018')
         if psi_value > psi_critvals[2]:
             print('PSI: 99.9% confident distributions have changed.')
