@@ -1,23 +1,30 @@
 import numpy as np
+import pandas as pd
 
 
 def psi(d1, d2, verbose = False):
 
-    """Calculates the Population Stability Index, a simple statistical test that quantifies the similarity of two
+    """
+    Calculates the Population Stability Index, a simple statistical test that quantifies the similarity of two
     distributions. Commonly used in the banking / risk modeling industry. Only works on categorical data or bucketed
     numerical data. Distributions must be binned/bucketed before passing them to this function. Note that the PSI varies
     with number of buckets chosen.
 
     Args:
-        d1 (np.array)  : first distribution ("expected")
-        d2 (np.array)  : second distribution ("actual")
-        verbose (bool) : print useful interpretation info to stdout (default False)
+        d1 (np.ndarray or pd.core.series.Series) : first distribution ("expected")
+        d2 (np.ndarray or pd.core.series.Series) : second distribution ("actual")
+        verbose (bool)                           : print useful interpretation info to stdout (default False)
 
     Returns:
         psi_value (float) : measure of the similarity between d1 & d2. (range 0-inf, with 0 indicating identical
                             distributions and > 0.2 indicating significantly different distributions)
 
     """
+
+    if isinstance(d1, pd.core.series.Series):
+        d1 = np.array(d1)
+    if isinstance(d2, pd.core.series.Series):
+        d2 = np.array(d2)
 
     expected_pct = d1 / len(d1)
     actual_pct = d2 / len(d2)
