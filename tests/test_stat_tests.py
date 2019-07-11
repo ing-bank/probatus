@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from pyrisk.stat_tests import es, ks, psi
+from pyrisk.stat_tests import ad, es, ks, psi
 
 
 def test_psi_returns_zero():
@@ -44,3 +44,15 @@ def test_es_returns_small():
     d1 = np.random.normal(size=1000)
     d2 = np.random.weibull(1, size=1000) - 1
     assert es(d1, d2)[1] < 0.001
+
+
+def test_ad_returns_big():
+    d1 = np.random.normal(size=1000)
+    d2 = d1
+    assert ad(d1, d2)[1] >= 0.25
+
+
+def test_ad_returns_small():
+    d1 = np.random.normal(size=1000)
+    d2 = np.random.weibull(1, size=1000) - 1
+    assert ad(d1, d2)[1] <= 0.001
