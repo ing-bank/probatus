@@ -1,3 +1,3 @@
-from .cabilrator import Calibrator
+from .calibrator import Calibrator
 
 __all__ = ['Calibrator']
