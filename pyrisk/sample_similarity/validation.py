@@ -70,6 +70,3 @@ def check_and_fill_missings(X, impute_method=True):
                       stacklevel=2)
         X[np.isnan(X)] = 0
     return X
-
-
-            
