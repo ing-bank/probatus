@@ -20,6 +20,7 @@ def lending_club_model(file_name = 'sample_credit_model.pkl'):
 
     """
 
-    credit_clf = pickle.load(open(os.path.join('pyrisk/datasets/data',file_name), 'rb'))
+    filepath = resource_filename("pyrisk", os.path.join('datasets/data',file_name))
+    credit_clf = pickle.load(open(file_name), 'rb'))
 
     return credit_clf
