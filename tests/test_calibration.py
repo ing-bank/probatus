@@ -1,3 +1,4 @@
+import numpy as np
 from pyrisk.calibration import *
 from pyrisk.models import lending_club_model
 from pyrisk.datasets import lending_club
@@ -18,4 +19,4 @@ def test_fit_calibrator():
     my_calibrator.fit(model,x_train,x_test,y_test,y_train)
     check = my_calibrator.get_calibs()
     cl = check['sigmoid']
-    assert cl.predict_proba(x_test) == my_calibrator.score('sigmoid',x_test, model)
+    assert np.array_equal(cl.predict_proba(x_test),my_calibrator.score('sigmoid',x_test, model))
