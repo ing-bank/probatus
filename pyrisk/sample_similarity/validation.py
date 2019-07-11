@@ -5,7 +5,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 import warnings
 
-def propensity_check(X1, X2):
+def propensity_check(X1, X2, rf_model=True, **kwargs):
     """Calculates and returns the AUC score.
     
     Args:
@@ -25,13 +25,13 @@ def propensity_check(X1, X2):
                                                         y,
                                                         test_size=0.33, 
                                                         random_state=42)
-
-    model = RandomForestClassifier(n_estimators=100)
-    model.fit(X_train,y_train)
+    if rf_model:
+        model = RandomForestClassifier(**kwargs)
+        model.fit(X_train,y_train)
     
-    score = model.predict_proba(X_test)[:,1]
-    auc = roc_auc_score(y_test, score)
-    importances = get_feature_importance(model)
+        score = model.predict_proba(X_test)[:,1]
+        auc = roc_auc_score(y_test, score)
+        importances = get_feature_importance(model)
     
     return auc, importances
 
