@@ -6,17 +6,24 @@ class DistributionStatistics(object):
     """
     Wrapper that applies a statistical method and a binning strategy to data.
 
-    Statistical methods implemented:
-        'ES': Epps-Singleton
-        'KS': Kolmogorov-Smirnov statistic
-        'PSI': Population Stability Index
+    Parameters
+    ----------
+    statistical_test: string
+        Statistical method to apply, statistical methods implemented:
+            'ES': Epps-Singleton
+            'KS': Kolmogorov-Smirnov statistic
+            'PSI': Population Stability Index
 
-    Binning strategies implemented:
-        'SimpleBucketer': equally spaced bins
-        'AgglomerativeBucketer': binning by applying the Scikit-learn implementation of Agglomerative Clustering
-        'QuantileBucketer': bins with equal number of elements
+    binning_strategy: string or None
+        Binning strategy to apply, binning strategies implemented:
+            'SimpleBucketer': equally spaced bins
+            'AgglomerativeBucketer': binning by applying the Scikit-learn implementation of Agglomerative Clustering
+            'QuantileBucketer': bins with equal number of elements
 
-    Usage:
+    bin_count: integer or None
+        In case binning_strategy is not None, specify the number of bins to be used by the binning strategy
+
+    Example:
     d1 = np.histogram(np.random.normal(size=1000), 10)[0]
     d2 = np.histogram(np.random.normal(size=1000), 10)[0]
 
