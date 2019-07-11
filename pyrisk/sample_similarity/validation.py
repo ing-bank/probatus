@@ -15,10 +15,8 @@ def propensity_check(X1, X2):
     Returns: 
         AUC score                   : float  
     """   
-    if (np.isnan(X1).any()==True or np.isnan(X2).any()==True):
-        warnings.warn("You have missing values in the two samples", 
-                      DeprecationWarning, 
-                      stacklevel=2)
+    check_and_fill_missings(X1)
+    check_and_fill_missings(X2)
     
     X = np.concatenate([X1,X2])
     y = np.zeros(len(X1) + len(X2))
@@ -27,8 +25,8 @@ def propensity_check(X1, X2):
                                                         y,
                                                         test_size=0.33, 
                                                         random_state=42)
-    model = XGBClassifier()
-    #model = RandomForestClassifier(n_estimators=100)
+
+    model = RandomForestClassifier(n_estimators=100)
     model.fit(X_train,y_train)
     
     score = model.predict_proba(X_test)[:,1]
@@ -39,8 +37,8 @@ def propensity_check(X1, X2):
 
 
 def get_feature_importance(model):
-    """
-    Retunrs feature importance for a given model
+    """Returns feature importance for a given model
+
     Args:
         model (object): model object
     Returns:
@@ -50,6 +48,28 @@ def get_feature_importance(model):
     
     return feat_importances
 
+        
+def check_and_fill_missings(X, impute_method=True):
+    """
+    Checks if for missing values: if there are and impute_method=True 
+    it fills them with zero
+
+    Args:
+        X (numpy array):
+        impute_method (bool)
+    Returns:
+        X (numpy array)
+    """
+    if np.isnan(X).any()==True:
+        warnings.warn("You have missing values in your sample", 
+                      DeprecationWarning, 
+                      stacklevel=2)
+    if impute_method:
+        warnings.warn("Going to temporary solution: filling missing values with zero", 
+                      DeprecationWarning, 
+                      stacklevel=2)
+        X[np.isnan(X)] = 0
+    return X
 
 
             
