@@ -18,7 +18,7 @@ def check_1d(x):
     """
     if isinstance(x, list):
         if any([isinstance(el, list) for el in x]):
-            raise DimensionalityError('The imput is not 1D')
+            raise DimensionalityError('The input is not 1D')
         else:
             return True
     if isinstance(x, np.ndarray):
