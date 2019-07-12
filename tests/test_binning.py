@@ -55,3 +55,19 @@ def test_agglomerative_clustering_new():
     counts, boundaries = AgglomerativeBucketer(bin_count=bins).agglomerative_clustering_binning(x, bins)
     assert np.array_equal(myBucketer.counts, counts)
     np.testing.assert_array_almost_equal(myBucketer.boundaries, boundaries)
+
+
+def test_apply_bucketing():
+    x = np.arange(10)
+    bins = 5
+    myBucketer = QuantileBucketer(bins)
+    myBucketer.fit(x)
+    x_new = x
+    assert len(myBucketer.apply_bucketing(x_new)) == bins
+    np.testing.assert_array_equal(myBucketer.counts, myBucketer.apply_bucketing(x_new))
+    x_new = x + 100
+    np.testing.assert_array_equal(np.array([0, 0, 0, 0, 0]), myBucketer.apply_bucketing(x_new))
+    x_new = x - 100
+    np.testing.assert_array_equal(np.array([10, 0, 0, 0, 0]), myBucketer.apply_bucketing(x_new))
+    x_new = [1, 1, 1, 4, 4, 7]
+    np.testing.assert_array_equal(np.array([3, 0, 2, 1, 0]), myBucketer.apply_bucketing(x_new))
