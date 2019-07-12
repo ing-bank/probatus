@@ -25,17 +25,17 @@ def check_1d(x):
         if x.ndim == 1 and all([isinstance(el, numbers.Number) for el in x]):
             return True
         else:
-            raise DimensionalityError('The imput is not 1D')
+            raise DimensionalityError('The input is not 1D')
     if isinstance(x, pd.core.frame.DataFrame):
         if len(x.columns) == 1 and pd.api.types.is_numeric_dtype(x[x.columns[0]]):
             return True
         else:
-            raise DimensionalityError('The imput is not 1D')
+            raise DimensionalityError('The input is not 1D')
     if isinstance(x, pd.core.series.Series):
         if x.ndim == 1 and pd.api.types.is_numeric_dtype(x):
             return True
         else:
-            raise DimensionalityError('The imput is not 1D')
+            raise DimensionalityError('The input is not 1D')
 
 
 def assure_numpy_array(x):
