@@ -2,11 +2,7 @@ import pandas as pd
 import numpy as np
 from sklearn.cluster import AgglomerativeClustering
 
-
-# TODO: move to utils folder
-class NotFittedError(Exception):
-    def __init__(self, message):
-        self.message = message
+from pyrisk.utils import NotFittedError
 
 
 class Bucketer(object):
