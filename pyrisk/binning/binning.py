@@ -13,6 +13,12 @@ class Bucketer(object):
     def __init__(self):
         self.fitted = False
 
+    def __repr__(self):
+        repr_ = f"{self.__class__.__name__}\n\tbincount: {self.bin_count}"
+        if self.fitted:
+            repr_ += f"\nResults:\n\tcounts: {self.counts}\n\tboundaries: {self.boundaries}"
+        return repr_
+
     def fit(self, x):
         """ Create bucketing on the array x
 
@@ -27,11 +33,27 @@ class Bucketer(object):
         return self
 
     def apply_bucketing(self, x_new):
-        # TODO: decide on the output of this function
+        """
+        Apply bucketing to new data
+
+        Args:
+            x_new: data to be bucketed
+
+        Returns: counts of the elements in x_new using the bucketing that was obtained by fitting the Bucketer instance
+
+        """
         if not self.fitted:
             raise NotFittedError('Bucketer is not fitted')
         else:
-            return np.digitize(x_new, self.boundaries)
+            # np.digitize returns the indices of the bins to which each value in input array belongs
+            # the smallest value of the `boundaries` attribute equals the lowest value in the set the instance was
+            # fitted on, to prevent the smallest value of x_new to be in his own bucket, we ignore the first boundary
+            # value
+            digitize_result = np.digitize(x_new, self.boundaries[1:], right=True)
+            result = pd.DataFrame({'bucket': digitize_result}).groupby('bucket')['bucket'].count()
+            # reindex the dataframe such that also empty buckets are included in the result
+            result = result.reindex(np.arange(self.bin_count), fill_value=0)
+            return result.values
 
 
 class SimpleBucketer(Bucketer):
