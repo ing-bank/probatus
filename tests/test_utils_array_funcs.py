@@ -37,34 +37,42 @@ def test_check_numpy_array_series():
 def test_check_1d_list():
     x = [1, 2, 3]
     assert check_1d(x)
-    _ = [[1, 2], [1, 2, 3]]
-    assert pytest.raises(DimensionalityError)
-    _ = [1, [1, 2, 3]]
-    assert pytest.raises(DimensionalityError)
+    y = [[1, 2], [1, 2, 3]]
+    with pytest.raises(DimensionalityError):
+        assert check_1d(y)
+    y = [1, [1, 2, 3]]
+    with pytest.raises(DimensionalityError):
+        assert check_1d(y)
 
 
 def test_check_1d_array():
     x = np.array([1, 2, 3])
     assert check_1d(x)
-    _ = np.array([[1, 2], [1, 2, 3]])
-    assert pytest.raises(DimensionalityError)
-    _ = np.array([0, [1, 2, 3]])
-    assert pytest.raises(DimensionalityError)
+    y = np.array([[1, 2], [1, 2, 3]])
+    with pytest.raises(DimensionalityError):
+        assert check_1d(y)
+    y = np.array([0, [1, 2, 3]])
+    with pytest.raises(DimensionalityError):
+        assert check_1d(y)
 
 
 def test_check_1d_dataframe():
     x = pd.DataFrame({'x': [1, 2, 3]})
     assert check_1d(x)
-    _ = pd.DataFrame({'x': [1, 2, 3], 'y': [1, 2, 3]})
-    assert pytest.raises(DimensionalityError)
-    _ = pd.DataFrame({'x': [1, 2, 3, [4, 5]]})
-    assert pytest.raises(DimensionalityError)
+    y = pd.DataFrame({'x': [1, 2, 3], 'y': [1, 2, 3]})
+    with pytest.raises(DimensionalityError):
+        assert check_1d(y)
+    y = pd.DataFrame({'x': [1, 2, 3, [4, 5]]})
+    with pytest.raises(DimensionalityError):
+        assert check_1d(y)
 
 
 def test_check_1d_series():
     x = pd.Series([1, 2, 3])
     assert check_1d(x)
-    _ = pd.Series([1, [2, 3]])
-    assert pytest.raises(DimensionalityError)
-    _ = pd.Series([[1], [2, 3]])
-    assert pytest.raises(DimensionalityError)
+    y = pd.Series([1, [2, 3]])
+    with pytest.raises(DimensionalityError):
+        assert check_1d(y)
+    y = pd.Series([[1], [2, 3]])
+    with pytest.raises(DimensionalityError):
+        assert check_1d(y)
