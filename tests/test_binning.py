@@ -35,6 +35,10 @@ def test_quantile_bins():
     counts, boundaries = QuantileBucketer(bin_count=bins).quantile_bins(x, bins)
     assert np.array_equal(myBucketer.counts, counts)
     np.testing.assert_array_almost_equal(myBucketer.boundaries, boundaries)
+    # test inf edges
+    counts, boundaries = QuantileBucketer(bin_count=bins).quantile_bins(x, bins, inf_edges=True)
+    assert boundaries[0] == -np.inf
+    assert boundaries[-1] == np.inf
 
 
 def test_agglomerative_clustering_new():
