@@ -53,7 +53,7 @@ class Bucketer(object):
 
 
 class SimpleBucketer(Bucketer):
-    """Create equaly spaced bins using numpy.histogram function
+    """Create equally spaced bins using numpy.histogram function
 
     Usage:
     x = [1, 2, 1]
@@ -134,11 +134,14 @@ class QuantileBucketer(Bucketer):
         self.bin_count = bin_count
 
     @staticmethod
-    def quantile_bins(x, bin_count):
+    def quantile_bins(x, bin_count, inf_edges=False):
         out, boundaries = pd.qcut(x, q=bin_count, retbins=True)
         df = pd.DataFrame({'x': x})
         df['label'] = out
         counts = df.groupby('label').count().values.flatten()
+        if inf_edges:
+            boundaries[0] = -np.inf
+            boundaries[-1] = np.inf
         return counts, boundaries
 
     def _fit(self, x):

@@ -35,11 +35,13 @@ def test_distribution_statistics_ks_no_binning():
 
 
 def test_distribution_statistics_attributes_psi():
-    d1 = np.histogram(np.random.normal(size=1000), 10)[0]
-    d2 = np.histogram(np.random.normal(size=1000), 10)[0]
+    a = np.random.normal(size=1000)
+    b = np.random.normal(size=1000)
+    d1 = np.histogram(a, 10)[0]
+    d2 = np.histogram(b, 10)[0]
     myTest = DistributionStatistics('psi', binning_strategy=None)
-    _ = myTest.fit(d1, d2, verbose=False, n=3, m=3)
-    psi_value = psi(d1, d2)
+    _ = myTest.fit(d1, d2, verbose=False, n=len(a), m=len(b))
+    psi_value = psi(d1, d2, verbose=False, n=len(a), m=len(b))
     assert myTest.statistic == psi_value
 
 
