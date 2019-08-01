@@ -4,10 +4,11 @@ from sklearn.calibration import CalibratedClassifierCV
 from sklearn.calibration import calibration_curve
 from sklearn.linear_model import LogisticRegression
 from pyrisk.utils import assure_numpy_array
+from pyrisk.binning import AgglomerativeBucketer, SimpleBucketer, QuantileBucketer
 
 class Calibrator(object):
 
-    def __init__(self, methods, folds, bins):
+    def __init__(self, methods, folds, bucket_method, bins):
         """
         Initiate the calibrator
 
@@ -16,6 +17,7 @@ class Calibrator(object):
                              to be applied. The values assigned to keys are the powers used for fitting the model.
                              Power applied only for MLE callibration
             folds (int) : number of folds which should be used for training the calibrator
+            bucket_method (str) : bucketing method used for producing calibration plots
             bins (int) : number of bins use in the calibration
             
         """           
@@ -23,6 +25,42 @@ class Calibrator(object):
         self.folds = folds
         self.bins = bins
         self.cal_models = dict()
+        if bucket_method == 'agglomerative':
+            self.bucketer = AgglomerativeBucketer(bin_count = bins)
+        elif bucket_method == 'simple':
+            self.bucketer = SimpleBucketer(bin_count = bins)
+        elif bucket_method == 'quantile':
+            self.bucketer = QuantileBucketer(bin_count = bins)
+        else:
+            raise ValueError(f'Unknown method for binning the data {bucket_method}')
+
+    def calibration_curve(self, y_test, y_test_predict_proba):
+        """
+        Calculate the perfecentage of true class and mean predicted proba per bin
+
+        Args:
+            y_test (np.array) : numpy array with target on test set
+            y_test_predict_proba (np.array) : predicted probability on the test set
+
+        Returns:
+            fraction_of_positives (np.array) : fraction of positives in the bin
+            mean_predicted_value (np.array) : mean predicted probabilitie in the bin
+        """   
+
+        self.bucketer.fit(y_test_predict_proba)
+        buckets = np.digitize(y_test_predict_proba,self.bucketer.boundaries,right=True)
+
+        fraction_of_positives = []
+        mean_predicted_value = []
+
+        for i in range(1,self.bins + 1):
+            idnexes = np.argwhere(buckets == i)
+            mean = np.mean(y_test_predict_proba[idnexes])
+            frac = np.sum(y_test[idnexes])/idnexes.shape[0]
+            fraction_of_positives.append(frac)
+            mean_predicted_value.append(mean)
+
+        return np.array(fraction_of_positives), np.array(mean_predicted_value)
 
     def mle_calibration_model(self, x_train, y_train, model, power):
         """
@@ -69,6 +107,8 @@ class Calibrator(object):
             clf.fit(x_train, y_train)
         elif method == 'nonliear':
             clf = self.mle_calibration_model(x_train, y_train, model, power)
+        else:
+            raise ValueError(f'Unknown method for colibration {method}')
 
         return clf
 
@@ -89,7 +129,7 @@ class Calibrator(object):
         """
 
         features_array = x_test
-        
+
         if method_name == 'nonliear':
             x_test = model.predict_proba(x_test)[:,1]
             x_test = x_test.reshape(x_test.shape[0], 1)
@@ -98,7 +138,7 @@ class Calibrator(object):
                 features_array = np.concatenate((features_array,x_test**i),axis=1)            
 
         y_test_predict_proba = calibration.predict_proba(features_array)[:, 1]
-        fraction_of_positives, mean_predicted_value = calibration_curve(y_test, y_test_predict_proba, n_bins = self.bins)
+        fraction_of_positives, mean_predicted_value = self.calibration_curve(y_test, y_test_predict_proba)
         plt.plot(mean_predicted_value, fraction_of_positives, 's-', label=f'Calibrated - {method_name} {power}')
 
 
@@ -134,7 +174,7 @@ class Calibrator(object):
         fig, ax = plt.subplots(1, figsize=(12, 6))
 
         y_test_predict_proba = self.model.predict_proba(self.x_test)[:, 1]
-        fraction_of_positives, mean_predicted_value = calibration_curve(self.y_test, y_test_predict_proba, n_bins = self.bins)
+        fraction_of_positives, mean_predicted_value = self.calibration_curve(self.y_test, y_test_predict_proba)
         plt.plot(mean_predicted_value, fraction_of_positives, 's-', label=f'Calibrated - Original')
 
         methods_list = list(self.methods.keys())
@@ -151,7 +191,7 @@ class Calibrator(object):
         plt.gca().legend()
         plt.show()
 
-    def score(self, method, x, model, power):
+    def score(self, method, x, model, power = None):
         """
         Calibrate the probabilities from the original model
 
