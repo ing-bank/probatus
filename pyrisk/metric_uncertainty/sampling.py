@@ -9,8 +9,7 @@ def stratified_random(x, y, size):
     Args:
         X: pdDataFrame or nparray with features
         y: pdDataFrame or nparray with targets
-        evaluator : dict with name of the metric as a key and array holding [scoring function, scoring type]
-            e.g. {'AUC' : [roc_auc_score,'proba'], 'ACC' : [accuracy_score,'class']}
+        size : int sample size
 
     Returns: 
         statistic value and p_value (if available, e.g. not for PSI)

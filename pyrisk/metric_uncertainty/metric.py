@@ -3,15 +3,15 @@ from sklearn.model_selection import train_test_split
 
 def get_metric(X, y, model, test_size, seed, evaluator, pred_type):
     """
-    Draws N random samples from the data to create new train/test splits and calculate metric of interest.
-    After collecting multiple metrics per split, summary statistics of the metic are reported.
-    This provides uncertainty levels around the metric if the train/test data is resampled.  
+    Draws random train/test sample from the data using random seed and calculates metric of interest.
 
     Args:
         X: pdDataFrame or nparray with features
         y: pdDataFrame or nparray with targets
-        evaluator : dict with name of the metric as a key and array holding [scoring function, scoring type]
-            e.g. {'AUC' : [roc_auc_score,'proba'], 'ACC' : [accuracy_score,'class']}
+        test_size: float fraction of data used for testing the model
+        seed: int randomized seed used for splitting data
+        evaluator : function used for calculating evaluation metric
+        pred_type : string form of prediction which is used for obtaining evaluation metric.
 
     Returns: 
         statistic value and p_value (if available, e.g. not for PSI)
