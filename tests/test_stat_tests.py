@@ -7,13 +7,13 @@ from pyrisk.stat_tests import ad, es, ks, psi
 def test_psi_returns_zero():
     d1 = np.random.normal(size=1000)
     d2 = d1
-    assert psi(d1, d2) == 0.0
+    assert psi(d1, d2, verbose=False, n=len(d1), m=len(d2)) == 0.0
 
 
 def test_psi_returns_large():
     d1 = np.histogram(np.random.normal(size=1000), 10)[0]
     d2 = np.histogram(np.random.weibull(1, size=1000) - 1, 10)[0]
-    assert psi(d1, d2) > 1.0
+    assert psi(d1, d2, verbose=False, n=len(d1), m=len(d2)) > 1.0
 
 
 def test_ks_returns_one():
