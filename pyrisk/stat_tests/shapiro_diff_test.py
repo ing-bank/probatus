@@ -10,7 +10,7 @@ def shapiro_difference(d1,d2):
     one random variable from normality
     is significantly different from that of the other
     random variable. If given random variables are two distinct realizations
-    of the same feature, this test indicates change in distribution
+    of the same feature, this test indicates change in distribution...
 
     null hypothesis: distributions of given random variables are not significantly different
 
