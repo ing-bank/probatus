@@ -1,37 +1,77 @@
 import numpy as np
-import pytest
-from pyrisk.binning import simple_bins, quantile_bins, agglomerative_clustering_binning
+from pyrisk.binning import SimpleBucketer, QuantileBucketer, AgglomerativeBucketer
 
 
 def test_simple_bins():
     x = [1, 2, 1]
     bins = 3
-    res = simple_bins(x, bins)
-    assert (np.array_equal(res[0], np.array([2, 0, 1]))) and (
-        np.array_equal(np.round(res[1]), np.round(np.array([1., 1.33333333, 1.66666667, 2.]))))
+    myBucketer = SimpleBucketer(bin_count=bins)
+    assert not myBucketer.fitted
+    myBucketer.fit(x)
+    assert myBucketer.fitted
+    assert len(myBucketer.counts) == bins
+    assert np.array_equal(myBucketer.counts, np.array([2, 0, 1]))
+    assert len(myBucketer.boundaries) == bins + 1
+    np.testing.assert_array_almost_equal(myBucketer.boundaries, np.array([1., 1.33333333, 1.66666667, 2.]))
+    # test static method
+    counts, boundaries = SimpleBucketer(bin_count=bins).simple_bins(x, bins)
+    assert np.array_equal(myBucketer.counts, counts)
+    np.testing.assert_array_almost_equal(myBucketer.boundaries, boundaries)
 
 
 def test_quantile_bins():
     bins = 4
-    x = np.random.normal(0, 1, size=100)
-    counts, boundaries = quantile_bins(x, bins)
-    assert sum(counts) == len(x)
-    assert boundaries[0] == min(x)
-    assert boundaries[-1] == max(x)
-    assert counts[0] == pytest.approx(len(x) / bins, abs=1)
-    assert np.std(counts) == pytest.approx(0, abs=1)
+    random_state = np.random.RandomState(0)
+    x = random_state.normal(0, 1, size=1000)
+    myBucketer = QuantileBucketer(bin_count=bins)
+    assert not myBucketer.fitted
+    myBucketer.fit(x)
+    assert myBucketer.fitted
+    assert len(myBucketer.counts) == bins
+    assert np.array_equal(myBucketer.counts, np.array([250, 250, 250, 250]))
+    assert len(myBucketer.boundaries) == bins + 1
+    np.testing.assert_array_almost_equal(myBucketer.boundaries, np.array([-3.0, -0.7, -0.1, 0.6, 2.8]), decimal=1)
+    # test static method
+    counts, boundaries = QuantileBucketer(bin_count=bins).quantile_bins(x, bins)
+    assert np.array_equal(myBucketer.counts, counts)
+    np.testing.assert_array_almost_equal(myBucketer.boundaries, boundaries)
+    # test inf edges
+    counts, boundaries = QuantileBucketer(bin_count=bins).quantile_bins(x, bins, inf_edges=True)
+    assert boundaries[0] == -np.inf
+    assert boundaries[-1] == np.inf
 
 
-def test_agglomerative_clustering():
+def test_agglomerative_clustering_new():
     def log_function(x):
         return 1 / (1 + np.exp(-10 * x))
 
     x = [log_function(x) for x in np.arange(-1, 1, 0.01)]
     bins = 4
-    counts, boundaries = agglomerative_clustering_binning(x, bins)
-    assert sum(counts) == len(x)
-    assert boundaries[0] == min(x)
-    assert boundaries[-1] == max(x)
-    assert boundaries[1] == pytest.approx(0.11, abs=0.1)
-    assert boundaries[2] == pytest.approx(0.58, abs=0.1)
-    assert boundaries[3] == pytest.approx(0.87, abs=0.1)
+    myBucketer = AgglomerativeBucketer(bin_count=bins)
+    assert not myBucketer.fitted
+    myBucketer.fit(x)
+    assert myBucketer.fitted
+    assert len(myBucketer.counts) == bins
+    assert np.array_equal(myBucketer.counts, np.array([24, 16, 80, 80]))
+    assert len(myBucketer.boundaries) == bins + 1
+    np.testing.assert_array_almost_equal(myBucketer.boundaries, np.array([0, 0.11, 0.59, 0.88, 0.99]), decimal=2)
+    # test static method
+    counts, boundaries = AgglomerativeBucketer(bin_count=bins).agglomerative_clustering_binning(x, bins)
+    assert np.array_equal(myBucketer.counts, counts)
+    np.testing.assert_array_almost_equal(myBucketer.boundaries, boundaries)
+
+
+def test_apply_bucketing():
+    x = np.arange(10)
+    bins = 5
+    myBucketer = QuantileBucketer(bins)
+    myBucketer.fit(x)
+    x_new = x
+    assert len(myBucketer.apply_bucketing(x_new)) == bins
+    np.testing.assert_array_equal(myBucketer.counts, myBucketer.apply_bucketing(x_new))
+    x_new = x + 100
+    np.testing.assert_array_equal(np.array([0, 0, 0, 0, 0]), myBucketer.apply_bucketing(x_new))
+    x_new = x - 100
+    np.testing.assert_array_equal(np.array([10, 0, 0, 0, 0]), myBucketer.apply_bucketing(x_new))
+    x_new = [1, 1, 1, 4, 4, 7]
+    np.testing.assert_array_equal(np.array([3, 0, 2, 1, 0]), myBucketer.apply_bucketing(x_new))
