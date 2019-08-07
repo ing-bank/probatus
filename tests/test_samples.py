@@ -29,7 +29,7 @@ def test_resemblance_random_split_with_lr():
     X1 = X.sample(frac=0.7)
     X2 = X.loc[[ix for ix in X.index if ix not in X1.index]]
 
-    rm = ResemblanceModel(model_type='lr').fit(X1, X2)
+    rm = ResemblanceModel(model_type='lr').fit(X1, X2, random_state=42)
 
     assert np.abs(rm.auc_test - 0.5 < 0.02)
 
