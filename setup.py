@@ -5,7 +5,9 @@ import os
 
 base_packages = ["scikit-learn>=0.20.2",
                  "pandas>=0.23.4",
-                 "matplotlib==3.1.1"]
+                 "matplotlib==3.1.1",
+                 "shap>=0.29",
+                 "seaborn>=0.9.0"]
 
 try:
     if os.environ.get('CI_COMMIT_TAG'):
