@@ -1,2 +1,2 @@
-from .validation import Propensity
-__all__ = ['Propensity']
+from .model import ResemblanceModel
+__all__ = ['ResemblanceModel']

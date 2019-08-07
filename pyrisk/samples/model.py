@@ -11,7 +11,7 @@ from .. utils import assure_numpy_array,UnsupportedModelError
 
 
 
-class ModelBased(object):
+class ResemblanceModel(object):
 
     def __init__(self, model_type='rf', keep_samples=False, **model_kwargs):
         """
