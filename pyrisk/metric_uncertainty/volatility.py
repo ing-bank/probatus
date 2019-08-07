@@ -17,13 +17,15 @@ class VolatilityEstimation(object):
         y: pdDataFrame or nparray with targets
         evaluator : dict with name of the metric as a key and array holding [scoring function, scoring type]
             e.g. {'AUC' : [roc_auc_score,'proba'], 'ACC' : [accuracy_score,'class']}
+        n_jobs: number of cores to be used. -1 sets it to use all the free cores
 
     """
-    def __init__(self, model, X, y, evaluator):
+    def __init__(self, model, X, y, evaluator, n_jobs=1):
         self.model = model
         self.X = assure_numpy_array(X)
         self.y = assure_numpy_array(y)
         self.evaluator = evaluator
+        self.n_jobs = n_jobs
         self.metrics_list = {}
 
     def estimate(self, test_prc, iterations = 1000):
@@ -41,8 +43,8 @@ class VolatilityEstimation(object):
         metrics = list(self.evaluator.keys())
 
         for evaluator_i in metrics:
-            sandom_seeds = np.random.random_integers(0,999999,iterations)
-            results = Parallel(n_jobs=-1)(delayed(get_metric)(self.X, self.y, self.model, test_prc, i, self.evaluator[evaluator_i][0], self.evaluator[evaluator_i][1]) for i in sandom_seeds)
+            random_seeds = np.random.random_integers(0, 999999, iterations)
+            results = Parallel(n_jobs=self.n_jobs)(delayed(get_metric)(self.X, self.y, self.model, test_prc, i, self.evaluator[evaluator_i][0], self.evaluator[evaluator_i][1]) for i in random_seeds)
             self.metrics_list[evaluator_i] = np.array(results)
 
     def reporting(self, metric):
