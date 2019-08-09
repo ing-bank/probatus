@@ -141,7 +141,7 @@ class QuantileBucketer(Bucketer):
 
         try:
             out, boundaries = pd.qcut(x, q=bin_count, retbins=True, duplicates='raise')
-        except:
+        except ValueError:
             # If there are too many duplicate values (assume a lot of filled missings)
             # this crashes - the exception drops them.
             # This means that it will return approximate quantile bins
