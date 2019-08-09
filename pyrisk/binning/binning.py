@@ -2,7 +2,10 @@ import pandas as pd
 import numpy as np
 from sklearn.cluster import AgglomerativeClustering
 
-from pyrisk.utils import NotFittedError
+from ..utils import NotFittedError
+from ..utils import ApproximationWarning
+
+import warnings
 
 
 class Bucketer(object):
@@ -135,7 +138,15 @@ class QuantileBucketer(Bucketer):
 
     @staticmethod
     def quantile_bins(x, bin_count, inf_edges=False):
-        out, boundaries = pd.qcut(x, q=bin_count, retbins=True)
+
+        try:
+            out, boundaries = pd.qcut(x, q=bin_count, retbins=True, duplicates='raise')
+        except:
+            # If there are too many duplicate values (assume a lot of filled missings)
+            # this crashes - the exception drops them.
+            # This means that it will return approximate quantile bins
+            out, boundaries = pd.qcut(x, q=bin_count, retbins=True, duplicates='drop')
+            warnings.warn(ApproximationWarning("Approximated quantiles - too many unique values" ))
         df = pd.DataFrame({'x': x})
         df['label'] = out
         counts = df.groupby('label').count().values.flatten()
