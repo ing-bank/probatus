@@ -6,7 +6,7 @@ import seaborn as sns
 
 
 def shadi(d1, d2):
-    """ this function examines whether the deviation of
+    """ examines whether the deviation of
     one random variable from normality
     is significantly different from that of the other
     random variable. If given random variables are two distinct realizations
