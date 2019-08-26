@@ -6,7 +6,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 import warnings
 
-from .. utils import assure_numpy_array,UnsupportedModelError
+from .. utils import assure_numpy_array, UnsupportedModelError
 
 
 
@@ -84,7 +84,6 @@ class ResemblanceModel(object):
             except:
                 raise UnsupportedModelError("Model type {} is not supported".format(self.get_model_name()))
 
-        print(importances.shape)
         if self.col_names is not None:
             feat_importances = pd.Series(importances, index=self.col_names)
         else:
