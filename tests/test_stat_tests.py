@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from pyrisk.stat_tests import ad, es, ks, psi
+from pyrisk.stat_tests import ad, es, ks, psi, shadi
 
 
 def test_psi_returns_zero():
