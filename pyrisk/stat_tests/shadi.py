@@ -1,9 +1,8 @@
 import pandas as pd
 import matplotlib.pyplot as plt
-import seaborn as sns
 import random
 from scipy import stats
-import seaborn as sns
+
 
 
 def shadi(d1, d2):
@@ -61,7 +60,7 @@ def shadi(d1, d2):
     sig_vals = list(collect.quantile(quants))
 
     fig, ax = plt.subplots(figsize=(12, 6.75))
-    sns.kdeplot(collect, shade=True, color="green")
+    plt.hist(collect, color="green")
     for a in range(len(sig_vals)):
         plt.axvline(x=sig_vals[a], color="red", lw=2, ls=":")
     plt.axvline(x=delta, color="black", lw=1.5, ls='-.')
