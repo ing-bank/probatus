@@ -61,5 +61,5 @@ def test_ad_returns_small():
 def test_shadi_returns_zero():
     d1 = np.random.normal(size=1000)
     d2 = d1
-    sh = list(shadi(d1, d2))
-    assert sh[0] == 0
+    s  = list(shadi(d1, d2))
+    assert s[0] == 0
