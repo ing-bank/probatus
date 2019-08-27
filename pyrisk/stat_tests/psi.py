@@ -1,10 +1,10 @@
 import numpy as np
-import pandas as pd
 import scipy.stats as stats
+
+from ..utils import assure_numpy_array
 
 
 def psi(d1, d2, verbose=False, n=None, m=None):
-
     """
     Calculates the Population Stability Index
 
@@ -26,10 +26,8 @@ def psi(d1, d2, verbose=False, n=None, m=None):
 
     """
 
-    if isinstance(d1, pd.core.series.Series):
-        d1 = np.array(d1)
-    if isinstance(d2, pd.core.series.Series):
-        d2 = np.array(d2)
+    d1 = assure_numpy_array(d1)
+    d2 = assure_numpy_array(d2)
 
     if len(d1) != len(d2):
         raise ValueError('Distributions do not have the same number of bins.')
