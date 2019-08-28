@@ -31,6 +31,8 @@ class DistributionStatistics(object):
     myTest.fit(d1, d2, verbose=True)
 
     """
+    statistical_test_list = ['ES', 'KS', 'PSI']
+    binning_strategy_list = ['simplebucketer', 'agglomerativebucketer', 'quantilebucketer', None]
 
     def __init__(self, statistical_test, binning_strategy, bin_count=None):
         self.statistical_test = statistical_test.upper()
@@ -38,8 +40,8 @@ class DistributionStatistics(object):
         self.bin_count = bin_count
         self.fitted = False
 
-        if self.statistical_test.upper() not in ['ES', 'KS', 'PSI']:
-            raise NotImplementedError("The statistical test should be one of 'ES', 'KS', 'PSI'")
+        if self.statistical_test.upper() not in self.statistical_test_list:
+            raise NotImplementedError(f"The statistical test should be one of {self.statistical_test_list}")
         elif self.statistical_test.upper() == 'ES':
             self._statistical_test_function = es
         elif self.statistical_test.upper() == 'KS':
@@ -48,12 +50,9 @@ class DistributionStatistics(object):
             self._statistical_test_function = psi
 
         if self.binning_strategy:
-            if self.binning_strategy.lower() not in ['simplebucketer', 'agglomerativebucketer', 'quantilebucketer',
-                                                     None]:
+            if self.binning_strategy.lower() not in self.binning_strategy_list:
                 raise NotImplementedError(
-                    "The binning strategy should be one of 'SimpleBucketer', 'AgglomerativeBucketer', "
-                    "'QuantileBucketer' "
-                    "or None")
+                    f"The binning strategy should be one of {self.binning_strategy_list}")
             if self.binning_strategy.lower() == 'simplebucketer':
                 self.binner = SimpleBucketer(bin_count=self.bin_count)
             elif self.binning_strategy.lower() == 'agglomerativebucketer':
