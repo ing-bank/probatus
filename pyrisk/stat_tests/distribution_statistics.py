@@ -1,3 +1,9 @@
+import itertools
+import warnings
+
+import pandas as pd
+from tqdm import tqdm
+
 from pyrisk.binning import SimpleBucketer, AgglomerativeBucketer, QuantileBucketer
 from pyrisk.stat_tests import es, ks, psi
 
@@ -51,8 +57,7 @@ class DistributionStatistics(object):
 
         if self.binning_strategy:
             if self.binning_strategy.lower() not in self.binning_strategy_list:
-                raise NotImplementedError(
-                    f"The binning strategy should be one of {self.binning_strategy_list}")
+                raise NotImplementedError(f"The binning strategy should be one of {self.binning_strategy_list}")
             if self.binning_strategy.lower() == 'simplebucketer':
                 self.binner = SimpleBucketer(bin_count=self.bin_count)
             elif self.binning_strategy.lower() == 'agglomerativebucketer':
@@ -102,3 +107,56 @@ class DistributionStatistics(object):
         else:
             self.statistic = res
             return self.statistic
+
+
+class AutoDist(object):
+    def __init__(self, statistical_tests='all', binning_strategies='all'):
+        self.fitted = False
+        if statistical_tests == 'all':
+            self.statistical_tests = DistributionStatistics.statistical_test_list
+        elif isinstance(statistical_tests, str):
+            self.statistical_tests = [statistical_tests]
+        else:
+            self.statistical_tests = statistical_tests
+        if binning_strategies == 'all':
+            self.binning_strategies = DistributionStatistics.binning_strategy_list
+        elif isinstance(binning_strategies, str):
+            self.binning_strategies = [binning_strategies]
+        else:
+            self.binning_strategies = binning_strategies
+
+    def __repr__(self):
+        repr_ = "AutoDist object"
+        if not self.fitted:
+            repr_ += f"\n\tAutoDist not fitted"
+        if self.fitted:
+            repr_ += f"\n\tAutoDist fitted"
+        repr_ += f"\n\tstatistical_tests: {self.statistical_tests}"
+        repr_ += f"\n\tbinning_strategies: {self.binning_strategies}"
+        return repr_
+
+    def fit(self, df1, df2, columns, return_failed_tests=True):
+        warnings.filterwarnings("ignore")
+        result_all = pd.DataFrame()
+        for col, stat_test, bin_strat in tqdm(
+                list(itertools.product(columns, self.statistical_tests, self.binning_strategies))):
+            dist = DistributionStatistics(statistical_test=stat_test, binning_strategy=bin_strat, bin_count=10)
+            try:
+                _ = dist.fit(df1[col], df2[col])
+                statistic = dist.statistic
+                if hasattr(dist, 'p_value'):
+                    p_value = dist.p_value
+                else:
+                    p_value = None
+            except:
+                statistic, p_value = 'an error occurred', None
+                pass
+            result_ = {'column': col, 'statistical_test': stat_test, 'binning_strategy': bin_strat,
+                       'statistic': statistic, 'p_value': p_value}
+            result_all = result_all.append(result_, ignore_index=True)
+        warnings.filterwarnings('default')
+        if not return_failed_tests:
+            result_all = result_all[result_all['statistic'] != 'an error occurred']
+        self.fitted = True
+        self.result = result_all[['column', 'statistical_test', 'binning_strategy', 'statistic', 'p_value']]
+        return self.result
