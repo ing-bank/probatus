@@ -136,7 +136,7 @@ class AutoDist(object):
         return repr_
 
     def fit(self, df1, df2, columns, return_failed_tests=True):
-        warnings.filterwarnings("ignore")
+        warnings.filterwarnings("ignore", module=r'scipy*')  # to suppress the numerous warnings of scipy
         result_all = pd.DataFrame()
         for col, stat_test, bin_strat in tqdm(
                 list(itertools.product(columns, self.statistical_tests, self.binning_strategies))):
