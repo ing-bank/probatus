@@ -79,7 +79,19 @@ class VolatilityEstimation(object):
                                                  self.evaluator[evaluator_i][0],
                                                  self.evaluator[evaluator_i][1])
                     results.append(results_i)
-                self.metrics_list[evaluator_i] = np.array(results)              
+                self.metrics_list[evaluator_i] = np.array(results) 
+
+            elif self.method == 'delong':    
+                X_train, X_test, y_train, y_test = stratified_random(self.X, self.y, test_prc)
+                model = self.model.fit(X_train, y_train)
+
+                y_pred_test = model.predict_proba(X_test)[:,1]
+                y_pred_train = model.predict_proba(X_train)[:,1]
+
+                auc_train, auc_cov_train = delong.delong_roc_variance(y_train, y_pred_train)
+                auc_test, auc_cov_test = delong.delong_roc_variance(y_test, y_pred_test)
+
+                self.metrics_list[evaluator_i] = np.array([auc_train, auc_test,auc_train - auc_test, auc_cov_train, auc_cov_test, 0]).reshape(1,6)
 
     def reporting(self, metric):
         """
@@ -95,13 +107,13 @@ class VolatilityEstimation(object):
         print(f'Mean of delta is {round(np.mean(metric_data[:,2]),2)}')
 
         if self.method == 'boot_seed':
-            print(f'Standard Deviation of metric on train is {round(np.std(metric_data[:,0]),2)}')
-            print(f'Standard Deviation of metric on test is {round(np.std(metric_data[:,1]),2)}')
-            print(f'Standard Deviation of delta is {round(np.std(metric_data[:,2]),2)}')
-        elif self.method == 'boot_seed':
-            print(f'Standard Deviation of metric on train is {round(np.mean(metric_data[:,3]),2)}')
-            print(f'Standard Deviation of metric on test is {round(np.mean(metric_data[:,4]),2)}')           
-            print(f'Standard Deviation of delta is {round(np.mean(metric_data[:,5]),2)}')
+            print(f'Standard Deviation of metric on train is {round(np.std(metric_data[:,0]),5)}')
+            print(f'Standard Deviation of metric on test is {round(np.std(metric_data[:,1]),5)}')
+            print(f'Standard Deviation of delta is {round(np.std(metric_data[:,2]),5)}')
+        elif self.method == 'boot_seed' or self.method == 'delong':
+            print(f'Standard Deviation of metric on train is {round(np.mean(metric_data[:,3]),5)}')
+            print(f'Standard Deviation of metric on test is {round(np.mean(metric_data[:,4]),5)}')           
+            print(f'Standard Deviation of delta is {round(np.mean(metric_data[:,5]),5)}')
 
     def plot(self, metric):
         """
@@ -117,7 +129,7 @@ class VolatilityEstimation(object):
             train = metric_data[:,0]
             test = metric_data[:,1]
             delta = metric_data[:,2]
-        elif self.method == 'boot_global':
+        elif self.method == 'boot_global' or self.method == 'delong':
             train = np.random.normal(np.mean(metric_data[:,0]), np.sqrt(np.mean(metric_data[:,3])), 10000)
             test = np.random.normal(np.mean(metric_data[:,1]), np.sqrt(np.mean(metric_data[:,4])), 10000)
             delta = np.random.normal(np.mean(metric_data[:,2]), np.sqrt(np.mean(metric_data[:,5])), 10000)
