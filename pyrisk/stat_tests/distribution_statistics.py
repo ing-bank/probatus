@@ -87,9 +87,6 @@ class DistributionStatistics(object):
         Returns: statistic value and p_value (if available, e.g. not for PSI)
 
         """
-        if self._statistical_test_function == psi:
-            if not 'n' in kwargs or not 'm' in kwargs:
-                raise IOError('For PSI please specify the length of unbinned d1 and d2')
         if self.binning_strategy:
             self.binner.fit(d1)
             d1_preprocessed = self.binner.counts
