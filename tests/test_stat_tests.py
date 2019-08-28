@@ -2,10 +2,14 @@ import numpy as np
 import pandas as pd
 
 from pyrisk.stat_tests import ad, es, ks, psi
+from pyrisk.binning import binning
 
 
 def test_psi_returns_zero():
-    d1 = np.random.normal(size=1000)
+    x = np.random.normal(size=1000)
+    myBucketer = binning.QuantileBucketer(bin_count=10)
+    myBucketer.fit(x)
+    d1 = myBucketer.counts
     d2 = d1
     assert psi(d1, d2, verbose=False) == 0.0
 
