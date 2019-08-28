@@ -110,7 +110,7 @@ class DistributionStatistics(object):
 
 
 class AutoDist(object):
-    def __init__(self, statistical_tests='all', binning_strategies='all'):
+    def __init__(self, statistical_tests='all', binning_strategies='all', bin_count=10):
         self.fitted = False
         if statistical_tests == 'all':
             self.statistical_tests = DistributionStatistics.statistical_test_list
@@ -124,6 +124,10 @@ class AutoDist(object):
             self.binning_strategies = [binning_strategies]
         else:
             self.binning_strategies = binning_strategies
+        if not isinstance(bin_count, list):
+            self.bin_count = [bin_count]
+        else:
+            self.bin_count = bin_count
 
     def __repr__(self):
         repr_ = "AutoDist object"
@@ -138,9 +142,9 @@ class AutoDist(object):
     def fit(self, df1, df2, columns, return_failed_tests=True):
         warnings.filterwarnings("ignore", module=r'scipy*')  # to suppress the numerous warnings of scipy
         result_all = pd.DataFrame()
-        for col, stat_test, bin_strat in tqdm(
-                list(itertools.product(columns, self.statistical_tests, self.binning_strategies))):
-            dist = DistributionStatistics(statistical_test=stat_test, binning_strategy=bin_strat, bin_count=10)
+        for col, stat_test, bin_strat, bins in tqdm(
+                list(itertools.product(columns, self.statistical_tests, self.binning_strategies, self.bin_count))):
+            dist = DistributionStatistics(statistical_test=stat_test, binning_strategy=bin_strat, bin_count=bins)
             try:
                 _ = dist.fit(df1[col], df2[col])
                 statistic = dist.statistic
@@ -151,18 +155,21 @@ class AutoDist(object):
             except:
                 statistic, p_value = 'an error occurred', None
                 pass
-            result_ = {'column': col, 'statistical_test': stat_test, 'binning_strategy': bin_strat,
+            result_ = {'column': col, 'statistical_test': stat_test, 'binning_strategy': bin_strat, 'bin_count': bins,
                        'statistic': statistic, 'p_value': p_value}
             result_all = result_all.append(result_, ignore_index=True)
         warnings.filterwarnings('default')
         if not return_failed_tests:
             result_all = result_all[result_all['statistic'] != 'an error occurred']
         self.fitted = True
-        self._result = result_all[['column', 'statistical_test', 'binning_strategy', 'statistic', 'p_value']]
+        self._result = result_all[
+            ['column', 'statistical_test', 'binning_strategy', 'bin_count', 'statistic', 'p_value']]
+        self._result['bin_count'] = self._result['bin_count'].astype(int)
 
         # create pivot table as final output
         self.result = pd.pivot_table(self._result, values=['statistic', 'p_value'], index='column',
-                                     columns=['statistical_test', 'binning_strategy'], aggfunc='sum')
-        self.result.columns = self.result.columns.to_series().str.join('_')
+                                     columns=['statistical_test', 'binning_strategy', 'bin_count'], aggfunc='sum')
+        # flatten multi-index
+        self.result.columns = ["_".join([str(x) for x in line]) for line in self.result.columns.values]
         self.result.reset_index(inplace=True)
         return self.result
