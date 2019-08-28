@@ -15,6 +15,7 @@ test_merge_requests:
   script:
     - conda create -n gitlab_test python=3.6
     - source activate gitlab_test
+    - conda install gxx_linux-64
     - pip install pytest
     - python setup.py install
     - pytest tests
