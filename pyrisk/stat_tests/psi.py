@@ -4,7 +4,7 @@ import scipy.stats as stats
 from ..utils import assure_numpy_array
 
 
-def psi(d1, d2, verbose=False, n=None, m=None):
+def psi(d1, d2, verbose=False):
     """
     Calculates the Population Stability Index
 
@@ -16,8 +16,6 @@ def psi(d1, d2, verbose=False, n=None, m=None):
     Args:
         d1 (np.ndarray or pd.core.series.Series) : first distribution ("expected")
         d2 (np.ndarray or pd.core.series.Series) : second distribution ("actual")
-        n (int)                                  : number of samples in original d1 distribution before bucketing
-        m (int)                                  : number of samples in original d2 distribution before bucketing
         verbose (bool)                           : print useful interpretation info to stdout (default False)
 
     Returns:
@@ -34,6 +32,9 @@ def psi(d1, d2, verbose=False, n=None, m=None):
 
     # Number of bins/buckets
     b = len(d1)
+
+    n = d1.sum()
+    m = d2.sum()
 
     expected_ratio = d1 / n
     actual_ratio = d2 / m

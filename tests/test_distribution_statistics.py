@@ -41,7 +41,7 @@ def test_distribution_statistics_attributes_psi():
     d2 = np.histogram(b, 10)[0]
     myTest = DistributionStatistics('psi', binning_strategy=None)
     _ = myTest.fit(d1, d2, verbose=False, n=len(a), m=len(b))
-    psi_value = psi(d1, d2, verbose=False, n=len(a), m=len(b))
+    psi_value = psi(d1, d2, verbose=False)
     assert myTest.statistic == psi_value
 
 
