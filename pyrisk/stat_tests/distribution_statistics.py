@@ -158,5 +158,11 @@ class AutoDist(object):
         if not return_failed_tests:
             result_all = result_all[result_all['statistic'] != 'an error occurred']
         self.fitted = True
-        self.result = result_all[['column', 'statistical_test', 'binning_strategy', 'statistic', 'p_value']]
+        self._result = result_all[['column', 'statistical_test', 'binning_strategy', 'statistic', 'p_value']]
+
+        # create pivot table as final output
+        self.result = pd.pivot_table(self._result, values=['statistic', 'p_value'], index='column',
+                                     columns=['statistical_test', 'binning_strategy'], aggfunc='sum')
+        self.result.columns = self.result.columns.to_series().str.join('_')
+        self.result.reset_index(inplace=True)
         return self.result
