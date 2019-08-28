@@ -6,7 +6,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 import warnings
 
-from .. utils import assure_numpy_array, UnsupportedModelError
+from .. utils import assure_numpy_array, UnsupportedModelError, class_name_from_object
 
 
 
@@ -64,7 +64,7 @@ class ResemblanceModel(object):
         return repr_
 
     def get_model_name(self):
-        return self.model.__class__.__name__
+        return class_name_from_object(self.model)
 
 
     def _get_feature_importance(self):
