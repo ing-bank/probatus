@@ -9,7 +9,7 @@ def test_distribution_statistics_psi():
     myTest = DistributionStatistics('psi', 'SimpleBucketer', bin_count=10)
     assert not myTest.fitted
     # note that `n` and `m` only need to be specified for PSI
-    res = myTest.fit(d1, d2, n=len(d1), m=len(d2))
+    res = myTest.fit(d1, d2)
     assert myTest.fitted
     assert isinstance(res, numbers.Number)
 
@@ -40,8 +40,8 @@ def test_distribution_statistics_attributes_psi():
     d1 = np.histogram(a, 10)[0]
     d2 = np.histogram(b, 10)[0]
     myTest = DistributionStatistics('psi', binning_strategy=None)
-    _ = myTest.fit(d1, d2, verbose=False, n=len(a), m=len(b))
-    psi_value = psi(d1, d2, verbose=False, n=len(a), m=len(b))
+    _ = myTest.fit(d1, d2, verbose=False)
+    psi_value = psi(d1, d2, verbose=False)
     assert myTest.statistic == psi_value
 
 
