@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 from random import sample
 from scipy import stats
 import seaborn as sns
+from ..utils import assure_numpy_array
 
 
 def shapiro_difference(d1,d2):
@@ -32,8 +33,9 @@ def shapiro_difference(d1,d2):
 
     """
 
-    d1 = pd.Series(d1)
-    d2 = pd.Series(d2)
+    d1 = assure_numpy_array(d1)
+    d2 = assure_numpy_array(d2)
+
     delta = stats.shapiro(d1)[0] - stats.shapiro(d2)[0]
 
     MOT = pd.concat([d1, d2])
