@@ -16,6 +16,16 @@ def get_feats_and_model():
 
     return rf, X
 
+
+def get_shap_averages():
+    # shapley values expected
+    abs_avg =  [0.0024, 0.0049, 0.0048, 0.0033, 0.0008, 0.0018, 0.0015, 0.0012, 0.0016, 0.0013, 0.0027, 0.0005,
+                0.0003, 0.0001, 0.0]
+    avg = [0.0023, 0.0005, -0.0001, -0.0033, -0.0005, 0.0007, 0.001, 0.0001, 0.0002, -0.0, 0.0011, -0.0005, -0.0002, -0.0,
+     -0.0]
+
+    return avg, abs_avg
+
 def test_model_support():
 
 
@@ -42,4 +52,17 @@ def test_shap_to_df():
     assert shap_df.columns.tolist() == X.columns.tolist()
     assert shap_df.index.tolist() == X.head(5).index.tolist()
 
+
+def test_shapley_averages():
+    rf, X = get_feats_and_model()
+
+    X = X.head(5)
+
+    shap_avg, shap_avg_abs = shap_help.compute_average_shap_per_column_raw(rf, X)
+
+    exp_avg, exp_abs_avg = get_shap_averages()
+
+
+    assert ((shap_avg.values - exp_avg) <0.0001).all()
+    assert ((shap_avg_abs.values - exp_abs_avg) < 0.0001).all()
 
