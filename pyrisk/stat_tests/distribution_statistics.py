@@ -165,6 +165,7 @@ class AutoDist(object):
         self._result = result_all[
             ['column', 'statistical_test', 'binning_strategy', 'bin_count', 'statistic', 'p_value']]
         self._result['bin_count'] = self._result['bin_count'].astype(int)
+        self._result.loc[self._result['binning_strategy'].isnull(), 'binning_strategy'] = 'no_bucketing'
 
         # create pivot table as final output
         self.result = pd.pivot_table(self._result, values=['statistic', 'p_value'], index='column',
