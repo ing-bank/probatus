@@ -8,7 +8,6 @@ def test_distribution_statistics_psi():
     d2 = np.histogram(np.random.weibull(1, size=1000) - 1, 10)[0]
     myTest = DistributionStatistics('psi', 'SimpleBucketer', bin_count=10)
     assert not myTest.fitted
-    # note that `n` and `m` only need to be specified for PSI
     res = myTest.fit(d1, d2)
     assert myTest.fitted
     assert isinstance(res, numbers.Number)
