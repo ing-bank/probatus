@@ -164,6 +164,7 @@ class AutoDist(object):
             repr_ += f"\n\tAutoDist fitted"
         repr_ += f"\n\tstatistical_tests: {self.statistical_tests}"
         repr_ += f"\n\tbinning_strategies: {self.binning_strategies}"
+        repr_ += f"\n\tbin_count: {self.bin_count}"
         return repr_
 
     def fit(self, df1, df2, column_selection, return_failed_tests=True, suppress_warnings=True):
