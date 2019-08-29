@@ -7,15 +7,15 @@ def get_metric(X, y, model, test_size, seed, evaluator, pred_type):
     Draws random train/test sample from the data using random seed and calculates metric of interest.
 
     Args:
-        X: pdDataFrame or nparray with features
-        y: pdDataFrame or nparray with targets
+        X: nparray with features
+        y: nparray with targets
         test_size: float fraction of data used for testing the model
         seed: int randomized seed used for splitting data
         evaluator : function used for calculating evaluation metric
         pred_type : string form of prediction which is used for obtaining evaluation metric.
 
     Returns: 
-        statistic value and p_value (if available, e.g. not for PSI)
+        list with metrics from tain, test and delta between the two
 
     """
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = test_size, random_state = seed, stratify = y)
@@ -34,7 +34,22 @@ def get_metric(X, y, model, test_size, seed, evaluator, pred_type):
     return [metric_train, metric_test, metric_delta]
 
 def get_metric_folds(x, y, model, x_test, y_test, evaluator, pred_type):
-    
+    """
+    Draws random train/test independant samples from the data using random seed and calculates metric of interest.
+
+    Args:
+        X: nparray with features
+        y: nparray with targets
+        X_test: nparray test set with features
+        y_test: nparray test set with targets        
+        test_size: float fraction of data used for testing the model
+        evaluator : function used for calculating evaluation metric
+        pred_type : string form of prediction which is used for obtaining evaluation metric.
+
+    Returns: 
+        list with metrics from tain, test and delta between the two
+
+    """    
     metrics_train = []
     metrics_test = []
     metrics_delta = []

@@ -13,7 +13,7 @@ def stratified_random(x, y, size):
         size : int sample size
 
     Returns: 
-        statistic value and p_value (if available, e.g. not for PSI)
+        train and test splits
 
     """
     X_train, X_test, y_train, y_test = train_test_split( x, y, test_size = size)
