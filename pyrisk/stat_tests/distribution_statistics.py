@@ -85,8 +85,6 @@ class DistributionStatistics(object):
             d1: distribution 1
             d2: distribution 2
             verbose:
-            **kwargs:
-                for PSI specific: set `n` and `m` as the size of the dataset *before* bucketing
 
         Returns: statistic value and p_value (if available, e.g. not for PSI)
 
