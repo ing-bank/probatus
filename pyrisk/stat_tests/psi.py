@@ -1,10 +1,9 @@
 import numpy as np
-import pandas as pd
 import scipy.stats as stats
+from ..utils import assure_numpy_array
 
 
-def psi(d1, d2, verbose=False, n=None, m=None):
-
+def psi(d1, d2, verbose=False):
     """
     Calculates the Population Stability Index
 
@@ -16,26 +15,31 @@ def psi(d1, d2, verbose=False, n=None, m=None):
     Args:
         d1 (np.ndarray or pd.core.series.Series) : first distribution ("expected")
         d2 (np.ndarray or pd.core.series.Series) : second distribution ("actual")
-        n (int)                                  : number of samples in original d1 distribution before bucketing
-        m (int)                                  : number of samples in original d2 distribution before bucketing
         verbose (bool)                           : print useful interpretation info to stdout (default False)
 
     Returns:
         psi_value (float) : measure of the similarity between d1 & d2. (range 0-inf, with 0 indicating identical
                             distributions and > 0.25 indicating significantly different distributions)
-
+    Raises:
+        UserWarning: if number of bins in d1 or d2 is less than 10 or greater than 20, where PSI is not well-behaved.
     """
 
-    if isinstance(d1, pd.core.series.Series):
-        d1 = np.array(d1)
-    if isinstance(d2, pd.core.series.Series):
-        d2 = np.array(d2)
+    d1 = assure_numpy_array(d1)
+    d2 = assure_numpy_array(d2)
+
+    if len(d1) < 10:
+        raise UserWarning('PSI is not well-behaved when using less than 10 bins.')
+    if len(d1) > 20:
+        raise UserWarning('PSI is not well-behaved when using more than 10 bins.')
 
     if len(d1) != len(d2):
         raise ValueError('Distributions do not have the same number of bins.')
 
     # Number of bins/buckets
     b = len(d1)
+
+    n = d1.sum()
+    m = d2.sum()
 
     expected_ratio = d1 / n
     actual_ratio = d2 / m
@@ -59,6 +63,7 @@ def psi(d1, d2, verbose=False, n=None, m=None):
     if verbose:
         print('\nPSI =', psi_value)
 
+        print('\nPSI: Critical values defined according to de facto industry standard:')
         if psi_value <= 0.1:
             print('\nPSI <= 0.10: No significant distribution change.')
         elif 0.1 < psi_value <= 0.25:
@@ -66,11 +71,10 @@ def psi(d1, d2, verbose=False, n=None, m=None):
         elif psi_value > 0.25:
             print('\nPSI > 0.25: Significant distribution change; investigate.')
 
-    if verbose and n and m:
         alpha = [0.95, 0.99, 0.999]
         z_alpha = stats.norm.ppf(alpha)
         psi_critvals = ((1 / n) + (1 / m)) * (b - 1) + z_alpha * ((1 / n) + (1 / m)) * np.sqrt(2 * (b - 1))
-        print('\nPSI: Critical values defined according to Yurdakul 2018')
+        print('\nPSI: Critical values defined according to Yurdakul 2018:')
         if psi_value > psi_critvals[2]:
             print('PSI: 99.9% confident distributions have changed.')
         elif psi_value > psi_critvals[1]:

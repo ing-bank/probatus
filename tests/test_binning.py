@@ -75,3 +75,23 @@ def test_apply_bucketing():
     np.testing.assert_array_equal(np.array([10, 0, 0, 0, 0]), myBucketer.apply_bucketing(x_new))
     x_new = [1, 1, 1, 4, 4, 7]
     np.testing.assert_array_equal(np.array([3, 0, 2, 1, 0]), myBucketer.apply_bucketing(x_new))
+
+
+def test_quantile_with_unique_values():
+
+    np.random.seed(42)
+    dist_0_1 = np.random.uniform(size=20)
+    dist_peak_at_0 = np.zeros(shape=20)
+
+    skewed_dist = np.hstack((dist_0_1, dist_peak_at_0))
+    actual_out = QuantileBucketer(10).quantile_bins(skewed_dist, 10)
+
+    expected_out = (
+        np.array([20,  4,  4,  4,  4,  4]),
+        np.array([0., 0.01894458, 0.23632033, 0.42214475, 0.60977678,0.67440958, 0.99940487])
+        )
+
+    assert ((actual_out[0] == expected_out[0])).all()
+    # print(actual_out[1])
+    # print(expected_out[1])
+    # assert (np.abs(actual_out[1] - expected_out[1]) < np.array([0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01])).all()

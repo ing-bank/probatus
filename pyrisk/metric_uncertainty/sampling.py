@@ -1,4 +1,5 @@
 import numpy as np
+from sklearn.model_selection import train_test_split
 
 def stratified_random(x, y, size):
     """
@@ -12,21 +13,9 @@ def stratified_random(x, y, size):
         size : int sample size
 
     Returns: 
-        statistic value and p_value (if available, e.g. not for PSI)
+        train and test splits
 
     """
-    idnex_1 = np.argwhere(y == 1).flatten()
-    index_0 = np.argwhere(y == 0).flatten()
+    X_train, X_test, y_train, y_test = train_test_split( x, y, test_size = size)
 
-    label_1 = x[idnex_1]
-    label_0 = x[index_0]
-
-    fraction = np.mean(y)
-
-    sample_1 = label_1[np.random.randint(low = 0, high = label_1.shape[0], size = int(size*fraction))]
-    sample_0 = label_0[np.random.randint(low = 0, high = label_0.shape[0], size = int(size*(1-fraction)))]
-
-    y_sample = np.concatenate((np.repeat(1,sample_1.shape[0]),np.repeat(0,sample_0.shape[0])))
-    x_sample = np.concatenate((sample_1,sample_0))
-
-    return x_sample, y_sample
+    return X_train, X_test, y_train, y_test

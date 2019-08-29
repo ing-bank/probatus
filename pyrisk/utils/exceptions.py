@@ -6,3 +6,8 @@ class NotFittedError(Exception):
 class DimensionalityError(Exception):
     def __init__(self, message):
         self.message = message
+
+
+class UnsupportedModelError(Exception):
+    def __init__(self, message):
+        self.message = message
