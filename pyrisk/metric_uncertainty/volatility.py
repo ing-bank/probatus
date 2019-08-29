@@ -110,7 +110,7 @@ class VolatilityEstimation(object):
             print(f'Standard Deviation of metric on train is {round(np.std(metric_data[:,0]),5)}')
             print(f'Standard Deviation of metric on test is {round(np.std(metric_data[:,1]),5)}')
             print(f'Standard Deviation of delta is {round(np.std(metric_data[:,2]),5)}')
-        elif self.method == 'boot_seed' or self.method == 'delong':
+        elif self.method == 'boot_global' or self.method == 'delong':
             print(f'Standard Deviation of metric on train is {round(np.mean(metric_data[:,3]),5)}')
             print(f'Standard Deviation of metric on test is {round(np.mean(metric_data[:,4]),5)}')           
             print(f'Standard Deviation of delta is {round(np.mean(metric_data[:,5]),5)}')
