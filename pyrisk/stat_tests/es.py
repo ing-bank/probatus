@@ -1,9 +1,8 @@
-import numpy as np
-import pandas as pd
 from scipy import stats
+from ..utils import assure_numpy_array
 
 
-def es(d1, d2, verbose = False):
+def es(d1, d2, verbose=False):
     """
     Calculates the Epps-Singleton test statistic on 2 distributions. Can be used on continuous or discrete
     distributions. Any binning/bucketing of the distributions/samples should be done before passing them to this
@@ -30,10 +29,8 @@ def es(d1, d2, verbose = False):
         pvalue (float) : P value of rejecting the null hypothesis (that the two distributions are identical)
     """
 
-    if isinstance(d1, pd.core.series.Series):
-        d1 = np.ndarray(d1)
-    if isinstance(d2, pd.core.series.Series):
-        d2 = np.ndarray(d2)
+    d1 = assure_numpy_array(d1)
+    d2 = assure_numpy_array(d2)
 
     es, pvalue = stats.epps_singleton_2samp(d1, d2)
 

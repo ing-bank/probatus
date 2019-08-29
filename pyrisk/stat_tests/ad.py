@@ -1,9 +1,8 @@
-import numpy as np
-import pandas as pd
 from scipy import stats
+from ..utils import assure_numpy_array
 
 
-def ad(d1, d2, verbose = False):
+def ad(d1, d2, verbose=False):
     """
     Calculates the Anderson-Darling TS on 2 distributions.
 
@@ -27,10 +26,8 @@ def ad(d1, d2, verbose = False):
         pvalue (float) : P value of rejecting the null hypothesis (that the two distributions are identical)
     """
 
-    if isinstance(d1, pd.core.series.Series):
-        d1 = np.ndarray(d1)
-    if isinstance(d2, pd.core.series.Series):
-        d2 = np.ndarray(d2)
+    d1 = assure_numpy_array(d1)
+    d2 = assure_numpy_array(d2)
 
     ad, critical_values, pvalue = stats.anderson_ksamp([d1, d2])
 

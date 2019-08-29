@@ -1,9 +1,8 @@
-import pandas as pd
 from scipy import stats
-import numpy as np
+from ..utils import assure_numpy_array
 
 
-def ks(d1, d2, verbose = False):
+def ks(d1, d2, verbose=False):
     """
     Calculates the Kolmogorov-Smirnov statistic on 2 samples. Any binning/bucketing of the distributions/samples
     should be done before passing them to this function.
@@ -18,10 +17,8 @@ def ks(d1, d2, verbose = False):
         pvalue (float) : P value of rejecting the null hypothesis (that the two distributions are identical)
     """
 
-    if isinstance(d1, pd.core.series.Series):
-        d1 = np.array(d1)
-    if isinstance(d2, pd.core.series.Series):
-        d2 = np.array(d2)
+    d1 = assure_numpy_array(d1)
+    d2 = assure_numpy_array(d2)
 
     ks, pvalue = stats.ks_2samp(d1, d2)
 
