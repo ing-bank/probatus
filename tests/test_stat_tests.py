@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from pyrisk.stat_tests import ad, es, ks, psi, shadi
+from pyrisk.stat_tests import ad, es, ks, psi, sw
 
 
 def test_psi_returns_zero():
@@ -58,8 +58,7 @@ def test_ad_returns_small():
     assert ad(d1, d2)[1] <= 0.001
 
 
-def test_shadi_returns_zero():
+def test_sw_returns_zero():
     d1 = np.random.normal(size=1000)
     d2 = d1
-    s  = list(shadi(d1, d2))
-    assert s[0] == 0
+    assert sw(d1, d2)[0] == 0
