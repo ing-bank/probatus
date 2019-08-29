@@ -167,14 +167,14 @@ class AutoDist(object):
         repr_ += f"\n\tbinning_strategies: {self.binning_strategies}"
         return repr_
 
-    def fit(self, df1, df2, columns, return_failed_tests=True):
+    def fit(self, df1, df2, column_selection, return_failed_tests=True):
         """
         Fit the AutoDist object to data; i.e. apply the statistical tests and binning strategies
 
         Args:
             df1: dataframe 1 for distribution comparison with dataframe 2
             df2: dataframe 2 for distribution comparison with dataframe 1
-            columns: list of columns in df1 and df2 that should be compared
+            column_selection: list of columns in df1 and df2 that should be compared
             return_failed_tests: remove tests in result that did not succeed
 
         Returns: dataframe with results of the performed statistical tests and binning strategies
@@ -182,7 +182,7 @@ class AutoDist(object):
         """
         result_all = pd.DataFrame()
         for col, stat_test, bin_strat, bins in tqdm(
-                list(itertools.product(columns, self.statistical_tests, self.binning_strategies, self.bin_count))):
+                list(itertools.product(column_selection, self.statistical_tests, self.binning_strategies, self.bin_count))):
             dist = DistributionStatistics(statistical_test=stat_test, binning_strategy=bin_strat, bin_count=bins)
             try:
                 warnings.filterwarnings("ignore", module=r'scipy*')  # to suppress the numerous warnings of scipy
