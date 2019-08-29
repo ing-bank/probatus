@@ -38,7 +38,7 @@ def get_metric(X, y, model, test_size, seed, evaluator, pred_type):
 
     return [metric_train, metric_test, metric_delta]
 
-def get_metric_folds(x, y, model, x_test, , evaluator, pred_type):
+def get_metric_folds(x, y, model, x_test, y_test, evaluator, pred_type):
     """
     Draws random train/test independant samples from the data using random seed and calculates metric of interest.
 
