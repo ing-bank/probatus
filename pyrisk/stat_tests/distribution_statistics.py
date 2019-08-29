@@ -180,6 +180,10 @@ class AutoDist(object):
         Returns: dataframe with results of the performed statistical tests and binning strategies
 
         """
+        # test if all columns in column_selection are in df1 and df2
+        if len(set(column_selection) - set(df1.columns)) or len(set(column_selection) - set(df2.columns)):
+            raise Exception('Not are columns in `column_selection` are in the provided dataframes')
+
         result_all = pd.DataFrame()
         for col, stat_test, bin_strat, bins in tqdm(
                 list(itertools.product(column_selection, self.statistical_tests, self.binning_strategies, self.bin_count))):

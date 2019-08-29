@@ -1,6 +1,9 @@
 import numpy as np
 import pandas as pd
 import numbers
+
+import pytest
+
 from pyrisk.stat_tests import DistributionStatistics, ks, psi, AutoDist
 
 
@@ -63,7 +66,7 @@ def test_distribution_statistics_autodist_base():
     features = df1.columns
     myAutoDist = AutoDist(statistical_tests='all', binning_strategies='all', bin_count=[10, 20])
     assert not myAutoDist.fitted
-    res = myAutoDist.fit(df1, df2, columns=features)
+    res = myAutoDist.fit(df1, df2, column_selection=features)
     assert myAutoDist.fitted
     pd.testing.assert_frame_equal(res, myAutoDist.result)
     assert isinstance(res, pd.DataFrame)
@@ -80,3 +83,20 @@ def test_distribution_statistics_autodist_base():
     dist.fit(df1['feat_0'], df2['feat_0'])
     assert dist.p_value == res.loc[res['column'] == 'feat_0', 'p_value_KS_no_bucketing_10'][0]
     assert dist.statistic == res.loc[res['column'] == 'feat_0', 'statistic_KS_no_bucketing_10'][0]
+
+
+def test_distribution_statistics_autodist_column_selection_error():
+    df1 = pd.DataFrame({'feat_0': [1, 2, 3, 4, 5], 'feat_1': [5, 6, 7, 8, 9]})
+    df2 = df1
+    features = df1.columns.values.tolist() + ['missing_feature']
+    myAutoDist = AutoDist()
+    with pytest.raises(Exception):
+        assert myAutoDist.fit(df1, df2, column_selection=features)
+
+    df1 = pd.DataFrame({'feat_0': [1, 2, 3, 4, 5], 'feat_1': [5, 6, 7, 8, 9]})
+    df2 = df1.copy()
+    df1['feat_2'] = 0
+    features = df2.columns.values.tolist() + ['missing_feature']
+    myAutoDist = AutoDist()
+    with pytest.raises(Exception):
+        assert myAutoDist.fit(df1, df2, column_selection=features)
