@@ -1,6 +1,7 @@
 import numpy as np
 from sklearn.metrics import roc_auc_score
 from sklearn.model_selection import train_test_split
+from pyrisk.utils import assure_numpy_array
 
 def get_metric(X, y, model, test_size, seed, evaluator, pred_type):
     """
@@ -18,6 +19,10 @@ def get_metric(X, y, model, test_size, seed, evaluator, pred_type):
         list with metrics from tain, test and delta between the two
 
     """
+
+    X = assure_numpy_array(X)
+    y = assure_numpy_array(y)
+
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = test_size, random_state = seed, stratify = y)
     model = model.fit(X_train, y_train)
     if pred_type == 'proba':
@@ -33,7 +38,7 @@ def get_metric(X, y, model, test_size, seed, evaluator, pred_type):
 
     return [metric_train, metric_test, metric_delta]
 
-def get_metric_folds(x, y, model, x_test, y_test, evaluator, pred_type):
+def get_metric_folds(x, y, model, x_test, , evaluator, pred_type):
     """
     Draws random train/test independant samples from the data using random seed and calculates metric of interest.
 
@@ -53,6 +58,11 @@ def get_metric_folds(x, y, model, x_test, y_test, evaluator, pred_type):
     metrics_train = []
     metrics_test = []
     metrics_delta = []
+
+    x = assure_numpy_array(x)
+    y = assure_numpy_array(y)
+    x_test = assure_numpy_array(x_test)
+    y_test = assure_numpy_array(y_test)
 
     for train_x, train_y in zip(x, y):
         if np.mean(train_y) < 1 and np.mean(train_y) > 0:

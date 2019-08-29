@@ -1,6 +1,5 @@
 import numpy as np
 import scipy.stats
-from scipy import stats
 
 # AUC comparison adapted from
 # https://github.com/Netflix/vmaf/
@@ -155,7 +154,7 @@ def fastDeLong_no_weights(predictions_sorted_transposed, label_1_count):
     return aucs, delongcov
 
 
-def calc_pvalue(aucs, sigma):
+def calc_log_pvalue(aucs, sigma):
     """Computes log(10) of p-values.
     Args:
        aucs: 1D array of AUCs
