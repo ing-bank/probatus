@@ -180,13 +180,14 @@ class AutoDist(object):
         Returns: dataframe with results of the performed statistical tests and binning strategies
 
         """
-        warnings.filterwarnings("ignore", module=r'scipy*')  # to suppress the numerous warnings of scipy
         result_all = pd.DataFrame()
         for col, stat_test, bin_strat, bins in tqdm(
                 list(itertools.product(columns, self.statistical_tests, self.binning_strategies, self.bin_count))):
             dist = DistributionStatistics(statistical_test=stat_test, binning_strategy=bin_strat, bin_count=bins)
             try:
+                warnings.filterwarnings("ignore", module=r'scipy*')  # to suppress the numerous warnings of scipy
                 _ = dist.fit(df1[col], df2[col])
+                warnings.filterwarnings('default')
                 statistic = dist.statistic
                 if hasattr(dist, 'p_value'):
                     p_value = dist.p_value
@@ -198,7 +199,6 @@ class AutoDist(object):
             result_ = {'column': col, 'statistical_test': stat_test, 'binning_strategy': bin_strat, 'bin_count': bins,
                        'statistic': statistic, 'p_value': p_value}
             result_all = result_all.append(result_, ignore_index=True)
-        warnings.filterwarnings('default')
         if not return_failed_tests:
             result_all = result_all[result_all['statistic'] != 'an error occurred']
         self.fitted = True
