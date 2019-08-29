@@ -68,7 +68,9 @@ class VolatilityEstimation(object):
                 results = []
                 X_train, X_test, y_train, y_test = stratified_random(self.X, self.y, test_prc)
                 top_k = max_folds(y_train) 
-                for k in range(2,top_k + 1):
+                if top_k > 11:
+                    top_k = 11
+                for k in range(1,top_k + 1):
         
                     x_slice, y_slice = slicer(X_train, y_train, k)
                     results_i = get_metric_folds(x_slice, 
