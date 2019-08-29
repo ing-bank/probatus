@@ -108,6 +108,36 @@ class DistributionStatistics(object):
 
 
 class AutoDist(object):
+    """
+    Class to automatically apply all implemented statistical distribution tests and binning strategies to (a
+    selection of) features in two dataframes.
+
+    Parameters
+    ----------
+    statistical_tests: string 'all' or list of strings with tests to apply
+        Statistical tests to apply, statistical methods implemented:
+            'ES': Epps-Singleton
+            'KS': Kolmogorov-Smirnov statistic
+            'PSI': Population Stability Index
+
+    binning_strategies: string 'all' or list of strings with strategies to apply
+        Binning strategy to apply, binning strategies implemented:
+            'SimpleBucketer': equally spaced bins
+            'AgglomerativeBucketer': binning by applying the Scikit-learn implementation of Agglomerative Clustering
+            'QuantileBucketer': bins with equal number of elements
+            None: no binning is applied
+
+    bin_count: integer, None or list of integers
+        bin_count value(s) to be used, note that None can only be used when no bucketing strategy is applied
+
+    Example:
+        df1 = pd.DataFrame(np.random.normal(size=(1000, 2)), columns=['feat_0', 'feat_1'])
+        df2 = pd.DataFrame(np.random.normal(size=(1000, 2)), columns=['feat_0', 'feat_1'])
+
+        myAutoDist = AutoDist(statistical_tests='all', binning_strategies='all', bin_count=[10, 20])
+        res = myAutoDist.fit(df1, df2, columns=df1.columns)
+    """
+
     def __init__(self, statistical_tests='all', binning_strategies='all', bin_count=10):
         self.fitted = False
         if statistical_tests == 'all':
@@ -138,6 +168,18 @@ class AutoDist(object):
         return repr_
 
     def fit(self, df1, df2, columns, return_failed_tests=True):
+        """
+        Fit the AutoDist object to data; i.e. apply the statistical tests and binning strategies
+
+        Args:
+            df1: dataframe 1 for distribution comparison with dataframe 2
+            df2: dataframe 2 for distribution comparison with dataframe 1
+            columns: list of columns in df1 and df2 that should be compared
+            return_failed_tests: remove tests in result that did not succeed
+
+        Returns: dataframe with results of the performed statistical tests and binning strategies
+
+        """
         warnings.filterwarnings("ignore", module=r'scipy*')  # to suppress the numerous warnings of scipy
         result_all = pd.DataFrame()
         for col, stat_test, bin_strat, bins in tqdm(
