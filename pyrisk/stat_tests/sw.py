@@ -34,8 +34,8 @@ def sw(d1, d2, verbose = False):
     d1 = pd.Series(d1)
     d2 = pd.Series (d2)
     
-    MOT = pd.Series(np.concatenate(d1, d2))
-    n1 = d1.shape[0]
+    MOT = pd.concat(d1,d2)
+    n1 = d1.shape[0]ls  
     n2 = d2.shape[0]
 
     def ran_delta(n1, n2):
