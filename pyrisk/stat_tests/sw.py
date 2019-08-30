@@ -1,6 +1,7 @@
 import pandas as pd
 import random
 from scipy import stats
+import numpy as np
 from ..utils import assure_numpy_array
 
 
@@ -30,7 +31,10 @@ def sw(d1, d2, verbose = False):
 
     delta = stats.shapiro(d1)[0] - stats.shapiro(d2)[0]
 
-    MOT = pd.concat([d1, d2])
+    d1 = pd.Series(d1)
+    d2 = pd.Series (d2)
+    
+    MOT = pd.Series(np.concatenate(d1, d2))
     n1 = d1.shape[0]
     n2 = d2.shape[0]
 
