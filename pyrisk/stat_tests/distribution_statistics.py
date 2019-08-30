@@ -191,7 +191,7 @@ class AutoDist(object):
         """
         # test if all columns in column_selection are in df1 and df2
         if len(set(column_selection) - set(df1.columns)) or len(set(column_selection) - set(df2.columns)):
-            raise Exception('Not are columns in `column_selection` are in the provided dataframes')
+            raise Exception('Not all columns in `column_selection` are in the provided dataframes')
 
         result_all = pd.DataFrame()
         for col, stat_test, bin_strat, bins in tqdm(
