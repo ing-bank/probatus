@@ -1,6 +1,10 @@
 import numpy as np
+import pandas as pd
 import numbers
-from pyrisk.stat_tests import DistributionStatistics, ks, psi
+
+import pytest
+
+from pyrisk.stat_tests import DistributionStatistics, ks, psi, AutoDist
 
 
 def test_distribution_statistics_psi():
@@ -8,7 +12,6 @@ def test_distribution_statistics_psi():
     d2 = np.histogram(np.random.weibull(1, size=1000) - 1, 10)[0]
     myTest = DistributionStatistics('psi', 'SimpleBucketer', bin_count=10)
     assert not myTest.fitted
-    # note that `n` and `m` only need to be specified for PSI
     res = myTest.fit(d1, d2)
     assert myTest.fitted
     assert isinstance(res, numbers.Number)
@@ -52,3 +55,48 @@ def test_distribution_statistics_attributes_ks():
     _ = myTest.fit(d1, d2, verbose=False)
     ks_value, p_value = ks(d1, d2)
     assert myTest.statistic == ks_value
+
+
+def test_distribution_statistics_autodist_base():
+    nr_features = 2
+    size = 1000
+    np.random.seed(0)
+    df1 = pd.DataFrame(np.random.normal(size=(size, nr_features)), columns=[f'feat_{x}' for x in range(nr_features)])
+    df2 = pd.DataFrame(np.random.normal(size=(size, nr_features)), columns=[f'feat_{x}' for x in range(nr_features)])
+    features = df1.columns
+    myAutoDist = AutoDist(statistical_tests='all', binning_strategies='all', bin_count=[10, 20])
+    assert not myAutoDist.fitted
+    res = myAutoDist.fit(df1, df2, column_selection=features)
+    assert myAutoDist.fitted
+    pd.testing.assert_frame_equal(res, myAutoDist.result)
+    assert isinstance(res, pd.DataFrame)
+    assert res['column'].values.tolist() == features.to_list()
+    assert len(myAutoDist.statistical_tests) * len(myAutoDist.binning_strategies) * len(
+        myAutoDist.bin_count) * 2 + 1 == res.columns.size
+
+    dist = DistributionStatistics(statistical_test='ks', binning_strategy='simplebucketer', bin_count=10)
+    dist.fit(df1['feat_0'], df2['feat_0'])
+    assert dist.p_value == res.loc[res['column'] == 'feat_0', 'p_value_KS_simplebucketer_10'][0]
+    assert dist.statistic == res.loc[res['column'] == 'feat_0', 'statistic_KS_simplebucketer_10'][0]
+
+    dist = DistributionStatistics(statistical_test='ks', binning_strategy=None, bin_count=10)
+    dist.fit(df1['feat_0'], df2['feat_0'])
+    assert dist.p_value == res.loc[res['column'] == 'feat_0', 'p_value_KS_no_bucketing_10'][0]
+    assert dist.statistic == res.loc[res['column'] == 'feat_0', 'statistic_KS_no_bucketing_10'][0]
+
+
+def test_distribution_statistics_autodist_column_selection_error():
+    df1 = pd.DataFrame({'feat_0': [1, 2, 3, 4, 5], 'feat_1': [5, 6, 7, 8, 9]})
+    df2 = df1
+    features = df1.columns.values.tolist() + ['missing_feature']
+    myAutoDist = AutoDist()
+    with pytest.raises(Exception):
+        assert myAutoDist.fit(df1, df2, column_selection=features)
+
+    df1 = pd.DataFrame({'feat_0': [1, 2, 3, 4, 5], 'feat_1': [5, 6, 7, 8, 9]})
+    df2 = df1.copy()
+    df1['feat_2'] = 0
+    features = df2.columns.values.tolist() + ['missing_feature']
+    myAutoDist = AutoDist()
+    with pytest.raises(Exception):
+        assert myAutoDist.fit(df1, df2, column_selection=features)
