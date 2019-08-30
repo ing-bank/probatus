@@ -1,8 +1,8 @@
 import numpy as np
 import pandas as pd
-
-from pyrisk.stat_tests import ad, es, ks, psi
+from pyrisk.stat_tests import ad, es, ks, psi, sw
 from pyrisk.binning import binning
+
 
 
 def test_psi_returns_zero():
@@ -60,3 +60,9 @@ def test_ad_returns_small():
     d1 = np.random.normal(size=1000)
     d2 = np.random.weibull(1, size=1000) - 1
     assert ad(d1, d2)[1] <= 0.001
+
+
+def test_sw_returns_zero():
+    d1 = np.random.normal(size=1000)
+    d2 = d1
+    assert sw(d1, d2)[0] == 0

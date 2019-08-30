@@ -5,7 +5,7 @@ import pandas as pd
 from tqdm import tqdm
 
 from pyrisk.binning import SimpleBucketer, AgglomerativeBucketer, QuantileBucketer
-from pyrisk.stat_tests import es, ks, psi, ad
+from pyrisk.stat_tests import es, ks, psi, ad, sw
 
 
 class DistributionStatistics(object):
@@ -19,7 +19,9 @@ class DistributionStatistics(object):
             'ES': Epps-Singleton
             'KS': Kolmogorov-Smirnov statistic
             'PSI': Population Stability Index
+            'SW': Shapiro-Wilk based difference statistic
             'AD': Anderson-Darling TS
+
 
     binning_strategy: string or None
         Binning strategy to apply, binning strategies implemented:
@@ -38,7 +40,7 @@ class DistributionStatistics(object):
     myTest.fit(d1, d2, verbose=True)
 
     """
-    statistical_test_list = ['ES', 'KS', 'PSI', 'AD']
+    statistical_test_list = ['ES', 'KS', 'PSI', 'AD', 'SW']
     binning_strategy_list = ['simplebucketer', 'agglomerativebucketer', 'quantilebucketer', None]
 
     def __init__(self, statistical_test, binning_strategy, bin_count=None):
@@ -55,6 +57,8 @@ class DistributionStatistics(object):
             self._statistical_test_function = ks
         elif self.statistical_test.upper() == 'PSI':
             self._statistical_test_function = psi
+        elif self.statistical_test.upper() == 'SW':
+            self._statistical_test_function = sw
         elif self.statistical_test.upper() == 'AD':
             self._statistical_test_function = ad
 
