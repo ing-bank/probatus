@@ -7,6 +7,15 @@ import pytest
 from pyrisk.stat_tests import DistributionStatistics, ks, psi, AutoDist
 
 
+def test_distribution_statistics_base():
+    with pytest.raises(NotImplementedError):
+        assert DistributionStatistics('doesnotexist', 'SimpleBucketer', bin_count=10)
+    with pytest.raises(NotImplementedError):
+        assert DistributionStatistics('psi', 'doesnotexist', bin_count=10)
+    myTest = DistributionStatistics('psi', 'SimpleBucketer', bin_count=10)
+    assert repr(myTest).startswith('DistributionStatistics')
+
+
 def test_distribution_statistics_psi():
     d1 = np.histogram(np.random.normal(size=1000), 10)[0]
     d2 = np.histogram(np.random.weibull(1, size=1000) - 1, 10)[0]
