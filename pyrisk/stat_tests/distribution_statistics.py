@@ -13,6 +13,7 @@ class DistributionStatistics(object):
             'ES': Epps-Singleton
             'KS': Kolmogorov-Smirnov statistic
             'PSI': Population Stability Index
+            'SW': Shapiro-Wilk based difference statistic
 
     binning_strategy: string or None
         Binning strategy to apply, binning strategies implemented:
@@ -38,14 +39,16 @@ class DistributionStatistics(object):
         self.bin_count = bin_count
         self.fitted = False
 
-        if self.statistical_test.upper() not in ['ES', 'KS', 'PSI']:
-            raise NotImplementedError("The statistical test should be one of 'ES', 'KS', 'PSI'")
+        if self.statistical_test.upper() not in ['ES', 'KS', 'PSI','SW']:
+            raise NotImplementedError("The statistical test should be one of 'ES', 'KS', 'PSI', 'SW'")
         elif self.statistical_test.upper() == 'ES':
             self._statistical_test_function = es
         elif self.statistical_test.upper() == 'KS':
             self._statistical_test_function = ks
         elif self.statistical_test.upper() == 'PSI':
             self._statistical_test_function = psi
+        elif self.statistical_test.upper() == 'SW':
+            self._statistical_test_function = sw
 
         if self.binning_strategy:
             if self.binning_strategy.lower() not in ['simplebucketer', 'agglomerativebucketer', 'quantilebucketer',
@@ -87,9 +90,6 @@ class DistributionStatistics(object):
         Returns: statistic value and p_value (if available, e.g. not for PSI)
 
         """
-        if self._statistical_test_function == psi:
-            if not 'n' in kwargs or not 'm' in kwargs:
-                raise IOError('For PSI please specify the length of unbinned d1 and d2')
         if self.binning_strategy:
             self.binner.fit(d1)
             d1_preprocessed = self.binner.counts
