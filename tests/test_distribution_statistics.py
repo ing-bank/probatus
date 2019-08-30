@@ -74,6 +74,7 @@ def test_distribution_statistics_autodist_base():
     df2 = pd.DataFrame(np.random.normal(size=(size, nr_features)), columns=[f'feat_{x}' for x in range(nr_features)])
     features = df1.columns
     myAutoDist = AutoDist(statistical_tests='all', binning_strategies='all', bin_count=[10, 20])
+    assert repr(myAutoDist).startswith('AutoDist')
     assert not myAutoDist.fitted
     res = myAutoDist.fit(df1, df2, column_selection=features)
     assert myAutoDist.fitted
@@ -109,3 +110,30 @@ def test_distribution_statistics_autodist_column_selection_error():
     myAutoDist = AutoDist()
     with pytest.raises(Exception):
         assert myAutoDist.fit(df1, df2, column_selection=features)
+
+
+def test_distribution_statistics_autodist_return_failed_tests():
+    df1 = pd.DataFrame({'feat_0': [1, 2, 3, 4, 5], 'feat_1': [5, 6, 7, 8, 9]})
+    df2 = df1
+    features = df1.columns.values.tolist()
+    myAutoDist = AutoDist()
+    res = myAutoDist.fit(df1, df2, column_selection=features, return_failed_tests=True)
+    assert res.isin(['an error occurred']).any().any()
+    res = myAutoDist.fit(df1, df2, column_selection=features, return_failed_tests=False)
+    assert not res.isin(['an error occurred']).any().any()
+
+
+def test_distribution_statistics_autodist_init():
+    myAutoDist = AutoDist(statistical_tests='all', binning_strategies='all')
+    assert isinstance(myAutoDist.statistical_tests, list)
+    myAutoDist = AutoDist(statistical_tests='ks', binning_strategies='all')
+    assert myAutoDist.statistical_tests == ['ks']
+    myAutoDist = AutoDist(statistical_tests=['ks', 'psi'], binning_strategies='all')
+    assert myAutoDist.statistical_tests == ['ks', 'psi']
+
+    myAutoDist = AutoDist(statistical_tests='all', binning_strategies='all')
+    assert isinstance(myAutoDist.binning_strategies, list)
+    myAutoDist = AutoDist(statistical_tests='all', binning_strategies='quantilebucketer')
+    assert myAutoDist.binning_strategies == ['quantilebucketer']
+    myAutoDist = AutoDist(statistical_tests='all', binning_strategies=['quantilebucketer', 'simplebucketer'])
+    assert myAutoDist.binning_strategies == ['quantilebucketer', 'simplebucketer']
