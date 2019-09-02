@@ -1,4 +1,7 @@
 import numpy as np
+import pytest
+from pyrisk.utils import NotFittedError
+
 from pyrisk.binning import SimpleBucketer, QuantileBucketer, AgglomerativeBucketer
 
 
@@ -17,6 +20,7 @@ def test_simple_bins():
     counts, boundaries = SimpleBucketer(bin_count=bins).simple_bins(x, bins)
     assert np.array_equal(myBucketer.counts, counts)
     np.testing.assert_array_almost_equal(myBucketer.boundaries, boundaries)
+    assert repr(myBucketer).startswith('SimpleBucketer')
 
 
 def test_quantile_bins():
@@ -39,6 +43,7 @@ def test_quantile_bins():
     counts, boundaries = QuantileBucketer(bin_count=bins).quantile_bins(x, bins, inf_edges=True)
     assert boundaries[0] == -np.inf
     assert boundaries[-1] == np.inf
+    assert repr(myBucketer).startswith('QuantileBucketer')
 
 
 def test_agglomerative_clustering_new():
@@ -59,14 +64,17 @@ def test_agglomerative_clustering_new():
     counts, boundaries = AgglomerativeBucketer(bin_count=bins).agglomerative_clustering_binning(x, bins)
     assert np.array_equal(myBucketer.counts, counts)
     np.testing.assert_array_almost_equal(myBucketer.boundaries, boundaries)
+    assert repr(myBucketer).startswith('AgglomerativeBucketer')
 
 
 def test_apply_bucketing():
     x = np.arange(10)
     bins = 5
     myBucketer = QuantileBucketer(bins)
-    myBucketer.fit(x)
     x_new = x
+    with pytest.raises(NotFittedError):
+        assert myBucketer.apply_bucketing(x_new)
+    myBucketer.fit(x)
     assert len(myBucketer.apply_bucketing(x_new)) == bins
     np.testing.assert_array_equal(myBucketer.counts, myBucketer.apply_bucketing(x_new))
     x_new = x + 100
@@ -78,7 +86,6 @@ def test_apply_bucketing():
 
 
 def test_quantile_with_unique_values():
-
     np.random.seed(42)
     dist_0_1 = np.random.uniform(size=20)
     dist_peak_at_0 = np.zeros(shape=20)
@@ -87,11 +94,8 @@ def test_quantile_with_unique_values():
     actual_out = QuantileBucketer(10).quantile_bins(skewed_dist, 10)
 
     expected_out = (
-        np.array([20,  4,  4,  4,  4,  4]),
-        np.array([0., 0.01894458, 0.23632033, 0.42214475, 0.60977678,0.67440958, 0.99940487])
-        )
+        np.array([20, 4, 4, 4, 4, 4]),
+        np.array([0., 0.01894458, 0.23632033, 0.42214475, 0.60977678, 0.67440958, 0.99940487])
+    )
 
-    assert ((actual_out[0] == expected_out[0])).all()
-    # print(actual_out[1])
-    # print(expected_out[1])
-    # assert (np.abs(actual_out[1] - expected_out[1]) < np.array([0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01])).all()
+    assert (actual_out[0] == expected_out[0]).all()

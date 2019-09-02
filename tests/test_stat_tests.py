@@ -1,11 +1,15 @@
 import numpy as np
 import pandas as pd
+from pyrisk.stat_tests import ad, es, ks, psi, sw
+from pyrisk.binning import binning
 
-from pyrisk.stat_tests import ad, es, ks, psi
 
 
 def test_psi_returns_zero():
-    d1 = np.random.normal(size=1000)
+    x = np.random.normal(size=1000)
+    myBucketer = binning.QuantileBucketer(bin_count=10)
+    myBucketer.fit(x)
+    d1 = myBucketer.counts
     d2 = d1
     assert psi(d1, d2, verbose=False) == 0.0
 
@@ -56,3 +60,9 @@ def test_ad_returns_small():
     d1 = np.random.normal(size=1000)
     d2 = np.random.weibull(1, size=1000) - 1
     assert ad(d1, d2)[1] <= 0.001
+
+
+def test_sw_returns_zero():
+    d1 = np.random.normal(size=1000)
+    d2 = d1
+    assert sw(d1, d2)[0] == 0
