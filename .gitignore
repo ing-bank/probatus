@@ -1,6 +1,7 @@
 tests/.pytest_cache
 __pycache__
 notebooks/private
+notebooks/explore
 .idea
 
 __pycache__
