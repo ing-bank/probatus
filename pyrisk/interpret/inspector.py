@@ -35,11 +35,11 @@ class BaseInspector(object):
 
     def fit_clusters(self, X):
         """
-        Perform the fit of the clusters
+        Perform the fit of the clusters with the algorithm specified in the constructor
         Args:
-            X:
+            X: input features
 
-        Returns:
+        Returns: cluster labels
 
         """
         self.clusterer.fit(X)
@@ -319,6 +319,15 @@ class InspectorShap(BaseInspector):
 
     @staticmethod
     def get_cluster_mask(df, cluster_id):
+        """
+        Returns the mask to filter the cluster id
+        Args:
+            df: dataframe with 'cluster_id' in it
+            cluster_id: int or list of cluster ids to mask
+
+        Returns:
+
+        """
 
         if not isinstance(cluster_id, list):
             cluster_id = [cluster_id]
@@ -328,6 +337,16 @@ class InspectorShap(BaseInspector):
 
     @staticmethod
     def create_summary_df(cluster,y, probas):
+        """
+        Creates a summary by concatenating the cluster series, the targets, the probabilities and the measured confusion
+        Args:
+            cluster: pd.Series od clusters
+            y: pd.Series od targets
+            probas: pd.Series of predicted probabilities of the model
+
+        Returns: pd.DataFrame (concatenation of the inputs)
+
+        """
 
         confusion = return_confusion_metric(y,probas).rename("confusion")
 
@@ -342,6 +361,13 @@ class InspectorShap(BaseInspector):
 
     @staticmethod
     def aggregate_summary_df(df):
+        """
+        Performs the aggregations at the cluster_id level needed to generate the report of the inspection
+        Args:
+            df: input df to aggregate
+
+        Returns: pd.Dataframe with aggregation results
+        """
 
 
         out = df.groupby("cluster_id", as_index=False).agg(
@@ -350,12 +376,10 @@ class InspectorShap(BaseInspector):
             label_1_rate=pd.NamedAgg(column='target', aggfunc="mean"),
 
             average_confusion=pd.NamedAgg(column='confusion', aggfunc="mean"),
-            # min_confusion=pd.NamedAgg(column='confusion', aggfunc="min"),
-            # max_confusion=pd.NamedAgg(column='confusion', aggfunc="max"),
+
 
             average_pred_proba=pd.NamedAgg(column='pred_proba', aggfunc="mean"),
-            #min_pred_proba=pd.NamedAgg(column='pred_proba', aggfunc="min"),
-            #max_pred_proba=pd.NamedAgg(column='pred_proba', aggfunc="max")
+
         ).reset_index().rename(columns={"index": "cluster_id"}).sort_values(by='cluster_id')
 
         return out
