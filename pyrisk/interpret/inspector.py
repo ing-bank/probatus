@@ -59,6 +59,30 @@ class BaseInspector(object):
 
         return labels
 
+    @staticmethod
+    def check_is_dataframe(df):
+
+        if isinstance(df,pd.DataFrame):
+            return df
+
+        elif isinstance(df,np.ndarray) and len(df.shape)==2:
+            return pd.DataFrame(df)
+
+        else:
+            raise NotImplementedError("Sorry, X needs to be a pd.DataFrame for for a 2 dimensional numpy array")
+
+    @staticmethod
+    def assert_is_series(series, index=None):
+
+        if isinstance(series, pd.Series):
+            return series
+        elif isinstance(series, pd.DataFrame) and series.shape[1] == 1:
+            return pd.Series(series.values.ravel(), index=series.index)
+        elif isinstance(series, np.ndarray) and index is not None:
+            return pd.Series(series, index=index)
+        else:
+            raise TypeError(
+                "The object should be a pd.Series, a dataframe with one collumn or a 1 dimensional numpy array")
 
 
 
@@ -95,6 +119,7 @@ class InspectorShap(BaseInspector):
         if confusion_metric not in ['proba', 'target']:
             raise NotImplementedError("confusion metric {} not supported. See docstrings".format(confusion_metric))
         self.confusion_metric = confusion_metric
+        self.cluster_report = None
 
     def __repr__(self):
         repr_ = "{},\n\t{}".format(self.__class__.__name__, self.algotype)
@@ -116,6 +141,8 @@ class InspectorShap(BaseInspector):
         return self.model.predict_proba(X)[:,1]
 
 
+
+
     def inspect(self, X, y=None, eval_set = None, sample_names=None, **shap_kwargs):
         """
         Performs the cluster calculations
@@ -131,6 +158,9 @@ class InspectorShap(BaseInspector):
             **shap_kwargs:  kwargs to pass to the Shapley Tree Explained
 
         """
+
+        X = self.check_is_dataframe(X)
+        y = self.assert_is_series(y, index = X.index)
 
         self.set_names = sample_names
         if sample_names is not None:
@@ -155,6 +185,9 @@ class InspectorShap(BaseInspector):
             self.ys = list()
             self.predict_probas = list()
             for X_, y_ in eval_set:
+                X_ = self.check_is_dataframe(X_)
+                y_ = self.assert_is_series(y_, index=X_.index)
+
                 X_shap_ = shap_to_dataframe(self.model, X_, **shap_kwargs)
                 self.X_shaps.append(X_shap_)
                 self.ys.append(y_)
@@ -170,6 +203,7 @@ class InspectorShap(BaseInspector):
 
 
         """
+
         self.summary_df = self.create_summary_df(self.clusters, self.y, self.predict_proba)
         self.agg_summary_df = self.aggregate_summary_df(self.summary_df)
 
@@ -204,6 +238,10 @@ class InspectorShap(BaseInspector):
         Returns: (pd.DataFrame) with above mentioned aggregations.
 
         """
+
+        if self.cluster_report is not None:
+            return self.cluster_report
+
         self._compute_report()
         out = self.agg_summary_df.copy()
 
@@ -217,7 +255,9 @@ class InspectorShap(BaseInspector):
 
                 out = pd.merge(out,agg_summary_df, on='cluster_id',  suffixes = ('','_{}'.format(sample_suffix)))
 
-        return out
+
+        self.cluster_report = out
+        return self.cluster_report
 
 
 
@@ -233,6 +273,9 @@ class InspectorShap(BaseInspector):
         Returns: tuple: Dataframe of sliced shapley values, series of sliced targets, sliced probabilities
 
         """
+
+        if self.cluster_report is None:
+            self.get_report()
 
         mask = self.get_cluster_mask(self.summary_df, cluster_id)
         if not complementary:
@@ -257,6 +300,9 @@ class InspectorShap(BaseInspector):
 
         if not self.hasmultiple_dfs:
             raise NotFittedError("You did not fit the eval set. Please add an eval set when calling inspect()")
+
+        if self.cluster_report is None:
+            self.get_report()
 
 
         output = list()
