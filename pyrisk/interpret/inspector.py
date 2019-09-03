@@ -3,7 +3,7 @@ from ..utils import NotFittedError, UnsupportedModelError
 import numpy as np
 import pandas as pd
 
-import hdbscan
+#import hdbscan
 from sklearn.cluster import KMeans
 from ._shap_helpers import shap_to_dataframe
 
@@ -20,9 +20,10 @@ class BaseInspector(object):
     def __init__(self, algotype, **kwargs):
         self.fitted = False
         self.algotype = algotype
-        if algotype =='dbscan':
-            self.clusterer = hdbscan.HDBSCAN(prediction_data=True,**kwargs)
-        elif algotype =='kmeans':
+        # TODO fix compilatiopn issue on  for hdbscan
+        # if algotype =='dbscan':
+        #     self.clusterer = hdbscan.HDBSCAN(prediction_data=True,**kwargs)
+        if algotype =='kmeans':
             self.clusterer = KMeans(**kwargs)
         else:
             raise UnsupportedModelError("The algorithm {} is not supported".format(algotype))
@@ -116,7 +117,8 @@ class InspectorShap(BaseInspector):
         self.model = model
         self.isinspected = False
         self.hasmultiple_dfs = False
-        if confusion_metric not in ['proba', 'target']:
+        if confusion_metric not in ['proba']:
+            #TODO implement the target method
             raise NotImplementedError("confusion metric {} not supported. See docstrings".format(confusion_metric))
         self.confusion_metric = confusion_metric
         self.cluster_report = None
