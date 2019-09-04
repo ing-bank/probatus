@@ -52,6 +52,18 @@ def test_shap_to_df():
     assert shap_df.columns.tolist() == X.columns.tolist()
     assert shap_df.index.tolist() == X.head(5).index.tolist()
 
+def test_shap_to_df_with_np_array():
+    rf, X = get_feats_and_model()
+
+    shap_df = shap_help.shap_to_df(rf, X.head(5).values)
+
+    assert isinstance(shap_df, pd.DataFrame)
+    assert shap_df.columns.tolist() == ["col_{}" for ix in range(X.shape[1])]
+
+    # Check that it raises na error if wrong data is passed
+    with pytest.raises(NotImplementedError):
+        shap_df = shap_help.shap_to_df(rf, X.head(5).values[0])
+
 
 def test_shapley_averages():
     rf, X = get_feats_and_model()

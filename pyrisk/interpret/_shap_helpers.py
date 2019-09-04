@@ -52,8 +52,13 @@ def shap_to_df(model, X, **kwargs):
     """
 
     shap_values = shap_calc(model, X, **kwargs)
+    if isinstance(X,pd.DataFrame):
+        return pd.DataFrame(shap_values, columns=X.columns, index=X.index)
 
-    return pd.DataFrame(shap_values, columns=X.columns, index=X.index)
+    elif isinstance(X,np.ndarray) and len(X.shape)==2:
+        return pd.DataFrame(shap_values, columns=["col_{}" for ix in range(X.shape[1])])
+
+    else: raise NotImplementedError("X must be a dataframe or a 2d array")
 
 
 def mean_shap(df):
