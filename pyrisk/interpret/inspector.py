@@ -8,7 +8,11 @@ from sklearn.cluster import KMeans
 from ._shap_helpers import shap_to_df
 
 
-def return_confusion_metric(y_true, y_score):
+def return_confusion_metric(y_true, y_score, normalize = False):
+
+    if normalize:
+        y_score = y_score/y_score.max()
+
     return np.abs(y_true - y_score)
 
 def check_is_dataframe(df):
@@ -111,12 +115,13 @@ class InspectorShap(BaseInspector):
     """
 
 
-    def __init__(self, model, algotype='kmeans', confusion_metric = 'proba', **kwargs):
+    def __init__(self, model, algotype='kmeans', confusion_metric = 'proba',normalize_probability=False, **kwargs):
 
         super().__init__(algotype, **kwargs)
         self.model = model
         self.isinspected = False
         self.hasmultiple_dfs = False
+        self.normalize_proba = normalize_probability
         if confusion_metric not in ['proba']:
             #TODO implement the target method
             raise NotImplementedError("confusion metric {} not supported. See docstrings".format(confusion_metric))
@@ -206,13 +211,13 @@ class InspectorShap(BaseInspector):
 
         """
 
-        self.summary_df = self.create_summary_df(self.clusters, self.y, self.predict_proba)
+        self.summary_df = self.create_summary_df(self.clusters, self.y, self.predict_proba, normalize=self.normalize_proba)
         self.agg_summary_df = self.aggregate_summary_df(self.summary_df)
 
         if self.hasmultiple_dfs:
 
             self.summary_dfs = [
-                self.create_summary_df(clust, y, pred_proba)
+                self.create_summary_df(clust, y, pred_proba, normalize=self.normalize_proba)
                 for  clust, y, pred_proba in zip(self.clusters_list, self.ys, self.predict_probas)
             ]
 
@@ -338,19 +343,20 @@ class InspectorShap(BaseInspector):
         return mask
 
     @staticmethod
-    def create_summary_df(cluster,y, probas):
+    def create_summary_df(cluster,y, probas, normalize=False):
         """
         Creates a summary by concatenating the cluster series, the targets, the probabilities and the measured confusion
         Args:
             cluster: pd.Series od clusters
             y: pd.Series od targets
             probas: pd.Series of predicted probabilities of the model
+            normalize: boolean (if the predicted probabilities should be normalized to the max value
 
         Returns: pd.DataFrame (concatenation of the inputs)
 
         """
 
-        confusion = return_confusion_metric(y,probas).rename("confusion")
+        confusion = return_confusion_metric(y,probas, normalize = normalize).rename("confusion")
 
         summary = [
             cluster,
