@@ -110,18 +110,24 @@ class InspectorShap(BaseInspector):
                 - "proba": it will calculate the confusion metric as the absolute value of the target minus the predicted
                            probability. This provides a continuous measure od confusion, where 0 indicated correct predictions
                            and the closer the number is to 1, the higher the confusion
+            normalize_probability: (boolean) if true, it will normalize the probabilities to the max value when computing
+                the confusion metric
+            cluster_probabilities: (boolean) if tru, uses the model prediction as an input for the cluster prediction
             **kwargs: keyword arguments for the clustering algorithm
 
     """
 
 
-    def __init__(self, model, algotype='kmeans', confusion_metric = 'proba',normalize_probability=False, **kwargs):
+    def __init__(self, model, algotype='kmeans', confusion_metric = 'proba',
+                 normalize_probability=False,cluster_probability = False, **kwargs):
 
         super().__init__(algotype, **kwargs)
         self.model = model
         self.isinspected = False
         self.hasmultiple_dfs = False
         self.normalize_proba = normalize_probability
+        self.cluster_probabilities = cluster_probability
+
         if confusion_metric not in ['proba']:
             #TODO implement the target method
             raise NotImplementedError("confusion metric {} not supported. See docstrings".format(confusion_metric))
@@ -148,7 +154,36 @@ class InspectorShap(BaseInspector):
         return self.model.predict_proba(X)[:,1]
 
 
+    def fit_clusters(self, X):
+        """
+        Perform the fit of the clusters with the algorithm specified in the constructor
+        Args:
+            X: input features
 
+
+        """
+
+        X = X.copy()
+        if self.cluster_probabilities:
+            X['probs'] = self.predict_proba
+
+        return super().fit_clusters(X)
+
+
+    def predict_clusters(self,X):
+        """
+        Predicts the clusters of the dataset X
+        Args:
+            X: features
+
+        Returns: cluster labels
+
+        """
+        X = X.copy()
+        if self.cluster_probabilities:
+            X['probs'] = self.predict_proba
+
+        return super().predict_clusters(X)
 
     def inspect(self, X, y=None, eval_set = None, sample_names=None, **shap_kwargs):
         """
