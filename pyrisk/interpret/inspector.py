@@ -9,6 +9,17 @@ from ._shap_helpers import shap_to_df
 
 
 def return_confusion_metric(y_true, y_score, normalize = False):
+    """
+    Computes a confusion metric as absolute difference between the y_true and y_score.
+    If normalize eis set to tru, it will normalize y_score to the maximum value in the array
+    Args:
+        y_true: (np.ndarray) true targets
+        y_score: (np.ndarray) model output
+        normalize: boolean, normalize or not to the maximum vlaue
+
+    Returns: (np.ndarray) conflusion metric
+
+    """
 
     if normalize:
         y_score = y_score/y_score.max()
