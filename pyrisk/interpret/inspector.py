@@ -5,7 +5,7 @@ import pandas as pd
 
 #import hdbscan
 from sklearn.cluster import KMeans
-from ._shap_helpers import shap_to_dataframe
+from ._shap_helpers import shap_to_df
 
 
 def return_confusion_metric(y_true, y_score):
@@ -171,7 +171,7 @@ class InspectorShap(BaseInspector):
             self.set_names = sample_names
 
 
-        self.X_shap = shap_to_dataframe(self.model, X, **shap_kwargs)
+        self.X_shap = shap_to_df(self.model, X, **shap_kwargs)
         self.y = y
         self.predict_proba = pd.Series(self.compute_probabilities(X), index = self.y.index,name = 'pred_proba')
         self.fit_clusters(self.X_shap)
@@ -190,7 +190,7 @@ class InspectorShap(BaseInspector):
                 X_ = self.check_is_dataframe(X_)
                 y_ = self.assert_is_series(y_, index=X_.index)
 
-                X_shap_ = shap_to_dataframe(self.model, X_, **shap_kwargs)
+                X_shap_ = shap_to_df(self.model, X_, **shap_kwargs)
                 self.X_shaps.append(X_shap_)
                 self.ys.append(y_)
                 self.predict_probas.append(pd.Series(self.compute_probabilities(X_), index = y_.index, name = 'pred_proba'))

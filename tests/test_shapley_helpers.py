@@ -32,21 +32,21 @@ def test_model_support():
     rf, X = get_feats_and_model()
 
 
-    shap_out = shap_help.shapley_calculator(rf,X,approximate=True)
+    shap_out = shap_help.shap_calc(rf, X, approximate=True)
     assert isinstance(shap_out, np.ndarray)
 
 
     #make sure that if you pass an unssupported model, the model raises the exceptions
     lr = LogisticRegression()
     with pytest.raises(UnsupportedModelError):
-        assert shap_help.shapley_calculator(lr,X,approximate=True)
+        assert shap_help.shap_calc(lr, X, approximate=True)
 
 
 
 def test_shap_to_df():
     rf, X = get_feats_and_model()
 
-    shap_df = shap_help.shap_to_dataframe(rf,X.head(5))
+    shap_df = shap_help.shap_to_df(rf, X.head(5))
 
     assert isinstance(shap_df, pd.DataFrame)
     assert shap_df.columns.tolist() == X.columns.tolist()
@@ -58,7 +58,7 @@ def test_shapley_averages():
 
     X = X.head(5)
 
-    shap_avg, shap_avg_abs = shap_help.compute_average_shap_per_column_raw(rf, X)
+    shap_avg, shap_avg_abs = shap_help.mean_shap_raw(rf, X)
 
     exp_avg, exp_abs_avg = get_shap_averages()
 

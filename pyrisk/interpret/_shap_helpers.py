@@ -4,27 +4,30 @@ import numpy as np
 from ..utils import class_name_from_object, UnsupportedModelError
 
 
-def shapley_calculator(model, X, approximate=False, **shap_kwargs):
+def shap_calc(model, X, approximate=False, **shap_kwargs):
     """
-
+    Helper function to calculate the shapley values for a given model.
+    Supported models for the moment are RandomForestClassifiers and XGBClassifiers
+    In case the shapley values have
     Args:
-        model:
-        X:
-        approximate:
-        **shap_kwargs:
+        model: pretrained model (Random Forest of XGBoost at the moment)
+        X (pd.DataFrame or np.ndarray): features set
+        approximate: boolean, if True uses shap approximations - less accurate, but very fast
+        **shap_kwargs: kwargs of the shap.TreeExplainer
 
-    Returns:
+    Returns: (np.ndarray) shapley_values for the model
 
     """
 
     model_name = class_name_from_object(model)
 
-    supported_models = ['RandomForestClassifier',"XGBClassifier"]
+    supported_models = ['RandomForestClassifier', 'XGBClassifier']
 
     if model_name not in supported_models:
-        raise UnsupportedModelError("{} not supported. Please try one of the following {}".format(model_name, supported_models))
+        raise UnsupportedModelError(
+            "{} not supported. Please try one of the following {}".format(model_name, supported_models))
 
-    explainer = shap.TreeExplainer(model,**shap_kwargs)
+    explainer = shap.TreeExplainer(model, **shap_kwargs)
 
     # Calculate Shap values
     shap_values = explainer.shap_values(X, approximate=approximate)
@@ -35,32 +38,32 @@ def shapley_calculator(model, X, approximate=False, **shap_kwargs):
     return shap_values
 
 
-def shap_to_dataframe(model, X, **kwargs):
+def shap_to_df(model, X, **kwargs):
     """
+    Calculates the shap values and return the pandas DataFrame with the columns and the index of the original
 
     Args:
-        model:
-        X:
-        **kwargs:
+        model: pretrained model (Random Forest of XGBoost at the moment)
+        X (pd.DataFrame or np.ndarray): features set
+        **kwargs: for the function shap_calc
 
     Returns:
 
     """
 
+    shap_values = shap_calc(model, X, **kwargs)
 
-    shap_values = shapley_calculator(model, X, **kwargs)
-
-    return pd.DataFrame(shap_values,columns=X.columns, index=X.index)
-
+    return pd.DataFrame(shap_values, columns=X.columns, index=X.index)
 
 
-def compute_average_shap_per_column(df):
+def mean_shap(df):
     """
+    Returns the average shapley value for each column of the dataframe, as well as the average absolute shap value
 
     Args:
-        df:
+        df: df of shapley values (output of function shap_to_df)
 
-    Returns:
+    Returns: tuple of pd.Series: average shap per column, average absolute value shap per column
 
     """
 
@@ -71,19 +74,21 @@ def compute_average_shap_per_column(df):
     return average_shap, average_abs_shap
 
 
-def compute_average_shap_per_column_raw(model, X, **kwargs):
+def mean_shap_raw(model, X, **kwargs):
     """
+    Returns the average shapley value for each column of the dataframe, as well as the average absolute shap value.
 
     Args:
-        model:
-        X:
+        model: pretrained model (Random Forest of XGBoost at the moment)
+        X (pd.DataFrame or np.ndarray): features set
         **kwargs:
+            approximate  (boolean) if True uses shap approximations - less accurate, but very fast
+            **kwargs of the shap.TreeExplainer
 
-    Returns:
+    Returns: tuple of pd.Series: average shap per column, average absolute value shap per column
 
     """
 
+    shap_df = shap_to_df(model, X, **kwargs)
 
-    shap_df = shap_to_dataframe(model, X, **kwargs)
-
-    return compute_average_shap_per_column(shap_df)
+    return mean_shap(shap_df)
