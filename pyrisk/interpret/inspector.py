@@ -8,7 +8,22 @@ from sklearn.cluster import KMeans
 from ._shap_helpers import shap_to_df
 
 
-def return_confusion_metric(y_true, y_score):
+def return_confusion_metric(y_true, y_score, normalize = False):
+    """
+    Computes a confusion metric as absolute difference between the y_true and y_score.
+    If normalize eis set to tru, it will normalize y_score to the maximum value in the array
+    Args:
+        y_true: (np.ndarray) true targets
+        y_score: (np.ndarray) model output
+        normalize: boolean, normalize or not to the maximum vlaue
+
+    Returns: (np.ndarray) conflusion metric
+
+    """
+
+    if normalize:
+        y_score = y_score/y_score.max()
+
     return np.abs(y_true - y_score)
 
 def check_is_dataframe(df):
@@ -106,17 +121,24 @@ class InspectorShap(BaseInspector):
                 - "proba": it will calculate the confusion metric as the absolute value of the target minus the predicted
                            probability. This provides a continuous measure od confusion, where 0 indicated correct predictions
                            and the closer the number is to 1, the higher the confusion
+            normalize_probability: (boolean) if true, it will normalize the probabilities to the max value when computing
+                the confusion metric
+            cluster_probabilities: (boolean) if tru, uses the model prediction as an input for the cluster prediction
             **kwargs: keyword arguments for the clustering algorithm
 
     """
 
 
-    def __init__(self, model, algotype='kmeans', confusion_metric = 'proba', **kwargs):
+    def __init__(self, model, algotype='kmeans', confusion_metric = 'proba',
+                 normalize_probability=False,cluster_probability = False, **kwargs):
 
         super().__init__(algotype, **kwargs)
         self.model = model
         self.isinspected = False
         self.hasmultiple_dfs = False
+        self.normalize_proba = normalize_probability
+        self.cluster_probabilities = cluster_probability
+
         if confusion_metric not in ['proba']:
             #TODO implement the target method
             raise NotImplementedError("confusion metric {} not supported. See docstrings".format(confusion_metric))
@@ -143,7 +165,36 @@ class InspectorShap(BaseInspector):
         return self.model.predict_proba(X)[:,1]
 
 
+    def fit_clusters(self, X):
+        """
+        Perform the fit of the clusters with the algorithm specified in the constructor
+        Args:
+            X: input features
 
+
+        """
+
+        X = X.copy()
+        if self.cluster_probabilities:
+            X['probs'] = self.predict_proba
+
+        return super().fit_clusters(X)
+
+
+    def predict_clusters(self,X):
+        """
+        Predicts the clusters of the dataset X
+        Args:
+            X: features
+
+        Returns: cluster labels
+
+        """
+        X = X.copy()
+        if self.cluster_probabilities:
+            X['probs'] = self.predict_proba
+
+        return super().predict_clusters(X)
 
     def inspect(self, X, y=None, eval_set = None, sample_names=None, **shap_kwargs):
         """
@@ -206,13 +257,13 @@ class InspectorShap(BaseInspector):
 
         """
 
-        self.summary_df = self.create_summary_df(self.clusters, self.y, self.predict_proba)
+        self.summary_df = self.create_summary_df(self.clusters, self.y, self.predict_proba, normalize=self.normalize_proba)
         self.agg_summary_df = self.aggregate_summary_df(self.summary_df)
 
         if self.hasmultiple_dfs:
 
             self.summary_dfs = [
-                self.create_summary_df(clust, y, pred_proba)
+                self.create_summary_df(clust, y, pred_proba, normalize=self.normalize_proba)
                 for  clust, y, pred_proba in zip(self.clusters_list, self.ys, self.predict_probas)
             ]
 
@@ -338,19 +389,20 @@ class InspectorShap(BaseInspector):
         return mask
 
     @staticmethod
-    def create_summary_df(cluster,y, probas):
+    def create_summary_df(cluster,y, probas, normalize=False):
         """
         Creates a summary by concatenating the cluster series, the targets, the probabilities and the measured confusion
         Args:
             cluster: pd.Series od clusters
             y: pd.Series od targets
             probas: pd.Series of predicted probabilities of the model
+            normalize: boolean (if the predicted probabilities should be normalized to the max value
 
         Returns: pd.DataFrame (concatenation of the inputs)
 
         """
 
-        confusion = return_confusion_metric(y,probas).rename("confusion")
+        confusion = return_confusion_metric(y,probas, normalize = normalize).rename("confusion")
 
         summary = [
             cluster,
