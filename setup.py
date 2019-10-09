@@ -1,6 +1,9 @@
 import setuptools
 import os
 
+def read(fname):
+    return open(os.path.join(os.path.dirname(__file__), fname)).read()
+
 base_packages = ["scikit-learn>=0.20.2",
                  "pandas>=0.25",
                  "matplotlib==3.1.1",
@@ -20,7 +23,8 @@ except:
 setuptools.setup(
     name='probatus',
     version=version,
-    description='Tools for machine learning model validation',
+    description='Validate your models like a lion',
+    long_description=read('README.md'),
     author='RPAA ING',
     author_email='ml_risk_and_pricing_aa@ing.com',
     license='ING Open Source',
