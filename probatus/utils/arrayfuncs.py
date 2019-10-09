@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import numbers
 
-from pyrisk.utils import DimensionalityError
+from probatus.utils import DimensionalityError
 
 
 def check_1d(x):

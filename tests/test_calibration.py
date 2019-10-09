@@ -1,8 +1,8 @@
 import numpy as np
-from pyrisk.calibration import *
-from pyrisk.models import lending_club_model
-from pyrisk.datasets import lending_club
-from pyrisk.calibration import Calibrator
+from probatus.calibration import *
+from probatus.models import lending_club_model
+from probatus.datasets import lending_club
+from probatus.calibration import Calibrator
 
 def test_get_calibrator():
     model = lending_club_model()

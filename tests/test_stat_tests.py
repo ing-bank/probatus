@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
-from pyrisk.stat_tests import ad, es, ks, psi, sw
-from pyrisk.binning import binning
+from probatus.stat_tests import ad, es, ks, psi, sw
+from probatus.binning import binning
 
 
 

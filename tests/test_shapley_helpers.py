@@ -1,12 +1,12 @@
 import pytest
 import numpy as np
 import pandas as pd
-from pyrisk.interpret import  _shap_helpers as shap_help
-from pyrisk.datasets import lending_club
-from pyrisk.models import lending_club_model
+from probatus.interpret import  _shap_helpers as shap_help
+from probatus.datasets import lending_club
+from probatus.models import lending_club_model
 
 from sklearn.linear_model import LogisticRegression
-from pyrisk.utils import UnsupportedModelError
+from probatus.utils import UnsupportedModelError
 
 
 

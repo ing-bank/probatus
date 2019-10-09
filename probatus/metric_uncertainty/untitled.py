@@ -1,13 +1,13 @@
-from pyrisk.models import lending_club_model
-from pyrisk.datasets import lending_club
+from probatus.models import lending_club_model
+from probatus.datasets import lending_club
 from sklearn.metrics import roc_auc_score
 
 import numpy as np
-from pyrisk.metric_uncertainty import VolatilityEstimation
+from probatus.metric_uncertainty import VolatilityEstimation
 from sklearn.metrics import roc_auc_score
 from sklearn.metrics import accuracy_score
-from pyrisk.models import lending_club_model
-from pyrisk.datasets import lending_club
+from probatus.models import lending_club_model
+from probatus.datasets import lending_club
 from sklearn.model_selection import StratifiedKFold
 from sklearn.model_selection import train_test_split
 

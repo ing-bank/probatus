@@ -1,8 +1,6 @@
 import setuptools
 import os
 
-
-
 base_packages = ["scikit-learn>=0.20.2",
                  "pandas>=0.25",
                  "matplotlib==3.1.1",
@@ -20,15 +18,15 @@ except:
 
 
 setuptools.setup(
-    name='pyrisk',
+    name='probatus',
     version=version,
     description='Validate your models like a lion',
     author='RPAA ING',
     author_email='ml_risk_and_pricing_aa@ing.com',
     license='ING Open Source',
     packages=setuptools.find_packages(),
-    package_data={'pyrisk': ['datasets/data/*.pkl']},
+    package_data={'probatus': ['datasets/data/*.pkl']},
     install_requires=base_packages,
-    url='https://gitlab.com/ing_rpaa/pyrisk',
+    url='https://gitlab.com/ing_rpaa/probatus',
     zip_safe=False
 )

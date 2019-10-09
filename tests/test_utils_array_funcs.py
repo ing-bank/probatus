@@ -3,7 +3,7 @@ import pandas as pd
 
 import pytest
 
-from pyrisk.utils import assure_numpy_array, check_1d, DimensionalityError
+from probatus.utils import assure_numpy_array, check_1d, DimensionalityError
 
 
 def test_assure_numpy_array_list():
