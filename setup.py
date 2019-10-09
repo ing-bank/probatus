@@ -20,7 +20,7 @@ except:
 setuptools.setup(
     name='probatus',
     version=version,
-    description='Validate your models like a lion',
+    description='Tools for machine learning model validation',
     author='RPAA ING',
     author_email='ml_risk_and_pricing_aa@ing.com',
     license='ING Open Source',

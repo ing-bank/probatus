@@ -1,28 +1,16 @@
 # Probatus
-Library that standardizes and collects different validation steps to be performed on the models. <br>
-For the Yoga phase, we focus on Credit Risk models. This means binary classifiers.
-Library for the validation of binary classifiers (most credit risk models)
-In the second phase, we can focus on more different problems like 
 
-## Measuring success
-- **Open source the library**
-- **Promote it within the ING organization**
-- **Promote it withint the pydata comunity**
+## Overview
 
-End goal - go to a PyData meetup before the end of the year and present this. Try to participate in few Pydata conferences around Europe/World to promote this super cool library
+Library for the validation of binary classifiers
 
-## Deliverables
-- Python library that can be integrated in a DS workflow to make some standardized model validation checks.
-- WebApp that can be hosted locally or on a server that allows people who do not know how to code in Python (like some modelers, audits folks etc) to use the library.
+## Installation
 
+```bash
+pip install probatus
+```
 
-
-## Epics
-The main epics are listed below, with some basic description and some potential user stories.
-The **bold** stories are a bit more stretch in my opinion, ie there is no clear way to proceed but we need to come up with some smart inputs based on solid statistical/data science concepts.
-
-#### 0 Unit tests
-Define unit test strategy
+## Features 
 
 #### 1 Metrics for distirbution similarity check
 Everything related to metrices used for the validation of the models.
@@ -58,7 +46,6 @@ Checks related to the validation of the samples definition. This includes buildi
 - [ ] Build different propensity models to validate the similarity of the samples
 - [ ] Perform univarite checks of feature distributions over different samples
 - [ ] Correlations change between samples
-
 
 #### 6 Effects of correlations between features
 - [ ] **Think about it**
@@ -131,4 +118,3 @@ Metadata:
 * credit_grade_E              uint8 - Indicator if clients credit grade is E
 * credit_grade_F              uint8 - Indicator if clients credit grade is F
 * credit_grade_G              uint8 - Indicator if clients credit grade is G
-
