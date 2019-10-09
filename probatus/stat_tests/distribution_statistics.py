@@ -4,8 +4,8 @@ import warnings
 import pandas as pd
 from tqdm import tqdm
 
-from pyrisk.binning import SimpleBucketer, AgglomerativeBucketer, QuantileBucketer
-from pyrisk.stat_tests import es, ks, psi, ad, sw
+from probatus.binning import SimpleBucketer, AgglomerativeBucketer, QuantileBucketer
+from probatus.stat_tests import es, ks, psi, ad, sw
 
 
 class DistributionStatistics(object):

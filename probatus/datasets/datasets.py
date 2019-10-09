@@ -42,7 +42,7 @@ def lending_club(file_name = 'sample_credit_data.pkl', modelling_mode = True):
     """
 
 
-    filepath = resource_filename("pyrisk", os.path.join('datasets/data',file_name))
+    filepath = resource_filename("probatus", os.path.join('datasets/data',file_name))
     credit_df = pd.read_pickle(filepath)
 
 

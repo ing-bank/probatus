@@ -1,7 +1,7 @@
-from pyrisk.interpret import InspectorShap
-from pyrisk.datasets import lending_club
-from pyrisk.models import lending_club_model
-from pyrisk.utils import NotFittedError
+from probatus.interpret import InspectorShap
+from probatus.datasets import lending_club
+from probatus.models import lending_club_model
+from probatus.utils import NotFittedError
 
 import numpy as np
 import pytest

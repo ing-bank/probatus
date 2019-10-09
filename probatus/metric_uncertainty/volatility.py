@@ -1,13 +1,13 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from pyrisk.metric_uncertainty.metric import get_metric
+from probatus.metric_uncertainty.metric import get_metric
 from joblib import Parallel, delayed
-from pyrisk.utils import assure_numpy_array
-from pyrisk.metric_uncertainty import delong
-from pyrisk.metric_uncertainty.utils import max_folds
-from pyrisk.metric_uncertainty.sampling import stratified_random
-from pyrisk.metric_uncertainty.utils import slicer
-from pyrisk.metric_uncertainty.metric import get_metric_folds
+from probatus.utils import assure_numpy_array
+from probatus.metric_uncertainty import delong
+from probatus.metric_uncertainty.utils import max_folds
+from probatus.metric_uncertainty.sampling import stratified_random
+from probatus.metric_uncertainty.utils import slicer
+from probatus.metric_uncertainty.metric import get_metric_folds
 
 class VolatilityEstimation(object):
     """
