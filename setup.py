@@ -21,7 +21,7 @@ except:
 
 
 setuptools.setup(
-    name='pyrisk',
+    name='probatus',
     version=version,
     description='Validate your models like a lion',
     long_description=read('README.md'),
@@ -29,8 +29,8 @@ setuptools.setup(
     author_email='ml_risk_and_pricing_aa@ing.com',
     license='ING Open Source',
     packages=setuptools.find_packages(),
-    package_data={'pyrisk': ['datasets/data/*.pkl']},
+    package_data={'probatus': ['datasets/data/*.pkl']},
     install_requires=base_packages,
-    url='https://gitlab.com/ing_rpaa/pyrisk',
+    url='https://gitlab.com/ing_rpaa/probatus',
     zip_safe=False
 )

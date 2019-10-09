@@ -1,4 +1,4 @@
-# Pyrisk
+# Probatus
 Library that standardizes and collects different validation steps to be performed on the models. <br>
 For the Yoga phase, we focus on Credit Risk models. This means binary classifiers.
 Library for the validation of binary classifiers (most credit risk models)

@@ -1,8 +1,8 @@
 import numpy as np
 import pytest
-from pyrisk.utils import NotFittedError
+from probatus.utils import NotFittedError
 
-from pyrisk.binning import SimpleBucketer, QuantileBucketer, AgglomerativeBucketer
+from probatus.binning import SimpleBucketer, QuantileBucketer, AgglomerativeBucketer
 
 
 def test_simple_bins():

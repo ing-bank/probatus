@@ -54,7 +54,7 @@ https://github.com/jonschlinkert/markdown-toc
     * model hyperparameter tuning
     * plotting
     * validation steps
-- The `.py files` must be stored into the directory `/pyrisk/` or a subdirectory of the same
+- The `.py files` must be stored into the directory `/probatus/` or a subdirectory of the same
 - Written functions should follow the [Technical Standards](#technical-standards)
 - Verbosity
     * There should be no print statements to stdout by default.
@@ -106,7 +106,7 @@ new_object = (
 
 ### Code for model validation modules
 * Model validation modules assume that trained models passed for validation are developed in skitlearn framework (have predict_proba and other standard functions)
-* Every python file used for model validation, needs to be in `/pyrisk/`
+* Every python file used for model validation, needs to be in `/probatus/`
 * Every python module that validate the model needs to take at minimum three inputs: 
     - model - model trained in skitlearn framework
     - credit_data - pandas DataFrame with features and targets

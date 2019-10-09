@@ -1,7 +1,7 @@
 import numpy as np
 from sklearn.metrics import roc_auc_score
 from sklearn.model_selection import train_test_split
-from pyrisk.utils import assure_numpy_array
+from probatus.utils import assure_numpy_array
 
 def get_metric(X, y, model, test_size, seed, evaluator, pred_type):
     """

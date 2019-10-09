@@ -3,8 +3,8 @@ import matplotlib.pyplot as plt
 from sklearn.calibration import CalibratedClassifierCV
 from sklearn.calibration import calibration_curve
 from sklearn.linear_model import LogisticRegression
-from pyrisk.utils import assure_numpy_array
-from pyrisk.binning import AgglomerativeBucketer, SimpleBucketer, QuantileBucketer
+from probatus.utils import assure_numpy_array
+from probatus.binning import AgglomerativeBucketer, SimpleBucketer, QuantileBucketer
 
 class Calibrator(object):
 
