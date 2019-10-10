@@ -25,9 +25,10 @@ class VolatilityEstimation(object):
                 boot_global - bootstrap replicates with global estimation of the AUC uncertainty with non onverlapping resampling
                 boot_seed - boostrap replicates with local estimation of the AUC uncertainty (fixed split) and overlapping resampling
                 delong - delong estimator of the AUC uncertainty
+        random_state: the seed used by the random number generator
 
     """
-    def __init__(self, model, X, y, evaluator, method, n_jobs=1):
+    def __init__(self, model, X, y, evaluator, method, n_jobs=1, random_state=42):
         self.model = model
         self.X = assure_numpy_array(X)
         self.y = assure_numpy_array(y)
@@ -35,6 +36,7 @@ class VolatilityEstimation(object):
         self.n_jobs = n_jobs
         self.metrics_list = {}
         self.method = method
+        self.random_state = random_state
 
     def estimate(self, test_prc, iterations = 1000):
         """
@@ -45,10 +47,15 @@ class VolatilityEstimation(object):
             iterations: int number of samples
 
         Returns: 
-            Popultes dictionary with metrics data from sampling
+            Dictionary with metrics data from sampling
 
         """
+        
+        # Reproducable results
+        np.random.seed(self.random_state)
+        
         metrics = list(self.evaluator.keys())
+        
 
         for evaluator_i in metrics:
 
