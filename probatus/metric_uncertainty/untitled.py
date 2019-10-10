@@ -1,20 +1,17 @@
 from probatus.models import lending_club_model
 from probatus.datasets import lending_club
-from sklearn.metrics import roc_auc_score
 
 import numpy as np
 from probatus.metric_uncertainty import VolatilityEstimation
 from sklearn.metrics import roc_auc_score
-from sklearn.metrics import accuracy_score
-from probatus.models import lending_club_model
-from probatus.datasets import lending_club
 from sklearn.model_selection import StratifiedKFold
 from sklearn.model_selection import train_test_split
 
-import numpy as np
-import scipy.stats
 from scipy import stats
 
+from probatus.metric_uncertainty.delong import delong_roc_variance
+
+import matplotlib.pyplot as plt
 
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
@@ -157,7 +154,7 @@ auc_boot = np.random.normal(np.mean(checker.metrics_list['AUC'][:,1]), np.sqrt(n
 v_exp = np.random.normal(np.mean(V_mean), np.sqrt(np.mean(V_s)), 10000)
 conf_ind = np.random.normal(auc, auc_std, 10000)
 
-import matplotlib.pyplot as plt
+
 
 plt.hist(v_exp)
 plt.hist(conf_ind)

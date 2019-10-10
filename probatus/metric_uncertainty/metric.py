@@ -1,5 +1,4 @@
 import numpy as np
-from sklearn.metrics import roc_auc_score
 from sklearn.model_selection import train_test_split
 from probatus.utils import assure_numpy_array
 
