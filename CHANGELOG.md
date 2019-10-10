@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Renamed to probatus
 - Improved testing by adding pyflakes to CI
+- probatus.metric_uncertainty.VolatilityEstimation is now deterministic, added random_state parameter 
 
 ## [0.1.0] - 2019-09-21
 
