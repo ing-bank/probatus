@@ -1,10 +1,7 @@
 import pandas as pd
 import random
 from scipy import stats
-import numpy as np
 from ..utils import assure_numpy_array
-
-
 
 def sw(d1, d2, verbose = False):
     """

@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed 
 
 - Renamed to probatus
+- Improved testing by adding pyflakes to CI
 
 ## [0.1.0] - 2019-09-21
 

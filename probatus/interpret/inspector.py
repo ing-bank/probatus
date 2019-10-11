@@ -3,7 +3,6 @@ from ..utils import NotFittedError, UnsupportedModelError
 import numpy as np
 import pandas as pd
 
-#import hdbscan
 from sklearn.cluster import KMeans
 from ._shap_helpers import shap_to_df
 
@@ -71,7 +70,8 @@ class BaseInspector(object):
         if self.algotype == 'kmeans':
             labels =  self.clusterer.predict(X)
         if self.algotype == 'dbscan':
-            labels, strengths = hdbscan.approximate_predict(self.clusterer, X)
+            raise NotImplementedError("Implementation not finished (note the hdbscan package is not imported yet!)")
+            #labels, strengths = hdbscan.approximate_predict(self.clusterer, X)
 
         return labels
 
