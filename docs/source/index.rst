@@ -4,12 +4,6 @@ Library that standardizes and collects different validation steps to be performe
 We focus on binary classification models (most credit risk models )
 
 
-.. toctree::
-   :maxdepth: 2
-   :caption: Module Documentation
-
-   probatus
-
 Installation
 ************
 
