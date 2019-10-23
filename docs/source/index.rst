@@ -1,7 +1,7 @@
-Welcome to Probatus's documentation!
+Welcome to Probatus' documentation!
 ====================================
 Library that standardizes and collects different validation steps to be performed on the models. 
-We focus on binary classification models (most credit risk models )
+We focus on binary classification models (most credit risk models)
 
 
 Installation
