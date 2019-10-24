@@ -1,5 +1,9 @@
 Welcome to Probatus' documentation!
 ====================================
+
+.. image:: logo_large.png
+  :alt: Probatus Logo
+
 Library that standardizes and collects different validation steps to be performed on the models. 
 We focus on binary classification models (most credit risk models)
 
@@ -81,6 +85,11 @@ License
 
    license
    nb_shap_importance.ipynb
+   nb_binning.ipynb
+   nb_calibration.ipynb
+   nb_distribution_statistics.ipynb
+   nb_metric_uncertainity.ipynb
+   nb_resemblance_modeling.ipynb
 
 Indices and tables
 ******************
