@@ -55,18 +55,16 @@ continuous integration in the API.
 .. _GitLab: https://gitlab.com/ing_rpaa/probatus.git
 
 
-Contact
+License
 *******
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
 
    license
-   contact
 
 Indices and tables
-==================
+******************
 
 * :ref:`genindex`
 * :ref:`modindex`
