@@ -104,10 +104,10 @@ class Calibrator(object):
         if method in ['sigmoid','isotonic']:
             clf = CalibratedClassifierCV(model, cv = self.folds, method = method)
             clf.fit(x_train, y_train)
-        elif method == 'nonliear':
+        elif method == 'nonlinear':
             clf = self.mle_calibration_model(x_train, y_train, model, power)
         else:
-            raise ValueError(f'Unknown method for colibration {method}')
+            raise ValueError(f'Unknown method for calibration {method}')
 
         return clf
 
@@ -129,7 +129,7 @@ class Calibrator(object):
 
         features_array = x_test
 
-        if method_name == 'nonliear':
+        if method_name == 'nonlinear':
             x_test = model.predict_proba(x_test)[:,1]
             x_test = x_test.reshape(x_test.shape[0], 1)
             features_array = x_test
@@ -204,7 +204,7 @@ class Calibrator(object):
             
         """
     
-        if method == 'nonliear':
+        if method == 'nonlinear':
             x = model.predict_proba(x)[:,1]
             x = x.reshape(x.shape[0], 1)
             for i in range(1, power + 1):
