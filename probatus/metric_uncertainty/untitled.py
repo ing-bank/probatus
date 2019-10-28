@@ -145,7 +145,7 @@ X = data.drop(['id', 'loan_issue_date','default'], axis = 1)
 evaluators =  {'AUC' : [roc_auc_score,'proba']}
 
 # declaring the evaluation class
-checker = VolatilityEstimation(model, X, y, evaluators)
+checker = VolatilityEstimation(model, X, y, evaluators, method = 'bootstrap_global')
 
 # running 1000 random samples with 40% of data assigned to test partition
 checker.estimate(0.4,1000)
