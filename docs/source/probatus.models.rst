@@ -1,4 +1,4 @@
-probatus.models package
+Models
 =======================
 
 Submodules

@@ -1,4 +1,4 @@
-probatus.metric\_uncertainty package
+Metric Uncertainty
 ====================================
 
 Submodules

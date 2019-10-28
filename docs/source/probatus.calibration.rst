@@ -1,4 +1,4 @@
-probatus.calibration package
+Calibration
 ============================
 
 Submodules

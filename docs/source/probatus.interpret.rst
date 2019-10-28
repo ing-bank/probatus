@@ -1,4 +1,4 @@
-probatus.interpret package
+Interpret
 ==========================
 
 Submodules

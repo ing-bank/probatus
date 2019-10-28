@@ -1,4 +1,4 @@
-probatus.utils package
+Utils
 ======================
 
 Submodules

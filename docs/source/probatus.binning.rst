@@ -1,4 +1,4 @@
-probatus.binning package
+Binning
 ========================
 
 Submodules

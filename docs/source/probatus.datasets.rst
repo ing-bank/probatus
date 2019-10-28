@@ -1,4 +1,4 @@
-probatus.datasets package
+Datasets
 =========================
 
 Submodules

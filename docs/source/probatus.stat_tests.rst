@@ -1,4 +1,4 @@
-probatus.stat\_tests package
+Stat Tests
 ============================
 
 Submodules

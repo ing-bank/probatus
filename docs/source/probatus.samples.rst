@@ -1,4 +1,4 @@
-probatus.samples package
+Samples
 ========================
 
 Submodules
