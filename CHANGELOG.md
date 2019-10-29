@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Readthedocs documentation website
+
 ## [0.1.1] - 2019-10-09
 
 ### Added
