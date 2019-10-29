@@ -25,6 +25,17 @@ test_merge_requests:
   except:
     - tags
 
+#deploy_production:
+#  stage: deploy
+#  variables:
+#    TWINE_USERNAME: $PRODUCTION_USERNAME
+#    TWINE_PASSWORD: $PRODUCTION_PASSWORD
+#  script:
+#    - python setup.py sdist
+#    - twine upload dist/*
+#  only:
+#    - tags
+
 deploy_production:
   stage: deploy
   variables:
@@ -32,6 +43,7 @@ deploy_production:
     TWINE_PASSWORD: $PRODUCTION_PASSWORD
   script:
     - python setup.py sdist
-    - twine upload dist/*
+    - twine upload --repository-url https://test.pypi.org/legacy/ dist/*
   only:
     - tags
+

@@ -6,7 +6,8 @@ Welcome to probatus documentation!
   :alt: Probatus Logo
 
 Library that standardizes and collects different validation steps to be performed on the models.
-We focus on binary classification models (most credit risk models)
+We focus on binary classification models (most credit risk models) .
+Some of the features provided in probatus are Binning, Resemblance modelling and Metric Uncertainty .
 
 .. toctree::
    :maxdepth: 2
