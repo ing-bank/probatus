@@ -1,4 +1,3 @@
-#image: python:3.6-alpine
 image: continuumio/miniconda3:latest
 
 stages:
@@ -9,7 +8,6 @@ before_script:
   - pip install pytest
   - pip install twine
   - pip install pyflakes
-
 
 test_merge_requests:
   stage: test
@@ -34,6 +32,6 @@ deploy_production:
     TWINE_PASSWORD: $PRODUCTION_PASSWORD
   script:
     - python setup.py sdist
-    - twine upload --repository-url https://test.pypi.org/legacy/ dist/*
+    - twine upload dist/*
   only:
     - tags
