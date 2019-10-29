@@ -9,6 +9,9 @@ Library for the validation of binary classifiers
 ```bash
 pip install probatus
 ```
+## Documentation
+
+Latest documentation can be foun [here](https://probatus.readthedocs.io/en/latest/)
 
 ## Features 
 
