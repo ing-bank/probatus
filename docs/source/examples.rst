@@ -15,8 +15,3 @@ Examples
  4. `Probability Calibration <nb_calibration.html>`_ helps to calibrate the estimated probabilities .
 
  5. `Metric_Uncertainity <nb_metric_uncertainity.html>`_ helps to estimate the uncertainty around your chosen metric eg AUC.
-
-
-Python notebooks for the above examples can be found here_ .
-
-.. _here: https://gitlab.com/ing_rpaa/probatus/tree/master/notebooks
