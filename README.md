@@ -11,7 +11,7 @@ pip install probatus
 ```
 ## Documentation
 
-Latest documentation can be foun [here](https://probatus.readthedocs.io/en/latest/)
+Latest documentation can be found [here](https://probatus.readthedocs.io/en/latest/)
 
 ## Features 
 
