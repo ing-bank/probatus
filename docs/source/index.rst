@@ -6,7 +6,7 @@ Welcome to probatus documentation!
   :alt: Probatus Logo
 
 Library that standardizes and collects different validation steps to be performed on the models.
-We focus on binary classification models (most credit risk models) .
+We focus on binary classification models (most credit risk models).
 
 .. toctree::
    :maxdepth: 2
@@ -53,7 +53,7 @@ Information to install and contribute to the package.
 -------------------------------
 
 The exact API of all functions and classes, as given in the
-doctring. The API documents expected types and allowed features for
+docstrings. The API documents expected types and allowed features for
 all functions, and all parameters available for the algorithms.
 
 
@@ -67,7 +67,7 @@ complements the `API Documentation <modules.html>`_.
 `Additional Information <examples.html>`_
 --------------------------------------
 
-Probatus is created is under `MIT License <license.html>`_.
+Probatus is created under `MIT License <license.html>`_.
 To know more about probatus see the `README <https://gitlab.com/ing_rpaa/probatus/blob/master/README.md>`_ .
 
 

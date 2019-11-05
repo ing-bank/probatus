@@ -23,7 +23,7 @@ Alternatively you can fork/clone and run:
 Contribute
 ==========
 
-You can contribute to this code through Pull Request on GitLab_. Please, make
+You can contribute to this code through merge request on GitLab_. Please, make
 sure that your code is coming with unit tests to ensure full coverage and
 continuous integration in the API.
 
