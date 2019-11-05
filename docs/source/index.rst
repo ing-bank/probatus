@@ -1,67 +1,73 @@
-Welcome to Probatus's documentation!
-====================================
-Library that standardizes and collects different validation steps to be performed on the models. 
-We focus on binanry classification models (most credit risk models )
+##########################################
+Welcome to probatus documentation!
+##########################################
 
-Installation
-************
+.. image:: logo_large.png
+  :alt: Probatus Logo
 
-
-Install `probatus` via pip with
-
-.. code-block:: bash
-
-   pip install probatus
-
-
-Alternatively you can fork/clone and run:
-
-.. code-block:: bash
-
-    git clone https://gitlab.com/ing_rpaa/probatus.git
-    cd probatus
-    pip install .
-
-Usage
-*****
-
-.. code-block:: python
-
-    from probatus.binning import QuantileBucketer
-
-    myQuantileBucketer = QuantileBucketer(bin_count=4)
-    myQuantileBucketer.fit(x)
-    print('counts', myQuantileBucketer.counts)
-    print('boundaries', myQuantileBucketer.boundaries)
-
-   ...
-
-Examples
-********
-
-More examples can be found here_ .
-
-.. _here: https://gitlab.com/ing_rpaa/probatus/tree/master/notebooks
+Library that standardizes and collects different validation steps to be performed on the models.
+We focus on binary classification models (most credit risk models).
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
+   :hidden:
+   :caption: Getting Started
+
+   install
+
+.. toctree::
+   :maxdepth: 2
+   :hidden:
+   :caption: Documentation
+
+   modules
+
+.. toctree::
+   :maxdepth: 2
+   :hidden:
+   :caption: Tutorial - Examples
+
+   nb_binning.ipynb
+   nb_resemblance_modeling.ipynb
+   nb_distribution_statistics.ipynb
+   nb_calibration.ipynb
+   nb_metric_uncertainity.ipynb
+
+
+.. toctree::
+   :maxdepth: 2
+   :hidden:
+   :caption: Additional Information
 
    license
-   contact
 
-Contribute
-**********
 
-You can contribute to this code through Pull Request on GitLab_. Please, make
-sure that your code is coming with unit tests to ensure full coverage and
-continuous integration in the API.
 
-.. _GitLab: https://gitlab.com/ing_rpaa/probatus.git
+`Getting started <install.html>`_
+---------------------------------
 
-Indices and tables
-==================
+Information to install and contribute to the package.
 
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+
+`API Documentation <modules.html>`_
+-------------------------------
+
+The exact API of all functions and classes, as given in the
+docstrings. The API documents expected types and allowed features for
+all functions, and all parameters available for the algorithms.
+
+
+`Examples <examples.html>`_
+--------------------------------------
+
+A set of examples illustrating the use of the different algorithms. It
+complements the `API Documentation <modules.html>`_.
+
+
+`Additional Information <examples.html>`_
+--------------------------------------
+
+Probatus is created under `MIT License <license.html>`_.
+To know more about probatus see the `README <https://gitlab.com/ing_rpaa/probatus/blob/master/README.md>`_ .
+
+
