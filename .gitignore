@@ -1,7 +1,8 @@
 notebooks/private
 notebooks/explore
-
 .vscode/
+.idea/
+docs/source/.ipynb_checkpoints/
 notebooks/.ipynb_checkpoints/
 
 # Created by https://www.gitignore.io/api/python
