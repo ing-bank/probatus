@@ -36,7 +36,7 @@ def bootseed_checker(X, y, model):
 
 #### Tests     
 
-def test_metric_uncertainty_reproducability(X, y, model, bootseed_checker):
+def test_metric_uncertainty_reproducibility(X, y, model, bootseed_checker):
     """
     Running the VolatilityEstimation twice on same data and model
     should produce the same results.
