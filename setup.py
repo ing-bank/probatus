@@ -25,6 +25,7 @@ setuptools.setup(
     version=version,
     description='Tools for machine learning model validation',
     long_description=read('README.md'),
+    long_description_content_type='text/markdown',
     author='RPAA ING',
     author_email='ml_risk_and_pricing_aa@ing.com',
     license='ING Open Source',
