@@ -1,6 +1,8 @@
 notebooks/private
 notebooks/explore
-
+.idea/
+docs/source/.ipynb_checkpoints/
+notebooks/.ipynb_checkpoints/
 
 
 # Created by https://www.gitignore.io/api/macos,python,pycharm,jupyternotebooks,visualstudiocode
@@ -253,4 +255,3 @@ dmypy.json
 .history
 
 # End of https://www.gitignore.io/api/macos,python,pycharm,jupyternotebooks,visualstudiocode
-.vscode/

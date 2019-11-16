@@ -1,24 +1,73 @@
-Welcome to Probatus's documentation!
-====================================
-Library that standardizes and collects different validation steps to be performed on the models. 
-We focus on binanry classification models (most credit risk models )
+##########################################
+Welcome to probatus documentation!
+##########################################
 
-Installation
-============
+.. image:: logo_large.png
+  :alt: Probatus Logo
 
-    ``pip install probatus``
+Library that standardizes and collects different validation steps to be performed on the models.
+We focus on binary classification models (most credit risk models).
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
+   :hidden:
+   :caption: Getting Started
+
+   install
+
+.. toctree::
+   :maxdepth: 2
+   :hidden:
+   :caption: Documentation
+
+   modules
+
+.. toctree::
+   :maxdepth: 2
+   :hidden:
+   :caption: Tutorial - Examples
+
+   nb_binning.ipynb
+   nb_resemblance_modeling.ipynb
+   nb_distribution_statistics.ipynb
+   nb_calibration.ipynb
+   nb_metric_uncertainity.ipynb
+
+
+.. toctree::
+   :maxdepth: 2
+   :hidden:
+   :caption: Additional Information
 
    license
 
 
 
-Indices and tables
-==================
+`Getting started <install.html>`_
+---------------------------------
 
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+Information to install and contribute to the package.
+
+
+`API Documentation <modules.html>`_
+-------------------------------
+
+The exact API of all functions and classes, as given in the
+docstrings. The API documents expected types and allowed features for
+all functions, and all parameters available for the algorithms.
+
+
+`Examples <examples.html>`_
+--------------------------------------
+
+A set of examples illustrating the use of the different algorithms. It
+complements the `API Documentation <modules.html>`_.
+
+
+`Additional Information <examples.html>`_
+--------------------------------------
+
+Probatus is created under `MIT License <license.html>`_.
+To know more about probatus see the `README <https://gitlab.com/ing_rpaa/probatus/blob/master/README.md>`_ .
+
+
