@@ -10,7 +10,6 @@ from sklearn.ensemble import RandomForestClassifier
 
 @pytest.fixture
 def model():
-    # Return a dummy model
     return RandomForestClassifier(bootstrap=True, class_weight=None, criterion='gini',
         max_depth=6, max_features='auto', max_leaf_nodes=None,
         min_impurity_decrease=0.0, min_impurity_split=None,
