@@ -4,7 +4,7 @@ import numpy as np
 from ..utils import class_name_from_object, UnsupportedModelError
 
 
-def shap_calc(model, X, approximate=False, **shap_kwargs):
+def shap_calc(model, X, approximate=False, check_additivity=False, **shap_kwargs):
     """
     Helper function to calculate the shapley values for a given model.
     Supported models for the moment are RandomForestClassifiers and XGBClassifiers
@@ -30,7 +30,7 @@ def shap_calc(model, X, approximate=False, **shap_kwargs):
     explainer = shap.TreeExplainer(model, **shap_kwargs)
 
     # Calculate Shap values
-    shap_values = explainer.shap_values(X, approximate=approximate)
+    shap_values = explainer.shap_values(X, approximate=approximate, check_additivity=check_additivity)
 
     if isinstance(shap_values, list):
         shap_values = shap_values[1]
