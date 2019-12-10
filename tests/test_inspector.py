@@ -28,8 +28,9 @@ def test_inspector():
 
     assert report.shape == (4, 6)
 
-    expected_confusion = np.array([0.43190657, 0.06716497, 0.0319691, 0.18831297])
-
+    #expected_confusion = np.array([0.43190657, 0.06716497, 0.0319691, 0.18831297])
+    expected_confusion = np.array([0.21282713, 0.08869656, 0.56882355, 0.02859485])
+    
     # The order might change - check the  sum of the values
     assert (np.abs((report["average_confusion"].values.sum() - expected_confusion.sum())) < 0.05)
 
