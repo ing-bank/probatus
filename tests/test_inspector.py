@@ -19,7 +19,7 @@ def test_inspector():
     rf, X_train, y_train, X_test, y_test = get_feats_and_model()
 
     test_inspector = InspectorShap(rf, n_clusters=4)
-    test_inspector.inspect(X_train, y_train, approximate=True)
+    test_inspector.inspect(X_train, y_train, approximate=False)
 
     # Check that the cluster numbers matches
     assert len(test_inspector.clusters.unique()) == 4
@@ -61,12 +61,12 @@ def test_inspector_with_eval_set():
         test_inspector.inspect(X_train, y_train,
                                eval_set=[(X_train, y_train), (X_test, y_test)],
                                sample_names=['sample1'],
-                               approximate=True)
+                               approximate=False)
 
     test_inspector.inspect(X_train, y_train,
                            eval_set=[(X_train, y_train), (X_test, y_test)],
                            sample_names=['sample1', 'samples'],
-                           approximate=True)
+                           approximate=False)
 
     # dummy = test_inspector.get_report()
 

@@ -36,14 +36,14 @@ def test_model_support():
     rf, X = get_feats_and_model()
 
 
-    shap_out = shap_help.shap_calc(rf, X, approximate=True, check_additivity=False)
+    shap_out = shap_help.shap_calc(rf, X, approximate=False)
     assert isinstance(shap_out, np.ndarray)
 
 
     #make sure that if you pass an unssupported model, the model raises the exceptions
     lr = LogisticRegression()
     with pytest.raises(UnsupportedModelError):
-        assert shap_help.shap_calc(lr, X, approximate=True, check_additivity=False)
+        assert shap_help.shap_calc(lr, X, approximate=False)
 
 
 
