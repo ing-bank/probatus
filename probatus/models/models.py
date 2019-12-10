@@ -1,4 +1,3 @@
-import os
 from sklearn.ensemble import RandomForestClassifier
 from probatus.datasets import lending_club
 

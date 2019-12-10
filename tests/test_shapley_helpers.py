@@ -75,10 +75,7 @@ def test_shapley_averages():
     X = X.head(5)
 
     shap_avg, shap_avg_abs = shap_help.mean_shap_raw(rf, X)
-
     exp_avg, exp_abs_avg = get_shap_averages()
-
-
+    
     assert ((shap_avg.values - exp_avg) <0.0001).all()
     assert ((shap_avg_abs.values - exp_abs_avg) < 0.0001).all()
-
