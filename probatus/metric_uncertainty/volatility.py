@@ -9,6 +9,7 @@ from probatus.metric_uncertainty.sampling import stratified_random
 from probatus.metric_uncertainty.utils import slicer
 from probatus.metric_uncertainty.metric import get_metric_folds
 
+
 class VolatilityEstimation(object):
     """
     Draws N random samples from the data to create new train/test splits and calculate metric of interest.
@@ -22,8 +23,10 @@ class VolatilityEstimation(object):
             e.g. {'AUC' : [roc_auc_score,'proba'], 'ACC' : [accuracy_score,'class']}
         n_jobs: number of cores to be used. -1 sets it to use all the free cores
         method: str type of estimation which should be used, currently supports:
-                boot_global - bootstrap replicates with global estimation of the AUC uncertainty with non onverlapping resampling
-                boot_seed - boostrap replicates with local estimation of the AUC uncertainty (fixed split) and overlapping resampling
+                boot_global - bootstrap replicates with global estimation of the AUC uncertainty
+                with non onverlapping resampling
+                boot_seed - boostrap replicates with local estimation of the AUC uncertainty (fixed split)
+                and overlapping resampling
                 delong - delong estimator of the AUC uncertainty
         random_state: the seed used by the random number generator
 
@@ -38,7 +41,7 @@ class VolatilityEstimation(object):
         self.method = method
         self.random_state = random_state
 
-    def estimate(self, test_prc, iterations = 1000):
+    def estimate(self, test_prc, iterations=1000):
         """
         Runs a parallel loop to sample multiple metrics using different train/test splits  
 
@@ -55,7 +58,6 @@ class VolatilityEstimation(object):
         np.random.seed(self.random_state)
         
         metrics = list(self.evaluator.keys())
-        
 
         for evaluator_i in metrics:
 
@@ -67,7 +69,9 @@ class VolatilityEstimation(object):
                                                                            test_prc, 
                                                                            i, 
                                                                            self.evaluator[evaluator_i][0],
-                                                                           self.evaluator[evaluator_i][1]) for i in random_seeds)
+                                                                           self.evaluator[evaluator_i][1])
+                                                       for i in random_seeds)
+
                 self.metrics_list[evaluator_i] = np.array(results)
             
             elif self.method == 'boot_global':
@@ -77,7 +81,7 @@ class VolatilityEstimation(object):
                 top_k = max_folds(y_train) 
                 if top_k > 11:
                     top_k = 11
-                for k in range(1,top_k + 1):
+                for k in range(1, top_k + 1):
 
                     if k == 1:
                         x_slice = [X_train]
@@ -100,13 +104,17 @@ class VolatilityEstimation(object):
                 X_train, X_test, y_train, y_test = stratified_random(self.X, self.y, test_prc)
                 model = self.model.fit(X_train, y_train)
 
-                y_pred_test = model.predict_proba(X_test)[:,1]
-                y_pred_train = model.predict_proba(X_train)[:,1]
+                y_pred_test = model.predict_proba(X_test)[:, 1]
+                y_pred_train = model.predict_proba(X_train)[:, 1]
 
                 auc_train, auc_cov_train = delong.delong_roc_variance(y_train, y_pred_train)
                 auc_test, auc_cov_test = delong.delong_roc_variance(y_test, y_pred_test)
 
-                self.metrics_list[evaluator_i] = np.array([auc_train, auc_test,auc_train - auc_test, auc_cov_train, auc_cov_test, 0]).reshape(1,6)
+                self.metrics_list[evaluator_i] = np.array([auc_train, auc_test,
+                                                           auc_train - auc_test,
+                                                           auc_cov_train,
+                                                           auc_cov_test,
+                                                           0]).reshape(1, 6)
 
     def reporting(self, metric):
         """
@@ -141,13 +149,13 @@ class VolatilityEstimation(object):
         metric_data = self.metrics_list[metric]
 
         if self.method == 'boot_seed':
-            train = metric_data[:,0]
-            test = metric_data[:,1]
-            delta = metric_data[:,2]
+            train = metric_data[:, 0]
+            test = metric_data[:, 1]
+            delta = metric_data[:, 2]
         elif self.method == 'boot_global' or self.method == 'delong':
-            train = np.random.normal(np.mean(metric_data[:,0]), np.sqrt(np.mean(metric_data[:,3])), 10000)
-            test = np.random.normal(np.mean(metric_data[:,1]), np.sqrt(np.mean(metric_data[:,4])), 10000)
-            delta = np.random.normal(np.mean(metric_data[:,2]), np.sqrt(np.mean(metric_data[:,5])), 10000)
+            train = np.random.normal(np.mean(metric_data[:, 0]), np.sqrt(np.mean(metric_data[:, 3])), 10000)
+            test = np.random.normal(np.mean(metric_data[:, 1]), np.sqrt(np.mean(metric_data[:, 4])), 10000)
+            delta = np.random.normal(np.mean(metric_data[:, 2]), np.sqrt(np.mean(metric_data[:, 5])), 10000)
 
         plt.hist(train, alpha=0.5, label='Train')
         plt.hist(test, alpha=0.5, label='Test')
@@ -156,4 +164,4 @@ class VolatilityEstimation(object):
 
         plt.hist(delta, alpha=0.5, label='Delta')
         plt.legend(loc='upper right')
-        plt.show()        
+        plt.show()
