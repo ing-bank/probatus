@@ -14,12 +14,11 @@ def get_feats_and_model():
     return rf, X_train, X_test, y_train, y_test
 
 
-
 def test_inspector():
     rf, X_train, y_train, X_test, y_test = get_feats_and_model()
 
     test_inspector = InspectorShap(rf, n_clusters=4)
-    test_inspector.inspect(X_train, y_train, approximate=True)
+    test_inspector.inspect(X_train, y_train, approximate=False)
 
     # Check that the cluster numbers matches
     assert len(test_inspector.clusters.unique()) == 4
@@ -28,8 +27,9 @@ def test_inspector():
 
     assert report.shape == (4, 6)
 
-    expected_confusion = np.array([0.43190657, 0.06716497, 0.0319691, 0.18831297])
-
+    # expected_confusion = np.array([0.43190657, 0.06716497, 0.0319691, 0.18831297])
+    expected_confusion = np.array([0.21282713, 0.08869656, 0.56882355, 0.02859485])
+    
     # The order might change - check the  sum of the values
     assert (np.abs((report["average_confusion"].values.sum() - expected_confusion.sum())) < 0.05)
 
@@ -60,12 +60,12 @@ def test_inspector_with_eval_set():
         test_inspector.inspect(X_train, y_train,
                                eval_set=[(X_train, y_train), (X_test, y_test)],
                                sample_names=['sample1'],
-                               approximate=True)
+                               approximate=False)
 
     test_inspector.inspect(X_train, y_train,
                            eval_set=[(X_train, y_train), (X_test, y_test)],
                            sample_names=['sample1', 'samples'],
-                           approximate=True)
+                           approximate=False)
 
     # dummy = test_inspector.get_report()
 
