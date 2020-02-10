@@ -1,5 +1,6 @@
 # Contributing guide
 
+Work at ING? Join our slack channel `#probatus`! :coffee:
 
 ### Table of Contents
 <!---
