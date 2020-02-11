@@ -27,6 +27,7 @@ test_merge_requests:
     - mypy probatus --ignore-missing-imports
   only:
   - merge_requests
+  - master
   except:
     - tags
 
