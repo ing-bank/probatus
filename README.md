@@ -1,6 +1,6 @@
 [![pipeline status](https://gitlab.com/ing_rpaa/probatus/badges/master/pipeline.svg)](https://gitlab.com/ing_rpaa/probatus/-/commits/master)
 [![coverage report](https://gitlab.com/ing_rpaa/probatus/badges/master/coverage.svg)](https://gitlab.com/ing_rpaa/probatus/-/commits/master)
-![PyPI - Python Version](https://img.shields.io/pypi/pyversions/probatus)
+<img style="float: right;" alt="PyPI - Python Version" src="https://img.shields.io/pypi/pyversions/probatus">
 ![PyPI](https://img.shields.io/pypi/v/probatus)
 ![PyPI - Downloads](https://img.shields.io/pypi/dm/probatus)
 
