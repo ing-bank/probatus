@@ -6,6 +6,7 @@ stages:
 
 before_script:
   - pip install pytest
+  - pip install pytest-cov
   - pip install twine
   - pip install pyflakes
   - pip install mypy
@@ -17,10 +18,11 @@ test_merge_requests:
     - source activate gitlab_test
     - conda install gxx_linux-64
     - pip install pytest 
+    - pip install pytest-cov
     - pip install pyflakes
     - pip install mypy
     - python setup.py install
-    - pytest tests
+    - pytest tests --cov=probatus --cov-report term-missing
     - pyflakes probatus
     - mypy probatus --ignore-missing-imports
   only:
