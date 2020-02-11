@@ -1,8 +1,8 @@
-[![pipeline status](https://gitlab.com/ing_rpaa/probatus/badges/master/pipeline.svg)](https://gitlab.com/ing_rpaa/probatus/-/commits/master)
-[![coverage report](https://gitlab.com/ing_rpaa/probatus/badges/master/coverage.svg)](https://gitlab.com/ing_rpaa/probatus/-/commits/master)
-<img style="margin-top: 5px;" alt="PyPI - Python Version" src="https://img.shields.io/pypi/pyversions/probatus">
-![PyPI](https://img.shields.io/pypi/v/probatus)
-![PyPI - Downloads](https://img.shields.io/pypi/dm/probatus)
+[![pipeline status](https://gitlab.com/ing_rpaa/probatus/badges/master/pipeline.svg?style=flat-square)](https://gitlab.com/ing_rpaa/probatus/-/commits/master)
+[![coverage report](https://gitlab.com/ing_rpaa/probatus/badges/master/coverage.svg?style=flat-square)](https://gitlab.com/ing_rpaa/probatus/-/commits/master)
+![PyPi Version](https://img.shields.io/pypi/pyversions/probatus?style=flat-square)
+![PyPI](https://img.shields.io/pypi/v/probatus?style=flat-square)
+![PyPI - Downloads](https://img.shields.io/pypi/dm/probatus?style=flat-square)
 
 # Probatus
 
