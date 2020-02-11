@@ -179,6 +179,7 @@ class InspectorShap(BaseInspector):
 
 
         """
+        X = copy.deepcopy(X)
 
         if self.cluster_probabilities:
             X['probs'] = self.predicted_proba
@@ -194,6 +195,8 @@ class InspectorShap(BaseInspector):
         Returns: cluster labels
 
         """
+        X = copy.deepcopy(X)
+
         if self.cluster_probabilities:
             X['probs'] = self.predicted_proba
 
