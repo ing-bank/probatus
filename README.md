@@ -1,3 +1,9 @@
+[![pipeline status](https://gitlab.com/ing_rpaa/probatus/badges/master/pipeline.svg)](https://gitlab.com/ing_rpaa/probatus/-/commits/master)
+[![coverage report](https://gitlab.com/ing_rpaa/probatus/badges/master/coverage.svg)](https://gitlab.com/ing_rpaa/probatus/-/commits/master)
+[![PyPi Version](https://img.shields.io/pypi/pyversions/probatus)](#)
+[![PyPI](https://img.shields.io/pypi/v/probatus)](#)
+[![PyPI - Downloads](https://img.shields.io/pypi/dm/probatus)](#)
+
 # Probatus
 
 ## Overview
