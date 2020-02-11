@@ -12,18 +12,6 @@ Developing a well-performing model is often the easy part. What comes next, vali
 
 ## Installation
 
-#### Dependencies
-
-Probatus requires:
-
-- scikit-learn (>= 0.20.2)
-- pandas (>= 0.25)
-- matplotlib (>= 3.1.1)
-- seaborn (>= 0.9.0)
-- shap (>= 0.32)
-- scipy (>= 1.4.0)
-- joblib (>= 0.13.2)
-
 You can install probatus using pip:
 
 ```bash
@@ -37,6 +25,18 @@ git clone https://gitlab.com/ing_rpaa/probatus.git
 cd probatus
 pip install .
 ```
+
+#### Dependencies
+
+Probatus requires:
+
+- scikit-learn (>= 0.20.2)
+- pandas (>= 0.25)
+- matplotlib (>= 3.1.1)
+- seaborn (>= 0.9.0)
+- shap (>= 0.32)
+- scipy (>= 1.4.0)
+- joblib (>= 0.13.2)
 
 ## Documentation
 
