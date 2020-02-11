@@ -4,6 +4,7 @@ from probatus.datasets import lending_club
 from probatus.models import lending_club_model
 from probatus.utils import NotFittedError
 from unittest.mock import patch
+from probatus.utils import NotFittedError, UnsupportedModelError
 
 import numpy as np
 import pandas as pd
@@ -24,45 +25,94 @@ def test_return_confusion_metric():
 
 @patch.object(MockClusterer, 'fit')
 def test_fit_clusters(mock_clusterer):
-    # Base Inspector case
+    # Base Inspector case algotype is kmeans
     inspector1 = BaseInspector(algotype='kmeans')
     inspector1.clusterer = mock_clusterer
 
-    # InspectorShap case, without inspection made
+    # InspectorShap dbscan
     inspector2 = InspectorShap(model= MockModel(), algotype='kmeans', cluster_probability=False)
     inspector2.clusterer = mock_clusterer
 
-    # InspectorShap case, with inspection made
+    # InspectorShap not fitted
     inspector3 = InspectorShap(model= MockModel(), algotype='kmeans', cluster_probability=True)
     inspector3.clusterer = mock_clusterer
     inspector3.predicted_proba = [1, 0]
 
-    X1 = pd.DataFrame([1, 2, 3])
-    X2 = pd.DataFrame([3, 2, 1])
-    X2_copy = pd.DataFrame([3, 2, 1])
+    X1 = pd.DataFrame([1, 2, 3], [1, 2, 3])
+    X1_copy = pd.DataFrame([1, 2, 3], [1, 2, 3])
+    X2 = pd.DataFrame([[3, 2, 1], [1, 2, 3]])
+    X2_copy = pd.DataFrame([[3, 2, 1], [1, 2, 3]])
     X3 = pd.DataFrame([[1, 1, 1], [0, 0, 0]])
     X3_copy = pd.DataFrame([[1, 1, 1], [0, 0, 0]])
 
-
-    assert inspector1.fitted is False
-    assert inspector2.fitted is False
-    assert inspector3.fitted is False
     assert inspector2.cluster_probabilities is False
     assert inspector2.predicted_proba is None
     assert inspector3.cluster_probabilities is True
 
     inspector1.fit_clusters(X1)
+    # Check if has been called with correct argument
     inspector1.clusterer.fit.assert_called_with(X1)
+    # Check if it has not been modified
+    pd.testing.assert_frame_equal(X1, X1_copy)
+    # Check if fitted flag has been changed correctly
     assert inspector1.fitted is True
 
     inspector2.fit_clusters(X2)
+    # Check if the df has not been modified
     pd.testing.assert_frame_equal(X2, X2_copy)
     assert inspector2.fitted is True
 
-    inspector3.fit_clusters(X3)
+    #Check if not fitted exception is raised
+    inspector2.fit_clusters(X2)
+    # Check if X3 has not been modified
     pd.testing.assert_frame_equal(X3, X3_copy)
-    assert inspector3.fitted is True
+    assert inspector3.fitted is False
 
+
+@patch.object(MockClusterer, 'predict')
+def test_predict_clusters(mock_clusterer):
+    mock_clusterer.predict.return_value = [1, 0]
+
+    # Base Inspector case algotype is kmeans
+    inspector1 = BaseInspector(algotype='kmeans')
+    inspector1.clusterer = mock_clusterer
+
+    # InspectorShap kmeans
+    inspector2 = InspectorShap(model=MockModel(), algotype='kmeans', cluster_probability=False)
+    inspector2.clusterer = mock_clusterer
+
+    # InspectorShap not fitted
+    inspector3 = InspectorShap(model=MockModel(), algotype='kmeans', cluster_probability=True)
+    inspector3.clusterer = mock_clusterer
+    inspector3.predicted_proba = [1, 0]
+
+    X1 = pd.DataFrame([1, 2, 3], [1, 2, 3])
+    X1_copy = pd.DataFrame([1, 2, 3], [1, 2, 3])
+    X2 = pd.DataFrame([[3, 2, 1], [1, 2, 3]])
+    X2_copy = pd.DataFrame([[3, 2, 1], [1, 2, 3]])
+    X3 = pd.DataFrame([[1, 1, 1], [0, 0, 0]])
+    X3_copy = pd.DataFrame([[1, 1, 1], [0, 0, 0]])
+
+    inspector1.fit_clusters(X1)
+    # Check if the prediction is correct according to the Mock clusterer
+    assert inspector1.predict_clusters(X1) == [1, 0]
+    # Check if the clusterer was called with correct input
+    inspector1.clusterer.predict.assert_called_with(X1)
+    # Check if the X has not been modified
+    pd.testing.assert_frame_equal(X1, X1_copy)
+
+    inspector2.fit_clusters(X2)
+    # Check if the output is correct, as should be according to MockClusterer
+    assert inspector2.predict_clusters(X2) == [1, 0]
+    # Check if the df has not been modified by the prediction
+    pd.testing.assert_frame_equal(X2, X2_copy)
+
+    # Check if not fitted exception is raised
+    assert inspector3.fitted is False
+    with pytest.raises(NotFittedError):
+        inspector3.predict_clusters(X3)
+    # Check if X3 has not been modified
+    pd.testing.assert_frame_equal(X3, X3_copy)
 
 def get_feats_and_model():
     _, X_train, y_train, X_test, y_test = lending_club()
@@ -70,7 +120,7 @@ def get_feats_and_model():
 
     return rf, X_train, X_test, y_train, y_test
 
-
+#@pytest.mark.skip(reason="Skip it for now for speed")
 def test_inspector():
     rf, X_train, y_train, X_test, y_test = get_feats_and_model()
 
@@ -105,7 +155,7 @@ def test_inspector():
     with pytest.raises(NotFittedError):
         assert test_inspector.slice_cluster_eval_set(3)
 
-
+#@pytest.mark.skip(reason="Skip it for now for speed")
 def test_inspector_with_eval_set():
     assert True
 

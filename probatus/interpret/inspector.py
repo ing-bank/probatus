@@ -179,7 +179,6 @@ class InspectorShap(BaseInspector):
 
 
         """
-
         X = copy.deepcopy(X)
 
         if self.cluster_probabilities:
