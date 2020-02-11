@@ -14,7 +14,7 @@ def return_confusion_metric(y_true, y_score, normalize = False):
     Args:
         y_true: (np.ndarray) true targets
         y_score: (np.ndarray) model output
-        normalize: boolean, normalize or not to the maximum vlaue
+        normalize: boolean, normalize or not to the maximum value
 
     Returns: (np.ndarray) conflusion metric
 
@@ -180,6 +180,8 @@ class InspectorShap(BaseInspector):
 
         """
 
+        X = copy.deepcopy(X)
+
         if self.cluster_probabilities:
             X['probs'] = self.predicted_proba
 
@@ -194,6 +196,8 @@ class InspectorShap(BaseInspector):
         Returns: cluster labels
 
         """
+        X = copy.deepcopy(X)
+
         if self.cluster_probabilities:
             X['probs'] = self.predicted_proba
 

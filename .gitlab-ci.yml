@@ -16,7 +16,7 @@ test_merge_requests:
     - conda create -n gitlab_test python=3.7
     - source activate gitlab_test
     - conda install gxx_linux-64
-    - pip install pytest 
+    - pip install pytest/unit
     - pip install pyflakes
     - pip install mypy
     - python setup.py install
