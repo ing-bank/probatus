@@ -22,51 +22,62 @@ def test_return_confusion_metric():
     assert (expected_output_normalized - return_confusion_metric(y_true, y_score, normalize=True < test_sensitivity)).all()
     assert (expected_output_not_normalized - return_confusion_metric(y_true, y_score, normalize=False) < test_sensitivity).all()
 
+@patch.object(MockClusterer, 'fit')
+def test_fit_clusters__base_inspector(mock_clusterer):
+    # Base Inspector case algotype is kmeans
+    inspector = BaseInspector(algotype='kmeans')
+    inspector.clusterer = mock_clusterer
+
+    X = pd.DataFrame([1, 2, 3], [1, 2, 3])
+    X_copy = pd.DataFrame([1, 2, 3], [1, 2, 3])
+
+    inspector.fit_clusters(X)
+    # Check if has been called with correct argument
+    inspector.clusterer.fit.assert_called_with(X)
+    # Check if it has not been modified
+    pd.testing.assert_frame_equal(X, X_copy)
+    # Check if fitted flag has been changed correctly
+    assert inspector.fitted is True
+
 
 @patch.object(MockClusterer, 'fit')
-def test_fit_clusters(mock_clusterer):
-    # Base Inspector case algotype is kmeans
-    inspector1 = BaseInspector(algotype='kmeans')
-    inspector1.clusterer = mock_clusterer
+def test_fit_clusters__inspector_shap(mock_clusterer):
+    inspector = InspectorShap(model= MockModel(), algotype='kmeans', cluster_probability=False)
+    inspector.clusterer = mock_clusterer
 
-    # InspectorShap dbscan
-    inspector2 = InspectorShap(model= MockModel(), algotype='kmeans', cluster_probability=False)
-    inspector2.clusterer = mock_clusterer
+    X = pd.DataFrame([1, 2, 3], [1, 2, 3])
+    X_copy = pd.DataFrame([1, 2, 3], [1, 2, 3])
 
-    # InspectorShap not fitted
-    inspector3 = InspectorShap(model= MockModel(), algotype='kmeans', cluster_probability=True)
-    inspector3.clusterer = mock_clusterer
-    inspector3.predicted_proba = [1, 0]
+    assert inspector.cluster_probabilities is False
+    assert inspector.predicted_proba is None
 
-    X1 = pd.DataFrame([1, 2, 3], [1, 2, 3])
-    X1_copy = pd.DataFrame([1, 2, 3], [1, 2, 3])
-    X2 = pd.DataFrame([[3, 2, 1], [1, 2, 3]])
-    X2_copy = pd.DataFrame([[3, 2, 1], [1, 2, 3]])
-    X3 = pd.DataFrame([[1, 1, 1], [0, 0, 0]])
-    X3_copy = pd.DataFrame([[1, 1, 1], [0, 0, 0]])
-
-    assert inspector2.cluster_probabilities is False
-    assert inspector2.predicted_proba is None
-    assert inspector3.cluster_probabilities is True
-
-    inspector1.fit_clusters(X1)
-    # Check if has been called with correct argument
-    inspector1.clusterer.fit.assert_called_with(X1)
-    # Check if it has not been modified
-    pd.testing.assert_frame_equal(X1, X1_copy)
-    # Check if fitted flag has been changed correctly
-    assert inspector1.fitted is True
-
-    inspector2.fit_clusters(X2)
     # Check if the df has not been modified
-    pd.testing.assert_frame_equal(X2, X2_copy)
-    assert inspector2.fitted is True
-
+    pd.testing.assert_frame_equal(X, X_copy)
+    assert inspector.fitted is True
     #Check if not fitted exception is raised
-    inspector2.fit_clusters(X2)
+    inspector.fit_clusters(X)
     # Check if X3 has not been modified
-    pd.testing.assert_frame_equal(X3, X3_copy)
-    assert inspector3.fitted is False
+    pd.testing.assert_frame_equal(X, X_copy)
+
+    inspector.clusterer.fit.assert_called_with(X)
+
+
+@patch.object(MockClusterer, 'fit')
+def test_fit_clusters__inspector_shap_proba(mock_clusterer):
+    inspector = InspectorShap(model= MockModel(), algotype='kmeans', cluster_probability=True)
+    inspector.clusterer = mock_clusterer
+    inspector.predicted_proba = True
+
+    X = pd.DataFrame([1, 2, 3], [1, 2, 3])
+    X_copy = pd.DataFrame([1, 2, 3], [1, 2, 3])
+
+    assert inspector.fitted is False
+    assert inspector.cluster_probabilities is True
+    #Check if not fitted exception is raised
+    inspector.fit_clusters(X)
+    # Check if X3 has not been modified
+    pd.testing.assert_frame_equal(X, X_copy)
+    assert inspector.fitted is True
 
 
 @patch.object(MockClusterer, 'predict')
