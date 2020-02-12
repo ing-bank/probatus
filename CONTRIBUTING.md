@@ -2,6 +2,16 @@
 
 Work at ING? Join our slack channel `#probatus`! :coffee:
 
+There are many ways to contribute to probatus, including:
+
+- Contribution to code
+- Improving the documentation
+- Reviewing merge requests
+- Investigating bugs
+- Reporting issues
+
+In this guide, we describe the best practices to contribute a project.
+
 ### Table of Contents
 <!---
 To update the table of contents after a change, you can use the markdown-toc npm package: `markdown-toc -i CONTRIBUTING.md`
@@ -38,8 +48,6 @@ https://github.com/jonschlinkert/markdown-toc
 
 ### Jupyter notebooks
 
-- Notebooks are only allowed in the `notebooks/shared` and `notebooks/private` folder.
-- The `notebooks/private` folder is git-ignored, hence there are no issues with your workflow. Use this directory for your development notebooks
 - Do not collaborate on notebooks. Always create your own personal notebooks. This is because they are hard to version control as they include more than just code (cells & output).
 - **Clear output cells that may contain sensitive information before commits to prevent personal data leaking into the git repo.**
 - Try to clear large cell outputs before committing. Printing huge tables or plotting large graphs will only bloat your git repository and you run a larget risk of leaking sensitive data.
@@ -94,25 +102,16 @@ def func(arg1, arg2):
     """
     return True
 ```
-* Preferred method chaining style, especially relevant when using Spark:
-
-```python
-new_object = (
-    old_object.first_method(args)
-    .another_method()
-    .and_another_one() # Maybe a little comment?
-    .final_method(more_args)
-)
-```
 
 ### Code for model validation modules
-* Model validation modules assume that trained models passed for validation are developed in skitlearn framework (have predict_proba and other standard functions)
+* Model validation modules assume that trained models passed for validation are developed in scikit-learn framework (have predict_proba and other standard functions)
+* They implement fit and transform methods and preferably inherit from BaseEstimator and TransformerMixin
 * Every python file used for model validation, needs to be in `/probatus/`
 * Every python module that validate the model needs to take at minimum three inputs: 
-    - model - model trained in skitlearn framework
+    - model - model trained in scikit-learn framework
     - credit_data - pandas DataFrame with features and targets
     - X - array/list with names of featuers
-    - Y - string with name of the target variables
+    - y - string with name of the target variables
     - Other necessary parameters are allowed, but they need to be predefined
 * An example in pseudocode of a function generating the features is as follows:
 
@@ -127,97 +126,6 @@ def KS_test(model, credit_data, X, Y):
 ```
 * Functions should not exceed 10-15 lines of code. If more code is needed, try to put together snippets of code into 
 other functions. This make the code more readable, and easier to test.
-* An example of the above point is shown in the pseudo code below (similar to the function description above) (assume
-this code is stored in `src/features/example/py`)
-
-```python 
-import pyspark
-from pyspark.sql import functions as F
-# Do there all your imports
-
-def transactional_features(core_table, transactions, minimum_transaction_amount = 100):
-    """
-    Pseudo function to illustrate the logic of the feature module.
-    
-    Args:
-        core_table
-        
-        (pyspark.DataFrame): dataframe containing the debt episodes
-        transactions: (pyspark.DataFrame):  dataframe containing the transactions of the customers
-        minimum_transaction_amount (float): minimum amount of transactions to consider for building the features (default
-        value is 100 TL)
-    Returns:
-        (pyspark.DataFrame): Features related to transactions.
-    
-    
-    """
-    # Here are some pseudo functions one might need 
-    # Detect transactions related to the customers with the debt loans
-     rel_transactions = get_relevant_transactions(core_table, transactions)
-     
-    # filter the transactions 
-     rel_transactions = filter_transactions(rel_transactions, minimum_transaction_amount= minimum_transaction_amount)
-     
-    # aggregate transactions 
-     transactional_features = aggregate_transactional_features(core_table, rel_transactions)
-    
-    
-    return transactional_features
-    
-def get_relevant_transactions(core_table, transactions):
-    """
-    Pseudo function to illustrate the logic of the feature module. Example - retrieves only transactions that are needed
-    
-    Args:
-        core_table (pyspark.DataFrame): dataframe containing the debt episodes
-        transactions: (pyspark.DataFrame):  dataframe containing the transactions of the customers
-        value is 100 TL)
-    Returns:
-        (pyspark.DataFrame): Dataframe with transactions that are present in the debt episodes
-    
-    
-    """
-    
-    # no code provided there, just some pseudo logic -
-    # you want to select only transactions of customers that have loans in arrears - probably by joining on the customer/products ids
-    
-    
-def filter_transactions(transaction, minimum_transaction_amount):
-    ### code of the funtcion
-    
-def aggregate_transactional_features(core_table, rel_transactions):
-    ### code of the funtcion
-    
-    
-```
-In the Jupyter notebook, you would do something as follows:
-
-First cell - relative inputs
-```python
-import sys
-sys.path.insert(0,'../..')\
-
-from src.features import example as ex
-```
-
-Next cell (calculate the )
-```python
-# calculate the transactional features
-# note that only one function is imported
-transact_feats = ex.transactional_features(core_table, transactions)
-
-```
-Next cell (add the features to the table)
-```python
-# Add the new features to your table
-
-core_table = (
-    core_table
-    .join(transact_feats, how='left', on=['talep_id','inst_number']) 
-    # left join is essential here - you might lose data otherwise
-)
-
-```
 
 ### Functions for multiple modules
 
@@ -241,6 +149,7 @@ If you do run into trouble, please see our [dealing with windows line endings gu
 ## Project Data
 
 - **Do not commit data to git!**. As git preserves history, onces data has been pushed to gitlab it is **very** difficult to remove.
+- Do not add pickle models into the repo, since they are dependent on the sklearn version used to initialize them
 - Very small .csv/.pkl files can be permitted when used for examples, testing, metadata or configuration purposes
 - Source data should never be edited, instead create a reproducible pipeline with the immutable source data as input
 - Large files should go into HDFS, preferably in the parquet format or stored in Hive, depending on your development environment
@@ -291,13 +200,11 @@ It is the responsibility of the reviewee to make sure that the code is easy to r
 
 ### Development workflow with GIT: Branching strategy
 
-There are a few common git workflows, depending on the project requirements and team maturity:
-
-- **Development on user branches**:
-This is not the standard procedure, but let's try to follow this method. If it does not work, we will change it.
-    - Develop the code in your personal branch
-    - Once the code is ready to be shared with the rest, create a new pull request
-    - Ask one of your peers to review the code and merge the pull request
+**Development on feature branches, merge to master**:
+- Develop the code in the branch created for the issue
+- Once the code is ready to be merged with master, resolve WIP status and create a new pull request
+- Ask one of your peers to review the code and merge the pull request
+- Any feature added to the project should include unit tests. If anyone modifies the features that are already there, tests should be refined accordingly. Finally if a bug is found, a test should be written that makes sure this bug would be detected in the future
     
 <!---
 - **Development on feature branches**:
@@ -322,9 +229,9 @@ This is not the standard procedure, but let's try to follow this method. If it d
     - Errors/bugs can be caught and easily debugged within feature branch
     - Fewer merge conflicts with other features while developing
     - Code review is scoped to individual features/improvements, when using merge requests
-    --->
 
-> We advise teams that are just starting out with git to use **Developing on master**, but later on they should keep the more advanced options in mind as they have some clear advantages.
+    > We advise teams that are just starting out with git to use **Developing on master**, but later on they should keep the more advanced options in mind as they have some clear advantages.
+    --->
 
 ###  Commit Messages
 
@@ -332,7 +239,7 @@ Before making commits, make sure that you have [https://git-scm.com/book/en/v2/G
 
 When creating commit messages, keep these guidelines in mind. They are meant to keep the messages useful and relevant.
 
-- Include a short description of *what* was done, *how* can be seen in the code.
+- Include a short description of *what* and *why* was done, *how* can be seen in the code.
 - Use present tense, imperative mood
 - Limit the length of the first line to 72 chars. You can use multiple messages to specify a second (longer) line: `git commit -m "Patch load function" -m "This is a much longer explanation of what was done"`
 <!---- To refer to a Jira or Gitlab ticket, use **"See #123"** or **"Closes #123"**--->
@@ -347,22 +254,11 @@ Create feature X
 This is a longer description of what the commit contains. See #123
 ```
 
-<!---
 ## Issue tracking
 
-** still under consideration **
+Issue tracking is recommended even for solo projects. In this project we use Gitlab issue board for issue tracking.
 
-Issue tracking is recommended even for solo projects. A single todo kanban boards can help structure and document your work. 
-
-Currently we see being used:
-- Gitlab issues and boards
-- OrangeSharing JIRA tickets and boards
-- Confluence JIRA tickets and boards
-
-The best issue tracking system depends on your project. Gitlab is recommend if your project consists of mainly coders that have access to gitlab. 
-
-
-
+<!---
 ## (Optional) Testing: py.test
 * To run a single testfile: `pytest tests/test_environment.py`
 * Run all tests: `pytest`
