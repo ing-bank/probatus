@@ -111,7 +111,7 @@ def func(arg1, arg2):
     - model - model trained in scikit-learn framework
     - credit_data - pandas DataFrame with features and targets
     - X - array/list with names of featuers
-    - Y - string with name of the target variables
+    - y - string with name of the target variables
     - Other necessary parameters are allowed, but they need to be predefined
 * An example in pseudocode of a function generating the features is as follows:
 
@@ -149,8 +149,8 @@ If you do run into trouble, please see our [dealing with windows line endings gu
 ## Project Data
 
 - **Do not commit data to git!**. As git preserves history, onces data has been pushed to gitlab it is **very** difficult to remove.
-- Do not add pickle files into the repo, since they are dependent on the sklearn version used to initialize them
-- Very small '.csv' files can be permitted when used for examples, testing, metadata or configuration purposes
+- Do not add pickle models into the repo, since they are dependent on the sklearn version used to initialize them
+- Very small .csv/.pkl files can be permitted when used for examples, testing, metadata or configuration purposes
 - Source data should never be edited, instead create a reproducible pipeline with the immutable source data as input
 - Large files should go into HDFS, preferably in the parquet format or stored in Hive, depending on your development environment
 - Use the `/data` folder to store project data. This is .gitignore-ed directory by default
