@@ -150,7 +150,7 @@ If you do run into trouble, please see our [dealing with windows line endings gu
 
 - **Do not commit data to git!**. As git preserves history, onces data has been pushed to gitlab it is **very** difficult to remove.
 - Do not add pickle files into the repo, since they are dependent on the sklearn version used to initialize them
-- Very small .csv/ files can be permitted when used for examples, testing, metadata or configuration purposes
+- Very small '.csv' files can be permitted when used for examples, testing, metadata or configuration purposes
 - Source data should never be edited, instead create a reproducible pipeline with the immutable source data as input
 - Large files should go into HDFS, preferably in the parquet format or stored in Hive, depending on your development environment
 - Use the `/data` folder to store project data. This is .gitignore-ed directory by default
