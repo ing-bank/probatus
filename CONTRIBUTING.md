@@ -104,10 +104,11 @@ def func(arg1, arg2):
 ```
 
 ### Code for model validation modules
-* Model validation modules assume that trained models passed for validation are developed in skitlearn framework (have predict_proba and other standard functions)
+* Model validation modules assume that trained models passed for validation are developed in scikit-learn framework (have predict_proba and other standard functions)
+* They implement fit and transform methods and preferably inherit from BaseEstimator and TransformerMixin
 * Every python file used for model validation, needs to be in `/probatus/`
 * Every python module that validate the model needs to take at minimum three inputs: 
-    - model - model trained in skitlearn framework
+    - model - model trained in scikit-learn framework
     - credit_data - pandas DataFrame with features and targets
     - X - array/list with names of featuers
     - Y - string with name of the target variables
@@ -148,7 +149,8 @@ If you do run into trouble, please see our [dealing with windows line endings gu
 ## Project Data
 
 - **Do not commit data to git!**. As git preserves history, onces data has been pushed to gitlab it is **very** difficult to remove.
-- Very small .csv/.pkl files can be permitted when used for examples, testing, metadata or configuration purposes
+- Do not add pickle files into the repo, since they are dependent on the sklearn version used to initialize them
+- Very small .csv/ files can be permitted when used for examples, testing, metadata or configuration purposes
 - Source data should never be edited, instead create a reproducible pipeline with the immutable source data as input
 - Large files should go into HDFS, preferably in the parquet format or stored in Hive, depending on your development environment
 - Use the `/data` folder to store project data. This is .gitignore-ed directory by default
@@ -198,12 +200,11 @@ It is the responsibility of the reviewee to make sure that the code is easy to r
 
 ### Development workflow with GIT: Branching strategy
 
-There are a few common git workflows, depending on the project requirements and team maturity:
-
-- **Development on user branches**:
-    - Develop the code in your personal branch
-    - Once the code is ready to be shared with the rest, create a new pull request
-    - Ask one of your peers to review the code and merge the pull request
+**Development on feature branches, merge to master**:
+- Develop the code in the branch created for the issue
+- Once the code is ready to be merged with master, resolve WIP status and create a new pull request
+- Ask one of your peers to review the code and merge the pull request
+- Any feature added to the project should include unit tests. If anyone modifies the features that are already there, tests should be refined accordingly. Finally if a bug is found, a test should be written that makes sure this bug would be detected in the future
     
 <!---
 - **Development on feature branches**:
@@ -228,9 +229,9 @@ There are a few common git workflows, depending on the project requirements and 
     - Errors/bugs can be caught and easily debugged within feature branch
     - Fewer merge conflicts with other features while developing
     - Code review is scoped to individual features/improvements, when using merge requests
-    --->
 
-> We advise teams that are just starting out with git to use **Developing on master**, but later on they should keep the more advanced options in mind as they have some clear advantages.
+    > We advise teams that are just starting out with git to use **Developing on master**, but later on they should keep the more advanced options in mind as they have some clear advantages.
+    --->
 
 ###  Commit Messages
 
@@ -238,7 +239,7 @@ Before making commits, make sure that you have [https://git-scm.com/book/en/v2/G
 
 When creating commit messages, keep these guidelines in mind. They are meant to keep the messages useful and relevant.
 
-- Include a short description of *what* was done, *how* can be seen in the code.
+- Include a short description of *what* and *why* was done, *how* can be seen in the code.
 - Use present tense, imperative mood
 - Limit the length of the first line to 72 chars. You can use multiple messages to specify a second (longer) line: `git commit -m "Patch load function" -m "This is a much longer explanation of what was done"`
 <!---- To refer to a Jira or Gitlab ticket, use **"See #123"** or **"Closes #123"**--->
@@ -253,22 +254,11 @@ Create feature X
 This is a longer description of what the commit contains. See #123
 ```
 
-<!---
 ## Issue tracking
 
-** still under consideration **
+Issue tracking is recommended even for solo projects. In this project we use Gitlab issue board for issue tracking.
 
-Issue tracking is recommended even for solo projects. A single todo kanban boards can help structure and document your work. 
-
-Currently we see being used:
-- Gitlab issues and boards
-- OrangeSharing JIRA tickets and boards
-- Confluence JIRA tickets and boards
-
-The best issue tracking system depends on your project. Gitlab is recommend if your project consists of mainly coders that have access to gitlab. 
-
-
-
+<!---
 ## (Optional) Testing: py.test
 * To run a single testfile: `pytest tests/test_environment.py`
 * Run all tests: `pytest`
