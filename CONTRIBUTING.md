@@ -2,6 +2,16 @@
 
 Work at ING? Join our slack channel `#probatus`! :coffee:
 
+There are many ways to contribute to probatus, including:
+
+- Contribution to code
+- Improving the documentation
+- Reviewing merge requests
+- Investigating bugs
+- Reporting issues
+
+In this guide, we describe the best practices to contribute a project.
+
 ### Table of Contents
 <!---
 To update the table of contents after a change, you can use the markdown-toc npm package: `markdown-toc -i CONTRIBUTING.md`
@@ -38,8 +48,6 @@ https://github.com/jonschlinkert/markdown-toc
 
 ### Jupyter notebooks
 
-- Notebooks are only allowed in the `notebooks/shared` and `notebooks/private` folder.
-- The `notebooks/private` folder is git-ignored, hence there are no issues with your workflow. Use this directory for your development notebooks
 - Do not collaborate on notebooks. Always create your own personal notebooks. This is because they are hard to version control as they include more than just code (cells & output).
 - **Clear output cells that may contain sensitive information before commits to prevent personal data leaking into the git repo.**
 - Try to clear large cell outputs before committing. Printing huge tables or plotting large graphs will only bloat your git repository and you run a larget risk of leaking sensitive data.
@@ -94,16 +102,6 @@ def func(arg1, arg2):
     """
     return True
 ```
-* Preferred method chaining style, especially relevant when using Spark:
-
-```python
-new_object = (
-    old_object.first_method(args)
-    .another_method()
-    .and_another_one() # Maybe a little comment?
-    .final_method(more_args)
-)
-```
 
 ### Code for model validation modules
 * Model validation modules assume that trained models passed for validation are developed in skitlearn framework (have predict_proba and other standard functions)
@@ -127,97 +125,6 @@ def KS_test(model, credit_data, X, Y):
 ```
 * Functions should not exceed 10-15 lines of code. If more code is needed, try to put together snippets of code into 
 other functions. This make the code more readable, and easier to test.
-* An example of the above point is shown in the pseudo code below (similar to the function description above) (assume
-this code is stored in `src/features/example/py`)
-
-```python 
-import pyspark
-from pyspark.sql import functions as F
-# Do there all your imports
-
-def transactional_features(core_table, transactions, minimum_transaction_amount = 100):
-    """
-    Pseudo function to illustrate the logic of the feature module.
-    
-    Args:
-        core_table
-        
-        (pyspark.DataFrame): dataframe containing the debt episodes
-        transactions: (pyspark.DataFrame):  dataframe containing the transactions of the customers
-        minimum_transaction_amount (float): minimum amount of transactions to consider for building the features (default
-        value is 100 TL)
-    Returns:
-        (pyspark.DataFrame): Features related to transactions.
-    
-    
-    """
-    # Here are some pseudo functions one might need 
-    # Detect transactions related to the customers with the debt loans
-     rel_transactions = get_relevant_transactions(core_table, transactions)
-     
-    # filter the transactions 
-     rel_transactions = filter_transactions(rel_transactions, minimum_transaction_amount= minimum_transaction_amount)
-     
-    # aggregate transactions 
-     transactional_features = aggregate_transactional_features(core_table, rel_transactions)
-    
-    
-    return transactional_features
-    
-def get_relevant_transactions(core_table, transactions):
-    """
-    Pseudo function to illustrate the logic of the feature module. Example - retrieves only transactions that are needed
-    
-    Args:
-        core_table (pyspark.DataFrame): dataframe containing the debt episodes
-        transactions: (pyspark.DataFrame):  dataframe containing the transactions of the customers
-        value is 100 TL)
-    Returns:
-        (pyspark.DataFrame): Dataframe with transactions that are present in the debt episodes
-    
-    
-    """
-    
-    # no code provided there, just some pseudo logic -
-    # you want to select only transactions of customers that have loans in arrears - probably by joining on the customer/products ids
-    
-    
-def filter_transactions(transaction, minimum_transaction_amount):
-    ### code of the funtcion
-    
-def aggregate_transactional_features(core_table, rel_transactions):
-    ### code of the funtcion
-    
-    
-```
-In the Jupyter notebook, you would do something as follows:
-
-First cell - relative inputs
-```python
-import sys
-sys.path.insert(0,'../..')\
-
-from src.features import example as ex
-```
-
-Next cell (calculate the )
-```python
-# calculate the transactional features
-# note that only one function is imported
-transact_feats = ex.transactional_features(core_table, transactions)
-
-```
-Next cell (add the features to the table)
-```python
-# Add the new features to your table
-
-core_table = (
-    core_table
-    .join(transact_feats, how='left', on=['talep_id','inst_number']) 
-    # left join is essential here - you might lose data otherwise
-)
-
-```
 
 ### Functions for multiple modules
 
@@ -294,7 +201,6 @@ It is the responsibility of the reviewee to make sure that the code is easy to r
 There are a few common git workflows, depending on the project requirements and team maturity:
 
 - **Development on user branches**:
-This is not the standard procedure, but let's try to follow this method. If it does not work, we will change it.
     - Develop the code in your personal branch
     - Once the code is ready to be shared with the rest, create a new pull request
     - Ask one of your peers to review the code and merge the pull request
