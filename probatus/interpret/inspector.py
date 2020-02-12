@@ -12,11 +12,11 @@ def return_confusion_metric(y_true, y_score, normalize = False):
     Computes a confusion metric as absolute difference between the y_true and y_score.
     If normalize eis set to tru, it will normalize y_score to the maximum value in the array
     Args:
-        y_true: (np.ndarray) true targets
-        y_score: (np.ndarray) model output
+        y_true: (np.ndarray or pd.Series) true targets
+        y_score: (np.ndarray or pd.Series) model output
         normalize: boolean, normalize or not to the maximum value
 
-    Returns: (np.ndarray) conflusion metric
+    Returns: (np.ndarray or pd.Series) conflusion metric
 
     """
 
@@ -71,7 +71,7 @@ class BaseInspector(object):
         return labels
 
     @staticmethod
-    def check_is_dataframe(df):
+    def assert_is_dataframe(df):
 
         if isinstance(df,pd.DataFrame):
             return df
@@ -89,7 +89,7 @@ class BaseInspector(object):
             return series
         elif isinstance(series, pd.DataFrame) and series.shape[1] == 1:
             return pd.Series(series.values.ravel(), index=series.index)
-        elif isinstance(series, np.ndarray) and index is not None:
+        elif isinstance(series, np.ndarray) and len(series.shape) == 1 and index is not None:
             return pd.Series(series, index=index)
         else:
             raise TypeError(
@@ -131,19 +131,19 @@ class InspectorShap(BaseInspector):
         self.hasmultiple_dfs = False
         self.normalize_proba = normalize_probability
         self.cluster_probabilities = cluster_probability
-
-        if confusion_metric not in ['proba']:
-            #TODO implement the target method
-            raise NotImplementedError("confusion metric {} not supported. See docstrings".format(confusion_metric))
+        self.agg_summary_df = None
+        self.set_names = None
         self.confusion_metric = confusion_metric
         self.cluster_report = None
-
-        # Init variables
         self.y = None
         self.predicted_proba = None
         self.X_shap = None
         self.clusters = None
         self.init_eval_set_report_variables()
+
+        if confusion_metric not in ['proba']:
+            #TODO implement the target method
+            raise NotImplementedError("confusion metric {} not supported. See docstrings".format(confusion_metric))
 
     def __repr__(self):
         repr_ = "{},\n\t{}".format(self.__class__.__name__, self.algotype)
@@ -254,7 +254,7 @@ class InspectorShap(BaseInspector):
             **shap_kwargs:  kwargs to pass to the Shapley Tree Explained
         """
 
-        self.check_is_dataframe(X)
+        X = self.assert_is_dataframe(X)
         y = self.assert_is_series(y, index = X.index)
 
         # Compute probabilities for the input X using model
@@ -448,7 +448,7 @@ class InspectorShap(BaseInspector):
         Returns: pd.Dataframe with aggregation results
         """
 
-        out = df.groupby("cluster_id", as_index=False).agg(
+        out = df.groupby("cluster_id").agg(
             total_label_1=pd.NamedAgg(column='target', aggfunc="sum"),
             total_entries=pd.NamedAgg(column='target', aggfunc="count"),
             label_1_rate=pd.NamedAgg(column='target', aggfunc="mean"),

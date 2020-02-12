@@ -1,3 +1,5 @@
+import pandas as pd
+
 class MockClusterer():
     def __init__(self, num_clusters = 3, **kwargs):
         self.num_clusters = 3
@@ -17,3 +19,5 @@ class MockModel():
 
     def fit(self, X):
         return self
+
+
