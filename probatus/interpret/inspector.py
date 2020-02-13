@@ -162,7 +162,6 @@ class InspectorShap(BaseInspector):
         """
         Compute the probabilities for the model using the sklearn API
         Args:
-            model: sklearn model
             X: Feature set
 
         Returns: (np.array) probability
@@ -321,7 +320,8 @@ class InspectorShap(BaseInspector):
                     sample_suffix = "sample_{}".format(ix+1)
                 else: sample_suffix = self.set_names[ix]
 
-                out = pd.merge(out, agg_summary_df, on='cluster_id',  suffixes = ('','_{}'.format(sample_suffix)))
+                out = pd.merge(out, agg_summary_df, how='left', on='cluster_id',
+                               suffixes = ('','_{}'.format(sample_suffix)))
 
 
         self.cluster_report = out
