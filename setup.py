@@ -30,6 +30,12 @@ setuptools.setup(
     author='RPAA ING',
     author_email='ml_risk_and_pricing_aa@ing.com',
     license='ING Open Source',
+    python_requires='>=3.6',
+    classifiers=[
+        "Programming Language :: Python :: 3",
+        "License :: OSI Approved :: MIT License",
+        "Operating System :: OS Independent",
+    ],
     packages=setuptools.find_packages(),
     package_data={'probatus': ['datasets/data/*.pkl']},
     install_requires=base_packages,

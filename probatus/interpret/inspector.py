@@ -320,9 +320,9 @@ class InspectorShap(BaseInspector):
                     sample_suffix = "sample_{}".format(ix+1)
                 else: sample_suffix = self.set_names[ix]
 
-                out = pd.merge(out, agg_summary_df, how='left', on='cluster_id',
-                               suffixes = ('','_{}'.format(sample_suffix)))
 
+                out = pd.merge(out, agg_summary_df, how="left", on='cluster_id',
+                               suffixes = ('','_{}'.format(sample_suffix)))
 
         self.cluster_report = out
         return self.cluster_report
@@ -457,5 +457,3 @@ class InspectorShap(BaseInspector):
         ).reset_index().rename(columns={"index": "cluster_id"}).sort_values(by='cluster_id')
 
         return out
-
-
