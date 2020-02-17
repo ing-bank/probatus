@@ -20,4 +20,7 @@ class MockModel():
     def fit(self, X):
         return self
 
+    def predict_proba(self, X):
+        return self
+
 

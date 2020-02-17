@@ -1,7 +1,5 @@
 from probatus.interpret.inspector import return_confusion_metric, InspectorShap, BaseInspector
 from .mocks import MockClusterer, MockModel
-from probatus.datasets import lending_club
-from probatus.models import lending_club_model
 from unittest.mock import patch
 from probatus.utils import NotFittedError, UnsupportedModelError
 
@@ -10,25 +8,125 @@ import pandas as pd
 import pytest
 
 test_sensitivity = 0.0000000001
-global_clusters = pd.Series([1, 2, 3, 4, 1, 2, 3, 4], name='cluster_id')
-global_y = pd.Series([0, 1, 1, 0, 0, 0, 1, 0])
-global_confusion_metric = pd.Series([0.1, 0.8, 0.3, 0.1, 0.1, 0.3, 0.3, 0.1])
-global_summary_df = pd.DataFrame([[1, 0, 0.1, 0.1], [2, 1, 0.2, 0.8], [3, 1, 0.7, 0.3], [4, 0, 0.1, 0.1],
-                                  [1, 0, 0.1, 0.1], [2, 0, 0.3, 0.3], [3, 1, 0.7, 0.3], [4, 0, 0.1, 0.1]],
-                                 columns=['cluster_id', 'target', 'pred_proba', 'confusion'])
-global_aggregate_summary_df = pd.DataFrame([[1, 0, 2, 0, 0.1, 0.1], [2, 1, 2, 0.5, 0.55, 0.25],
-                                            [3, 2, 2, 1, 0.3, 0.7], [4, 0, 2, 0, 0.1, 0.1]],
-                                           columns=['cluster_id', 'total_label_1', 'total_entries',
-                                                    'label_1_rate', 'average_confusion', 'average_pred_proba'])
-global_predicted_proba = pd.Series([0.1, 0.2, 0.7, 0.1, 0.1, 0.3, 0.7, 0.1], name='pred_proba')
-global_small_df = pd.DataFrame([[1, 2, 3, 4], [1, 2, 3, 4]])
-global_small_df_flat = pd.Series([1, 2, 3, 4])
-global_mock_aggregate_summary_dfs = [pd.DataFrame([[1, 3], [2, 3]], columns=['cluster_id', 'column_a']),
-                                 pd.DataFrame([[1, 2], [2, 3]], columns=['cluster_id', 'column_a'])]
-global_mock_summary_df = pd.DataFrame([[1, 2], [2, 3]], columns=['cluster_id', 'column_a'])
+
+
+@pytest.fixture(scope="function")
+def global_clusters():
+    return pd.Series([1, 2, 3, 4, 1, 2, 3, 4], name='cluster_id')
+
+
+@pytest.fixture(scope="function")
+def global_clusters_eval_set():
+    return [pd.Series([1, 2, 3], name='cluster_id'), pd.Series([1, 2, 3], name='cluster_id')]
+
+
+@pytest.fixture(scope="function")
+def global_y():
+    return pd.Series([0, 1, 1, 0, 0, 0, 1, 0])
+
+
+@pytest.fixture(scope="function")
+def global_X():
+    return pd.DataFrame([[0], [1], [1], [0], [0], [0], [1], [0]])
+
+
+@pytest.fixture(scope="function")
+def global_confusion_metric():
+    return pd.Series([0.1, 0.8, 0.3, 0.1, 0.1, 0.3, 0.3, 0.1])
+
+
+@pytest.fixture(scope="function")
+def global_summary_df(columns_summary_df):
+    return pd.DataFrame([[1, 0, 0.1, 0.1], [2, 1, 0.2, 0.8], [3, 1, 0.7, 0.3], [4, 0, 0.1, 0.1],
+                         [1, 0, 0.1, 0.1], [2, 0, 0.3, 0.3], [3, 1, 0.7, 0.3], [4, 0, 0.1, 0.1]],
+                        columns=columns_summary_df)
+
+
+@pytest.fixture(scope="function")
+def global_X_shap():
+    return pd.DataFrame([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1],
+                         [2, 0, 0, 0], [0, 2, 0, 0], [0, 0, 2, 0], [0, 0, 0, 2]],
+                        columns=['shap1', 'shap2', 'shap3', 'shap4'])
+
+
+@pytest.fixture(scope="function")
+def columns_aggregate_summary_df():
+    return ['cluster_id', 'total_label_1', 'total_entries', 'label_1_rate', 'average_confusion', 'average_pred_proba']
+
+
+@pytest.fixture(scope="function")
+def columns_summary_df():
+    return ['cluster_id', 'target', 'pred_proba', 'confusion']
+
+
+@pytest.fixture(scope="function")
+def global_aggregate_summary_df(columns_aggregate_summary_df):
+    return pd.DataFrame([[1, 0, 2, 0, 0.1, 0.1], [2, 1, 2, 0.5, 0.55, 0.25],
+                         [3, 2, 2, 1, 0.3, 0.7], [4, 0, 2, 0, 0.1, 0.1]], columns=columns_aggregate_summary_df)
+
+
+@pytest.fixture(scope="function")
+def global_aggregate_summary_dfs_eval_set(columns_aggregate_summary_df):
+    return [pd.DataFrame([[1, 0, 1, 0, 0.1, 0.1], [2, 0, 1, 0, 0.2, 0.2], [3, 0, 1, 0, 0.3, 0.3]],
+                         columns=columns_aggregate_summary_df),
+            pd.DataFrame([[1, 1, 1, 1, 0.4, 0.6], [2, 1, 1, 1, 0.5, 0.5], [3, 1, 1, 1, 0.6, 0.4]],
+                         columns=columns_aggregate_summary_df)]
+
+
+@pytest.fixture(scope="function")
+def global_summary_dfs():
+    return [pd.DataFrame([[1, 2, 3], [2, 3, 4], [3, 4, 5]], columns=['cluster_id', 'column_a', 'column_b']),
+            pd.DataFrame([[1, 2, 1], [2, 3, 2], [3, 4, 3]], columns=['cluster_id', 'column_a', 'column_b'])]
+
+
+@pytest.fixture(scope="function")
+def global_X_shaps():
+    return [pd.DataFrame([[0, 3, 0], [3, 0, 0], [0, 0, 3]], columns=['shap_1', 'shap_2', 'shap_3']),
+            pd.DataFrame([[0, 2, 0], [2, 0, 0], [0, 0, 2]], columns=['shap_1', 'shap_2', 'shap_3'])]
+
+
+@pytest.fixture(scope="function")
+def global_ys():
+    return [pd.Series([0, 0, 0]), pd.Series([1, 1, 1])]
+
+
+@pytest.fixture(scope="function")
+def global_Xs():
+    return [pd.DataFrame([[0], [1], [1]]), pd.DataFrame([[0], [1], [1]])]
+
+
+@pytest.fixture(scope="function")
+def global_predicted_probas():
+    return [pd.Series([0.1, 0.2, 0.3]), pd.Series([0.4, 0.5, 0.6])]
+
+
+@pytest.fixture(scope="function")
+def global_predicted_proba():
+    return pd.Series([0.1, 0.2, 0.7, 0.1, 0.1, 0.3, 0.7, 0.1], name='pred_proba')
+
+
+@pytest.fixture(scope="function")
+def global_small_df():
+    return pd.DataFrame([[1, 2, 3, 4], [1, 2, 3, 4]])
+
+
+@pytest.fixture(scope="function")
+def global_small_df_flat():
+    return pd.Series([1, 2, 3, 4])
+
+
+@pytest.fixture(scope="function")
+def global_mock_aggregate_summary_dfs():
+    return [pd.DataFrame([[1, 3], [2, 3]], columns=['cluster_id', 'column_a']),
+            pd.DataFrame([[1, 2], [2, 3]], columns=['cluster_id', 'column_a'])]
+
+
+@pytest.fixture(scope="function")
+def global_mock_summary_df():
+    return pd.DataFrame([[1, 2], [2, 3]], columns=['cluster_id', 'column_a'])
+
 
 def test_return_confusion_metric__array():
-
     y_true = np.array([0, 0, 0, 1, 1, 1], dtype=float)
     y_score = np.array([0.1, 0.2, 0.3, 0.7, 0.8, 0.9], dtype=float)
 
@@ -50,7 +148,7 @@ def test_return_confusion_metric__series():
 
 
 @patch.object(MockClusterer, 'fit')
-def test_fit_clusters__base_inspector(mock_clusterer):
+def test_fit_clusters__base_inspector(mock_clusterer, global_small_df):
     # Base Inspector case algotype is kmeans
     inspector = BaseInspector(algotype='kmeans')
     inspector.clusterer = mock_clusterer
@@ -67,7 +165,7 @@ def test_fit_clusters__base_inspector(mock_clusterer):
 
 
 @patch.object(MockClusterer, 'fit')
-def test_fit_clusters__inspector_shap(mock_clusterer):
+def test_fit_clusters__inspector_shap(mock_clusterer, global_small_df):
     inspector = InspectorShap(model= MockModel(), algotype='kmeans', cluster_probability=False)
     inspector.clusterer = mock_clusterer
 
@@ -86,7 +184,7 @@ def test_fit_clusters__inspector_shap(mock_clusterer):
 
 
 @patch.object(MockClusterer, 'fit')
-def test_fit_clusters__inspector_shap_proba(mock_clusterer):
+def test_fit_clusters__inspector_shap_proba(mock_clusterer, global_small_df):
     inspector = InspectorShap(model= MockModel(), algotype='kmeans', cluster_probability=True)
     inspector.clusterer = mock_clusterer
     inspector.predicted_proba = True
@@ -103,7 +201,7 @@ def test_fit_clusters__inspector_shap_proba(mock_clusterer):
 
 
 @patch.object(MockClusterer, 'predict')
-def test_predict_clusters__base_inspector(mock_clusterer):
+def test_predict_clusters__base_inspector(mock_clusterer, global_small_df):
     mock_clusterer.predict.return_value = [1, 0]
 
     inspector = BaseInspector(algotype='kmeans')
@@ -121,7 +219,7 @@ def test_predict_clusters__base_inspector(mock_clusterer):
 
 
 @patch.object(MockClusterer, 'predict')
-def test_predict_clusters__inspector_shap(mock_clusterer):
+def test_predict_clusters__inspector_shap(mock_clusterer, global_small_df):
     mock_clusterer.predict.return_value = [1, 0]
 
     inspector = InspectorShap(model=MockModel(), algotype='kmeans', cluster_probability=False)
@@ -137,7 +235,7 @@ def test_predict_clusters__inspector_shap(mock_clusterer):
 
 
 @patch.object(MockClusterer, 'predict')
-def test_predict_clusters__not_fitted(mock_clusterer):
+def test_predict_clusters__not_fitted(mock_clusterer, global_small_df):
     mock_clusterer.predict.return_value = [1, 0]
 
     # InspectorShap not fitted
@@ -155,7 +253,7 @@ def test_predict_clusters__not_fitted(mock_clusterer):
     pd.testing.assert_frame_equal(X, global_small_df)
 
 
-def test_assert_is_dataframe():
+def test_assert_is_dataframe(global_small_df):
     X_df = global_small_df
     X_list = X_df.values.tolist()
     X_array = np.asarray(X_list)
@@ -169,13 +267,11 @@ def test_assert_is_dataframe():
         BaseInspector.assert_is_dataframe(X_array_flat)
 
 
-def test_assert_is_series():
+def test_assert_is_series(global_small_df, global_small_df_flat):
     X_df = global_small_df
     X_df_flat = global_small_df_flat
     X_list = X_df.values.tolist()
     X_list_flat = X_df_flat.values.tolist()
-
-
 
     X_series = pd.Series(X_list_flat)
     X_array = np.asarray(X_list)
@@ -200,7 +296,7 @@ def test_assert_is_series():
         BaseInspector.assert_is_series(X_array_flat)
 
 
-def test_get_cluster_mask():
+def test_get_cluster_mask(global_summary_df):
     df = global_summary_df
     cluster_id_1 = 1
     cluster_id_2 = [1, 4]
@@ -213,7 +309,8 @@ def test_get_cluster_mask():
 
 
 @patch('probatus.interpret.inspector.return_confusion_metric')
-def test_create_summary_df(mocked_method):
+def test_create_summary_df(mocked_method, global_clusters, global_y, global_predicted_proba, global_confusion_metric,
+                           global_summary_df):
     cluster_series = global_clusters
     y_series = global_y
     probas = global_predicted_proba
@@ -224,17 +321,16 @@ def test_create_summary_df(mocked_method):
     output = InspectorShap.create_summary_df(cluster_series, y_series, probas, normalize=False)
 
     mocked_method.assert_called_with(y_series, probas, normalize=False)
-    print(output)
-    print(expected_output)
     assert output.equals(expected_output)
 
 
-def test_aggregate_summary_df():
+def test_aggregate_summary_df(global_summary_df, global_aggregate_summary_df):
     df = global_summary_df
     expected_output = global_aggregate_summary_df
     pd.set_option('display.max_columns', None)
 
     assert InspectorShap.aggregate_summary_df(df).equals(expected_output)
+
 
 def test_get_report__report_done():
     inspector = InspectorShap(model= MockModel(), algotype='kmeans', cluster_probability=False)
@@ -243,7 +339,7 @@ def test_get_report__report_done():
     assert inspector.get_report().equals(report_value)
 
 
-def test_get_report__single_df():
+def test_get_report__single_df(global_mock_summary_df):
     inspector = InspectorShap(model=MockModel(), algotype='kmeans', cluster_probability=False)
     inspector.hasmultiple_dfs = False
     report_value = global_mock_summary_df
@@ -259,7 +355,7 @@ def test_get_report__single_df():
         assert inspector.cluster_report.equals(report_value)
 
 
-def test_get_report__multiple_df():
+def test_get_report__multiple_df(global_mock_summary_df, global_mock_aggregate_summary_dfs):
     inspector = InspectorShap(model=MockModel(), algotype='kmeans', cluster_probability=False)
     inspector.hasmultiple_dfs = True
 
@@ -281,7 +377,7 @@ def test_get_report__multiple_df():
         assert inspector.agg_summary_df.equals(report_value)
 
 
-def test_get_report__multiple_df_set_names():
+def test_get_report__multiple_df_set_names(global_mock_summary_df, global_mock_aggregate_summary_dfs):
     inspector = InspectorShap(model=MockModel(), algotype='kmeans', cluster_probability=False)
     inspector.hasmultiple_dfs = True
     inspector.set_names = ['suf1', 'suf2']
@@ -303,17 +399,17 @@ def test_get_report__multiple_df_set_names():
         assert inspector.agg_summary_df.equals(report_value)
 
 
-def test_slice_cluster_no_inputs_not_complementary():
+def test_slice_cluster_no_inputs_not_complementary(global_summary_df, global_X_shap, global_y, global_predicted_proba):
     inspector = InspectorShap(model= MockModel(), algotype='kmeans')
-    summary = pd.DataFrame([[1, 2, 3], [2, 3, 4], [3, 4, 5]], columns=['cluster_id', 'column_a', 'column_b'])
+    summary = global_summary_df
     inspector.summary_df = summary
     inspector.cluster_report = summary
-    inspector.X_shap = X_shap = pd.DataFrame([[0, 1, 0], [1, 0, 0], [0, 0, 1]], columns=['shap_1', 'shap_2', 'shap_3'])
-    inspector.y = y = pd.Series([1, 0, 0])
-    inspector.predicted_proba = predicted_proba = pd.Series([0.1, 0.2, 0.3])
+    inspector.X_shap = X_shap = global_X_shap
+    inspector.y = y = global_y
+    inspector.predicted_proba = predicted_proba = global_predicted_proba
 
     target_cluster_id = 1
-    correct_mask = returned_mask =[True, False, False]
+    correct_mask = returned_mask =[True, False, False, False, True, False, False, False]
     inspector.get_cluster_mask.return_value = correct_mask
 
     def mock_get_report(self):
@@ -334,16 +430,16 @@ def test_slice_cluster_no_inputs_not_complementary():
             assert pred_out.equals(predicted_proba[correct_mask])
 
 
-def test_slice_cluster_inputs_complementary():
+def test_slice_cluster_inputs_complementary(global_summary_df, global_X_shap, global_y, global_predicted_proba):
     inspector = InspectorShap(model= MockModel(), algotype='kmeans')
-    summary = pd.DataFrame([[1, 2, 3], [2, 3, 4], [3, 4, 5]], columns=['cluster_id', 'column_a', 'column_b'])
-    X_shap = pd.DataFrame([[0, 1, 0], [1, 0, 0], [0, 0, 1]], columns=['shap_1', 'shap_2', 'shap_3'])
-    y = pd.Series([1, 0, 0])
-    predicted_proba = pd.Series([0.1, 0.2, 0.3])
+    summary = global_summary_df
+    X_shap = global_X_shap
+    y = global_y
+    predicted_proba = global_predicted_proba
 
     target_cluster_id = 1
-    correct_mask = np.array([False, True, True])
-    returned_mask = np.array([True, False, False])
+    correct_mask = np.array([False, True, True, True, False, True, True, True])
+    returned_mask = np.logical_not(correct_mask)
     inspector.get_cluster_mask.return_value = correct_mask
 
     assert inspector.cluster_report is None
@@ -411,19 +507,14 @@ def test_slice_cluster_eval_sets__single_df():
         inspector.slice_cluster_eval_set(cluster_id)
 
 
-def test_slice_cluster_eval_sets__multiple_df():
+def test_slice_cluster_eval_sets__multiple_df(global_X_shaps, global_ys, global_predicted_probas, global_summary_dfs):
     inspector = InspectorShap(model=MockModel(), algotype='kmeans')
     inspector.hasmultiple_dfs = True
 
-    inspector.X_shaps = X_shaps = \
-        [pd.DataFrame([[0, 3, 0], [3, 0, 0], [0, 0, 3]], columns=['shap_1', 'shap_2', 'shap_3']),
-         pd.DataFrame([[0, 2, 0], [2, 0, 0], [0, 0, 2]], columns=['shap_1', 'shap_2', 'shap_3'])]
-    inspector.ys = ys = [pd.Series([0, 0, 0]), pd.Series([1, 1, 1])]
-    inspector.predicted_probas = predicted_probas = [pd.Series([0.1, 0.2, 0.3]), pd.Series([0.4, 0.5, 0.6])]
-    inspector.summary_dfs = summary_dfs =[
-        pd.DataFrame([[1, 2, 3], [2, 3, 4], [3, 4, 5]], columns=['cluster_id', 'column_a', 'column_b']),
-        pd.DataFrame([[1, 2, 1], [2, 3, 2], [3, 4, 3]], columns=['cluster_id', 'column_a', 'column_b'])
-    ]
+    inspector.X_shaps = X_shaps = global_X_shaps
+    inspector.ys = ys = global_ys
+    inspector.predicted_probas = predicted_probas = global_predicted_probas
+    inspector.summary_dfs = summary_dfs = global_summary_dfs
 
     target_row = [0]
     target_cluster_id = 1
@@ -434,20 +525,12 @@ def test_slice_cluster_eval_sets__multiple_df():
          [pd.DataFrame([[0, 2, 0]], columns=['shap_1', 'shap_2', 'shap_3']), pd.Series([1]), pd.Series([0.4])]]
 
     def mock_slice_cluster(self, cluster_id, summary_df, X_shap, y, predicted_proba, complementary):
-
-        def check_if_in_list(df, dfs):
-            # Checks if single df is in a list of dfs
-            for current_df in dfs:
-                current_df.equals(df)
-                return True
-            return False
-
         assert cluster_id is target_cluster_id
         assert complementary is target_complementary
-        assert check_if_in_list(summary_df, summary_dfs)
-        assert check_if_in_list(X_shap, X_shaps)
-        assert check_if_in_list(y, ys)
-        assert check_if_in_list(predicted_proba,predicted_probas)
+        assert any([summary_df.equals(item) for item in summary_dfs])
+        assert any([X_shap.equals(item) for item in X_shaps])
+        assert any([y.equals(item) for item in ys])
+        assert any([predicted_proba.equals(item) for item in predicted_probas])
 
         for index, current_y in enumerate(ys):
             if current_y.equals(y):
@@ -467,22 +550,17 @@ def test_slice_cluster_eval_sets__multiple_df():
         assert target_output[index][2].equals(current_output[2])
 
 
-def get_feats_and_model():
-    _, X_train, y_train, X_test, y_test = lending_club()
-    rf = lending_club_model()
-
-    return rf, X_train, X_test, y_train, y_test
-
-def test_compute_report_single_df():
+def test_compute_report_single_df(global_clusters, global_y, global_predicted_proba, global_summary_df,
+                                  global_aggregate_summary_df):
     inspector = InspectorShap(model=MockModel(), algotype='kmeans')
     inspector.hasmultiple_dfs = False
     inspector.normalize_proba = target_normalize =  False
 
     inspector.clusters = input_clust = global_clusters
-    inspector.y = input_y = pd.Series([0, 1, 1, 0, 0, 0, 1, 0])
+    inspector.y = input_y = global_y
     inspector.predicted_proba = input_predicted_proba = global_predicted_proba
     target_summary_df = global_summary_df
-    aggregated_summary =global_aggregate_summary_df
+    aggregated_summary = global_aggregate_summary_df
 
     def mock_aggregate_summary_df(self, summary):
         assert summary.equals(target_summary_df)
@@ -492,7 +570,7 @@ def test_compute_report_single_df():
         assert target_normalize == normalize
         assert clusters.equals(input_clust)
         assert y.equals(input_y)
-        assert predicted_proba.equals(predicted_proba)
+        assert predicted_proba.equals(input_predicted_proba)
         return target_summary_df
 
     with patch.object(InspectorShap, 'create_summary_df', mock_create_summary_df):
@@ -502,72 +580,156 @@ def test_compute_report_single_df():
             assert inspector.summary_df.equals(target_summary_df)
 
 
-@pytest.mark.skip(reason="Skip it for now for speed")
-def test_inspector():
-    rf, X_train, y_train, X_test, y_test = get_feats_and_model()
+def test_compute_report_multiple_df(global_clusters, global_y, global_predicted_proba, global_summary_df,
+                                    global_aggregate_summary_df, global_summary_dfs, global_ys, global_predicted_probas,
+                                    global_aggregate_summary_dfs_eval_set):
+    inspector = InspectorShap(model=MockModel(), algotype='kmeans')
+    inspector.hasmultiple_dfs = True
+    inspector.normalize_proba = target_normalize =  False
 
-    test_inspector = InspectorShap(rf, n_clusters=4)
-    test_inspector.inspect(X_train, y_train, approximate=False)
+    inspector.clusters = input_clust = global_clusters
+    inspector.y = input_y = global_y
+    inspector.predicted_proba = input_predicted_proba = global_predicted_proba
+    inspector.ys = input_ys = global_ys
+    inspector.predicted_probas = input_predicted_probas = global_predicted_probas
+    target_summary_df = global_summary_df
+    target_summary_dfs = global_summary_dfs
+    aggregated_summary_df = global_aggregate_summary_df
+    aggregated_summary_dfs = global_aggregate_summary_dfs_eval_set
 
-    # Check that the cluster numbers matches
-    assert len(test_inspector.clusters.unique()) == 4
-
-    report = test_inspector.get_report()
-
-    assert report.shape == (4, 6)
-
-    # TODO Fix the tests related to InspectorShap
-    # expected_confusion = np.array([0.43190657, 0.06716497, 0.0319691, 0.18831297])
-    # expected_confusion = np.array([0.21282713, 0.08869656, 0.56882355, 0.02859485])
-
-    # The order might change - check the  sum of the values
-    # assert (np.abs((report["average_confusion"].values - expected_confusion).sum()) < 0.05)
-
-    # Test slicing
-    clust_slice = test_inspector.slice_cluster(3)
-    compl_clust_slice = test_inspector.slice_cluster(3, complementary=True)
-
-    assert len(clust_slice) == 3
-    assert len(compl_clust_slice) == 3
-
-    # Check thqat there is no index overlap between complementary slices
-    assert len(set(clust_slice[0].index).intersection(compl_clust_slice[0].index)) == 0
-
-    # check that slicing the cluster of the eval set raises  an exception
-    with pytest.raises(NotFittedError):
-        assert test_inspector.slice_cluster_eval_set(3)
+    def mock_aggregate_summary_df(self, summary):
+        if summary.equals(target_summary_df):
+            return aggregated_summary_df
+        else:
+            for index, summary_df in target_summary_dfs:
+                if summary_df.equals(summary):
+                    return aggregated_summary_dfs[index]
+        # If none of them returned then wrong input
+        assert False
 
 
-@pytest.mark.skip(reason="Skip it for now for speed")
-def test_inspector_with_eval_set():
-    assert True
+    def mock_create_summary_df(self, clusters, y, predicted_proba, normalize):
+        assert target_normalize == normalize
+        assert clusters.equals(input_clust)
+        assert y.equals(input_y) or y.equals(input_ys[0]) or y.equals(input_ys[1])
+        assert predicted_proba.equals(input_predicted_proba) or predicted_proba.equals(input_predicted_probas[0]) or\
+               predicted_proba.equals(input_predicted_probas[1])
+        if y.equals(input_y):
+            return target_summary_df
+        for index, input_y_item in input_ys:
+            if input_y_item.equals(y):
+                return target_summary_dfs[index]
+        # If none of them returned then wrong input
+        assert False
 
-    rf, X_train, y_train, X_test, y_test = get_feats_and_model()
+    with patch.object(InspectorShap, 'create_summary_df', mock_create_summary_df):
+        with patch.object(InspectorShap, 'aggregate_summary_df', mock_aggregate_summary_df):
+            inspector._compute_report()
+            assert inspector.agg_summary_df.equals(aggregated_summary_df)
+            assert inspector.summary_df.equals(target_summary_df)
+            for index, item in inspector.agg_summary_dfs:
+                assert item.equals(aggregated_summary_dfs[index])
+            for index, item in inspector.summary_dfs:
+                assert item.equals(target_summary_dfs[index])
 
-    test_inspector = InspectorShap(rf, n_clusters=4)
 
-    # Make sure the assertion works if the samples names length does not match the eval set length
-    with pytest.raises(AssertionError):
-        test_inspector.inspect(X_train, y_train,
-                               eval_set=[(X_train, y_train), (X_test, y_test)],
-                               sample_names=['sample1'],
-                               approximate=False)
+def test_perform_inspect_calc(global_X, global_y, global_predicted_proba, global_X_shap, global_clusters):
+    inspector = InspectorShap(model=MockModel(), algotype='kmeans')
+    inspector.model = input_model = MockModel()
+    input_X = global_X
+    input_y = global_y
+    input_predicted_proba = global_predicted_proba
+    values_probabilities = input_predicted_proba.tolist()
 
-    test_inspector.inspect(X_train, y_train,
-                           eval_set=[(X_train, y_train), (X_test, y_test)],
-                           sample_names=['sample1', 'samples'],
-                           approximate=False)
+    def mock_assert_is_dataframe(self, X):
+        assert input_X.equals(X)
+        return X
 
-    # dummy = test_inspector.get_report()
+    def mock_assert_is_series(self, y, index):
+        assert y.equals(input_y)
+        return y
 
-    real_train = test_inspector.slice_cluster(0)[0]
-    eval_set_train = test_inspector.slice_cluster_eval_set(0)[0][0]
+    def mock_compute_probabilities(self, X):
+        return values_probabilities
 
-    assert real_train.equals(eval_set_train)
+    def mock_shap_to_df(model, X, **shap_kwargs):
+        assert model == input_model
+        assert X.equals(input_X)
+        return global_X_shap
 
-    assert len(test_inspector.slice_cluster_eval_set(0)) == 2
-    assert len(test_inspector.slice_cluster_eval_set(0)[0]) == 3
+    def mock_fit_clusters(self, X_shap):
+        assert X_shap.equals(global_X_shap)
+        inspector.fitted = True
 
-    # assert that too if you look for high, returns an index error
-    with pytest.raises(IndexError):
-        test_inspector.slice_cluster_eval_set(0)[2]
+    def mock_predict_clusters(self, X_shap):
+        assert X_shap.equals(global_X_shap)
+        return global_clusters.tolist()
+
+    with patch.object(InspectorShap, 'assert_is_dataframe', mock_assert_is_dataframe):
+        with patch.object(InspectorShap, 'assert_is_series', mock_assert_is_series):
+            with patch.object(InspectorShap, 'compute_probabilities', mock_compute_probabilities):
+                with patch('probatus.interpret._shap_helpers.shap_to_df', mock_shap_to_df):
+                    with patch.object(InspectorShap, 'fit_clusters', mock_fit_clusters):
+                        with patch.object(InspectorShap, 'predict_clusters', mock_predict_clusters):
+                            out_y, out_predicted_proba, out_X_shap, out_clusters = \
+                                inspector.perform_inspect_calc(input_X, input_y, fit_clusters=True)
+    assert out_y.equals(input_y)
+    assert out_predicted_proba.equals(input_predicted_proba)
+    assert out_X_shap.equals(global_X_shap)
+    assert out_clusters.equals(global_clusters)
+    assert inspector.fitted
+
+
+def test_inspect__multiple_df(global_X, global_y, global_predicted_proba, global_X_shap, global_clusters, global_Xs,
+                              global_ys, global_predicted_probas, global_clusters_eval_set, global_X_shaps):
+
+    inspector = InspectorShap(model=MockModel(), algotype='kmeans')
+    input_eval_set = [(global_Xs[0], global_ys[0]), (global_Xs[1], global_ys[1])]
+    input_sample_names = ['set1', 'set2']
+    input_X = global_X
+    input_y = global_y
+
+    def mock_perform_inspect_calc(self, X, y, fit_clusters, **shap_kwargs):
+        assert X.equals(global_X) or X.equals(global_Xs[0]) or X.equals(global_Xs[1])
+        assert y.equals(global_y) or y.equals(global_ys[0]) or y.equals(global_ys[1])
+        if y.equals(global_y):
+            assert fit_clusters is True
+            return global_y, global_predicted_proba, global_X_shap, global_clusters
+        else:
+            assert fit_clusters is False
+            if y.equals(global_ys[0]):
+                return global_ys[0], global_predicted_probas[0], global_X_shaps[0], global_clusters_eval_set[0]
+            else:
+                return global_ys[1], global_predicted_probas[1], global_X_shaps[1], global_clusters_eval_set[1]
+
+    with patch.object(InspectorShap, 'perform_inspect_calc', mock_perform_inspect_calc):
+        with patch.object(InspectorShap, 'init_eval_set_report_variables') as mock_init_variables:
+            inspector.inspect(X=input_X, y=input_y, eval_set=input_eval_set, sample_names=input_sample_names)
+            mock_init_variables.assert_called_once()
+
+    assert inspector.hasmultiple_dfs is True
+    assert inspector.set_names is input_sample_names
+    assert inspector.y.equals(global_y)
+    assert inspector.predicted_proba.equals(global_predicted_proba)
+    assert inspector.X_shap.equals(global_X_shap)
+    assert inspector.clusters.equals(global_clusters)
+    assert all([a.equals(b) for a, b in zip(inspector.clusters_list, global_clusters_eval_set)])
+    assert all([a.equals(b) for a, b in zip(inspector.X_shaps, global_X_shaps)])
+    assert all([a.equals(b) for a, b in zip(inspector.predicted_probas, global_predicted_probas)])
+    assert all([a.equals(b) for a, b in zip(inspector.ys, global_ys)])
+    assert input_sample_names is inspector.set_names
+
+
+def test_compute_probabilities(global_X):
+    inspector = InspectorShap(model=MockModel(), algotype='kmeans')
+    input_X = global_X
+    model_probas = np.array([[0.2, 0.8], [0.7, 0.3], [0.7, 0.3], [0.3, 0.7],
+                             [0.2, 0.8], [0.3, 0.7], [0.7, 0.3], [0.5, 0.5]])
+    expected_output = np.array([0.8, 0.3, 0.3, 0.7, 0.8, 0.7, 0.3, 0.5])
+
+    def mock_predict_proba(self, X):
+        assert X.equals(global_X)
+        return model_probas
+
+    with patch.object(MockModel, 'predict_proba', mock_predict_proba):
+        np.testing.assert_array_equal(expected_output, inspector.compute_probabilities(input_X))
