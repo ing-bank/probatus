@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 from probatus.metric_uncertainty.metric import get_metric
 from joblib import Parallel, delayed
@@ -123,20 +124,24 @@ class VolatilityEstimation(object):
         Args:
             metric: str name of the metric to report
 
-        """        
+        """
+        results_dict = {}        
         metric_data = self.metrics_list[metric]
-        print(f'Mean of metric on train is {round(np.mean(metric_data[:,0]),2)}')
-        print(f'Mean of metric on test is {round(np.mean(metric_data[:,1]),2)}')
-        print(f'Mean of delta is {round(np.mean(metric_data[:,2]),2)}')
+
+        results_dict['mean_train'] = round(np.mean(metric_data[:,0]),2)
+        results_dict['mean_test'] = round(np.mean(metric_data[:,1]),2)
+        results_dict['mean_delta'] = round(np.mean(metric_data[:,2]),2)
 
         if self.method == 'boot_seed':
-            print(f'Standard Deviation of metric on train is {round(np.std(metric_data[:,0]),5)}')
-            print(f'Standard Deviation of metric on test is {round(np.std(metric_data[:,1]),5)}')
-            print(f'Standard Deviation of delta is {round(np.std(metric_data[:,2]),5)}')
+            results_dict['std_train'] = round(np.std(metric_data[:,0]),5)
+            results_dict['std_test'] = round(np.std(metric_data[:,1]),5)
+            results_dict['std_delta'] = round(np.std(metric_data[:,2]),5)
         elif self.method == 'boot_global' or self.method == 'delong':
-            print(f'Standard Deviation of metric on train is {round(np.mean(metric_data[:,3]),5)}')
-            print(f'Standard Deviation of metric on test is {round(np.mean(metric_data[:,4]),5)}')           
-            print(f'Standard Deviation of delta is {round(np.mean(metric_data[:,5]),5)}')
+            results_dict['std_train'] = round(np.std(metric_data[:,3]),5)
+            results_dict['std_test'] = round(np.std(metric_data[:,4]),5)
+            results_dict['std_delta'] = round(np.std(metric_data[:,5]),5)
+
+        return pd.DataFrame(results_dict, index=[0])
 
     def plot(self, metric):
         """
