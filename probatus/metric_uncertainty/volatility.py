@@ -3,6 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from probatus.metric_uncertainty.metric import get_metric
 from joblib import Parallel, delayed
+from tqdm import tqdm
 from probatus.utils import assure_numpy_array
 from probatus.metric_uncertainty import delong
 from probatus.metric_uncertainty.utils import max_folds
@@ -14,7 +15,7 @@ from probatus.metric_uncertainty.metric import get_metric_folds
 class VolatilityEstimation(object):
     """
     Draws N random samples from the data to create new train/test splits and calculate metric of interest.
-    After collecting multiple metrics per split, summary statistics of the metic are reported.
+    After collecting multiple metrics per split, summary statistics of the metric are reported.
     This provides uncertainty levels around the metric if the train/test data is resampled.  
 
     Args:
@@ -71,7 +72,7 @@ class VolatilityEstimation(object):
                                                                            i, 
                                                                            self.evaluator[evaluator_i][0],
                                                                            self.evaluator[evaluator_i][1])
-                                                       for i in random_seeds)
+                                                       for i in tqdm(random_seeds))
 
                 self.metrics_list[evaluator_i] = np.array(results)
             
@@ -82,7 +83,7 @@ class VolatilityEstimation(object):
                 top_k = max_folds(y_train) 
                 if top_k > 11:
                     top_k = 11
-                for k in range(1, top_k + 1):
+                for k in tqdm(range(1, top_k + 1), position = 0):
 
                     if k == 1:
                         x_slice = [X_train]
