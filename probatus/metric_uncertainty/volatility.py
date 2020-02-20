@@ -29,7 +29,6 @@ class VolatilityEstimation(object):
                 with non onverlapping resampling
                 boot_seed - boostrap replicates with local estimation of the AUC uncertainty (fixed split)
                 and overlapping resampling
-                delong - delong estimator of the AUC uncertainty
         random_state: the seed used by the random number generator
 
     """
@@ -39,7 +38,8 @@ class VolatilityEstimation(object):
         self.y = assure_numpy_array(y)
         self.evaluator = evaluator
         self.n_jobs = n_jobs
-        self.metrics_list = {}
+        self.metrics_dict = {}
+        self.results_df = pd.DataFrame()
         self.method = method
         self.random_state = random_state
 
@@ -50,9 +50,6 @@ class VolatilityEstimation(object):
         Args:
             test_prc: flot percentage of data used for test partition
             iterations: int number of samples
-
-        Returns: 
-            Dictionary with metrics data from sampling
 
         """
         
@@ -74,7 +71,7 @@ class VolatilityEstimation(object):
                                                                            self.evaluator[evaluator_i][1])
                                                        for i in tqdm(random_seeds))
 
-                self.metrics_list[evaluator_i] = np.array(results)
+                self.metrics_dict[evaluator_i] = np.array(results)
             
             elif self.method == 'boot_global':
 
@@ -100,7 +97,7 @@ class VolatilityEstimation(object):
                                                  self.evaluator[evaluator_i][0],
                                                  self.evaluator[evaluator_i][1])
                     results.append(results_i)
-                self.metrics_list[evaluator_i] = np.array(results) 
+                self.metrics_dict[evaluator_i] = np.array(results) 
 
             elif self.method == 'delong':    
                 X_train, X_test, y_train, y_test = stratified_random(self.X, self.y, test_prc)
@@ -112,37 +109,48 @@ class VolatilityEstimation(object):
                 auc_train, auc_cov_train = delong.delong_roc_variance(y_train, y_pred_train)
                 auc_test, auc_cov_test = delong.delong_roc_variance(y_test, y_pred_test)
 
-                self.metrics_list[evaluator_i] = np.array([auc_train, auc_test,
+                self.metrics_dict[evaluator_i] = np.array([auc_train, auc_test,
                                                            auc_train - auc_test,
                                                            auc_cov_train,
                                                            auc_cov_test,
                                                            0]).reshape(1, 6)
 
-    def reporting(self, metric):
+            metric_data = self.metrics_dict[evaluator_i]
+            self.results_df.loc[evaluator_i, 'mean_train'] = np.mean(metric_data[:,0])
+            self.results_df.loc[evaluator_i, 'mean_test'] = np.mean(metric_data[:,1])
+            self.results_df.loc[evaluator_i, 'mean_delta'] = np.mean(metric_data[:,2])
+
+            if self.method == 'boot_seed':
+                self.results_df.loc[evaluator_i, 'std_train'] = np.std(metric_data[:,0])
+                self.results_df.loc[evaluator_i, 'std_test'] = np.std(metric_data[:,1])
+                self.results_df.loc[evaluator_i, 'std_delta'] = np.std(metric_data[:,2])
+            elif self.method == 'boot_global' or self.method == 'delong':
+                self.results_df.loc[evaluator_i, 'std_train'] = np.std(metric_data[:,3])
+                self.results_df.loc[evaluator_i, 'std_test'] = np.std(metric_data[:,4])
+                self.results_df.loc[evaluator_i, 'std_delta'] = np.std(metric_data[:,5])
+
+
+    def get_report(self, metric):
         """
-        Prints summary statistics of the metric 
+        Reports the statistics of the selected metric 
 
         Args:
             metric: str name of the metric to report
 
+        Returns:
+            pd Dataframe that contains the statistics
+
         """
-        results_dict = {}        
-        metric_data = self.metrics_list[metric]
 
-        results_dict['mean_train'] = round(np.mean(metric_data[:,0]),2)
-        results_dict['mean_test'] = round(np.mean(metric_data[:,1]),2)
-        results_dict['mean_delta'] = round(np.mean(metric_data[:,2]),2)
+        results = self.results_df.loc[[metric]]
 
-        if self.method == 'boot_seed':
-            results_dict['std_train'] = round(np.std(metric_data[:,0]),5)
-            results_dict['std_test'] = round(np.std(metric_data[:,1]),5)
-            results_dict['std_delta'] = round(np.std(metric_data[:,2]),5)
-        elif self.method == 'boot_global' or self.method == 'delong':
-            results_dict['std_train'] = round(np.std(metric_data[:,3]),5)
-            results_dict['std_test'] = round(np.std(metric_data[:,4]),5)
-            results_dict['std_delta'] = round(np.std(metric_data[:,5]),5)
+        for col in results.columns:
+            if 'mean' in col:
+                results[col] = results[col].round(2)
+            else:
+                results[col] = results[col].round(5)
 
-        return pd.DataFrame(results_dict, index=[0])
+        return results
 
     def plot(self, metric):
         """
@@ -152,16 +160,18 @@ class VolatilityEstimation(object):
             metric: str name of the metric to report
 
         """  
-        metric_data = self.metrics_list[metric]
+
+        metric_data = self.metrics_dict[metric]
+        results = self.results_df.loc[[metric]]
 
         if self.method == 'boot_seed':
             train = metric_data[:, 0]
             test = metric_data[:, 1]
             delta = metric_data[:, 2]
         elif self.method == 'boot_global' or self.method == 'delong':
-            train = np.random.normal(np.mean(metric_data[:, 0]), np.sqrt(np.mean(metric_data[:, 3])), 10000)
-            test = np.random.normal(np.mean(metric_data[:, 1]), np.sqrt(np.mean(metric_data[:, 4])), 10000)
-            delta = np.random.normal(np.mean(metric_data[:, 2]), np.sqrt(np.mean(metric_data[:, 5])), 10000)
+            train = np.random.normal(results['mean_train'], np.sqrt(results['std_train']), 10000)
+            test = np.random.normal(results['mean_test'], np.sqrt(results['std_test']), 10000)
+            delta = np.random.normal(results['mean_delta'], np.sqrt(results['std_delta']), 10000)
 
         plt.hist(train, alpha=0.5, label='Train')
         plt.hist(test, alpha=0.5, label='Test')
