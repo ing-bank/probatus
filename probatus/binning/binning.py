@@ -18,25 +18,26 @@ class Bucketer(object):
             repr_ += f"\nResults:\n\tcounts: {self.counts}\n\tboundaries: {self.boundaries}"
         return repr_
 
-    def fit(self, x):
-        """ Create bucketing on the array x
+    def fit(self, X):
+        """
+        Fit bucketing on X
 
         Args:
-            x: input array
+            X: input array
 
         Returns: fitted bucketer object
 
         """
-        self._fit(x)
+        self._fit(X)
         self.fitted = True
         return self
 
-    def apply_bucketing(self, x_new):
+    def compute(self, X):
         """
         Apply bucketing to new data
 
         Args:
-            x_new: data to be bucketed
+            X: data to be bucketed
 
         Returns: counts of the elements in x_new using the bucketing that was obtained by fitting the Bucketer instance
 
@@ -48,11 +49,24 @@ class Bucketer(object):
             # the smallest value of the `boundaries` attribute equals the lowest value in the set the instance was
             # fitted on, to prevent the smallest value of x_new to be in his own bucket, we ignore the first boundary
             # value
-            digitize_result = np.digitize(x_new, self.boundaries[1:], right=True)
+            digitize_result = np.digitize(X, self.boundaries[1:], right=True)
             result = pd.DataFrame({'bucket': digitize_result}).groupby('bucket')['bucket'].count()
             # reindex the dataframe such that also empty buckets are included in the result
             result = result.reindex(np.arange(self.bin_count), fill_value=0)
             return result.values
+
+    def fit_compute(self, X):
+        """
+        Apply bucketing to new data
+
+        Args:
+            X: data to be bucketed
+
+        Returns: counts of the elements in x_new using the bucketing that was obtained by fitting the Bucketer instance
+
+        """
+        self.fit(X)
+        return self.compute(X)
 
 
 class SimpleBucketer(Bucketer):

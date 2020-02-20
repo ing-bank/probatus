@@ -67,22 +67,23 @@ def test_agglomerative_clustering_new():
     assert repr(myBucketer).startswith('AgglomerativeBucketer')
 
 
-def test_apply_bucketing():
+def test_compute():
     x = np.arange(10)
     bins = 5
     myBucketer = QuantileBucketer(bins)
     x_new = x
     with pytest.raises(NotFittedError):
-        assert myBucketer.apply_bucketing(x_new)
+        assert myBucketer.compute(x_new)
     myBucketer.fit(x)
-    assert len(myBucketer.apply_bucketing(x_new)) == bins
-    np.testing.assert_array_equal(myBucketer.counts, myBucketer.apply_bucketing(x_new))
+    assert len(myBucketer.compute(x_new)) == bins
+    np.testing.assert_array_equal(myBucketer.counts, myBucketer.compute(x_new))
+    np.testing.assert_array_equal(myBucketer.counts, myBucketer.fit_compute(x_new))
     x_new = x + 100
-    np.testing.assert_array_equal(np.array([0, 0, 0, 0, 0]), myBucketer.apply_bucketing(x_new))
+    np.testing.assert_array_equal(np.array([0, 0, 0, 0, 0]), myBucketer.compute(x_new))
     x_new = x - 100
-    np.testing.assert_array_equal(np.array([10, 0, 0, 0, 0]), myBucketer.apply_bucketing(x_new))
+    np.testing.assert_array_equal(np.array([10, 0, 0, 0, 0]), myBucketer.compute(x_new))
     x_new = [1, 1, 1, 4, 4, 7]
-    np.testing.assert_array_equal(np.array([3, 0, 2, 1, 0]), myBucketer.apply_bucketing(x_new))
+    np.testing.assert_array_equal(np.array([3, 0, 2, 1, 0]), myBucketer.compute(x_new))
 
 
 def test_quantile_with_unique_values():

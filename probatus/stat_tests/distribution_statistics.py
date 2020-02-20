@@ -99,7 +99,7 @@ class DistributionStatistics(object):
         if self.binning_strategy:
             self.binner.fit(d1)
             d1_preprocessed = self.binner.counts
-            d2_preprocessed = self.binner.apply_bucketing(d2)
+            d2_preprocessed = self.binner.compute(d2)
         else:
             d1_preprocessed, d2_preprocessed = d1, d2
 
