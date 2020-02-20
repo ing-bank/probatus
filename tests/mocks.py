@@ -1,26 +1,34 @@
-import pandas as pd
+from unittest.mock import Mock
 
-class MockClusterer():
-    def __init__(self, num_clusters = 3, **kwargs):
-        self.num_clusters = 3
 
-    def fit(self, X):
-        return self
+# These are shell classes that define the methods of the models that we use. Each of the functions that we use needs
+# To be defined inside these shell classes. Then when we want to write a specific test you need to simply mock.patch
+# the desired functionality. You can also set the return_value to the patched method.
 
-    def predict(self, X):
-        output = []
-        for index in range(len(X)):
-            output.append(index % self.num_clusters)
-        return output
+class MockClusterer(Mock):
+    def __init__(self):
+        pass
 
-class MockModel():
+    def fit(self):
+        pass
+
+    def predict(self):
+        pass
+
+    def fit_predict(self):
+        pass
+
+class MockModel(Mock):
     def __init__(self, **kwargs):
         pass
 
-    def fit(self, X):
-        return self
+    def fit(self):
+        pass
 
-    def predict_proba(self, X):
-        return self
+    def predict(self):
+        pass
+
+    def predict_proba(self):
+        pass
 
 
