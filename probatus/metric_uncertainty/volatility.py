@@ -116,26 +116,18 @@ class VolatilityEstimation(object):
                                                            0]).reshape(1, 6)
 
             metric_data = self.metrics_dict[evaluator_i]
-            self.results_df.loc[evaluator_i, 'mean_train'] = np.mean(metric_data[:,0])
-            self.results_df.loc[evaluator_i, 'mean_test'] = np.mean(metric_data[:,1])
-            self.results_df.loc[evaluator_i, 'mean_delta'] = np.mean(metric_data[:,2])
 
-            if self.method == 'boot_seed':
-                self.results_df.loc[evaluator_i, 'std_train'] = np.std(metric_data[:,0])
-                self.results_df.loc[evaluator_i, 'std_test'] = np.std(metric_data[:,1])
-                self.results_df.loc[evaluator_i, 'std_delta'] = np.std(metric_data[:,2])
-            elif self.method == 'boot_global' or self.method == 'delong':
-                self.results_df.loc[evaluator_i, 'std_train'] = np.std(metric_data[:,3])
-                self.results_df.loc[evaluator_i, 'std_test'] = np.std(metric_data[:,4])
-                self.results_df.loc[evaluator_i, 'std_delta'] = np.std(metric_data[:,5])
+            self.results_df = create_results_df(metric_data, evaluator_i, self.method)
 
 
-    def get_report(self, metric):
+    def get_report(self, metric, mean_decimals=2, std_decimals=5):
         """
         Reports the statistics of the selected metric 
 
         Args:
-            metric: str name of the metric to report
+            metric: (str) name of the metric to report
+            mean_decimals: (int) number of decimals in approximation of the mean
+            std_decimals: (int) number of decimals in approximation of the std
 
         Returns:
             pd Dataframe that contains the statistics
@@ -144,17 +136,17 @@ class VolatilityEstimation(object):
 
         results = self.results_df.loc[[metric]]
 
-        for col in results.columns:
-            if 'mean' in col:
-                results[col] = results[col].round(2)
+        for column_name in results.columns:
+            if 'mean_' in column_name:
+                results[column_name] = results[column_name].round(mean_decimals)
             else:
-                results[col] = results[col].round(5)
+                results[column_name] = results[column_name].round(std_decimals)
 
         return results
 
     def plot(self, metric):
         """
-        Plots detribution of the metric 
+        Plots distribution of the metric
 
         Args:
             metric: str name of the metric to report
@@ -169,7 +161,7 @@ class VolatilityEstimation(object):
             test = metric_data[:, 1]
             delta = metric_data[:, 2]
         elif self.method == 'boot_global' or self.method == 'delong':
-            train = np.random.normal(results['mean_train'], np.sqrt(results['std_train']), 10000)
+            train = np.random.normal(results['mean_train'], results['std_train'], 10000)
             test = np.random.normal(results['mean_test'], np.sqrt(results['std_test']), 10000)
             delta = np.random.normal(results['mean_delta'], np.sqrt(results['std_delta']), 10000)
 
@@ -181,3 +173,35 @@ class VolatilityEstimation(object):
         plt.hist(delta, alpha=0.5, label='Delta')
         plt.legend(loc='upper right')
         plt.show()
+
+
+def create_results_df(data, metric, method):
+    """
+    Creates a dataframe using statistics related to metrics
+
+    Args:
+        data: name of the variable that keeps the statisics
+        metric: metric used as index
+        method: type of estimation which is used
+
+    Returns:
+        pd Dataframe that contains the statistics
+
+    """
+
+    results = pd.DataFrame()
+
+    results.loc[metric, 'mean_train'] = np.mean(data[:, 0])
+    results.loc[metric, 'mean_test'] = np.mean(data[:, 1])
+    results.loc[metric, 'mean_delta'] = np.mean(data[:, 2])
+
+    if method == 'boot_seed':
+        results.loc[metric, 'std_train'] = np.std(data[:, 0])
+        results.loc[metric, 'std_test'] = np.std(data[:, 1])
+        results.loc[metric, 'std_delta'] = np.std(data[:, 2])
+    elif method == 'boot_global' or method == 'delong':
+        results.loc[metric, 'std_train'] = np.std(data[:, 3])
+        results.loc[metric, 'std_test'] = np.std(data[:, 4])
+        results.loc[metric, 'std_delta'] = np.std(data[:, 5])
+
+    return results
