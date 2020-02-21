@@ -161,7 +161,7 @@ class VolatilityEstimation(object):
             test = metric_data[:, 1]
             delta = metric_data[:, 2]
         elif self.method == 'boot_global' or self.method == 'delong':
-            train = np.random.normal(results['mean_train'], results['std_train'], 10000)
+            train = np.random.normal(results['mean_train'], np.sqrt(results['std_train']), 10000)
             test = np.random.normal(results['mean_test'], np.sqrt(results['std_test']), 10000)
             delta = np.random.normal(results['mean_delta'], np.sqrt(results['std_delta']), 10000)
 
