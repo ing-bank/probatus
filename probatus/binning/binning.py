@@ -23,10 +23,9 @@ class Bucketer(object):
         Fit bucketing on X
 
         Args:
-            X: input array
+            X: (np.array) Input array on which the boundaries of bins are fitted
 
         Returns: fitted bucketer object
-
         """
         self._fit(X)
         self.fitted = True
@@ -34,12 +33,12 @@ class Bucketer(object):
 
     def compute(self, X):
         """
-        Apply bucketing to new data
+        Applies fitted bucketing algorithm on input data and counts number of samples per bin
 
         Args:
-            X: data to be bucketed
+            X: (np.array) data to be bucketed
 
-        Returns: counts of the elements in x_new using the bucketing that was obtained by fitting the Bucketer instance
+        Returns: counts of the elements in X using the bucketing that was obtained by fitting the Bucketer instance
 
         """
         if not self.fitted:
@@ -57,10 +56,10 @@ class Bucketer(object):
 
     def fit_compute(self, X):
         """
-        Apply bucketing to new data
+        Apply bucketing to new data and return number of samples per bin
 
         Args:
-            X: data to be bucketed
+            X: (np.array) data to be bucketed
 
         Returns: counts of the elements in x_new using the bucketing that was obtained by fitting the Bucketer instance
 
