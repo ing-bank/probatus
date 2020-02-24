@@ -37,7 +37,7 @@ class DistributionStatistics(object):
     d2 = np.histogram(np.random.normal(size=1000), 10)[0]
 
     myTest = DistributionStatistics('KS', 'SimpleBucketer', bin_count=10)
-    myTest.fit(d1, d2, verbose=True)
+    myTest.compute(d1, d2, verbose=True)
 
     """
     statistical_test_list = ['ES', 'KS', 'PSI', 'AD', 'SW']
@@ -84,17 +84,16 @@ class DistributionStatistics(object):
             repr_ += f"\n\tp-value: {self.p_value}"
         return repr_
 
-    def fit(self, d1, d2, verbose=False, **kwargs):
+    def compute(self, d1, d2, verbose=False, **kwargs):
         """
-        Fit the DistributionStatistics object to data; i.e. apply the statistical test
+        Apply the statistical test and compute statistic value and p-value
 
         Args:
-            d1: distribution 1
-            d2: distribution 2
-            verbose:
+            d1: (np.array or pd.DataFrame) distribution 1
+            d2: (np.array or pd.DataFrame) distribution 2
+            verbose: (bool) Flag indicating whether prints should be shown
 
-        Returns: statistic value and p_value (if available, e.g. not for PSI)
-
+        Returns: (Touple of floats) statistic value and p_value. For PSI test the return is only statistic
         """
         if self.binning_strategy:
             self.binner.fit(d1)
@@ -175,7 +174,7 @@ class AutoDist(object):
         repr_ += f"\n\tbin_count: {self.bin_count}"
         return repr_
 
-    def fit(self, df1, df2, column_selection, return_failed_tests=True, suppress_warnings=True):
+    def compute(self, df1, df2, column_selection, return_failed_tests=True, suppress_warnings=True):
         """
         Fit the AutoDist object to data; i.e. apply the statistical tests and binning strategies
 
@@ -200,7 +199,7 @@ class AutoDist(object):
             try:
                 if suppress_warnings:
                     warnings.filterwarnings('ignore')
-                _ = dist.fit(df1[col], df2[col])
+                _ = dist.compute(df1[col], df2[col])
                 if suppress_warnings:
                     warnings.filterwarnings('default')
                 statistic = dist.statistic
