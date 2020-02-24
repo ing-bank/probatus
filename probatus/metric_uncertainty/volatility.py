@@ -200,6 +200,8 @@ def create_results_df(data, metric, method):
         results.loc[metric, 'std_test'] = np.std(data[:, 1])
         results.loc[metric, 'std_delta'] = np.std(data[:, 2])
     elif method == 'boot_global' or method == 'delong':
+        # Here in corresponding parts of the 'data', variances are kept.
+        # Therefore we take their average first and then convert to std.
         results.loc[metric, 'std_train'] = np.sqrt(np.mean(data[:, 3]))
         results.loc[metric, 'std_test'] = np.sqrt(np.mean(data[:, 4]))
         results.loc[metric, 'std_delta'] = np.sqrt(np.mean(data[:, 5]))
