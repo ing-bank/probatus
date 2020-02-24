@@ -161,9 +161,9 @@ class VolatilityEstimation(object):
             test = metric_data[:, 1]
             delta = metric_data[:, 2]
         elif self.method == 'boot_global' or self.method == 'delong':
-            train = np.random.normal(results['mean_train'], np.sqrt(results['std_train']), 10000)
-            test = np.random.normal(results['mean_test'], np.sqrt(results['std_test']), 10000)
-            delta = np.random.normal(results['mean_delta'], np.sqrt(results['std_delta']), 10000)
+            train = np.random.normal(results['mean_train'], results['std_train'], 10000)
+            test = np.random.normal(results['mean_test'], results['std_test'], 10000)
+            delta = np.random.normal(results['mean_delta'], results['std_delta'], 10000)
 
         plt.hist(train, alpha=0.5, label='Train')
         plt.hist(test, alpha=0.5, label='Test')
@@ -200,8 +200,8 @@ def create_results_df(data, metric, method):
         results.loc[metric, 'std_test'] = np.std(data[:, 1])
         results.loc[metric, 'std_delta'] = np.std(data[:, 2])
     elif method == 'boot_global' or method == 'delong':
-        results.loc[metric, 'std_train'] = np.std(data[:, 3])
-        results.loc[metric, 'std_test'] = np.std(data[:, 4])
-        results.loc[metric, 'std_delta'] = np.std(data[:, 5])
+        results.loc[metric, 'std_train'] = np.sqrt(np.mean(data[:, 3]))
+        results.loc[metric, 'std_test'] = np.sqrt(np.mean(data[:, 4]))
+        results.loc[metric, 'std_delta'] = np.sqrt(np.mean(data[:, 5]))
 
     return results
