@@ -12,18 +12,9 @@ base_packages = ["scikit-learn>=0.20.2",
                  "scipy>=1.4.0",
                  "joblib>=0.13.2"]
 
-try:
-    if os.environ.get('CI_COMMIT_TAG'):
-        version = os.environ['CI_COMMIT_TAG']
-    else:
-        version = os.environ['CI_JOB_ID']
-except:
-    version = 'local'
-
-
 setuptools.setup(
     name='probatus',
-    version=version,
+    version="0.1.3",
     description='Tools for machine learning model validation',
     long_description=read('README.md'),
     long_description_content_type='text/markdown',
