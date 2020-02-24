@@ -1,7 +1,9 @@
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 from probatus.metric_uncertainty.metric import get_metric
 from joblib import Parallel, delayed
+from tqdm import tqdm
 from probatus.utils import assure_numpy_array
 from probatus.metric_uncertainty import delong
 from probatus.metric_uncertainty.utils import max_folds
@@ -13,7 +15,7 @@ from probatus.metric_uncertainty.metric import get_metric_folds
 class VolatilityEstimation(object):
     """
     Draws N random samples from the data to create new train/test splits and calculate metric of interest.
-    After collecting multiple metrics per split, summary statistics of the metic are reported.
+    After collecting multiple metrics per split, summary statistics of the metric are reported.
     This provides uncertainty levels around the metric if the train/test data is resampled.  
 
     Args:
@@ -27,7 +29,6 @@ class VolatilityEstimation(object):
                 with non onverlapping resampling
                 boot_seed - boostrap replicates with local estimation of the AUC uncertainty (fixed split)
                 and overlapping resampling
-                delong - delong estimator of the AUC uncertainty
         random_state: the seed used by the random number generator
 
     """
@@ -37,7 +38,8 @@ class VolatilityEstimation(object):
         self.y = assure_numpy_array(y)
         self.evaluator = evaluator
         self.n_jobs = n_jobs
-        self.metrics_list = {}
+        self.metrics_dict = {}
+        self.results_df = pd.DataFrame()
         self.method = method
         self.random_state = random_state
 
@@ -48,9 +50,6 @@ class VolatilityEstimation(object):
         Args:
             test_prc: flot percentage of data used for test partition
             iterations: int number of samples
-
-        Returns: 
-            Dictionary with metrics data from sampling
 
         """
         
@@ -70,9 +69,9 @@ class VolatilityEstimation(object):
                                                                            i, 
                                                                            self.evaluator[evaluator_i][0],
                                                                            self.evaluator[evaluator_i][1])
-                                                       for i in random_seeds)
+                                                       for i in tqdm(random_seeds))
 
-                self.metrics_list[evaluator_i] = np.array(results)
+                self.metrics_dict[evaluator_i] = np.array(results)
             
             elif self.method == 'boot_global':
 
@@ -81,7 +80,7 @@ class VolatilityEstimation(object):
                 top_k = max_folds(y_train) 
                 if top_k > 11:
                     top_k = 11
-                for k in range(1, top_k + 1):
+                for k in tqdm(range(1, top_k + 1), position = 0):
 
                     if k == 1:
                         x_slice = [X_train]
@@ -98,7 +97,7 @@ class VolatilityEstimation(object):
                                                  self.evaluator[evaluator_i][0],
                                                  self.evaluator[evaluator_i][1])
                     results.append(results_i)
-                self.metrics_list[evaluator_i] = np.array(results) 
+                self.metrics_dict[evaluator_i] = np.array(results) 
 
             elif self.method == 'delong':    
                 X_train, X_test, y_train, y_test = stratified_random(self.X, self.y, test_prc)
@@ -110,52 +109,61 @@ class VolatilityEstimation(object):
                 auc_train, auc_cov_train = delong.delong_roc_variance(y_train, y_pred_train)
                 auc_test, auc_cov_test = delong.delong_roc_variance(y_test, y_pred_test)
 
-                self.metrics_list[evaluator_i] = np.array([auc_train, auc_test,
+                self.metrics_dict[evaluator_i] = np.array([auc_train, auc_test,
                                                            auc_train - auc_test,
                                                            auc_cov_train,
                                                            auc_cov_test,
                                                            0]).reshape(1, 6)
 
-    def reporting(self, metric):
+            metric_data = self.metrics_dict[evaluator_i]
+
+            self.results_df = create_results_df(metric_data, evaluator_i, self.method)
+
+
+    def get_report(self, metric, mean_decimals=2, std_decimals=5):
         """
-        Prints summary statistics of the metric 
+        Reports the statistics of the selected metric 
 
         Args:
-            metric: str name of the metric to report
+            metric: (str) name of the metric to report
+            mean_decimals: (int) number of decimals in approximation of the mean
+            std_decimals: (int) number of decimals in approximation of the std
 
-        """        
-        metric_data = self.metrics_list[metric]
-        print(f'Mean of metric on train is {round(np.mean(metric_data[:,0]),2)}')
-        print(f'Mean of metric on test is {round(np.mean(metric_data[:,1]),2)}')
-        print(f'Mean of delta is {round(np.mean(metric_data[:,2]),2)}')
+        Returns:
+            pd Dataframe that contains the statistics
 
-        if self.method == 'boot_seed':
-            print(f'Standard Deviation of metric on train is {round(np.std(metric_data[:,0]),5)}')
-            print(f'Standard Deviation of metric on test is {round(np.std(metric_data[:,1]),5)}')
-            print(f'Standard Deviation of delta is {round(np.std(metric_data[:,2]),5)}')
-        elif self.method == 'boot_global' or self.method == 'delong':
-            print(f'Standard Deviation of metric on train is {round(np.mean(metric_data[:,3]),5)}')
-            print(f'Standard Deviation of metric on test is {round(np.mean(metric_data[:,4]),5)}')           
-            print(f'Standard Deviation of delta is {round(np.mean(metric_data[:,5]),5)}')
+        """
+
+        results = self.results_df.loc[[metric]]
+
+        for column_name in results.columns:
+            if 'mean_' in column_name:
+                results[column_name] = results[column_name].round(mean_decimals)
+            else:
+                results[column_name] = results[column_name].round(std_decimals)
+
+        return results
 
     def plot(self, metric):
         """
-        Plots detribution of the metric 
+        Plots distribution of the metric
 
         Args:
             metric: str name of the metric to report
 
         """  
-        metric_data = self.metrics_list[metric]
+
+        metric_data = self.metrics_dict[metric]
+        results = self.results_df.loc[[metric]]
 
         if self.method == 'boot_seed':
             train = metric_data[:, 0]
             test = metric_data[:, 1]
             delta = metric_data[:, 2]
         elif self.method == 'boot_global' or self.method == 'delong':
-            train = np.random.normal(np.mean(metric_data[:, 0]), np.sqrt(np.mean(metric_data[:, 3])), 10000)
-            test = np.random.normal(np.mean(metric_data[:, 1]), np.sqrt(np.mean(metric_data[:, 4])), 10000)
-            delta = np.random.normal(np.mean(metric_data[:, 2]), np.sqrt(np.mean(metric_data[:, 5])), 10000)
+            train = np.random.normal(results['mean_train'], results['std_train'], 10000)
+            test = np.random.normal(results['mean_test'], results['std_test'], 10000)
+            delta = np.random.normal(results['mean_delta'], results['std_delta'], 10000)
 
         plt.hist(train, alpha=0.5, label='Train')
         plt.hist(test, alpha=0.5, label='Test')
@@ -165,3 +173,37 @@ class VolatilityEstimation(object):
         plt.hist(delta, alpha=0.5, label='Delta')
         plt.legend(loc='upper right')
         plt.show()
+
+
+def create_results_df(data, metric, method):
+    """
+    Creates a dataframe using statistics related to metrics
+
+    Args:
+        data: name of the variable that keeps the statisics
+        metric: metric used as index
+        method: type of estimation which is used
+
+    Returns:
+        pd Dataframe that contains the statistics
+
+    """
+
+    results = pd.DataFrame()
+
+    results.loc[metric, 'mean_train'] = np.mean(data[:, 0])
+    results.loc[metric, 'mean_test'] = np.mean(data[:, 1])
+    results.loc[metric, 'mean_delta'] = np.mean(data[:, 2])
+
+    if method == 'boot_seed':
+        results.loc[metric, 'std_train'] = np.std(data[:, 0])
+        results.loc[metric, 'std_test'] = np.std(data[:, 1])
+        results.loc[metric, 'std_delta'] = np.std(data[:, 2])
+    elif method == 'boot_global' or method == 'delong':
+        # Here in corresponding parts of the 'data', variances are kept.
+        # Therefore we take their average first and then convert to std.
+        results.loc[metric, 'std_train'] = np.sqrt(np.mean(data[:, 3]))
+        results.loc[metric, 'std_test'] = np.sqrt(np.mean(data[:, 4]))
+        results.loc[metric, 'std_delta'] = np.sqrt(np.mean(data[:, 5]))
+
+    return results

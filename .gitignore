@@ -1,5 +1,6 @@
 notebooks/private
 notebooks/explore
+.vscode/
 .idea/
 docs/source/.ipynb_checkpoints/
 notebooks/.ipynb_checkpoints/

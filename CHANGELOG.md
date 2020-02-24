@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.3] - 2020-02-24
+
+### Added
+
+- VolalityEstimation now has random_seed argument
+
+### Changed
+
+- Improved unit testing
+- Improved documentation README and CONTRIBUTING
+
+### Fixed
+
+- Added dependency on scipy 1.4+
+
 ## [0.1.2] - 2019-10-29
 ### Added
 
