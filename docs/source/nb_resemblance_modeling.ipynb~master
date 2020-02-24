@@ -8,8 +8,8 @@
     "\n",
     "Resemblance models try to measure how different two samples are from a multivariate perspective.\n",
     "\n",
-    "It takes two datasets say X1 and X2 and labels them 0 and 1 respectively . Then it builds a model with that will try to \n",
-    "predict, to which sample does an obeservation belong . When this model has an AUC=0.5, it means the samples are not distinguishable ."
+    "It takes two datasets say X1 and X2 and labels them 0 and 1 respectively. Then it builds a model with that will try to \n",
+    "predict, to which sample does an obeservation belong. When this model has an AUC=0.5, it means the samples are not distinguishable."
    ]
   },
   {
