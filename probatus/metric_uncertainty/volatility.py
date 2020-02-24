@@ -43,16 +43,20 @@ class VolatilityEstimation(object):
         self.method = method
         self.random_state = random_state
 
-    def estimate(self, test_prc, iterations=1000):
+    def fit(self, test_prc, iterations=1000):
         """
-        Runs a parallel loop to sample multiple metrics using different train/test splits  
+        Runs trains and evaluates a number of models on train and test sets extracted using different random seeds.
+        The calculated target metrics are stored inside the object as metrics_list.
+        Statistics based on these metrics can be computed using compute().
 
         Args:
-            test_prc: flot percentage of data used for test partition
-            iterations: int number of samples
+            test_prc: (float) percentage of data used for test partition as hold out
+            iterations: (int) number of iterations of model training
 
+        Returns:
+            Dictionary with metrics data from sampling
         """
-        
+
         # Reproducable results
         np.random.seed(self.random_state)
         
@@ -117,12 +121,11 @@ class VolatilityEstimation(object):
 
             metric_data = self.metrics_dict[evaluator_i]
 
-            self.results_df = create_results_df(metric_data, evaluator_i, self.method)
+            self.results_df = self.create_results_df(metric_data, evaluator_i, self.method)
 
-
-    def get_report(self, metric, mean_decimals=2, std_decimals=5):
+    def compute(self, metric, mean_decimals=4, std_decimals=4):
         """
-        Reports the statistics of the selected metric 
+        Reports the statistics of the selected metric.
 
         Args:
             metric: (str) name of the metric to report
@@ -130,12 +133,13 @@ class VolatilityEstimation(object):
             std_decimals: (int) number of decimals in approximation of the std
 
         Returns:
-            pd Dataframe that contains the statistics
-
+            (pd Dataframe) Report that contains the evaluation mean and std on train and test sets.
         """
 
+        # TODO Make a check if a metric not in already computed metrics
         results = self.results_df.loc[[metric]]
 
+        # TODO allow for computations of multiple metrics at the same time
         for column_name in results.columns:
             if 'mean_' in column_name:
                 results[column_name] = results[column_name].round(mean_decimals)
@@ -174,36 +178,55 @@ class VolatilityEstimation(object):
         plt.legend(loc='upper right')
         plt.show()
 
+    @staticmethod
+    def create_results_df(data, metric, method):
+        """
+        Creates a dataframe using statistics related to metrics
 
-def create_results_df(data, metric, method):
-    """
-    Creates a dataframe using statistics related to metrics
+        Args:
+            data: name of the variable that keeps the statisics
+            metric: metric used as index
+            method: type of estimation which is used
 
-    Args:
-        data: name of the variable that keeps the statisics
-        metric: metric used as index
-        method: type of estimation which is used
+        Returns:
+            (pd.Dataframe) Report that contains the desired statistics statistics
 
-    Returns:
-        pd Dataframe that contains the statistics
+        """
 
-    """
+        results = pd.DataFrame()
 
-    results = pd.DataFrame()
+        results.loc[metric, 'mean_train'] = np.mean(data[:, 0])
+        results.loc[metric, 'mean_test'] = np.mean(data[:, 1])
+        results.loc[metric, 'mean_delta'] = np.mean(data[:, 2])
 
-    results.loc[metric, 'mean_train'] = np.mean(data[:, 0])
-    results.loc[metric, 'mean_test'] = np.mean(data[:, 1])
-    results.loc[metric, 'mean_delta'] = np.mean(data[:, 2])
+        if method == 'boot_seed':
+            results.loc[metric, 'std_train'] = np.std(data[:, 0])
+            results.loc[metric, 'std_test'] = np.std(data[:, 1])
+            results.loc[metric, 'std_delta'] = np.std(data[:, 2])
+        elif method == 'boot_global' or method == 'delong':
+            # Here in corresponding parts of the 'data', variances are kept.
+            # Therefore we take their average first and then convert to std.
+            results.loc[metric, 'std_train'] = np.sqrt(np.mean(data[:, 3]))
+            results.loc[metric, 'std_test'] = np.sqrt(np.mean(data[:, 4]))
+            results.loc[metric, 'std_delta'] = np.sqrt(np.mean(data[:, 5]))
 
-    if method == 'boot_seed':
-        results.loc[metric, 'std_train'] = np.std(data[:, 0])
-        results.loc[metric, 'std_test'] = np.std(data[:, 1])
-        results.loc[metric, 'std_delta'] = np.std(data[:, 2])
-    elif method == 'boot_global' or method == 'delong':
-        # Here in corresponding parts of the 'data', variances are kept.
-        # Therefore we take their average first and then convert to std.
-        results.loc[metric, 'std_train'] = np.sqrt(np.mean(data[:, 3]))
-        results.loc[metric, 'std_test'] = np.sqrt(np.mean(data[:, 4]))
-        results.loc[metric, 'std_delta'] = np.sqrt(np.mean(data[:, 5]))
+        return results
 
-    return results
+    def fit_compute(self, test_prc, metric, iterations=1000, mean_decimals=4, std_decimals=4):
+        """
+        Runs trains and evaluates a number of models on train and test sets extracted using different random seeds.
+        Reports the statistics of the selected metric.
+
+        Args:
+            test_prc: (float) percentage of data used for test partition as hold out
+            metric: (str) name of the metric to report
+            iterations: (int) number of iterations of model training
+            mean_decimals: (int) number of decimals in approximation of the mean
+            std_decimals: (int) number of decimals in approximation of the std
+
+        Returns:
+            (pd Dataframe) Report that contains the evaluation of a metric mean and std on train and test sets.
+        """
+
+        self.fit(test_prc, iterations)
+        return self.compute(metric, mean_decimals, std_decimals)

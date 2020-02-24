@@ -35,7 +35,7 @@ def y(club_data):
 def bootseed_checker(X, y, model):
     evaluators =  {'AUC' : [roc_auc_score,'proba'], 'ACC' : [accuracy_score,'class']}
     checker = VolatilityEstimation(model, X, y, evaluators, 'boot_seed')
-    checker.estimate(0.4,10) 
+    checker.fit(0.4,10)
     return checker
 
 #### Tests     
@@ -49,7 +49,7 @@ def test_metric_uncertainty_reproducibility(X, y, model, bootseed_checker):
     # boot_seed 
     evaluators =  {'AUC' : [roc_auc_score, 'proba']}
     checker2 = VolatilityEstimation(model, X, y, evaluators, 'boot_seed')
-    checker2.estimate(0.4,10)
+    checker2.fit(0.4,10)
     
     auc_is_equal = bootseed_checker.metrics_dict['AUC'] == checker2.metrics_dict['AUC']
     assert auc_is_equal.all(), "boot_seed not deterministic"
@@ -57,9 +57,9 @@ def test_metric_uncertainty_reproducibility(X, y, model, bootseed_checker):
     # boot_global
     evaluators =  {'AUC' : [roc_auc_score,'proba']}
     checker = VolatilityEstimation(model, X, y, evaluators, 'boot_global')
-    checker.estimate(0.4, 10)
+    checker.fit(0.4, 10)
     checker2 = VolatilityEstimation(model, X, y, evaluators, 'boot_global')
-    checker2.estimate(0.4, 10) 
+    checker2.fit(0.4, 10)
     
     auc_is_equal = checker.metrics_dict['AUC'] == checker2.metrics_dict['AUC']
     assert auc_is_equal.all(), "boot_global not deterministic"
@@ -67,9 +67,9 @@ def test_metric_uncertainty_reproducibility(X, y, model, bootseed_checker):
     # delong
     evaluators =  {'AUC' : [roc_auc_score,'proba']}
     checker = VolatilityEstimation(model, X, y, evaluators, 'delong')
-    checker.estimate(0.4, 10)
+    checker.fit(0.4, 10)
     checker2 = VolatilityEstimation(model, X, y, evaluators, 'delong')
-    checker2.estimate(0.4, 10) 
+    checker2.fit(0.4, 10)
 
     auc_is_equal = checker.metrics_dict['AUC'] == checker2.metrics_dict['AUC']
     assert auc_is_equal.all(), "delong not deterministic"
@@ -84,14 +84,14 @@ def test_metric_uncertainty_metrics_length_seed(X, y, model, bootseed_checker):
 def test_metric_uncertainty_metrics_length_global(X, y, model):
     evaluators =  {'AUC' : [roc_auc_score,'proba']}
     checker = VolatilityEstimation(model, X, y, evaluators, 'boot_global')
-    checker.estimate(0.4)
+    checker.fit(0.4)
 
     assert list(checker.metrics_dict.keys()) == ['AUC']
 
 def test_metric_uncertainty_metrics_length_delong(X, y, model):
     evaluators =  {'AUC' : [roc_auc_score,'proba']}
     checker = VolatilityEstimation(model, X, y, evaluators, 'delong')
-    checker.estimate(0.4)
+    checker.fit(0.4)
 
     assert list(checker.metrics_dict.keys()) == ['AUC']
 
@@ -103,7 +103,7 @@ def test_metric_uncertainty_array_length_seed(X, y, model, bootseed_checker):
 def test_metric_uncertainty_array_length_global(X, y, model):
     evaluators =  {'AUC' : [roc_auc_score,'proba'], 'ACC' : [accuracy_score,'class']}
     checker = VolatilityEstimation(model, X, y, evaluators, 'boot_global')
-    checker.estimate(0.4)
+    checker.fit(0.4)
 
     assert checker.metrics_dict['AUC'].shape[0] > 5
     assert checker.metrics_dict['ACC'].shape[0] > 5
@@ -111,7 +111,7 @@ def test_metric_uncertainty_array_length_global(X, y, model):
 def test_metric_uncertainty_array_length_delong(X, y, model):
     evaluators =  {'AUC' : [roc_auc_score,'proba']}
     checker = VolatilityEstimation(model, X, y, evaluators, 'delong')
-    checker.estimate(0.4)
+    checker.fit(0.4)
 
     assert checker.metrics_dict['AUC'].shape[1] == 6
     assert checker.metrics_dict['AUC'].shape[0] == 1
@@ -123,7 +123,7 @@ def test_metric_uncertainty_metric_values_seed(X, y, model, bootseed_checker):
 def test_metric_uncertainty_metric_values_global(X, y, model):
     evaluators =  {'AUC' : [roc_auc_score,'proba'], 'ACC' : [accuracy_score,'class']}
     checker = VolatilityEstimation(model, X, y, evaluators, 'boot_global')
-    checker.estimate(0.4)
+    checker.fit(0.4)
 
     assert np.mean(checker.metrics_dict['ACC']) > 0
     assert np.mean(checker.metrics_dict['AUC']) > 0
@@ -131,6 +131,6 @@ def test_metric_uncertainty_metric_values_global(X, y, model):
 def test_metric_uncertainty_metric_values_delong(X, y, model):
     evaluators =  {'AUC' : [roc_auc_score,'proba'], 'ACC' : [accuracy_score,'class']}
     checker = VolatilityEstimation(model, X, y, evaluators, 'delong')
-    checker.estimate(0.4)
+    checker.fit(0.4)
 
     assert np.mean(checker.metrics_dict['AUC']) > 0

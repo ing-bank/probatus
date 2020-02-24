@@ -9,8 +9,6 @@ import warnings
 from .. utils import assure_numpy_array, UnsupportedModelError, class_name_from_object
 
 
-
-
 class ResemblanceModel(object):
 
     def __init__(self, model_type='rf', keep_samples=False, **model_kwargs):
@@ -113,7 +111,6 @@ class ResemblanceModel(object):
             X[np.isnan(X)] = 0
         return X
 
-
     def _propensity_check(self, X1, X2, test_size=0.33, random_state=None):
         """Calculates and returns the AUC score.
 
@@ -153,19 +150,16 @@ class ResemblanceModel(object):
 
         self.model.fit(X_train,y_train)
 
-
         auc_train = roc_auc_score(y_train, self.model.predict_proba(X_train)[:,1])
         auc_test = roc_auc_score(y_test, self.model.predict_proba(X_test)[:, 1])
-
 
         importances = self._get_feature_importance()
 
         return auc_train, auc_test, importances
 
-    def fit(self, X1,X2, **kwargs):
+    def fit(self, X1, X2, **kwargs):
         """
             Fit the underlying model to compare the samples X1 or X2
-
 
         Args:
             X1 (numpy.ndarray or pd.DataFrame): first sample
@@ -173,16 +167,56 @@ class ResemblanceModel(object):
             **kwargs:
                 test_size (float, default=0.33): fraction to use for test samples
                 random_state=None: random state of train test split
-
         """
-
 
         self.auc_train, self.auc_test, self.importances = self._propensity_check(X1,X2,**kwargs)
         self.fitted=True
-
         return self
 
+    def compute(self, sort=True, threshold=None):
+        """
+        Gets feature importances in predicting which dataset a given sample belongs to.
 
+        High value of importance indicates that the change in distribution between two datasets is predictable using a
+        given feature, while low value indicates no predictability
 
+        Args:
+            sort (bool): flag indicating whether the returned values should be sorted in ascending order
+            threshold (float or None): Optional parameter, only features with importance greater or equal to the
+                                        threshold are returned
 
+        Returns:
+            (pd.Series) Features and their importance, while predicting sample belonging to one of the datasets
+        """
 
+        importances = self._get_feature_importance()
+
+        if sort:
+            importances.sort_values(ascending=False, inplace=True)
+
+        if isinstance(threshold, float):
+            importances = importances[importances >= threshold]
+
+        return importances
+
+    def fit_compute(self, X1, X2, sort=True, threshold=None, **kwargs):
+        """
+        Fit the underlying model to compare the samples X1 or X2 and gets feature importances in predicting which
+         dataset a given sample belongs to.
+
+        Args:
+            X1 (numpy.ndarray or pd.DataFrame): first sample
+            X2 (numpy.ndarray or pd.DataFrame): second sample
+            sort (bool): flag indicating whether the returned values should be sorted in ascending order
+            threshold (float or None): Optional parameter, only features with importance greater or equal to the
+                                        threshold are returned
+            **kwargs:
+                test_size (float, default=0.33): fraction to use for test samples
+                random_state=None: random state of train test split
+
+        Returns:
+            (pd.Series) Features and their importance, while predicting sample belonging to one of the datasets
+        """
+
+        self.fit(X1, X2, **kwargs)
+        return self.compute(sort, threshold)

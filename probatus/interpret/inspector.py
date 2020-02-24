@@ -459,6 +459,7 @@ class InspectorShap(BaseInspector):
     def fit_compute(self, X, y=None, eval_set=None, sample_names=None, **shap_kwargs):
         """
         Fits and orchestrates the cluster calculations and returns the computed report
+
         Args:
             X: (pd.DataFrame) with the features set used to train the model
             y: (pd.Series, default=None): targets used to train the model
@@ -469,7 +470,9 @@ class InspectorShap(BaseInspector):
                 sample_{i}, where i corresponds to the index of the sample.
                 List length must match that of eval_set
             **shap_kwargs:  kwargs to pass to the Shapley Tree Explained
-        Returns: (pd.DataFrame) Report with aggregations described in compute() method.
+
+        Returns:
+            (pd.DataFrame) Report with aggregations described in compute() method.
         """
         self.fit(X, y, eval_set, sample_names, **shap_kwargs)
         return self.compute()
