@@ -30,8 +30,8 @@ class VolatilityEstimation(object):
                 boot_seed - boostrap replicates with local estimation of the AUC uncertainty (fixed split)
                 and overlapping resampling
         random_state: the seed used by the random number generator
-
     """
+    # TODO Describe delong method
     def __init__(self, model, X, y, evaluator, method, n_jobs=1, random_state=42):
         self.model = model
         self.X = assure_numpy_array(X)
