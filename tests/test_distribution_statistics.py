@@ -21,7 +21,7 @@ def test_distribution_statistics_psi():
     d2 = np.histogram(np.random.weibull(1, size=1000) - 1, 10)[0]
     myTest = DistributionStatistics('psi', 'SimpleBucketer', bin_count=10)
     assert not myTest.fitted
-    res = myTest.fit(d1, d2)
+    res = myTest.compute(d1, d2)
     assert myTest.fitted
     assert isinstance(res, numbers.Number)
 
@@ -31,7 +31,7 @@ def test_distribution_statistics_tuple_output():
     d2 = np.histogram(np.random.weibull(1, size=1000) - 1, 10)[0]
     myTest = DistributionStatistics('ks', 'SimpleBucketer', bin_count=10)
     assert not myTest.fitted
-    res = myTest.fit(d1, d2)
+    res = myTest.compute(d1, d2)
     assert myTest.fitted
     assert isinstance(res, tuple)
 
@@ -41,7 +41,7 @@ def test_distribution_statistics_ks_no_binning():
     d2 = np.histogram(np.random.weibull(1, size=1000) - 1, 10)[0]
     myTest = DistributionStatistics('ks', binning_strategy=None)
     assert not myTest.fitted
-    res = myTest.fit(d1, d2)
+    res = myTest.compute(d1, d2)
     assert myTest.fitted
     assert isinstance(res, tuple)
 
@@ -52,7 +52,7 @@ def test_distribution_statistics_attributes_psi():
     d1 = np.histogram(a, 10)[0]
     d2 = np.histogram(b, 10)[0]
     myTest = DistributionStatistics('psi', binning_strategy=None)
-    _ = myTest.fit(d1, d2, verbose=False)
+    _ = myTest.compute(d1, d2, verbose=False)
     psi_value = psi(d1, d2, verbose=False)
     assert myTest.statistic == psi_value
 
@@ -61,7 +61,7 @@ def test_distribution_statistics_attributes_ks():
     d1 = np.histogram(np.random.normal(size=1000), 10)[0]
     d2 = np.histogram(np.random.normal(size=1000), 10)[0]
     myTest = DistributionStatistics('ks', binning_strategy=None)
-    _ = myTest.fit(d1, d2, verbose=False)
+    _ = myTest.compute(d1, d2, verbose=False)
     ks_value, p_value = ks(d1, d2)
     assert myTest.statistic == ks_value
 
@@ -76,7 +76,7 @@ def test_distribution_statistics_autodist_base():
     myAutoDist = AutoDist(statistical_tests='all', binning_strategies='all', bin_count=[10, 20])
     assert repr(myAutoDist).startswith('AutoDist')
     assert not myAutoDist.fitted
-    res = myAutoDist.fit(df1, df2, column_selection=features)
+    res = myAutoDist.compute(df1, df2, column_selection=features)
     assert myAutoDist.fitted
     pd.testing.assert_frame_equal(res, myAutoDist.result)
     assert isinstance(res, pd.DataFrame)
@@ -85,12 +85,12 @@ def test_distribution_statistics_autodist_base():
         myAutoDist.bin_count) * 2 + 1 == res.columns.size
 
     dist = DistributionStatistics(statistical_test='ks', binning_strategy='simplebucketer', bin_count=10)
-    dist.fit(df1['feat_0'], df2['feat_0'])
+    dist.compute(df1['feat_0'], df2['feat_0'])
     assert dist.p_value == res.loc[res['column'] == 'feat_0', 'p_value_KS_simplebucketer_10'][0]
     assert dist.statistic == res.loc[res['column'] == 'feat_0', 'statistic_KS_simplebucketer_10'][0]
 
     dist = DistributionStatistics(statistical_test='ks', binning_strategy=None, bin_count=10)
-    dist.fit(df1['feat_0'], df2['feat_0'])
+    dist.compute(df1['feat_0'], df2['feat_0'])
     assert dist.p_value == res.loc[res['column'] == 'feat_0', 'p_value_KS_no_bucketing_10'][0]
     assert dist.statistic == res.loc[res['column'] == 'feat_0', 'statistic_KS_no_bucketing_10'][0]
 
@@ -101,7 +101,7 @@ def test_distribution_statistics_autodist_column_selection_error():
     features = df1.columns.values.tolist() + ['missing_feature']
     myAutoDist = AutoDist()
     with pytest.raises(Exception):
-        assert myAutoDist.fit(df1, df2, column_selection=features)
+        assert myAutoDist.compute(df1, df2, column_selection=features)
 
     df1 = pd.DataFrame({'feat_0': [1, 2, 3, 4, 5], 'feat_1': [5, 6, 7, 8, 9]})
     df2 = df1.copy()
@@ -109,7 +109,7 @@ def test_distribution_statistics_autodist_column_selection_error():
     features = df2.columns.values.tolist() + ['missing_feature']
     myAutoDist = AutoDist()
     with pytest.raises(Exception):
-        assert myAutoDist.fit(df1, df2, column_selection=features)
+        assert myAutoDist.compute(df1, df2, column_selection=features)
 
 
 def test_distribution_statistics_autodist_return_failed_tests():
@@ -117,9 +117,9 @@ def test_distribution_statistics_autodist_return_failed_tests():
     df2 = df1
     features = df1.columns.values.tolist()
     myAutoDist = AutoDist()
-    res = myAutoDist.fit(df1, df2, column_selection=features, return_failed_tests=True)
+    res = myAutoDist.compute(df1, df2, column_selection=features, return_failed_tests=True)
     assert res.isin(['an error occurred']).any().any()
-    res = myAutoDist.fit(df1, df2, column_selection=features, return_failed_tests=False)
+    res = myAutoDist.compute(df1, df2, column_selection=features, return_failed_tests=False)
     assert not res.isin(['an error occurred']).any().any()
 
 

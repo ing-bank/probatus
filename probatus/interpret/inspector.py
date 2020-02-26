@@ -201,16 +201,16 @@ class InspectorShap(BaseInspector):
 
         return super().predict_clusters(X)
 
-    def inspect(self, X, y=None, eval_set = None, sample_names=None, **shap_kwargs):
+    def fit(self, X, y=None, eval_set = None, sample_names=None, **shap_kwargs):
         """
-        Orchestrates the cluster calculations
+        Fits and orchestrates the cluster calculations
         Args:
-            X: pd.DataFrame with the features set used to train the model
-            y: pd.Series (default None): targets used to train the model
-            eval_set: (list, default None). list of tuples in the shape (X,y) containing evaluation samples, for example
+            X: (pd.DataFrame) with the features set used to train the model
+            y: (pd.Series, default=None): targets used to train the model
+            eval_set: (list, default=None). list of tuples in the shape (X,y) containing evaluation samples, for example
                 a test sample, validation sample etc... X corresponds to the feature set of the sample, y corresponds
                 to the targets of the samples
-            sample_names: (list of strings): list of suffixed for the samples. If none, it will be labelled with
+            sample_names: (list of strings, default=None): list of suffixed for the samples. If none, it will be labelled with
                 sample_{i}, where i corresponds to the index of the sample.
                 List length must match that of eval_set
             **shap_kwargs:  kwargs to pass to the Shapley Tree Explained
@@ -221,10 +221,9 @@ class InspectorShap(BaseInspector):
             # Make sure that the amount of eval sets matches the set names
             assert len(eval_set) == len(sample_names), "set_names must be the same length as eval_set"
 
-        self.y, self.predicted_proba, self.X_shap, self.clusters = self.perform_inspect_calc(X=X, y=y,
-                                                                                             fit_clusters=True,
-                                                                                             **shap_kwargs)
-
+        self.y, self.predicted_proba, self.X_shap, self.clusters = self.perform_fit_calc(X=X, y=y,
+                                                                                         fit_clusters=True,
+                                                                                         **shap_kwargs)
         if eval_set is not None:
             assert isinstance(eval_set, list), "eval_set needs to be a list"
 
@@ -233,8 +232,8 @@ class InspectorShap(BaseInspector):
             self.init_eval_set_report_variables()
 
             for X_, y_ in eval_set:
-                y_, predicted_proba_, X_shap_, clusters_ = self.perform_inspect_calc(X=X_, y=y_, fit_clusters=False,
-                                                                                     **shap_kwargs)
+                y_, predicted_proba_, X_shap_, clusters_ = self.perform_fit_calc(X=X_, y=y_, fit_clusters=False,
+                                                                                 **shap_kwargs)
 
                 self.X_shaps.append(X_shap_)
                 self.ys.append(y_)
@@ -243,7 +242,7 @@ class InspectorShap(BaseInspector):
 
         return self
 
-    def perform_inspect_calc(self, X, y, fit_clusters=False, **shap_kwargs):
+    def perform_fit_calc(self, X, y, fit_clusters=False, **shap_kwargs):
         """
         Performs cluster calculations for a specific X and y
         Args:
@@ -288,7 +287,7 @@ class InspectorShap(BaseInspector):
             ]
 
 
-    def get_report(self):
+    def compute(self):
         """
         Calculates a report containing the information per cluster.
         Includes the following:
@@ -350,7 +349,7 @@ class InspectorShap(BaseInspector):
         """
 
         if self.cluster_report is None:
-            self.get_report()
+            self.compute()
 
         # Check if input specified by user, otherwise use the ones from self
         if summary_df is None:
@@ -456,3 +455,24 @@ class InspectorShap(BaseInspector):
         ).reset_index().rename(columns={"index": "cluster_id"}).sort_values(by='cluster_id')
 
         return out
+
+    def fit_compute(self, X, y=None, eval_set=None, sample_names=None, **shap_kwargs):
+        """
+        Fits and orchestrates the cluster calculations and returns the computed report
+
+        Args:
+            X: (pd.DataFrame) with the features set used to train the model
+            y: (pd.Series, default=None): targets used to train the model
+            eval_set: (list, default=None). list of tuples in the shape (X,y) containing evaluation samples, for example
+                a test sample, validation sample etc... X corresponds to the feature set of the sample, y corresponds
+                to the targets of the samples
+            sample_names: (list of strings, default=None): list of suffixed for the samples. If none, it will be labelled with
+                sample_{i}, where i corresponds to the index of the sample.
+                List length must match that of eval_set
+            **shap_kwargs:  kwargs to pass to the Shapley Tree Explained
+
+        Returns:
+            (pd.DataFrame) Report with aggregations described in compute() method.
+        """
+        self.fit(X, y, eval_set, sample_names, **shap_kwargs)
+        return self.compute()

@@ -1,10 +1,8 @@
 from sklearn.datasets import make_classification
-from sklearn.model_selection import train_test_split
 from probatus.samples import ResemblanceModel
+from unittest.mock import patch
 import numpy as np
 import pandas as pd
-
-
 
 def test_resemblance_random_split():
     X, dummy = make_classification(n_samples=10000,
@@ -20,6 +18,7 @@ def test_resemblance_random_split():
 
     assert np.abs(rm.auc_test-0.5<0.02)
 
+
 def test_resemblance_random_split_with_lr():
     X, dummy = make_classification(n_samples=10000,
                                    n_classes=2,
@@ -34,12 +33,17 @@ def test_resemblance_random_split_with_lr():
     assert np.abs(rm.auc_test - 0.5 < 0.02)
 
 
+def test_compute():
+    rm = ResemblanceModel(model_type='lr')
+
+    importances = pd.Series([0.5, 0.3, 0.6, 0.01, 0.05], index=['f1', 'f2', 'f3', 'f4', 'f5'])
+
+    expected_outcome = pd.Series([0.6, 0.5, 0.3, 0.05], index=['f3', 'f1', 'f2', 'f5'])
+
+    with patch.object(ResemblanceModel, '_get_feature_importance') as mock_get_feature_importance:
+        mock_get_feature_importance.return_value = importances
+
+        output = rm.compute(sort=True, threshold=0.05)
+    pd.testing.assert_series_equal(output, expected_outcome)
 
 
-# def test_feature_importance():
-#
-#     X, y = make_classification(n_samples=10000, n_classes=2, random_state=1)
-#     model = RandomForestClassifier()
-#     model.fit(X,y)
-#     feat_importance = validation.get_feature_importance(model)
-#     assert (X.shape[1] == feat_importance.shape[0])

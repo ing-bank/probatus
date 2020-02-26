@@ -346,15 +346,15 @@ def test_aggregate_summary_df(global_summary_df, global_aggregate_summary_df):
     pd.testing.assert_frame_equal(InspectorShap.aggregate_summary_df(df), expected_output)
 
 
-def test_get_report__report_done():
+def test_compute__report_done():
     inspector = InspectorShap(model= MockModel(), algotype='kmeans', cluster_probability=False)
     report_value = pd.DataFrame([[1, 2], [2, 3]], columns=['cluster_id', 'column_a'])
     inspector.cluster_report = report_value
 
-    pd.testing.assert_frame_equal(inspector.get_report(), report_value)
+    pd.testing.assert_frame_equal(inspector.compute(), report_value)
 
 
-def test_get_report__single_df(global_mock_summary_df):
+def test_compute__single_df(global_mock_summary_df):
     inspector = InspectorShap(model=MockModel(), algotype='kmeans', cluster_probability=False)
     inspector.hasmultiple_dfs = False
 
@@ -364,7 +364,7 @@ def test_get_report__single_df(global_mock_summary_df):
         self.agg_summary_df = report_value
 
     with patch.object(InspectorShap, '_compute_report', mock_compute_report):
-        output = inspector.get_report()
+        output = inspector.compute()
 
     # Check output and side effects
     pd.testing.assert_frame_equal(output, report_value)
@@ -372,7 +372,7 @@ def test_get_report__single_df(global_mock_summary_df):
     pd.testing.assert_frame_equal(inspector.agg_summary_df, report_value)
 
 
-def test_get_report__multiple_df(global_mock_summary_df, global_mock_aggregate_summary_dfs):
+def test_compute__multiple_df(global_mock_summary_df, global_mock_aggregate_summary_dfs):
     inspector = InspectorShap(model=MockModel(), algotype='kmeans', cluster_probability=False)
     inspector.hasmultiple_dfs = True
 
@@ -386,7 +386,7 @@ def test_get_report__multiple_df(global_mock_summary_df, global_mock_aggregate_s
         self.agg_summary_df = report_value
 
     with patch.object(InspectorShap, '_compute_report', mock_compute_report):
-        output = inspector.get_report()
+        output = inspector.compute()
 
     # Check output and side effects
     pd.testing.assert_frame_equal(output, expected_result)
@@ -394,7 +394,7 @@ def test_get_report__multiple_df(global_mock_summary_df, global_mock_aggregate_s
     pd.testing.assert_frame_equal(inspector.agg_summary_df, report_value)
 
 
-def test_get_report__multiple_df_set_names(global_mock_summary_df, global_mock_aggregate_summary_dfs):
+def test_compute__multiple_df_set_names(global_mock_summary_df, global_mock_aggregate_summary_dfs):
     inspector = InspectorShap(model=MockModel(), algotype='kmeans', cluster_probability=False)
     inspector.hasmultiple_dfs = True
     inspector.set_names = ['suf1', 'suf2']
@@ -409,7 +409,7 @@ def test_get_report__multiple_df_set_names(global_mock_summary_df, global_mock_a
         self.agg_summary_df = report_value
 
     with patch.object(InspectorShap, '_compute_report', mock_compute_report):
-        output = inspector.get_report()
+        output = inspector.compute()
 
     # Check output and side effects
     pd.testing.assert_frame_equal(output, expected_result)
@@ -430,14 +430,14 @@ def test_slice_cluster_no_inputs_not_complementary(global_summary_df, global_X_s
     correct_mask = returned_mask =[True, False, False, False, True, False, False, False]
     inspector.get_cluster_mask.return_value = correct_mask
 
-    with patch.object(InspectorShap, 'get_report') as mocked_get_report:
+    with patch.object(InspectorShap, 'compute') as mocked_compute:
         with patch.object(InspectorShap, 'get_cluster_mask') as mock_get_cluster_mask:
             mock_get_cluster_mask.return_value = returned_mask
             shap_out, y_out, pred_out = inspector.slice_cluster(target_cluster_id, complementary=False)
 
-            # Ensure mocked_get_report not called
-            mocked_get_report.accert_not_called()
-            # Ensure mocked_get_report called with correct arguments
+            # Ensure mocked_compute not called
+            mocked_compute.accert_not_called()
+            # Ensure mock_get_cluster_mask called with correct arguments
             mock_get_cluster_mask.assert_called_once()
             pd.testing.assert_frame_equal(mock_get_cluster_mask.call_args[0][0], summary)
             assert mock_get_cluster_mask.call_args[0][1] == target_cluster_id
@@ -462,16 +462,16 @@ def test_slice_cluster_inputs_complementary(global_summary_df, global_X_shap, gl
 
     assert inspector.cluster_report is None
 
-    def mock_get_report(self):
+    def mock_compute(self):
         self.cluster_report = summary
 
-    with patch.object(InspectorShap, 'get_report', mock_get_report):
+    with patch.object(InspectorShap, 'compute', mock_compute):
         with patch.object(InspectorShap, 'get_cluster_mask') as mock_get_cluster_mask:
             mock_get_cluster_mask.return_value = returned_mask
             shap_out, y_out, pred_out = inspector.slice_cluster(target_cluster_id, summary_df=summary,
                                                                 X_shap=X_shap, y=y, predicted_proba=predicted_proba,
                                                                 complementary=True)
-            # Ensure mocked_get_report called with correct arguments
+            # Ensure mocked_get_cluster_mask called with correct arguments
             mock_get_cluster_mask.assert_called_once()
             pd.testing.assert_frame_equal(mock_get_cluster_mask.call_args[0][0], summary)
             assert mock_get_cluster_mask.call_args[0][1] == target_cluster_id
@@ -636,7 +636,7 @@ def test_compute_report_multiple_df(global_clusters, global_y, global_predicted_
         assert item.equals(target_summary_dfs[index])
 
 
-def test_perform_inspect_calc(global_X, global_y, global_predicted_proba, global_X_shap, global_clusters):
+def test_perform_fit_calc(global_X, global_y, global_predicted_proba, global_X_shap, global_clusters):
     inspector = InspectorShap(model=MockModel(), algotype='kmeans')
     inspector.model = input_model = MockModel()
     input_X = global_X
@@ -660,7 +660,7 @@ def test_perform_inspect_calc(global_X, global_y, global_predicted_proba, global
                             mock_predict_clusters.return_value = global_clusters.tolist()
 
                             out_y, out_predicted_proba, out_X_shap, out_clusters = \
-                                inspector.perform_inspect_calc(input_X, input_y, fit_clusters=True)
+                                inspector.perform_fit_calc(input_X, input_y, fit_clusters=True)
 
     pd.testing.assert_series_equal(out_y, input_y)
     pd.testing.assert_series_equal(out_predicted_proba, input_predicted_proba)
@@ -669,8 +669,8 @@ def test_perform_inspect_calc(global_X, global_y, global_predicted_proba, global
     assert inspector.fitted is True
 
 
-def test_inspect__multiple_df(global_X, global_y, global_predicted_proba, global_X_shap, global_clusters, global_Xs,
-                              global_ys, global_predicted_probas, global_clusters_eval_set, global_X_shaps):
+def test_fit__multiple_df(global_X, global_y, global_predicted_proba, global_X_shap, global_clusters, global_Xs,
+                          global_ys, global_predicted_probas, global_clusters_eval_set, global_X_shaps):
 
     inspector = InspectorShap(model=MockModel(), algotype='kmeans')
     input_eval_set = [(global_Xs[0], global_ys[0]), (global_Xs[1], global_ys[1])]
@@ -678,15 +678,15 @@ def test_inspect__multiple_df(global_X, global_y, global_predicted_proba, global
     input_X = global_X
     input_y = global_y
 
-    with patch.object(InspectorShap, 'perform_inspect_calc') as mock_perform_inspect_calc:
+    with patch.object(InspectorShap, 'perform_fit_calc') as mock_perform_fit_calc:
         with patch.object(InspectorShap, 'init_eval_set_report_variables') as mock_init_variables:
-            mock_perform_inspect_calc.side_effect = [
+            mock_perform_fit_calc.side_effect = [
                 (global_y, global_predicted_proba, global_X_shap, global_clusters),
                 (global_ys[0], global_predicted_probas[0], global_X_shaps[0], global_clusters_eval_set[0]),
                 (global_ys[1], global_predicted_probas[1], global_X_shaps[1], global_clusters_eval_set[1])
             ]
 
-            inspector.inspect(X=input_X, y=input_y, eval_set=input_eval_set, sample_names=input_sample_names)
+            inspector.fit(X=input_X, y=input_y, eval_set=input_eval_set, sample_names=input_sample_names)
             mock_init_variables.assert_called_once()
 
     assert inspector.hasmultiple_dfs is True
@@ -712,3 +712,20 @@ def test_compute_probabilities(global_X):
     with patch.object(MockModel, 'predict_proba') as mock_predict_proba:
         mock_predict_proba.return_value = model_probas
         np.testing.assert_array_equal(expected_output, inspector.compute_probabilities(input_X))
+
+
+def test_fit_compute(global_X, global_aggregate_summary_df):
+    inspector = InspectorShap(model=MockModel(), algotype='kmeans')
+    input_X = global_X
+    expected_output = global_aggregate_summary_df
+
+    with patch.object(InspectorShap, 'fit') as mock_fit:
+        with patch.object(InspectorShap, 'compute') as mock_compute:
+            mock_compute.return_value = global_aggregate_summary_df
+
+            output = inspector.fit_compute(input_X)
+
+            # Check if fit called with input X
+            pd.testing.assert_frame_equal(mock_fit.call_args[0][0], input_X)
+    # Check if the returned value correct
+    pd.testing.assert_frame_equal(expected_output, output)
