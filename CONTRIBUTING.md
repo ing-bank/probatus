@@ -264,3 +264,13 @@ Issue tracking is recommended even for solo projects. In this project we use Git
 * Run all tests: `pytest`
 * For informat: on on how to write tests using py.test, see the current examples and [https://docs.pytest.org/en/latest/](py.test's docs).
 --->
+
+## Versioning and Deployment
+
+In the project we use versioning based on Semantic Versioning for Python. After a number of changes made to the repository, we make a deployment.
+
+Deployment is made in the following steps:
+- Merge a MR with the following changes
+    - Bump the version in setup.py
+    - Update Changelog with changes made from previous version
+- Create a git tag for the version. This will trigger a CI pipeline which deploys  
