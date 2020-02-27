@@ -5,30 +5,39 @@ from probatus.metric_uncertainty.metric import get_metric
 from joblib import Parallel, delayed
 from tqdm.auto import tqdm
 from probatus.utils import assure_numpy_array, NotFittedError, Scorer
-from probatus.metric_uncertainty import delong
-from probatus.metric_uncertainty.utils import max_folds
-from probatus.metric_uncertainty.sampling import stratified_random
-from probatus.metric_uncertainty.utils import slicer
-from probatus.metric_uncertainty.metric import get_metric_folds
-
+from probatus.metric_uncertainty.utils import check_sampling_input, assure_list_of_strings, assure_list_values_allowed
+from probatus.stat_tests import DistributionStatistics
+import warnings
 
 class BaseVolatilityEstimator(object):
     """
     Base object for estimating volatility estimation.
 
     Args:
-        X: pdDataFrame or nparray with features
-        y: pdDataFrame or nparray with targets
-        metrics : (string, list of strings, Scorer object or list of Scorer objects) metrics for which the score is
-                calculated. It can be either a name or list of names of metrics that are supported by Scorer class.
-                It can also be a single Scorer object of list of these objects.
+        model: Binary classification model or pipeline
+        X: (pd.DataFrame or nparray) Array with samples and features
+        y: (pd.DataFrame or nparray) with targets
+        metrics : (string, list of strings, Scorer or list of Scorers) metrics for which the score is calculated.
+                It can be either a name or list of names of metrics that are supported by Scorer class: 'auc',
+                 'accuracy', 'average_precision','neg_log_loss', 'neg_brier_score', 'precision', 'recall', 'jaccard'.
+                 In case a custom metric is used, one can create own Scorer (probatus.utils) and provide as a metric.
         test_prc: (Optional float) Percentage of input data used as test. By default 0.25
         n_jobs: (Optional int) number of parallel executions. If -1 use all available cores. By default 1
+        compute_stats_tests: (Optional flag) indicates whether the statistical tests should be applied for the
+                difference of distribution of metrics on train and test. By default it is True
+        stats_tests_to_apply: (Optional string or list of strings) List of tests to apply. Available options are:
+                    'ES': Epps-Singleton
+                    'KS': Kolmogorov-Smirnov statistic
+                    'PSI': Population Stability Index
+                    'SW': Shapiro-Wilk based difference statistic
+                    'AD': Anderson-Darling TS
+                    By default 'KS' and 'SW' tests are applied
         random_state: (Optional int) the seed used by the random number generator
         mean_decimals: (Optional int) number of decimals in the approximation of mean of metric volatility. By default 4
         std_decimals: (Optional int) number of decimals in the approximation of std of metric volatility. By default 4
     """
-    def __init__(self, model, X, y, metrics, test_prc=0.25, n_jobs=1, random_state=42, mean_decimals=4, std_decimals=4,
+    def __init__(self, model, X, y, metrics, test_prc=0.25, n_jobs=1, compute_stats_tests=False,
+                 stats_tests_to_apply=['KS', 'SW'], random_state=42, mean_decimals=4, std_decimals=4,
                  *args, **kwargs):
         self.model = model
         self.X = assure_numpy_array(X)
@@ -41,6 +50,19 @@ class BaseVolatilityEstimator(object):
         self.fitted = False
         self.mean_decimals = mean_decimals
         self.std_decimals = std_decimals
+        self.compute_stats_tests = compute_stats_tests
+        self.allowed_stats_tests = DistributionStatistics.statistical_test_list
+
+        self.stats_tests_to_apply = assure_list_of_strings(stats_tests_to_apply, 'stats_tests_to_apply')
+        assure_list_values_allowed(variable=self.stats_tests_to_apply,
+                                   variable_name='stats_tests_to_apply',
+                                   allowed_values=self.allowed_stats_tests)
+        self.stats_tests_objects = []
+        if self.compute_stats_tests:
+            warnings.warn("Computing statistics for distributions is an experimental feature. While using it, keep in "
+                          "mind that the samples of metrics might be correlated.")
+            for test_name in self.stats_tests_to_apply:
+                self.stats_tests_objects.append(DistributionStatistics(statistical_test=test_name))
 
         # Append which scorers should be used
         self.scorers = []
@@ -57,7 +79,7 @@ class BaseVolatilityEstimator(object):
         elif isinstance(metric, Scorer):
             self.scorers.append(metric)
         else:
-            raise (ValueError('The metrics should contain either strings or Scorer objects'))
+            raise (ValueError('The metrics should contain either strings'))
 
 
     def fit(self, *args, **kwargs):
@@ -95,36 +117,52 @@ class BaseVolatilityEstimator(object):
                 metrics = [metrics]
             return self.report.loc[metrics]
 
-    def plot(self, metrics=None, sampled_distribution=True):
+    def plot(self, metrics=None, sampled_distribution=True, bins=10, height_per_subplot=5, width_per_subplot=5):
         """
         Plots distribution of the metric
 
         Args:
             metrics: (Optional, str or list of strings) Name or list of names of metrics to be plotted. If not all
                 metrics are presented
-            sampled_distribution: (bool) flag indicating whether the distribution of the bootstrapped data should be
-                plotted. If false, the normal distribution based on approximated mean and std is plotted
+            sampled_distribution: (Optional bool) flag indicating whether the distribution of the bootstrapped data
+                should be plotted. If false, the normal distribution based on approximated mean and std is plotted.
+                Default True
+            bins: (Optional int) Number of bins into which histogram is built
+            height_per_subplot: (Optional int) Height of each subplot. Default is 5
+            width_per_subplot: (Optional int) Width of each subplot. Default is 5
         """
 
         target_report = self.compute(metrics=metrics)
 
-        for metric, row in target_report.iterrows():
-            train, test, delta = self.get_samples_to_plot(metric_name=metric, sampled_distribution=sampled_distribution)
+        if target_report.shape[0] >= 1:
+            print(height_per_subplot*target_report.shape[0])
+            print(width_per_subplot*2)
+            fig, axs = plt.subplots(target_report.shape[0], 2, figsize=(width_per_subplot*2,
+                                                                        height_per_subplot*target_report.shape[0]))
 
-            plt.hist(train, alpha=0.5, label=f'Train {metric}')
-            plt.hist(test, alpha=0.5, label=f'Test {metric}')
-            plt.title(f'Distributions of train and test {metric}')
-            plt.xlabel(f'{metric} score')
-            plt.ylabel(f'Frequency')
-            plt.legend(loc='upper right')
-            plt.show()
+            # Enable traversing the axs
+            axs = axs.flatten()
+            axis_index = 0
 
-            plt.hist(delta, alpha=0.5, label=f'Delta {metric}')
-            plt.title(f'Distribution of train test {metric} differences')
-            plt.xlabel(f'{metric} scores delta')
-            plt.ylabel(f'Frequency')
-            plt.legend(loc='upper right')
-            plt.show()
+            for metric, row in target_report.iterrows():
+                train, test, delta = self.get_samples_to_plot(metric_name=metric,
+                                                              sampled_distribution=sampled_distribution)
+
+                axs[axis_index].hist(train, alpha=0.5, label=f'Train {metric}', bins=bins)
+                axs[axis_index].hist(test, alpha=0.5, label=f'Test {metric}', bins=bins)
+                axs[axis_index].set_title(f'Distributions {metric}')
+                axs[axis_index].set(xlabel=f'{metric} score')
+                axs[axis_index].legend(loc='upper right')
+
+                axs[axis_index+1].hist(delta, alpha=0.5, label=f'Delta {metric}', bins=bins)
+                axs[axis_index+1].set_title(f'Distributions delta {metric}')
+                axs[axis_index+1].set(xlabel=f'{metric} scores delta')
+                axs[axis_index+1].legend(loc='upper right')
+
+                axis_index+=2
+
+            for ax in axs.flat:
+                ax.set(xlabel='Distribution', ylabel='Metric value')
 
     def get_samples_to_plot(self, metric_name, sampled_distribution=True):
         """
@@ -159,21 +197,30 @@ class BaseVolatilityEstimator(object):
 
         unique_metrics = self.iterations_results['metric_name'].unique()
 
-        report_columns = ['train_mean', 'train_std', 'test_mean', 'test_std', 'delta_mean', 'delta_std']
+        # Get columns which will be filled
+        stats_tests_columns = []
+        for stats_tests_object in self.stats_tests_objects:
+            stats_tests_columns.append(f'{stats_tests_object.statistical_test_name} statistic')
+            stats_tests_columns.append(f'{stats_tests_object.statistical_test_name} p-value')
+        stats_columns = ['train_mean', 'train_std', 'test_mean', 'test_std', 'delta_mean', 'delta_std']
+        report_columns = stats_columns + stats_tests_columns
+
         self.report = pd.DataFrame([], columns=report_columns)
 
         for metric in unique_metrics:
             metric_iterations_results = self.iterations_results[self.iterations_results['metric_name'] == metric]
-            metric_row = pd.DataFrame(self.compute_mean_std_from_runs(metric_iterations_results),
-                                      columns=report_columns, index=[metric])
+            metrics = self.compute_mean_std_from_runs(metric_iterations_results)
+            stats_tests_values = self.compute_stats_tests_values(metric_iterations_results)
+            metric_row = pd.DataFrame([metrics + stats_tests_values], columns=report_columns, index=[metric])
             self.report = self.report.append(metric_row)
+
 
     def compute_mean_std_from_runs(self, metric_iterations_results):
         """
         Compute mean and std of results
 
         Returns:
-            (pd.Dataframe) Report that contains single row of results for the desired metric statistics
+            (list of float) List containing mean and std of train, test and deltas
         """
         train_mean_score = np.round(np.mean(metric_iterations_results['train_score']), self.mean_decimals)
         test_mean_score = np.round(np.mean(metric_iterations_results['test_score']), self.mean_decimals)
@@ -181,7 +228,21 @@ class BaseVolatilityEstimator(object):
         train_std_score = np.round(np.std(metric_iterations_results['train_score']), self.std_decimals)
         test_std_score = np.round(np.std(metric_iterations_results['test_score']), self.std_decimals)
         delta_std_score = np.round(np.std(metric_iterations_results['delta_score']), self.std_decimals)
-        return [[train_mean_score, train_std_score, test_mean_score, test_std_score, delta_mean_score, delta_std_score]]
+        return [train_mean_score, train_std_score, test_mean_score, test_std_score, delta_mean_score, delta_std_score]
+
+    def compute_stats_tests_values(self, metric_iterations_results):
+        """
+        Compute statistics and p-values of specified tests
+
+        Returns:
+            (list of float) List containing statistics and p-values of distributions
+        """
+        statistics = []
+        for stats_test in self.stats_tests_objects:
+            stats, p_value = \
+                stats_test.compute(metric_iterations_results['test_score'], metric_iterations_results['train_score'])
+            statistics += [stats, p_value]
+        return statistics
 
     def fit_compute(self,  *args, **kwargs):
         """
@@ -196,27 +257,70 @@ class BaseVolatilityEstimator(object):
         return self.compute(*args, **kwargs)
 
 
-class BootstrapSeedVolatility(BaseVolatilityEstimator):
+class LocalVolatilityEstimator(BaseVolatilityEstimator):
     """
     Estimation of volatility of metrics. The estimation is done by splitting the data into train and test multiple times
-    using bootstrapped random seed. Then the model is trained and scored on these datasets.
+     and training and scoring a model based on these metrics. THe class allows for choosing whether at each iteration
+     the train test split should be the same or different, whether and how the train and test sets should be sampled.
 
     Args:
-        X: pdDataFrame or nparray with features
-        y: pdDataFrame or nparray with targets
-        metrics : (string, list of strings, Scorer object or list of Scorer objects) metrics for which the score is
-                calculated. It can be either a name or list of names of metrics that are supported by Scorer class.
-                It can also be a single Scorer object of list of these objects.
+        model: Binary classification model or pipeline
+        X: (pd.DataFrame or nparray) Array with samples and features
+        y: (pd.DataFrame or nparray) with targets
+        metrics : (string, list of strings, Scorer or list of Scorers) metrics for which the score is calculated.
+                It can be either a name or list of names of metrics that are supported by Scorer class: 'auc',
+                 'accuracy', 'average_precision','neg_log_loss', 'neg_brier_score', 'precision', 'recall', 'jaccard'.
+                 In case a custom metric is used, one can create own Scorer (probatus.utils) and provide as a metric.
+        train_test_split_seed: (Optional int) the seed used for all train test splits if sample_train_test_split_seed is
+                set to False. The default value of this parameter is 42
+        sample_train_type: (Optional str) string indicating what type of sampling should be applied on train set:
+                - None indicates that no additional sampling is done after splitting data
+                - 'bootstrap' indicates that sampling with replacement will be performed on train data
+                - 'subsample': indicates that sampling without repetition will be performed  on train data
+        sample_test_type: (Optional str) string indicating what type of sampling should be applied on test set:
+                - None indicates that no additional sampling is done after splitting data
+                - 'bootstrap' indicates that sampling with replacement will be performed on test data
+                - 'subsample': indicates that sampling without repetition will be performed  on test data
+        sample_train_fraction: (Optional float): fraction of train data sampled, if sample_train_type is not None.
+                Default value is 1
+        sample_test_fraction: (Optional float): fraction of test data sampled, if sample_test_type is not None.
+                Default value is 1
+        sample_train_test_split_seed: (Optional bool) Flag indicating whether each train test split should be done
+                randomly or measurement should be done for single split. Default is True, which indicates that each
+                iteration is performed on a random train test split. If the value is False, the random_seed for the
+                split is set to train_test_split_seed
         iterations: (Optional int) Number of iterations in seed bootstrapping. By default 1000.
         test_prc: (Optional float) Percentage of input data used as test. By default 0.25
         n_jobs: (Optional int) number of parallel executions. If -1 use all available cores. By default 1
+        compute_stats_tests: (Optional flag) indicates whether the statistical tests should be applied for the
+                difference of distribution of metrics on train and test. By default it is True
+        stats_tests_to_apply: (Optional string or list of strings) List of tests to apply. Available options are:
+                    'ES': Epps-Singleton
+                    'KS': Kolmogorov-Smirnov statistic
+                    'PSI': Population Stability Index
+                    'SW': Shapiro-Wilk based difference statistic
+                    'AD': Anderson-Darling TS
+                    By default 'KS' and 'SW' tests are applied
         random_state: (Optional int) the seed used by the random number generator
         mean_decimals: (Optional int) number of decimals in the approximation of mean of metric volatility. By default 4
         std_decimals: (Optional int) number of decimals in the approximation of std of metric volatility. By default 4
     """
-    def __init__(self, model, X, y, metrics, iterations=1000, *args, **kwargs):
+
+    def __init__(self, model, X, y, metrics, train_test_split_seed=42, sample_train_type=None, sample_test_type=None,
+                 sample_train_fraction=1, sample_test_fraction=1, sample_train_test_split_seed=True, iterations=1000,
+                  *args, **kwargs):
         super().__init__(model=model, X=X, y=y, metrics=metrics, *args, **kwargs)
         self.iterations = iterations
+        self.train_test_split_seed = train_test_split_seed
+        self.sample_train_type = sample_train_type
+        self.sample_test_type = sample_test_type
+        self.sample_train_test_split_seed=sample_train_test_split_seed
+        self.sample_train_fraction = sample_train_fraction
+        self.sample_test_fraction = sample_test_fraction
+
+        check_sampling_input(sample_train_type, sample_train_fraction, 'train')
+        check_sampling_input(sample_test_type, sample_test_fraction, 'test')
+
 
     def fit(self):
         """
@@ -225,12 +329,17 @@ class BootstrapSeedVolatility(BaseVolatilityEstimator):
         """
         super().fit()
 
-        random_seeds = np.random.random_integers(0, 999999, self.iterations)
+        if self.sample_train_test_split_seed:
+            random_seeds = np.random.random_integers(0, 999999, self.iterations)
+        else:
+            random_seeds = (np.ones(self.iterations) * self.train_test_split_seed).astype(int)
 
         results_per_iteration = Parallel(n_jobs=self.n_jobs)(delayed(get_metric)(
-            self.X, self.y, self.model, self.test_prc, seed, self.scorers) for seed in tqdm(random_seeds))
+            X=self.X, y=self.y, model=self.model, test_size=self.test_prc, split_seed=split_seed,
+            scorers=self.scorers, sample_train_type=self.sample_train_type, sample_test_type=self.sample_test_type,
+            sample_train_fraction=self.sample_train_fraction, sample_test_fraction=self.sample_test_fraction
+        ) for split_seed in tqdm(random_seeds))
 
         self.iterations_results = pd.concat(results_per_iteration, ignore_index=True)
 
         self.create_report()
-

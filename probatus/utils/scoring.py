@@ -3,6 +3,7 @@ from sklearn.metrics import make_scorer, accuracy_score, roc_auc_score, average_
 
 # We support only binary classification scorers, for now non-weighted ones
 # Keys of the dict are names of metrics - values are names of scorers in sklearn SCORES dict
+# Change in this parameter should be documented in docstring of volatility estimation and extending it classes
 supported_scorers_dict = {'accuracy': make_scorer(accuracy_score),
                           'auc': make_scorer(roc_auc_score, greater_is_better=True, needs_threshold=True),
                           'average_precision': make_scorer(average_precision_score, needs_threshold=True),

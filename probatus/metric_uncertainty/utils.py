@@ -1,47 +1,47 @@
 import numpy as np
-from sklearn.model_selection import StratifiedKFold
 
-def max_folds(y):
-    """
-    Calculate maximum number of stratified folds whih can be created from the data
 
-    Args:
-        y: nparray with targets
+def sample_data(X, y, sampling_type, sampling_fraction, dataset_name='dataset'):
+    check_sampling_input(sampling_type, sampling_fraction, dataset_name)
 
-    Returns: 
-        k: int max number of stratitfied folds
+    if sampling_type is None:
+        return X, y
 
-    """
-    k = int(np.floor(y.shape[0]/(y.shape[0] * np.mean(y))))
+    number_of_samples = np.ceil(sampling_fraction * X.shape[0]).astype(int)
+    array_index = list(range(X.shape[0]))
 
-    return k
+    if sampling_type is 'bootstrap':
+        rows_indexes = np.random.choice(array_index, number_of_samples, replace=True)
+    else:
+        if sampling_fraction is 1 or number_of_samples is X.shape[0]:
+            return X,y
+        else:
+            rows_indexes = np.random.choice(array_index, number_of_samples, replace=True)
+    return X[rows_indexes], y[rows_indexes]
 
-def slicer(x, y, k):
-    """
-    Slice data into k independent folds
 
-    Args:
-        X: pdDataFrame or nparray with features
-        y: pdDataFrame or nparray with targets
-        k : int number of folds
-    Returns: 
-        x_slices: nparray sliced independent features folds
-        y_slices: nparray sliced independent targets folds
+def check_sampling_input(sampling_type, fraction, dataset_name):
+    if sampling_type is not None:
+        if sampling_type is 'bootstrap':
+            if fraction <= 0:
+                raise(ValueError(f'For bootstrapping {dataset_name} fraction needs to be above 0'))
+        elif sampling_type is 'subsample':
+            if  fraction <= 0 or fraction >= 1:
+                raise(ValueError(f'For bootstrapping {dataset_name} fraction needs to be be above 0 and below 1'))
+        else:
+            raise(ValueError('This sampling method is not implemented'))
 
-    """    
-    skf = StratifiedKFold(n_splits=k, random_state=None, shuffle=False)
-    
-    folds_train = []
-    folds_test = []
 
-    for train_index, test_index in skf.split(x, y):
-        folds_train.append(train_index)
-        folds_test.append(test_index) 
-        
-    indexes = np.append(folds_train[0],folds_test[0])
-    x = x[indexes]
-    y = y[indexes]
-    
-    x_slices = np.array_split(x,k)
-    y_slices = np.array_split(y,k)
-    return x_slices, y_slices
+def assure_list_of_strings(variable, variable_name):
+    if isinstance(variable, list):
+        return variable
+    elif isinstance(variable, str):
+        return [variable]
+    else:
+        raise(ValueError(f'{variable_name} needs to be either a string or list of strings.'))
+
+
+def assure_list_values_allowed(variable, variable_name, allowed_values):
+    for value in variable:
+        if value not in allowed_values:
+            raise(ValueError(f'Value {value} in variable {variable_name} is not allowed'))

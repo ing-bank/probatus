@@ -43,7 +43,7 @@ class DistributionStatistics(object):
     statistical_test_list = ['ES', 'KS', 'PSI', 'AD', 'SW']
     binning_strategy_list = ['simplebucketer', 'agglomerativebucketer', 'quantilebucketer', None]
 
-    def __init__(self, statistical_test, binning_strategy, bin_count=None):
+    def __init__(self, statistical_test, binning_strategy='simplebucketer', bin_count=10 ):
         self.statistical_test = statistical_test.upper()
         self.binning_strategy = binning_strategy
         self.bin_count = bin_count
@@ -52,14 +52,19 @@ class DistributionStatistics(object):
         if self.statistical_test.upper() not in self.statistical_test_list:
             raise NotImplementedError(f"The statistical test should be one of {self.statistical_test_list}")
         elif self.statistical_test.upper() == 'ES':
+            self.statistical_test_name = 'Epps-Singleton'
             self._statistical_test_function = es
         elif self.statistical_test.upper() == 'KS':
+            self.statistical_test_name = 'Kolmogorov-Smirnov'
             self._statistical_test_function = ks
         elif self.statistical_test.upper() == 'PSI':
+            self.statistical_test_name = 'Population Stability Index'
             self._statistical_test_function = psi
         elif self.statistical_test.upper() == 'SW':
+            self.statistical_test_name = 'Shapiro-Wilk based difference'
             self._statistical_test_function = sw
         elif self.statistical_test.upper() == 'AD':
+            self.statistical_test_name = 'Anderson-Darling TS'
             self._statistical_test_function = ad
 
         if self.binning_strategy:
