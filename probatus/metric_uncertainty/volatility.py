@@ -135,8 +135,6 @@ class BaseVolatilityEstimator(object):
         target_report = self.compute(metrics=metrics)
 
         if target_report.shape[0] >= 1:
-            print(height_per_subplot*target_report.shape[0])
-            print(width_per_subplot*2)
             fig, axs = plt.subplots(target_report.shape[0], 2, figsize=(width_per_subplot*2,
                                                                         height_per_subplot*target_report.shape[0]))
 
