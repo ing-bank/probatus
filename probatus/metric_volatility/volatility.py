@@ -139,18 +139,16 @@ class BaseVolatilityEstimator(object):
                 axs[axis_index].hist(train, alpha=0.5, label=f'Train {metric}', bins=bins)
                 axs[axis_index].hist(test, alpha=0.5, label=f'Test {metric}', bins=bins)
                 axs[axis_index].set_title(f'Distributions {metric}')
-                axs[axis_index].set(xlabel=f'{metric} score')
                 axs[axis_index].legend(loc='upper right')
 
                 axs[axis_index+1].hist(delta, alpha=0.5, label=f'Delta {metric}', bins=bins)
                 axs[axis_index+1].set_title(f'Distributions delta {metric}')
-                axs[axis_index+1].set(xlabel=f'{metric} scores delta')
                 axs[axis_index+1].legend(loc='upper right')
 
                 axis_index+=2
 
             for ax in axs.flat:
-                ax.set(xlabel='Distribution', ylabel='Metric value')
+                ax.set(xlabel=f'{metric} score', ylabel=f'results count')
 
     def get_samples_to_plot(self, metric_name, sampled_distribution=True):
         """
