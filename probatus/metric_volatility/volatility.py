@@ -148,7 +148,7 @@ class BaseVolatilityEstimator(object):
                 axis_index+=2
 
             for ax in axs.flat:
-                ax.set(xlabel=f'{metric} score', ylabel=f'results count')
+                ax.set(xlabel=f'{metric} score', ylabel=f'Results count')
 
     def get_samples_to_plot(self, metric_name, sampled_distribution=True):
         """
@@ -261,17 +261,17 @@ class TrainTestVolatility(BaseVolatilityEstimator):
                 'accuracy', 'average_precision','neg_log_loss', 'neg_brier_score', 'precision', 'recall', 'jaccard'.
                 In case a custom metric is used, one can create own Scorer (probatus.utils) and provide as a metric.
                 By default AUC is measured.
-        train_sample_type: (Optional str) string indicating what type of sampling should be applied on train set:
+        train_sampling_type: (Optional str) string indicating what type of sampling should be applied on train set:
                 - None indicates that no additional sampling is done after splitting data
                 - 'bootstrap' indicates that sampling with replacement will be performed on train data
                 - 'subsample': indicates that sampling without repetition will be performed  on train data
-        test_sample_type: (Optional str) string indicating what type of sampling should be applied on test set:
+        test_sampling_type: (Optional str) string indicating what type of sampling should be applied on test set:
                 - None indicates that no additional sampling is done after splitting data
                 - 'bootstrap' indicates that sampling with replacement will be performed on test data
                 - 'subsample': indicates that sampling without repetition will be performed  on test data
-        train_fraction: (Optional float): fraction of train data sampled, if sample_train_type is not None.
+        train_sampling_fraction: (Optional float): fraction of train data sampled, if sample_train_type is not None.
                 Default value is 1
-        test_fraction: (Optional float): fraction of test data sampled, if sample_test_type is not None.
+        test_sampling_fraction: (Optional float): fraction of test data sampled, if sample_test_type is not None.
                 Default value is 1
         test_prc: (Optional float) Percentage of input data used as test. By default 0.25
         n_jobs: (Optional int) number of parallel executions. If -1 use all available cores. By default 1
@@ -286,18 +286,18 @@ class TrainTestVolatility(BaseVolatilityEstimator):
                 set to False.
     """
 
-    def __init__(self, model, iterations=1000, sample_train_test_split_seed=True, train_sample_type=None,
-                 test_sample_type=None, train_fraction=1, test_fraction=1, *args, **kwargs):
+    def __init__(self, model, iterations=1000, sample_train_test_split_seed=True, train_sampling_type=None,
+                 test_sampling_type=None, train_sampling_fraction=1, test_sampling_fraction=1, *args, **kwargs):
         super().__init__(model=model, *args, **kwargs)
         self.iterations = iterations
-        self.train_sample_type = train_sample_type
-        self.test_sample_type = test_sample_type
+        self.train_sampling_type = train_sampling_type
+        self.test_sampling_type = test_sampling_type
         self.sample_train_test_split_seed=sample_train_test_split_seed
-        self.train_fraction = train_fraction
-        self.test_fraction = test_fraction
+        self.train_sampling_fraction = train_sampling_fraction
+        self.test_sampling_fraction = test_sampling_fraction
 
-        check_sampling_input(train_sample_type, train_fraction, 'train')
-        check_sampling_input(test_sample_type, test_fraction, 'test')
+        check_sampling_input(train_sampling_type, train_sampling_fraction, 'train')
+        check_sampling_input(test_sampling_type, test_sampling_fraction, 'test')
 
 
     def fit(self, X, y):
@@ -322,8 +322,9 @@ class TrainTestVolatility(BaseVolatilityEstimator):
 
         results_per_iteration = Parallel(n_jobs=self.n_jobs)(delayed(get_metric)(
             X=X, y=y, model=self.model, test_size=self.test_prc, split_seed=split_seed,
-            scorers=self.scorers, train_sample_type=self.train_sample_type, test_sample_type=self.test_sample_type,
-            train_fraction=self.train_fraction, test_fraction=self.test_fraction
+            scorers=self.scorers, train_sampling_type=self.train_sampling_type,
+            test_sampling_type=self.test_sampling_type, train_sampling_fraction=self.train_sampling_fraction,
+            test_sampling_fraction=self.test_sampling_fraction
         ) for split_seed in tqdm(random_seeds))
 
         self.iterations_results = pd.concat(results_per_iteration, ignore_index=True)
@@ -344,17 +345,17 @@ class SplitSeedVolatility(TrainTestVolatility):
                 'accuracy', 'average_precision','neg_log_loss', 'neg_brier_score', 'precision', 'recall', 'jaccard'.
                 In case a custom metric is used, one can create own Scorer (probatus.utils) and provide as a metric.
                 By default AUC is measured.
-        train_sample_type: (Optional str) string indicating what type of sampling should be applied on train set:
+        train_sampling_type: (Optional str) string indicating what type of sampling should be applied on train set:
                 - None indicates that no additional sampling is done after splitting data
                 - 'bootstrap' indicates that sampling with replacement will be performed on train data
                 - 'subsample': indicates that sampling without repetition will be performed  on train data
-        test_sample_type: (Optional str) string indicating what type of sampling should be applied on test set:
+        test_sampling_type: (Optional str) string indicating what type of sampling should be applied on test set:
                 - None indicates that no additional sampling is done after splitting data
                 - 'bootstrap' indicates that sampling with replacement will be performed on test data
                 - 'subsample': indicates that sampling without repetition will be performed  on test data
-        train_fraction: (Optional float): fraction of train data sampled, if sample_train_type is not None.
+        train_sampling_fraction: (Optional float): fraction of train data sampled, if sample_train_type is not None.
                 Default value is 1
-        test_fraction: (Optional float): fraction of test data sampled, if sample_test_type is not None.
+        test_sampling_fraction: (Optional float): fraction of test data sampled, if sample_test_type is not None.
                 Default value is 1
         test_prc: (Optional float) Percentage of input data used as test. By default 0.25
         n_jobs: (Optional int) number of parallel executions. If -1 use all available cores. By default 1
@@ -390,9 +391,9 @@ class BootstrappedVolatility(TrainTestVolatility):
                 'accuracy', 'average_precision','neg_log_loss', 'neg_brier_score', 'precision', 'recall', 'jaccard'.
                 In case a custom metric is used, one can create own Scorer (probatus.utils) and provide as a metric.
                 By default AUC is measured.
-        train_fraction: (Optional float): fraction of train data sampled, if sample_train_type is not None.
+        train_sampling_fraction: (Optional float): fraction of train data sampled, if sample_train_type is not None.
                 Default value is 1
-        test_fraction: (Optional float): fraction of test data sampled, if sample_test_type is not None.
+        test_sampling_fraction: (Optional float): fraction of test data sampled, if sample_test_type is not None.
                 Default value is 1
         test_prc: (Optional float) Percentage of input data used as test. By default 0.25
         n_jobs: (Optional int) number of parallel executions. If -1 use all available cores. By default 1
@@ -409,4 +410,4 @@ class BootstrappedVolatility(TrainTestVolatility):
 
     def __init__(self, model, sample_train_test_split_seed=False, *args, **kwargs):
         super().__init__(model=model, sample_train_test_split_seed=sample_train_test_split_seed,
-                         train_sample_type='bootstrap', test_sample_type='bootstrap', *args, **kwargs)
+                         train_sampling_type='bootstrap', test_sampling_type='bootstrap', *args, **kwargs)
