@@ -12,7 +12,8 @@ import warnings
 
 class BaseVolatilityEstimator(object):
     """
-    Base object for estimating volatility estimation.
+    Base object for estimating volatility estimation. This class is a base class, therefore should cannot be used on its
+    own.
 
     Args:
         model: Binary classification model or pipeline
@@ -23,7 +24,7 @@ class BaseVolatilityEstimator(object):
                 By default AUC is measured.
         test_prc: (Optional float) Percentage of input data used as test. By default 0.25
         n_jobs: (Optional int) number of parallel executions. If -1 use all available cores. By default 1
-        stats_tests_to_apply: (Optional string or list of strings) List of tests to apply. Available options are:
+        stats_tests_to_apply: (Optional None or string or list of strings) List of tests to apply. Available options:
                     'ES': Epps-Singleton
                     'KS': Kolmogorov-Smirnov statistic
                     'PSI': Population Stability Index
@@ -32,21 +33,26 @@ class BaseVolatilityEstimator(object):
                     By default 'KS' and 'SW' tests are applied
         random_state: (Optional int) the seed used by the random number generator
     """
-    def __init__(self, model, metrics='auc', test_prc=0.25, n_jobs=1, stats_tests_to_apply='KS', random_state=42,
-                 *args, **kwargs):
+    def __init__(self, model, metrics='auc', test_prc=0.25, n_jobs=1, stats_tests_to_apply=None, random_state=42):
         self.model = model
         self.n_jobs = n_jobs
         self.random_state = random_state
-        self.test_prc=test_prc
+        self.test_prc = test_prc
         self.iterations_results = None
         self.report = None
         self.fitted = False
         self.allowed_stats_tests = DistributionStatistics.statistical_test_list
 
-        self.stats_tests_to_apply = assure_list_of_strings(stats_tests_to_apply, 'stats_tests_to_apply')
-        assure_list_values_allowed(variable=self.stats_tests_to_apply,
-                                   variable_name='stats_tests_to_apply',
-                                   allowed_values=self.allowed_stats_tests)
+        # TODO set reasonable default value for the parameter, to choose the statistical test for the user for different
+        #  ways to compute volatility
+        if stats_tests_to_apply is not None:
+            self.stats_tests_to_apply = assure_list_of_strings(stats_tests_to_apply, 'stats_tests_to_apply')
+            assure_list_values_allowed(variable=self.stats_tests_to_apply,
+                                       variable_name='stats_tests_to_apply',
+                                       allowed_values=self.allowed_stats_tests)
+        else:
+            self.stats_tests_to_apply = []
+
         self.stats_tests_objects = []
         if len(self.stats_tests_to_apply) > 0:
             warnings.warn("Computing statistics for distributions is an experimental feature. While using it, keep in "
@@ -62,7 +68,6 @@ class BaseVolatilityEstimator(object):
         else:
             self.append_single_metric_to_scorers(metrics)
 
-
     def append_single_metric_to_scorers(self, metric):
         if isinstance(metric, str):
             self.scorers.append(Scorer(metric))
@@ -70,7 +75,6 @@ class BaseVolatilityEstimator(object):
             self.scorers.append(metric)
         else:
             raise (ValueError('The metrics should contain either strings'))
-
 
     def fit(self, *args, **kwargs):
         """
@@ -85,10 +89,10 @@ class BaseVolatilityEstimator(object):
         self.report = None
         self.fitted = True
 
-
-    def compute(self, metrics=None, **kwargs):
+    def compute(self, metrics=None):
         """
         Reports the statistics.
+
         Args:
             metrics: (Optional, str or list of strings) Name or list of names of metrics to be plotted. If not all
             metrics are presented
@@ -99,6 +103,9 @@ class BaseVolatilityEstimator(object):
 
         if self.fitted is False:
             raise(NotFittedError('The object has not been fitted. Please run fit() method first'))
+        if self.report is None:
+            raise(ValueError('Report is None, thus it has not been computed by fit method. Please extend the '
+                             'BaseVolatilityEstimator class, overwrite fit method, and within fit run compute_report()'))
 
         if metrics is None:
             return self.report
@@ -107,16 +114,13 @@ class BaseVolatilityEstimator(object):
                 metrics = [metrics]
             return self.report.loc[metrics]
 
-    def plot(self, metrics=None, sampled_distribution=True, bins=10, height_per_subplot=5, width_per_subplot=5):
+    def plot(self, metrics=None, bins=10, height_per_subplot=5, width_per_subplot=5):
         """
         Plots distribution of the metric
 
         Args:
             metrics: (Optional, str or list of strings) Name or list of names of metrics to be plotted. If not all
                 metrics are presented
-            sampled_distribution: (Optional bool) flag indicating whether the distribution of the bootstrapped data
-                should be plotted. If false, the normal distribution based on approximated mean and std is plotted.
-                Default True
             bins: (Optional int) Number of bins into which histogram is built
             height_per_subplot: (Optional int) Height of each subplot. Default is 5
             width_per_subplot: (Optional int) Width of each subplot. Default is 5
@@ -133,8 +137,7 @@ class BaseVolatilityEstimator(object):
             axis_index = 0
 
             for metric, row in target_report.iterrows():
-                train, test, delta = self.get_samples_to_plot(metric_name=metric,
-                                                              sampled_distribution=sampled_distribution)
+                train, test, delta = self.get_samples_to_plot(metric_name=metric)
 
                 axs[axis_index].hist(train, alpha=0.5, label=f'Train {metric}', bins=bins)
                 axs[axis_index].hist(test, alpha=0.5, label=f'Test {metric}', bins=bins)
@@ -150,29 +153,23 @@ class BaseVolatilityEstimator(object):
             for ax in axs.flat:
                 ax.set(xlabel=f'{metric} score', ylabel=f'Results count')
 
-    def get_samples_to_plot(self, metric_name, sampled_distribution=True):
+    def get_samples_to_plot(self, metric_name):
         """
         Selects samples to be plotted
 
         Args:
             metric_name: (str) Name of metric for which the data should be selected
-            sampled_distribution: (bool) flag indicating whether the distribution of the bootstrapped data should be
-                plotted. If false, the normal distribution based on approximated mean and std is plotted
         """
-        if sampled_distribution:
-            current_metric_results = self.iterations_results[self.iterations_results['metric_name'] == metric_name]
-            train = current_metric_results['train_score']
-            test = current_metric_results['test_score']
-            delta = current_metric_results['delta_score']
-        else:
-            current_metric_distribution = self.report.loc[metric_name]
 
-            train = np.random.normal(current_metric_distribution['train_mean'],
-                                     current_metric_distribution['train_std'], 10000)
-            test = np.random.normal(current_metric_distribution['test_mean'],
-                                    current_metric_distribution['test_std'], 10000)
-            delta = np.random.normal(current_metric_distribution['delta_mean'],
-                                     current_metric_distribution['delta_std'], 10000)
+        current_metric_distribution = self.report.loc[metric_name]
+
+        train = np.random.normal(current_metric_distribution['train_mean'],
+                                 current_metric_distribution['train_std'], 10000)
+        test = np.random.normal(current_metric_distribution['test_mean'],
+                                current_metric_distribution['test_std'], 10000)
+        delta = np.random.normal(current_metric_distribution['delta_mean'],
+                                 current_metric_distribution['delta_std'], 10000)
+
         return train, test, delta
 
     def create_report(self):
@@ -200,10 +197,12 @@ class BaseVolatilityEstimator(object):
             metric_row = pd.DataFrame([metrics + stats_tests_values], columns=report_columns, index=[metric])
             self.report = self.report.append(metric_row)
 
-
     def compute_mean_std_from_runs(self, metric_iterations_results):
         """
         Compute mean and std of results
+
+        Args:
+            metric_iterations_results: (pandas.DataFrame) Scores for a single metric for each iteration
 
         Returns:
             (list of float) List containing mean and std of train, test and deltas
@@ -219,6 +218,9 @@ class BaseVolatilityEstimator(object):
     def compute_stats_tests_values(self, metric_iterations_results):
         """
         Compute statistics and p-values of specified tests
+
+        Args:
+            metric_iterations_results: (pandas.DataFrame) Scores for a single metric for each iteration
 
         Returns:
             (list of float) List containing statistics and p-values of distributions
@@ -240,7 +242,7 @@ class BaseVolatilityEstimator(object):
         """
 
         self.fit(*args, **kwargs)
-        return self.compute(**kwargs)
+        return self.compute()
 
 
 class TrainTestVolatility(BaseVolatilityEstimator):
@@ -256,11 +258,6 @@ class TrainTestVolatility(BaseVolatilityEstimator):
                 randomly or measurement should be done for single split. Default is True, which indicates that each
                 iteration is performed on a random train test split. If the value is False, the random_seed for the
                 split is set to train_test_split_seed
-        metrics : (string, list of strings, Scorer or list of Scorers) metrics for which the score is calculated.
-                It can be either a name or list of names of metrics that are supported by Scorer class: 'auc',
-                'accuracy', 'average_precision','neg_log_loss', 'neg_brier_score', 'precision', 'recall', 'jaccard'.
-                In case a custom metric is used, one can create own Scorer (probatus.utils) and provide as a metric.
-                By default AUC is measured.
         train_sampling_type: (Optional str) string indicating what type of sampling should be applied on train set:
                 - None indicates that no additional sampling is done after splitting data
                 - 'bootstrap' indicates that sampling with replacement will be performed on train data
@@ -273,9 +270,14 @@ class TrainTestVolatility(BaseVolatilityEstimator):
                 Default value is 1
         test_sampling_fraction: (Optional float): fraction of test data sampled, if sample_test_type is not None.
                 Default value is 1
+        metrics : (string, list of strings, Scorer or list of Scorers) metrics for which the score is calculated.
+                It can be either a name or list of names of metrics that are supported by Scorer class: 'auc',
+                'accuracy', 'average_precision','neg_log_loss', 'neg_brier_score', 'precision', 'recall', 'jaccard'.
+                In case a custom metric is used, one can create own Scorer (probatus.utils) and provide as a metric.
+                By default AUC is measured.
         test_prc: (Optional float) Percentage of input data used as test. By default 0.25
         n_jobs: (Optional int) number of parallel executions. If -1 use all available cores. By default 1
-        stats_tests_to_apply: (Optional string or list of strings) List of tests to apply. Available options are:
+        stats_tests_to_apply: (Optional None or string or list of strings) List of tests to apply. Available options:
                     'ES': Epps-Singleton
                     'KS': Kolmogorov-Smirnov statistic
                     'PSI': Population Stability Index
@@ -284,11 +286,21 @@ class TrainTestVolatility(BaseVolatilityEstimator):
                     By default 'KS' test is applied
         random_state: (Optional int) the seed used for all train test splits if sample_train_test_split_seed is
                 set to False.
+
+    Examples:
+        >>> from sklearn.datasets import make_classification
+        >>> from sklearn.ensemble import RandomForestClassifier
+        >>> from probatus.metric_volatility import TrainTestVolatility
+        >>> X, y = make_classification(n_features=4)
+        >>> clf = RandomForestClassifier()
+        >>> volatility = TrainTestVolatility(clf, iterations=500 , test_prc = 0.5)
+        >>> volatility_report = volatility.fit_compute(X, y)
+        >>> volatility.plot()
     """
 
     def __init__(self, model, iterations=1000, sample_train_test_split_seed=True, train_sampling_type=None,
-                 test_sampling_type=None, train_sampling_fraction=1, test_sampling_fraction=1, *args, **kwargs):
-        super().__init__(model=model, *args, **kwargs)
+                 test_sampling_type=None, train_sampling_fraction=1, test_sampling_fraction=1, **kwargs):
+        super().__init__(model=model, **kwargs)
         self.iterations = iterations
         self.train_sampling_type = train_sampling_type
         self.test_sampling_type = test_sampling_type
@@ -298,7 +310,6 @@ class TrainTestVolatility(BaseVolatilityEstimator):
 
         check_sampling_input(train_sampling_type, train_sampling_fraction, 'train')
         check_sampling_input(test_sampling_type, test_sampling_fraction, 'test')
-
 
     def fit(self, X, y):
         """
@@ -345,33 +356,31 @@ class SplitSeedVolatility(TrainTestVolatility):
                 'accuracy', 'average_precision','neg_log_loss', 'neg_brier_score', 'precision', 'recall', 'jaccard'.
                 In case a custom metric is used, one can create own Scorer (probatus.utils) and provide as a metric.
                 By default AUC is measured.
-        train_sampling_type: (Optional str) string indicating what type of sampling should be applied on train set:
-                - None indicates that no additional sampling is done after splitting data
-                - 'bootstrap' indicates that sampling with replacement will be performed on train data
-                - 'subsample': indicates that sampling without repetition will be performed  on train data
-        test_sampling_type: (Optional str) string indicating what type of sampling should be applied on test set:
-                - None indicates that no additional sampling is done after splitting data
-                - 'bootstrap' indicates that sampling with replacement will be performed on test data
-                - 'subsample': indicates that sampling without repetition will be performed  on test data
-        train_sampling_fraction: (Optional float): fraction of train data sampled, if sample_train_type is not None.
-                Default value is 1
-        test_sampling_fraction: (Optional float): fraction of test data sampled, if sample_test_type is not None.
-                Default value is 1
         test_prc: (Optional float) Percentage of input data used as test. By default 0.25
         n_jobs: (Optional int) number of parallel executions. If -1 use all available cores. By default 1
-        stats_tests_to_apply: (Optional string or list of strings) List of tests to apply. Available options are:
+        stats_tests_to_apply: (Optional None or string or list of strings) List of tests to apply. Available options:
                     'ES': Epps-Singleton
                     'KS': Kolmogorov-Smirnov statistic
                     'PSI': Population Stability Index
                     'SW': Shapiro-Wilk based difference statistic
                     'AD': Anderson-Darling TS
                     By default 'KS' test is applied
-        random_state: (Optional int) the seed used for all train test splits if sample_train_test_split_seed is
-                set to False.
+        random_state: (Optional int) the seed used for the experiment.
+
+    Examples:
+        >>> from sklearn.datasets import make_classification
+        >>> from sklearn.ensemble import RandomForestClassifier
+        >>> from probatus.metric_volatility import SplitSeedVolatility
+        >>> X, y = make_classification(n_features=4)
+        >>> clf = RandomForestClassifier()
+        >>> volatility = SplitSeedVolatility(clf, iterations=500 , test_prc = 0.5)
+        >>> volatility_report = volatility.fit_compute(X, y)
+        >>> volatility.plot()
     """
 
-    def __init__(self, model, *args, **kwargs):
-        super().__init__(model=model, sample_train_test_split_seed=True, *args, **kwargs)
+    def __init__(self, model, **kwargs):
+        super().__init__(model=model, sample_train_test_split_seed=True, train_sampling_type=None,
+                         test_sampling_type=None, train_sampling_fraction=1,  test_sampling_fraction=1, **kwargs)
 
 
 class BootstrappedVolatility(TrainTestVolatility):
@@ -383,21 +392,18 @@ class BootstrappedVolatility(TrainTestVolatility):
     Args:
         model: Binary classification model or pipeline
         iterations: (Optional int) Number of iterations in seed bootstrapping. By default 1000.
-        sample_train_test_split_seed: (Optional bool) Flag indicating whether each train test split should be done
-                randomly or measurement should be done for single split. Default is False, which that every training
-                is performed for the same train test split
+        train_sampling_fraction: (Optional float): fraction of train data sampled, if sample_train_type is not None.
+                Default value is 1
+        test_sampling_fraction: (Optional float): fraction of test data sampled, if sample_test_type is not None.
+                Default value is 1
         metrics : (string, list of strings, Scorer or list of Scorers) metrics for which the score is calculated.
                 It can be either a name or list of names of metrics that are supported by Scorer class: 'auc',
                 'accuracy', 'average_precision','neg_log_loss', 'neg_brier_score', 'precision', 'recall', 'jaccard'.
                 In case a custom metric is used, one can create own Scorer (probatus.utils) and provide as a metric.
                 By default AUC is measured.
-        train_sampling_fraction: (Optional float): fraction of train data sampled, if sample_train_type is not None.
-                Default value is 1
-        test_sampling_fraction: (Optional float): fraction of test data sampled, if sample_test_type is not None.
-                Default value is 1
         test_prc: (Optional float) Percentage of input data used as test. By default 0.25
         n_jobs: (Optional int) number of parallel executions. If -1 use all available cores. By default 1
-        stats_tests_to_apply: (Optional string or list of strings) List of tests to apply. Available options are:
+        stats_tests_to_apply: (Optional None or string or list of strings) List of tests to apply. Available options:
                     'ES': Epps-Singleton
                     'KS': Kolmogorov-Smirnov statistic
                     'PSI': Population Stability Index
@@ -406,8 +412,18 @@ class BootstrappedVolatility(TrainTestVolatility):
                     By default 'KS' test is applied
         random_state: (Optional int) the seed used for all train test splits if sample_train_test_split_seed is
                 set to False.
+
+    Examples:
+        >>> from sklearn.datasets import make_classification
+        >>> from sklearn.ensemble import RandomForestClassifier
+        >>> from probatus.metric_volatility import BootstrappedVolatility
+        >>> X, y = make_classification(n_features=4)
+        >>> clf = RandomForestClassifier()
+        >>> volatility = BootstrappedVolatility(clf, iterations=500 , test_prc = 0.5)
+        >>> volatility_report = volatility.fit_compute(X, y)
+        >>> volatility.plot()
     """
 
-    def __init__(self, model, sample_train_test_split_seed=False, *args, **kwargs):
-        super().__init__(model=model, sample_train_test_split_seed=sample_train_test_split_seed,
-                         train_sampling_type='bootstrap', test_sampling_type='bootstrap', *args, **kwargs)
+    def __init__(self, model, **kwargs):
+        super().__init__(model=model, sample_train_test_split_seed=False, train_sampling_type='bootstrap',
+                         test_sampling_type='bootstrap', **kwargs)
