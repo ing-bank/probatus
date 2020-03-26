@@ -6,7 +6,7 @@ Welcome to probatus documentation!
   :alt: Probatus Logo
 
 Library that standardizes and collects different validation steps to be performed on the models.
-We focus on binary classification models (most credit risk models).
+We focus on binary classification models.
 
 .. toctree::
    :maxdepth: 2
@@ -31,7 +31,7 @@ We focus on binary classification models (most credit risk models).
    nb_resemblance_modeling.ipynb
    nb_distribution_statistics.ipynb
    nb_calibration.ipynb
-   nb_metric_uncertainity.ipynb
+   nb_metric_volatility.ipynb
 
 
 .. toctree::
