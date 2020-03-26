@@ -7,8 +7,6 @@ def read(fname):
 base_packages = ["scikit-learn>=0.20.2",
                  "pandas>=0.25",
                  "matplotlib>=3.1.1",
-                 "seaborn>=0.9.0",
-                 "shap>=0.32",
                  "scipy>=1.4.0",
                  "joblib>=0.13.2"]
 
@@ -21,7 +19,7 @@ setuptools.setup(
     author='RPAA ING',
     author_email='ml_risk_and_pricing_aa@ing.com',
     license='ING Open Source',
-    python_requires='>=3.6',
+    python_requires='>=3.5',
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
