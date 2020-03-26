@@ -4,11 +4,6 @@ import os
 def read(fname):
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
 
-base_packages = ["scikit-learn>=0.20.2",
-                 "pandas>=0.25",
-                 "matplotlib>=3.1.1",
-                 "scipy>=1.4.0",
-                 "joblib>=0.13.2"]
 
 setuptools.setup(
     name='probatus',
@@ -25,9 +20,19 @@ setuptools.setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    packages=setuptools.find_packages(),
-    package_data={'probatus': ['datasets/data/*.pkl']},
-    install_requires=base_packages,
+    packages=setuptools.find_packages(exclude=[
+        "probatus.datasets",
+        "probatus.interpret",
+        "probatus.models",
+        "tests.interpret",
+    ]),
+    install_requires=[
+        "scikit-learn>=0.20.2",
+        "pandas>=0.25",
+        "matplotlib>=3.1.1",
+        "scipy>=1.4.0",
+        "joblib>=0.13.2"
+    ],
     url='https://gitlab.com/ing_rpaa/probatus',
     zip_safe=False
 )
