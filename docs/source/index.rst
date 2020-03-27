@@ -46,8 +46,22 @@ We focus on binary classification models.
 `Getting started <install.html>`_
 ---------------------------------
 
-Information to install and contribute to the package.
+In order to install probatus you need to use Python 3.6 or higher.
 
+Install `probatus` via pip with
+
+.. code-block:: bash
+
+   pip install probatus
+
+
+Alternatively you can fork/clone and run:
+
+.. code-block:: bash
+
+    git clone https://gitlab.com/ing_rpaa/probatus.git
+    cd probatus
+    pip install .
 
 `API Documentation <modules.html>`_
 -------------------------------
