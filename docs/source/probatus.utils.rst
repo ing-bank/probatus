@@ -1,9 +1,6 @@
 Utils
 ======================
 
-Submodules
-----------
-
 probatus.utils.arrayfuncs module
 --------------------------------
 
@@ -20,19 +17,18 @@ probatus.utils.exceptions module
     :undoc-members:
     :show-inheritance:
 
-probatus.utils.warnings module
-------------------------------
+probatus.utils.scoring module
+--------------------------------
 
-.. automodule:: probatus.utils.warnings
+.. automodule:: probatus.utils.scoring
     :members:
     :undoc-members:
     :show-inheritance:
 
+probatus.utils.warnings module
+------------------------------
 
-Module contents
----------------
-
-.. automodule:: probatus.utils
+.. automodule:: probatus.utils.warnings
     :members:
     :undoc-members:
     :show-inheritance:

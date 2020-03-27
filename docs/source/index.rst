@@ -4,9 +4,10 @@ Welcome to probatus documentation!
 
 .. image:: logo_large.png
   :alt: Probatus Logo
+  :width: 400
+  :align: center
 
-Library that standardizes and collects different validation steps to be performed on the models.
-We focus on binary classification models.
+**Probatus** is a Python library that standardizes and collects different validation steps to be performed on the models. It focuses on binary classification models to test and measure model robustness.
 
 .. toctree::
    :maxdepth: 2
@@ -27,12 +28,8 @@ We focus on binary classification models.
    :hidden:
    :caption: Tutorial - Examples
 
-   nb_binning.ipynb
    nb_resemblance_modeling.ipynb
-   nb_distribution_statistics.ipynb
-   nb_calibration.ipynb
    nb_metric_volatility.ipynb
-
 
 .. toctree::
    :maxdepth: 2
