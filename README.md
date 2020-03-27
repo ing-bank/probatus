@@ -35,9 +35,10 @@ Probatus requires to install:
 - matplotlib (>= 3.1.1)
 - scipy (>= 1.4.0)
 - joblib (>= 0.13.2)
+- tqdm (>= 4.41.0)
+
 
 For packages required to develop, please refer to requirements.txt.
-
 ## Documentation
 
 Latest documentation can be found [here](https://probatus.readthedocs.io/en/latest/).
