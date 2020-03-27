@@ -27,8 +27,12 @@ setuptools.setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    packages=setuptools.find_packages(),
-    package_data={'probatus': ['datasets/data/*.pkl']},
+    packages=setuptools.find_packages(exclude=[
+        "probatus.datasets",
+        "probatus.interpret",
+        "probatus.models",
+        "tests.interpret",
+    ]),
     install_requires=base_packages,
     url='https://gitlab.com/ing_rpaa/probatus',
     zip_safe=False
