@@ -22,8 +22,7 @@ test_merge_requests:
     - pip install pyflakes
     - pip install mypy
     - python setup.py install
-    - pytest --cov=probatus --cov-report term-missing
-    - pyflakes probatus
+    - pytest --cov=probatus/binning --cov=probatus/metric_volatility --cov=probatus/samples --cov=probatus/stat_tests --cov=probatus/utils --cov-report term-missing  --ignore=tests/interpret    - pyflakes probatus
     - mypy probatus --ignore-missing-imports
   only:
   - merge_requests
