@@ -22,7 +22,7 @@ test_merge_requests:
     - pip install pyflakes
     - pip install mypy
     - python setup.py install
-    - pytest --cov=probatus --cov-report term-missing
+    - pytest --cov=probatus --cov-report term-missing  --ignore=tests/interpret
     - pyflakes probatus
     - mypy probatus --ignore-missing-imports
   only:

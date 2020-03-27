@@ -31,7 +31,8 @@ setuptools.setup(
         "pandas>=0.25",
         "matplotlib>=3.1.1",
         "scipy>=1.4.0",
-        "joblib>=0.13.2"
+        "joblib>=0.13.2",
+        "tqdm>=4.41.0"
     ],
     url='https://gitlab.com/ing_rpaa/probatus',
     zip_safe=False
