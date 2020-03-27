@@ -63,5 +63,8 @@ class Scorer:
             X (array-like of shape (n_samples,n_features)):  Samples on which the model is scored.
 
             y (array-like of shape (n_samples,)):  Labels on which the model is scored.
+
+        Returns:
+            float: Score returned by the model
         """
         return self.scorer(model, X, y)
