@@ -1,5 +1,5 @@
 from probatus.interpret.inspector import return_confusion_metric, InspectorShap, BaseInspector
-from .mocks import MockClusterer, MockModel
+from tests.mocks import MockClusterer, MockModel
 from unittest.mock import patch, call
 from probatus.utils import NotFittedError, UnsupportedModelError
 
