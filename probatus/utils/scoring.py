@@ -19,10 +19,28 @@ class Scorer:
     Scores the samples model based on the provided metric name
 
     Args:
-        metric_name: (str) name of the metric used to evaluate the model
-        custom_scorer (Optional sklearn.metrics Scorer callable) object that can score samples
-    """
+        metric_name (str):  Name of the metric used to evaluate the model. Supported metrics are:
 
+                    - 'accuracy',
+
+                    - 'auc',
+
+                    - 'average_precision',
+
+                    - 'neg_log_loss',
+
+                    - 'neg_brier_score',
+
+                    - 'precision',
+
+                    - 'recall',
+
+                    - 'jaccard'.
+
+            User can also provide own metric name, only if the custom_scorer parameter is passed as well.
+
+        custom_scorer (Optional sklearn.metrics Scorer callable): Object that can score samples.
+    """
 
     def __init__(self, metric_name, custom_scorer=None):
         self.metric_name = metric_name
@@ -40,8 +58,10 @@ class Scorer:
         Scores the samples model based on the provided metric name
 
         Args:
-            model: Model to be scored, implements predict and predict_proba
-            X: (array-like of shape (n_samples,n_features)) samples on which the model is scored
-            y: (array-like of shape (n_samples,)) labels on which the model is scored
+            model (model object): Model to be scored.
+
+            X (array-like of shape (n_samples,n_features)):  Samples on which the model is scored.
+
+            y (array-like of shape (n_samples,)):  Labels on which the model is scored.
         """
         return self.scorer(model, X, y)
