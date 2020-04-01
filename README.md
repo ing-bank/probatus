@@ -12,6 +12,8 @@ Developing a well-performing model is often the easy part. What comes next, vali
 
 ## Installation
 
+In order to install probatus you need to use Python 3.6 or higher.
+
 You can install probatus using pip:
 
 ```bash
@@ -38,7 +40,8 @@ Probatus requires to install:
 - tqdm (>= 4.41.0)
 
 
-For packages required to develop, please refer to requirements.txt.
+For packages required for development, please refer to requirements.txt.
+
 ## Documentation
 
 Latest documentation can be found [here](https://probatus.readthedocs.io/en/latest/).
