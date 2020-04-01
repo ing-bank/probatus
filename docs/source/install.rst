@@ -7,7 +7,7 @@ Install
 
 In order to install probatus you need to use Python 3.6 or higher.
 
-Install `probatus` via pip with
+Install `probatus` via pip with:
 
 .. code-block:: bash
 
