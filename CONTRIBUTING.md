@@ -75,7 +75,7 @@ https://github.com/jonschlinkert/markdown-toc
 
 ### Python
 
-* Use Python 3. The point-version (3.4/3.5/etc.) depends on availability in your dev/prod environment.
+* Use Python 3.7 or higher depends on availability in your dev/prod environment.
 * Use environments (conda). To create one, run `conda env create -f requirements.yml`.
 * Keep track of dependencies in `requirements.yml` and run `conda install --file requirements.yml` to install them. Remember to notify your colleagues of the change in requirements since they'll need to conda install them.
 * Use environment variables for simple configurations and secrets
