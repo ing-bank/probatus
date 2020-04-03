@@ -1,4 +1,4 @@
-from sklearn.metrics import make_scorer, get_scorer
+from sklearn.metrics import get_scorer
 
 
 class Scorer:
