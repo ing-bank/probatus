@@ -19,10 +19,10 @@ class BaseVolatilityEstimator(object):
         model (model object): Binary classification model or pipeline.
 
         metrics (string, list of strings, Scorer or list of Scorers): Metrics for which the score is calculated.
-        It can be either a name or list of names of metrics that are supported by Scorer class: 'auc',
-        'accuracy', 'average_precision','neg_log_loss', 'neg_brier_score', 'precision', 'recall', 'jaccard'.
+        It can be either a name or list of names metric names and needs to be aligned with predefined classification
+        scorers names in sklearn, see the `sklearn documentation <https://scikit-learn.org/stable/modules/model_evaluation.html>`_
         In case a custom metric is used, one can create own Scorer (probatus.utils) and provide as a metric.
-        By default AUC is measured.
+        By default 'roc_auc' is measured.
 
         test_prc (float, optional): Percentage of input data used as test. By default 0.25.
 
@@ -42,7 +42,7 @@ class BaseVolatilityEstimator(object):
 
         random_state (int, optional): The seed used by the random number generator.
     """
-    def __init__(self, model, metrics='auc', test_prc=0.25, n_jobs=1, stats_tests_to_apply=None, random_state=42):
+    def __init__(self, model, metrics='roc_auc', test_prc=0.25, n_jobs=1, stats_tests_to_apply=None, random_state=42):
         self.model = model
         self.n_jobs = n_jobs
         self.random_state = random_state
@@ -296,10 +296,10 @@ class TrainTestVolatility(BaseVolatilityEstimator):
         Default value is 1.
 
         metrics (string, list of strings, Scorer or list of Scorers): Metrics for which the score is calculated.
-        It can be either a name or list of names of metrics that are supported by Scorer class: 'auc',
-        'accuracy', 'average_precision','neg_log_loss', 'neg_brier_score', 'precision', 'recall', 'jaccard'.
+        It can be either a name or list of names metric names and needs to be aligned with predefined classification
+        scorers names in sklearn, see the `sklearn documentation <https://scikit-learn.org/stable/modules/model_evaluation.html>`_
         In case a custom metric is used, one can create own Scorer (probatus.utils) and provide as a metric.
-        By default AUC is measured.
+        By default 'roc_auc' is measured.
 
         test_prc (float, optional):  Percentage of input data used as test. By default 0.25.
 
@@ -387,10 +387,10 @@ class SplitSeedVolatility(TrainTestVolatility):
         iterations: (int, optional) Number of iterations in seed bootstrapping. By default 1000.
 
         metrics (string, list of strings, Scorer or list of Scorers): Metrics for which the score is calculated.
-        It can be either a name or list of names of metrics that are supported by Scorer class: 'auc',
-        'accuracy', 'average_precision','neg_log_loss', 'neg_brier_score', 'precision', 'recall', 'jaccard'.
+        It can be either a name or list of names metric names and needs to be aligned with predefined classification
+        scorers names in sklearn, see the `sklearn documentation <https://scikit-learn.org/stable/modules/model_evaluation.html>`_
         In case a custom metric is used, one can create own Scorer (probatus.utils) and provide as a metric.
-        By default AUC is measured.
+        By default 'roc_auc' is measured.
 
         test_prc (float, optional):  Percentage of input data used as test. By default 0.25.
 
@@ -444,10 +444,10 @@ class BootstrappedVolatility(TrainTestVolatility):
         Default value is 1.
 
         metrics (string, list of strings, Scorer or list of Scorers): Metrics for which the score is calculated.
-        It can be either a name or list of names of metrics that are supported by Scorer class: 'auc',
-        'accuracy', 'average_precision','neg_log_loss', 'neg_brier_score', 'precision', 'recall', 'jaccard'.
+        It can be either a name or list of names metric names and needs to be aligned with predefined classification
+        scorers names in sklearn, see the `sklearn documentation <https://scikit-learn.org/stable/modules/model_evaluation.html>`_
         In case a custom metric is used, one can create own Scorer (probatus.utils) and provide as a metric.
-        By default AUC is measured.
+        By default 'roc_auc' is measured.
 
         test_prc (float, optional):  Percentage of input data used as test. By default 0.25.
 

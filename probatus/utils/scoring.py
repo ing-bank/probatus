@@ -1,43 +1,14 @@
-from sklearn.metrics import make_scorer, accuracy_score, roc_auc_score, average_precision_score, log_loss, \
-    brier_score_loss, precision_score, recall_score, jaccard_score
+from sklearn.metrics import get_scorer
 
-# We support only binary classification scorers, for now non-weighted ones
-# Keys of the dict are names of metrics - values are names of scorers in sklearn SCORES dict
-# Change in this parameter should be documented in docstring of volatility estimation and extending it classes
-supported_scorers_dict = {'accuracy': make_scorer(accuracy_score),
-                          'auc': make_scorer(roc_auc_score, greater_is_better=True, needs_threshold=True),
-                          'average_precision': make_scorer(average_precision_score, needs_threshold=True),
-                          'neg_log_loss': make_scorer(log_loss, greater_is_better=False, needs_proba=True),
-                          'neg_brier_score': make_scorer(brier_score_loss, greater_is_better=False,
-                                                         needs_proba=True),
-                          'precision': make_scorer(precision_score, average='binary'),
-                          'recall': make_scorer(recall_score, average='binary'),
-                          'jaccard': make_scorer(jaccard_score, average='binary')}
 
 class Scorer:
     """
     Scores the samples model based on the provided metric name
 
     Args:
-        metric_name (str):  Name of the metric used to evaluate the model. Supported metrics are:
-
-                    - 'accuracy',
-
-                    - 'auc',
-
-                    - 'average_precision',
-
-                    - 'neg_log_loss',
-
-                    - 'neg_brier_score',
-
-                    - 'precision',
-
-                    - 'recall',
-
-                    - 'jaccard'.
-
-            User can also provide own metric name, only if the custom_scorer parameter is passed as well.
+        metric_name (str):  Name of the metric used to evaluate the model. If the custom_scorer is not passed, the
+        metric name needs to be aligned with predefined classification scorers names in sklearn, see the
+        `sklearn documentation <https://scikit-learn.org/stable/modules/model_evaluation.html>`_
 
         custom_scorer (Optional sklearn.metrics Scorer callable): Object that can score samples.
     """
@@ -47,11 +18,7 @@ class Scorer:
         if custom_scorer is not None:
             self.scorer = custom_scorer
         else:
-            if self.metric_name in supported_scorers_dict.keys():
-                self.scorer = supported_scorers_dict[self.metric_name]
-            else:
-                raise(NotImplementedError('This metric name is not supported by us. Please refer to the available binary'
-                                          ' classification metrics in our documentation'))
+            self.scorer = get_scorer(self.metric_name)
 
     def score(self, model, X, y):
         """
