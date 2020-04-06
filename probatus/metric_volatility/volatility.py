@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from probatus.metric_volatility.metric import get_metric
 from joblib import Parallel, delayed
 from tqdm.auto import tqdm
-from probatus.utils import assure_numpy_array, NotFittedError, Scorer
+from probatus.utils import assure_numpy_array, NotFittedError, get_scorers
 from probatus.metric_volatility.utils import check_sampling_input, assure_list_of_strings, assure_list_values_allowed
 from probatus.stat_tests import DistributionStatistics
 import warnings
@@ -69,21 +69,7 @@ class BaseVolatilityEstimator(object):
             for test_name in self.stats_tests_to_apply:
                 self.stats_tests_objects.append(DistributionStatistics(statistical_test=test_name))
 
-        # Append which scorers should be used
-        self.scorers = []
-        if isinstance(metrics, list):
-            for metric in metrics:
-                self.append_single_metric_to_scorers(metric)
-        else:
-            self.append_single_metric_to_scorers(metrics)
-
-    def append_single_metric_to_scorers(self, metric):
-        if isinstance(metric, str):
-            self.scorers.append(Scorer(metric))
-        elif isinstance(metric, Scorer):
-            self.scorers.append(metric)
-        else:
-            raise (ValueError('The metrics should contain either strings'))
+        self.scorers = get_scorers(metrics)
 
     def fit(self, *args, **kwargs):
         """
