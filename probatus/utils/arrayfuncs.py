@@ -3,6 +3,7 @@ import pandas as pd
 import numbers
 
 from probatus.utils import DimensionalityError
+import warnings
 
 
 def check_1d(x):
@@ -62,3 +63,22 @@ def assure_numpy_array(x, assure_1d=False):
             return x.values
     if isinstance(x, pd.core.series.Series):
         return x.values
+
+
+def warn_if_missing(variable, variable_name):
+    """
+    Checks if for missing values: if there are notify the user
+
+    Args:
+        variable (pandas.DataFrame, pandas.Series or numpy.ndarray): data to be checked for missing values.
+        variable_name (str): Name of the variable checked.
+    """
+    warning_text = "You have missing values in your variable {}, this might cause the model to fail. Please either " \
+                   "impute the missing values or use a model that can handle them e.g. XGBoost.".format(variable_name)
+
+    if isinstance(variable, (pd.DataFrame, pd.Series)):
+        if variable.isnull().values.any():
+            warnings.warn(warning_text)
+    if isinstance(variable, np.ndarray):
+        if np.isnan(variable).any():
+            warnings.warn(warning_text)
