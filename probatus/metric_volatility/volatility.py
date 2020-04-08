@@ -159,14 +159,10 @@ class BaseVolatilityEstimator(object):
             metric_name (str):  Name of metric for which the data should be selected.
         """
 
-        current_metric_distribution = self.report.loc[metric_name]
-
-        train = np.random.normal(current_metric_distribution['train_mean'],
-                                 current_metric_distribution['train_std'], 10000)
-        test = np.random.normal(current_metric_distribution['test_mean'],
-                                current_metric_distribution['test_std'], 10000)
-        delta = np.random.normal(current_metric_distribution['delta_mean'],
-                                 current_metric_distribution['delta_std'], 10000)
+        current_metric_results = self.iterations_results[self.iterations_results['metric_name'] == metric_name]
+        train = current_metric_results['train_score']
+        test = current_metric_results['test_score']
+        delta = current_metric_results['delta_score']
 
         return train, test, delta
 
