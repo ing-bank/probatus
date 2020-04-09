@@ -2,7 +2,8 @@ from .exceptions import NotFittedError, DimensionalityError, UnsupportedModelErr
 from .scoring import Scorer, get_scorers
 from .arrayfuncs import assure_numpy_array, check_1d
 from .warnings import ApproximationWarning
-from ._utils import class_name_from_object
+from ._utils import class_name_from_object, assure_list_of_strings, assure_list_values_allowed
 
 __all__ = ['NotFittedError', 'DimensionalityError', 'UnsupportedModelError', 'Scorer', 'assure_numpy_array', 'check_1d',
-           'ApproximationWarning', 'class_name_from_object', 'get_scorers']
+           'ApproximationWarning', 'class_name_from_object', 'get_scorers', 'assure_list_of_strings',
+           'assure_list_values_allowed']
