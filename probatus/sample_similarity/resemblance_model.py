@@ -28,7 +28,6 @@ class BaseResemblanceModel(object):
         # Init output variables
         self.report_columns = ['mean_importance', 'std_importance']
         self.iterations_columns = ['feature', 'importance']
-        self.init_output_variables()
 
         self.fitted = False
 
