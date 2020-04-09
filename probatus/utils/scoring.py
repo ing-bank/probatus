@@ -53,6 +53,15 @@ class Scorer:
         `sklearn documentation <https://scikit-learn.org/stable/modules/model_evaluation.html>`_
 
         custom_scorer (Optional sklearn.metrics Scorer callable): Object that can score samples.
+
+    Examples:
+        >>> from probatus.utils import Scorer
+        >>> from sklearn.metrics import make_scorer
+        >>> import numpy as np
+        >>> scorer1 = Scorer('roc_auc')
+        >>> def custom_metric(y_true, y_pred):
+        >>>     return np.sum(y_true == y_pred)
+        >>> scorer2 = Scorer('custom_metric', custom_scorer=make_scorer(custom_metric))
     """
 
     def __init__(self, metric_name, custom_scorer=None):
