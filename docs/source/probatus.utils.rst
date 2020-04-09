@@ -1,5 +1,7 @@
-Utils
+probatus.utils
 ======================
+
+This module includes tools that are used across probatus.
 
 probatus.utils.arrayfuncs module
 --------------------------------
