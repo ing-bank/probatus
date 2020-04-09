@@ -216,7 +216,7 @@ class BaseResemblanceModel(object):
 
         return ax
 
-class PermutationResemblanceModel(BaseResemblanceModel):
+class PermutationImportanceResemblance(BaseResemblanceModel):
     """
     This model checks for similarity of two samples. A possible use case is analysis whether train sample differs
     from test sample, due to e.g. non-stationarity.
