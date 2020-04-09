@@ -21,9 +21,7 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     packages=setuptools.find_packages(exclude=[
-        "probatus.datasets",
         "probatus.interpret",
-        "probatus.models",
         "tests.interpret",
     ]),
     install_requires=[

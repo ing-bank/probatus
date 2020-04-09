@@ -4,8 +4,9 @@ import matplotlib.pyplot as plt
 from probatus.metric_volatility.metric import get_metric
 from joblib import Parallel, delayed
 from tqdm.auto import tqdm
-from probatus.utils import assure_numpy_array, NotFittedError, get_scorers
-from probatus.metric_volatility.utils import check_sampling_input, assure_list_of_strings, assure_list_values_allowed
+from probatus.utils import assure_numpy_array, NotFittedError, get_scorers, assure_list_of_strings,\
+    assure_list_values_allowed
+from probatus.metric_volatility.utils import check_sampling_input
 from probatus.stat_tests import DistributionStatistics
 import warnings
 
@@ -159,14 +160,10 @@ class BaseVolatilityEstimator(object):
             metric_name (str):  Name of metric for which the data should be selected.
         """
 
-        current_metric_distribution = self.report.loc[metric_name]
-
-        train = np.random.normal(current_metric_distribution['train_mean'],
-                                 current_metric_distribution['train_std'], 10000)
-        test = np.random.normal(current_metric_distribution['test_mean'],
-                                current_metric_distribution['test_std'], 10000)
-        delta = np.random.normal(current_metric_distribution['delta_mean'],
-                                 current_metric_distribution['delta_std'], 10000)
+        current_metric_results = self.iterations_results[self.iterations_results['metric_name'] == metric_name]
+        train = current_metric_results['train_score']
+        test = current_metric_results['test_score']
+        delta = current_metric_results['delta_score']
 
         return train, test, delta
 

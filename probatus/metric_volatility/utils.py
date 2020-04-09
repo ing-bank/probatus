@@ -30,18 +30,3 @@ def check_sampling_input(sampling_type, fraction, dataset_name):
                 raise(ValueError(f'For bootstrapping {dataset_name} fraction needs to be be above 0 and below 1'))
         else:
             raise(ValueError('This sampling method is not implemented'))
-
-
-def assure_list_of_strings(variable, variable_name):
-    if isinstance(variable, list):
-        return variable
-    elif isinstance(variable, str):
-        return [variable]
-    else:
-        raise(ValueError(f'{variable_name} needs to be either a string or list of strings.'))
-
-
-def assure_list_values_allowed(variable, variable_name, allowed_values):
-    for value in variable:
-        if value not in allowed_values:
-            raise(ValueError(f'Value {value} in variable {variable_name} is not allowed'))
