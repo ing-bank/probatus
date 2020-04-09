@@ -3,5 +3,5 @@ Module Documentation
 .. toctree::
 
     probatus.metric_volatility
-    probatus.samples
+    probatus.sample_similarity
     probatus.utils
