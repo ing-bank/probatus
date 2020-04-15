@@ -50,7 +50,7 @@ class DistributionStatistics(object):
         self.fitted = False
 
         if self.statistical_test.upper() not in self.statistical_test_list:
-            raise NotImplementedError(f"The statistical test should be one of {self.statistical_test_list}")
+            raise NotImplementedError("The statistical test should be one of {}".format(self.statistical_test_list))
         elif self.statistical_test.upper() == 'ES':
             self.statistical_test_name = 'Epps-Singleton'
             self._statistical_test_function = es
@@ -69,7 +69,7 @@ class DistributionStatistics(object):
 
         if self.binning_strategy:
             if self.binning_strategy.lower() not in self.binning_strategy_list:
-                raise NotImplementedError(f"The binning strategy should be one of {self.binning_strategy_list}")
+                raise NotImplementedError("The binning strategy should be one of {}".format(self.binning_strategy_list))
             if self.binning_strategy.lower() == 'simplebucketer':
                 self.binner = SimpleBucketer(bin_count=self.bin_count)
             elif self.binning_strategy.lower() == 'agglomerativebucketer':
@@ -78,15 +78,15 @@ class DistributionStatistics(object):
                 self.binner = QuantileBucketer(bin_count=self.bin_count)
 
     def __repr__(self):
-        repr_ = f"DistributionStatistics object\n\tstatistical_test: {self.statistical_test}"
+        repr_ = "DistributionStatistics object\n\tstatistical_test: {}".format(self.statistical_test)
         if self.binning_strategy:
-            repr_ += f"\n\tbinning_strategy: {self.binning_strategy}\n\tbin_count: {self.bin_count}"
+            repr_ += "\n\tbinning_strategy: {}\n\tbin_count: {}".format(self.binning_strategy, self.bin_count)
         else:
             repr_ += "\n\tNo binning applied"
         if self.fitted:
-            repr_ += f"\nResults\n\tvalue {self.statistical_test}-statistic: {self.statistic}"
+            repr_ += "\nResults\n\tvalue {}-statistic: {}".format(self.statistical_test, self.statistic)
         if hasattr(self, 'p_value'):
-            repr_ += f"\n\tp-value: {self.p_value}"
+            repr_ += "\n\tp-value: {}".format(self.p_value)
         return repr_
 
     def compute(self, d1, d2, verbose=False, **kwargs):
@@ -171,12 +171,12 @@ class AutoDist(object):
     def __repr__(self):
         repr_ = "AutoDist object"
         if not self.fitted:
-            repr_ += f"\n\tAutoDist not fitted"
+            repr_ += "\n\tAutoDist not fitted"
         if self.fitted:
-            repr_ += f"\n\tAutoDist fitted"
-        repr_ += f"\n\tstatistical_tests: {self.statistical_tests}"
-        repr_ += f"\n\tbinning_strategies: {self.binning_strategies}"
-        repr_ += f"\n\tbin_count: {self.bin_count}"
+            repr_ += "\n\tAutoDist fitted"
+        repr_ += "\n\tstatistical_tests: {}".format(self.statistical_tests)
+        repr_ += "\n\tbinning_strategies: {}".format(self.binning_strategies)
+        repr_ += "\n\tbin_count: {}".format(self.bin_count)
         return repr_
 
     def compute(self, df1, df2, column_selection, return_failed_tests=True, suppress_warnings=True):

@@ -1,11 +1,7 @@
-Metric Volatility
+probatus.metric\_volatility
 ====================================
 
-The schema below presents the class architecture of volatility estimators:
-
-.. image:: schemas/VolatilityEstimation.png
-  :width: 800
-  :alt: Class architecture of Volatility Estimators
+The aim of this module is analysis of how well a model performs on a given dataset, and how stable the performance is.
 
 The following features are and will be implemented:
 
@@ -17,11 +13,6 @@ The following features are and will be implemented:
 
       - **BootstrappedVolatility** - stimates volatility of metrics based on splitting the data into train and test with static seed, and bootstrapping train and test set.
 
-- **FoldVolatility** - Splits data into train and test set. Then the train test is further split into n folds and the volatility of model trained on each fold separately is estimated on the test set.
-
-- **DelongAUCVolatility** - Volatility estimation of AUC based on DeLong's algorithm.
-
-- **CVVolatility** - Estimation of volatility metrics based on repeated Cross-Validation
 
 probatus.metric\_volatility module
 ----------------------------------------------
