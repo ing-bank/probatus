@@ -16,12 +16,15 @@ class BaseResemblanceModel(object):
     Args:
         model (model object): Binary classification model or pipeline.
 
+        test_prc (float, optional): Percentage of data used to test the model. By default 0.25 is set.
+
         n_jobs (int, optional): Number of parallel executions. If -1 use all available cores. By default 1.
 
         random_state (int, optional): The seed used by the random number generator.
     """
-    def __init__(self, model, n_jobs=1, random_state=42):
+    def __init__(self, model, test_prc=0.25, n_jobs=1, random_state=42):
         self.model = model
+        self.test_prc = test_prc
         self.n_jobs = n_jobs
         self.random_state = random_state
 
@@ -46,6 +49,10 @@ class BaseResemblanceModel(object):
         """
         self.iterations_results = pd.DataFrame(columns=self.iterations_columns)
         self.report = pd.DataFrame(index=self.columns, columns=self.report_columns, dtype=float)
+        self.X_train = None
+        self.X_test = None
+        self.y_train = None
+        self.y_test = None
         self.baseline_auc_train = None
         self.baseline_auc_test = None
 
@@ -79,7 +86,7 @@ class BaseResemblanceModel(object):
 
         # Ensure the same shapes
         if self.X1.shape[1] != self.X2.shape[1]:
-            raise(ValueError("Passed variables do not have the same second. The passed dimensions are {} and {}".
+            raise(ValueError("Passed variables do not have the same shape. The passed dimensions are {} and {}".
                              format(self.X1.shape[1], self.X2.shape[1])))
 
         # Check if columns are passed correctly
@@ -115,6 +122,12 @@ class BaseResemblanceModel(object):
         # Reinitialize variables in case of multiple times being fit
         self.init_output_variables()
 
+        self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(self.X, self.y,test_size=self.test_prc,
+                                                                                random_state=self.random_state)
+        self.model.fit(self.X_train, self.y_train)
+
+        self.baseline_auc_train = self.scorer.score(self.model, self.X_train, self.y_train)
+        self.baseline_auc_test = self.scorer.score(self.model, self.X_test, self.y_test)
         self.fitted = True
 
 
@@ -127,7 +140,7 @@ class BaseResemblanceModel(object):
             importances, train AUC, test AUC), or feature importances. By default the second option is selected.
 
         Returns:
-            touple(pd.DataFrame, float, float) or pd.DataFrame: Depending on value of return_tuple either returns a
+            tuple(pd.DataFrame, float, float) or pd.DataFrame: Depending on value of return_tuple either returns a
             tuple (feature importances, train AUC, test AUC), or feature importances.
         """
         if self.fitted is False:
@@ -142,7 +155,7 @@ class BaseResemblanceModel(object):
             return self.report
 
 
-    def fit_compute(self, X1, X2, columns=None, return_tuple=False, **kwargs):
+    def fit_compute(self, X1, X2, columns=None, return_tuple=False, **fit_kwargs):
         """
         Fits the resemblance model and computes the report regarding feature importance.
 
@@ -160,11 +173,13 @@ class BaseResemblanceModel(object):
             return_tuple (bool, optional): Flag indicating whether the method should return a tuple (feature
             importances, train AUC, test AUC), or feature importances. By default the second option is selected.
 
+            **fit_kwargs: arguments passed to the fit() method.
+
         Returns:
-            touple(pd.DataFrame, float, float) or pd.DataFrame: Depending on value of return_tuple either returns a
+            tuple of (pd.DataFrame, float, float) or pd.DataFrame: Depending on value of return_tuple either returns a
             tuple (feature importances, train AUC, test AUC), or feature importances.
         """
-        self.fit(X1, X2, columns=columns, **kwargs)
+        self.fit(X1, X2, columns=columns, **fit_kwargs)
         return self.compute(return_tuple=return_tuple)
 
 
@@ -253,10 +268,9 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
         >>> feature_importance = perm.fit_compute(X1, X2)
         >>> perm.plot()
     """
-    def __init__(self, model, iterations=100, test_prc=0.25, **kwargs):
+    def __init__(self, model, iterations=100, **kwargs):
         super().__init__(model=model, **kwargs)
         self.iterations = iterations
-        self.test_prc = test_prc
         self.plot_x_label = 'Permutation Feature Importance'
 
 
@@ -280,14 +294,7 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
         """
         super().fit(X1=X1, X2=X2, columns=columns)
 
-        X_train, X_test, y_train, y_test = train_test_split(self.X, self.y,test_size=self.test_prc,
-                                                            random_state=self.random_state)
-        self.model.fit(X_train, y_train)
-
-        self.baseline_auc_train = self.scorer.score(self.model, X_train, y_train)
-        self.baseline_auc_test = self.scorer.score(self.model, X_test, y_test)
-
-        permutation_result = permutation_importance(self.model, X_test, y_test, scoring=self.scorer.scorer,
+        permutation_result = permutation_importance(self.model, self.X_test, self.y_test, scoring=self.scorer.scorer,
                                                     n_repeats=self.iterations, n_jobs=self.n_jobs)
 
         for feature_index, feature_name in enumerate(self.columns):
