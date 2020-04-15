@@ -150,7 +150,7 @@ class BaseVolatilityEstimator(object):
                 axis_index+=2
 
             for ax in axs.flat:
-                ax.set(xlabel='{} score'.format(metric), ylabel='Results count'.format(metric))
+                ax.set(xlabel='{} score'.format(metric), ylabel='Results count')
 
     def get_samples_to_plot(self, metric_name):
         """
