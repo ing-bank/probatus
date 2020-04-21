@@ -272,5 +272,6 @@ In the project we use versioning based on Semantic Versioning for Python. After 
 Deployment is made in the following steps:
 - Merge a MR with the following changes
     - Bump the version in setup.py
+    - Bump release variable in docs/source/conf.py
     - Update Changelog with changes made from previous version
 - Create a git tag for the version. This will trigger a CI pipeline which deploys  
