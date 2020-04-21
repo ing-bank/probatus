@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0] - 2020-02-24
+- metric_volatility and sample_similarity rebuilt
+- New documentation
+- Faster tests
+- Improved and simplified API
+- Scorer class added to the package
+- Removed data from repository
+- Hiding unfinished functionality from the user
+
 ## [0.1.3] - 2020-02-24
 
 ### Added
