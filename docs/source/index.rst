@@ -19,24 +19,17 @@ Welcome to probatus documentation!
 .. toctree::
    :maxdepth: 2
    :hidden:
+   :caption: Tutorial - Examples
+
+   nb_metric_volatility.ipynb
+   nb_sample_similarity.ipynb
+
+.. toctree::
+   :maxdepth: 2
+   :hidden:
    :caption: Documentation
 
    modules
-
-.. toctree::
-   :maxdepth: 2
-   :hidden:
-   :caption: Tutorial - Examples
-
-   nb_resemblance_modeling.ipynb
-   nb_metric_volatility.ipynb
-
-.. toctree::
-   :maxdepth: 2
-   :hidden:
-   :caption: Additional Information
-
-   license
 
 
 
@@ -66,13 +59,6 @@ Alternatively you can fork/clone and run:
 The exact API of all functions and classes, as given in the
 docstrings. The API documents expected types and allowed features for
 all functions, and all parameters available for the algorithms.
-
-
-`Examples <examples.html>`_
---------------------------------------
-
-A set of examples illustrating the use of the different algorithms. It
-complements the `API Documentation <modules.html>`_.
 
 
 `Additional Information <examples.html>`_

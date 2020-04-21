@@ -1,9 +1,6 @@
 ########################
-Install and contribution
+Installation
 ########################
-
-Install
-=======
 
 In order to install probatus you need to use Python 3.6 or higher.
 
@@ -33,12 +30,3 @@ Probatus requires to install:
 
 
 For packages required for development, please refer to requirements.txt.
-
-Contribute
-==========
-
-You can contribute to this code through merge request on GitLab_. Please, make
-sure that your code is coming with unit tests to ensure full coverage and
-continuous integration in the API.
-
-.. _GitLab: https://gitlab.com/ing_rpaa/probatus.git

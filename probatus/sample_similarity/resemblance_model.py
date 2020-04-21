@@ -131,12 +131,12 @@ class BaseResemblanceModel(object):
         self.fitted = True
 
 
-    def compute(self, return_tuple=False):
+    def compute(self, return_auc=False):
         """
         Checks if fit() method has been run and computes the output variables.
 
         Args:
-            return_tuple (bool, optional): Flag indicating whether the method should return a tuple (feature
+            return_auc (bool, optional): Flag indicating whether the method should return a tuple (feature
             importances, train AUC, test AUC), or feature importances. By default the second option is selected.
 
         Returns:
@@ -149,13 +149,13 @@ class BaseResemblanceModel(object):
         # Ensure that importance column is float, otherwise plot might throw an error
         self.iterations_results['importance'] = self.iterations_results['importance'].astype(float)
 
-        if return_tuple:
+        if return_auc:
             return self.report, self.baseline_auc_train, self.baseline_auc_test
         else:
             return self.report
 
 
-    def fit_compute(self, X1, X2, columns=None, return_tuple=False, **fit_kwargs):
+    def fit_compute(self, X1, X2, columns=None, return_auc=False, **fit_kwargs):
         """
         Fits the resemblance model and computes the report regarding feature importance.
 
@@ -170,8 +170,8 @@ class BaseResemblanceModel(object):
             to overwrite the existing feature names. If not provided the existing feature names are used or default
             feature names are generated.
 
-            return_tuple (bool, optional): Flag indicating whether the method should return a tuple (feature
-            importances, train AUC, test AUC), or feature importances. By default the second option is selected.
+            return_auc (bool, optional): Flag indicating whether the method should return a tuple (feature
+            importances, train AUC, test AUC), or only feature importances. By default the second option is selected.
 
             **fit_kwargs: arguments passed to the fit() method.
 
@@ -180,7 +180,7 @@ class BaseResemblanceModel(object):
             tuple (feature importances, train AUC, test AUC), or feature importances.
         """
         self.fit(X1, X2, columns=columns, **fit_kwargs)
-        return self.compute(return_tuple=return_tuple)
+        return self.compute(return_auc=return_auc)
 
 
     def plot(self, ax=None, top_n=None):
@@ -259,8 +259,7 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
     Examples:
         >>> from sklearn.datasets import make_classification
         >>> from sklearn.ensemble import RandomForestClassifier
-        >>> from probatus.metric_volatility import TrainTestVolatility
-        >>> from probatus.sample_similarity import PermutationResemblanceModel
+        >>> from probatus.sample_similarity import PermutationImportanceResemblance
         >>> X1, _ = make_classification(n_samples=900, n_features=5)
         >>> X2, _ = make_classification(n_samples=1000, n_features=5)
         >>> clf = RandomForestClassifier()

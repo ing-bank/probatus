@@ -3,7 +3,7 @@ probatus.metric\_volatility
 
 The aim of this module is analysis of how well a model performs on a given dataset, and how stable the performance is.
 
-The following features are and will be implemented:
+The following features are implemented:
 
 - **BaseVolatilityEstimator** - Base class, provides main functionality with fit method that can be overwritten by subclasses
 
