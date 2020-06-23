@@ -106,6 +106,7 @@ class BaseDependencePlotter:
             feature = self.features[feature]
         if feature not in self.features:
             return "Error"
+        
         if ax is None:
             fig, ax = plt.subplots(figsize=figsize)
 
@@ -172,17 +173,29 @@ class BaseDependencePlotter:
 
     def _get_X_y_shap_with_q_cut(self, feature):
         """
-        TODO: DOCSTRING
+        Extracts all X, y pairs and shap values that fall within defined quantiles of the feature
+        
+        Args:
+            feature (str): name of feature to return values for
+        
+        Returns:
+            x (pd.Series): selected datapoints
+            y (pd.Series): target values of selected datapoints
+            shap_val (pd.Series): shap values of selected datapoints
         """
+        # Prepare arrays
         x = self.X[feature]
         y = self.y
         shap_val = self.shap_vals_df[feature]
 
+        # Determine quantile ranges
         x_min = x.quantile(self.min_q)
         x_max = x.quantile(self.max_q)
 
+        # Create filter 
         filter = (x >= x_min) & (x <= x_max)
 
+        # Filter and return terms
         return x[filter], y[filter], shap_val[filter]
 
 
@@ -206,8 +219,10 @@ if __name__ == "__main__":
 
     plt.savefig("shap_summary_plot")
 
-    bdp.feature_plot(feature=0)
+    bdp.feature_plot(feature=1)
 
     plt.savefig("feature_plot")
     
     feat_importances = bdp.compute_shap_feat_importance()
+    
+    print(feat_importances)
