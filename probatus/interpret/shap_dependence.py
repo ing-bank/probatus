@@ -11,7 +11,7 @@ from probatus.utils.arrayfuncs import assure_pandas_df
 from probatus.utils.exceptions import NotFittedError
 
 
-class BaseDependencePlotter:
+class TreeDependencePlotter:
     """
     TODO: DOCSTRING
     
@@ -39,7 +39,7 @@ class BaseDependencePlotter:
         features (list[str]): names of features
         
         Returns:
-        self (BaseDependencePlotter)
+        self (TreeDependencePlotter)
         """
         self.X = assure_pandas_df(X)
         self.y = y
@@ -91,7 +91,7 @@ class BaseDependencePlotter:
 
         return out
 
-    def self._check_fitted():
+    def _check_fitted(self):
         """
         Function to check if plotter is already fitted, raises exception otherwise
         """
@@ -231,24 +231,24 @@ if __name__ == "__main__":
     from sklearn.ensemble import RandomForestClassifier
 
     X, y = make_classification(
-        n_samples=1000, n_features=8, n_informative=3, n_redundant=0, random_state=42
+        n_samples=15, n_features=3, n_informative=3, n_redundant=0, random_state=42
     )
 
     clf = RandomForestClassifier()
 
     clf.fit(X, y)
 
-    bdp = BaseDependencePlotter(clf)
+    bdp = TreeDependencePlotter(clf)
 
     bdp.fit(X, y)
 
     shap.summary_plot(bdp.shap_vals, features=bdp.X)
 
-    plt.savefig("shap_summary_plot")
+    #plt.savefig("shap_summary_plot")
 
     bdp.feature_plot(feature=1)
 
-    plt.savefig("feature_plot")
+    #plt.savefig("feature_plot")
     
     feat_importances = bdp.compute_shap_feat_importance()
     
