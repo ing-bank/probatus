@@ -7,6 +7,9 @@ import numpy as np
 import shap
 import matplotlib.pyplot as plt
 
+from probatus.utils.arrayfuncs import assure_pandas_df
+from probatus.utils.exceptions import NotFittedError
+
 
 class BaseDependencePlotter:
     """
@@ -21,15 +24,24 @@ class BaseDependencePlotter:
         self.explainer = shap.TreeExplainer(self.model)
 
         self.isFitted = False
+        self.target_names = ['target = 0', 'target = 1']
 
     def __repr__(self):
         return "Shap dependence for {}".format(self.model.__class__.__name__)
 
     def fit(self, X, y, features=None):
         """
-        TODO: DOCSTRING
+        Fits the plotter to the model and data by computing the shap values
+        
+        Args:
+        X (pd.DataFrame): input variables
+        y (pd.Series): target variable
+        features (list[str]): names of features
+        
+        Returns:
+        self (BaseDependencePlotter)
         """
-        self.X = pd.DataFrame(X)
+        self.X = assure_pandas_df(X)
         self.y = y
 
         self.features = self.X.columns if features is None else features
@@ -48,6 +60,8 @@ class BaseDependencePlotter:
         """
         TODO: DOCSTRING
         """
+        self._check_fitted()
+        
         shap.summary_plot(self.shap_vals, features=self.X, **kwargs)
         
     def compute_shap_feat_importance(self, decimals = 4):
@@ -59,6 +73,8 @@ class BaseDependencePlotter:
         They are ordered by decreasing absolute importance
 
         """
+        self._check_fitted()
+        
         shap_abs_feat_importance = self.shap_vals_df.abs().mean().sort_values(ascending=False)
         shap_signed_feat_importance = self.shap_vals_df.mean()
 
@@ -75,11 +91,22 @@ class BaseDependencePlotter:
 
         return out
 
+    def self._check_fitted():
+        """
+        Function to check if plotter is already fitted, raises exception otherwise
+        """
+        if not self.isFitted:
+            raise NotFittedError("The plotter is not fitted yet..")
 
-    def feature_plot(self, feature, figsize=(15, 10), bins=10, min_q=0, max_q=1):
+    def feature_plot(self, feature, figsize=(15, 10), bins=10, min_q=0, max_q=1, target_names=None):
         """
         TODO: DOCSTRING
         """
+        self._check_fitted()
+        
+        if target_names is not None:
+            self.target_names = target_names
+        
         self.min_q, self.max_q = min_q, max_q
 
         fig = plt.figure(1, figsize=(10, 10))
@@ -112,9 +139,9 @@ class BaseDependencePlotter:
 
         X, y, shap_val = self._get_X_y_shap_with_q_cut(feature=feature)
 
-        ax.scatter(X[y == 0], shap_val[y == 0], label="target = 0", color="lightblue")
+        ax.scatter(X[y == 0], shap_val[y == 0], label=self.target_names[0], color="lightblue")
 
-        ax.scatter(X[y == 1], shap_val[y == 1], label="target = 1", color="darkred")
+        ax.scatter(X[y == 1], shap_val[y == 1], label=self.target_names[1], color="darkred")
 
         ax.set_xlabel(feature)
         ax.set_ylabel("Shap value")

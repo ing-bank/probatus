@@ -63,7 +63,25 @@ def assure_numpy_array(x, assure_1d=False):
             return x.values
     if isinstance(x, pd.core.series.Series):
         return x.values
-
+    
+def assure_pandas_df(x):
+    """
+    Returns x as pandas DataFrame. X can be a list, list of lists, numpy array, pandas DataFrame or pandas Series
+    
+    Args:
+        x (list, numpy array, pandas DataFrame, pandas Series): array to be tested
+        
+    Returns:
+        pandas DataFrame
+    """
+    if isinstance(x, pd.core.frame.DataFrame):
+        return x
+    elif any([isinstance(x, np.ndarray),
+            isinstance(x, pd.core.series.Series),
+            isinstance(x, list)]):
+        return pd.DataFrame(x)
+    else:
+        raise TypeError("Please supply a list, numpy array, pandas Series or pandas DataFrame")
 
 def warn_if_missing(variable, variable_name):
     """
