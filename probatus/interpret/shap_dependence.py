@@ -166,8 +166,6 @@ class TreeDependencePlotter:
         if type(bins) == int:
             counts, bins = np.histogram(x, bins)
 
-        n_bins = len(bins)
-
         bins[-1] = bins[-1] + 1
         indices = np.digitize(x, bins)
 
@@ -180,10 +178,6 @@ class TreeDependencePlotter:
 
         if ax is None:
             fig, ax = plt.subplots(figsize=figsize)
-
-        mean_bins = np.round(
-            [0.5 * (low + high) for low, high in zip(bins[:-1], bins[1:])], 2
-        )
 
         ax.hist(x, bins=bins, lw=2, alpha=0.4)
 
