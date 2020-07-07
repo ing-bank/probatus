@@ -5,6 +5,7 @@ import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
 
 from probatus.interpret.shap_dependence import TreeDependencePlotter
+from probatus.utils.exceptions import NotFittedError
 
 
 @pytest.fixture(scope="function")
@@ -70,7 +71,7 @@ def test_fit_normal(X_y, clf, expected_shap_vals):
     plotter = TreeDependencePlotter(clf)
     
     plotter.fit(X, y)
-    
+
     assert(plotter.X.equals(X))
     assert(plotter.y.equals(y))
     assert(np.isclose(plotter.proba, [0.94, 0.81, 0.03, 0.04, 0.8 , 0.98, 0.07, 0.78, 0.97, 0.11, 0.98, 0.01, 0.03, 0.12, 0.02]).all())
@@ -85,3 +86,25 @@ def test_fit_features(X_y, clf):
     plotter.fit(X, y, feature_names)
     
     assert plotter.features == feature_names
+    
+def test_get_X_y_shap_with_q_cut_normal(X_y, clf):
+    X, y = X_y
+    
+    plotter = TreeDependencePlotter(clf).fit(X, y)   
+    plotter.min_q, plotter.max_q = 0, 1
+    
+    X_cut, y_cut, shap_val = plotter._get_X_y_shap_with_q_cut(0)  
+    assert np.isclose(X[0], X_cut).all()
+    assert y.equals(y_cut)
+    
+    plotter.min_q = 0.2
+    plotter.max_q = 0.8
+    
+    X_cut, y_cut, shap_val = plotter._get_X_y_shap_with_q_cut(0)  
+    assert np.isclose(X_cut, [-1.48382902, -0.44947744, -1.38101231, -0.18261804,  0.27514902, -0.27264455, -1.27251335, -2.10917352, -1.25945582]).all()
+    assert np.equal(y_cut.values, [1, 0, 0, 1, 1, 0, 0, 0, 0]).all()
+    
+def test_get_X_y_shap_with_q_cut_unfitted(clf):
+    plotter = TreeDependencePlotter(clf)
+    with pytest.raises(NotFittedError):
+        plotter._get_X_y_shap_with_q_cut(0)

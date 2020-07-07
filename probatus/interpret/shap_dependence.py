@@ -21,7 +21,7 @@ class TreeDependencePlotter:
 
     def __init__(self, model):
         self.model = model
-        self.explainer = shap.TreeExplainer(self.model)
+        self.explainer = shap.TreeExplainer(self.model, feature_pertubation="tree_path_dependent")
 
         self.isFitted = False
         self.target_names = ['target = 0', 'target = 1']
@@ -103,6 +103,8 @@ class TreeDependencePlotter:
         TODO: DOCSTRING
         """
         self._check_fitted()
+        if min_q >= max_q:
+            raise ValueError, "min_q must be smaller than max_q"
         
         if target_names is not None:
             self.target_names = target_names
@@ -156,7 +158,7 @@ class TreeDependencePlotter:
         
         Plots the distributions of the specific features, as well as the default rate as function of the feature
         :param feature:
-        :param bins:
+        :param bins: can be both int and list?
         :param ax:
         :param figsize:
         :return:
@@ -204,6 +206,8 @@ class TreeDependencePlotter:
             y (pd.Series): target values of selected datapoints
             shap_val (pd.Series): shap values of selected datapoints
         """
+        self._check_fitted()
+        
         # Prepare arrays
         x = self.X[feature]
         y = self.y
