@@ -4,7 +4,6 @@ TODO: DOCSTRING
 
 import pandas as pd
 import numpy as np
-import shap
 import matplotlib.pyplot as plt
 
 from probatus.binning import SimpleBucketer, AgglomerativeBucketer, QuantileBucketer
@@ -65,6 +64,10 @@ class TreeDependencePlotter:
 
         """
         self._check_fitted()
+        if type(decimals) is not int:
+            raise TypeError("decimals should be integer")
+        if decimals < 0:
+            raise ValueError(f"decimals should be greater than or equals than 0 ({decimals} was given)")
 
         shap_abs_feat_importance = (
             self.shap_vals_df.abs().mean().sort_values(ascending=False)
@@ -111,6 +114,10 @@ class TreeDependencePlotter:
         self._check_fitted()
         if min_q >= max_q:
             raise ValueError("min_q must be smaller than max_q")
+        if feature not in self.X.columns:
+            raise ValueError("Feature not recognized")
+        if type_binning not in ['simple', 'agglomerative', 'quantile']:
+            raise ValueError("Select one of the following binning methods: 'simple', 'agglomerative', 'quantile'")
 
         if target_names is not None:
             self.target_names = target_names
@@ -139,11 +146,6 @@ class TreeDependencePlotter:
         """
         if type(feature) is int:
             feature = self.features[feature]
-        if feature not in self.features:
-            return "Error"
-
-        if ax is None:
-            fig, ax = plt.subplots(figsize=figsize)
 
         X, y, shap_val = self._get_X_y_shap_with_q_cut(feature=feature)
 
@@ -195,9 +197,6 @@ class TreeDependencePlotter:
         def_ratio = dfs["y"].mean()
         x_vals = dfs[feature].mean()
 
-        if ax is None:
-            fig, ax = plt.subplots(figsize=figsize)
-
         ax.hist(x, bins=bins, lw=2, alpha=0.4)
 
         ax.set_ylabel("Counts")
@@ -243,6 +242,7 @@ class TreeDependencePlotter:
         return x[filter], y[filter], shap_val[filter]
 
 
+"""
 if __name__ == "__main__":
     from sklearn.datasets import make_classification
     from sklearn.ensemble import RandomForestClassifier
@@ -266,3 +266,4 @@ if __name__ == "__main__":
     feat_importances = bdp.compute_shap_feat_importance()
 
     print(feat_importances)
+"""
