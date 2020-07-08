@@ -7,6 +7,8 @@ import numpy as np
 import shap
 import matplotlib.pyplot as plt
 
+from probatus.binning import SimpleBucketer, AgglomerativeBucketer, QuantileBucketer
+from probatus.interpret._shap_helpers import shap_to_df
 from probatus.utils.arrayfuncs import assure_pandas_df
 from probatus.utils.exceptions import NotFittedError
 
@@ -21,9 +23,6 @@ class TreeDependencePlotter:
 
     def __init__(self, model):
         self.model = model
-        self.explainer = shap.TreeExplainer(
-            self.model, feature_pertubation="tree_path_dependent"
-        )
 
         self.isFitted = False
         self.target_names = ["target = 0", "target = 1"]
@@ -50,21 +49,11 @@ class TreeDependencePlotter:
 
         self.proba = self.model.predict_proba(X)[:, 1]
 
-        self.shap_vals = self.explainer.shap_values(self.X)
-        self.shap_vals_df = pd.DataFrame(
-            self.shap_vals[1], index=self.X.index, columns=self.features
-        )
+        self.shap_vals_df = shap_to_df(self.model, self.X)
 
         self.isFitted = True
         return self
 
-    def shap_summary_plot(self, **kwargs):
-        """
-        TODO: DOCSTRING
-        """
-        self._check_fitted()
-
-        shap.summary_plot(self.shap_vals, features=self.X, **kwargs)
 
     def compute_shap_feat_importance(self, decimals=4):
         """
@@ -114,7 +103,7 @@ class TreeDependencePlotter:
             raise NotFittedError("The plotter is not fitted yet..")
 
     def feature_plot(
-        self, feature, figsize=(15, 10), bins=10, min_q=0, max_q=1, target_names=None
+        self, feature, figsize=(15, 10), bins=10, type_binning='simple', min_q=0, max_q=1, target_names=None
     ):
         """
         TODO: DOCSTRING
@@ -133,7 +122,7 @@ class TreeDependencePlotter:
         ax2 = plt.subplot2grid((3, 1), (2, 0))
 
         self._dependence_plot(feature=feature, ax=ax1)
-        self._target_rate_plot(feature=feature, bins=bins, ax=ax2)
+        self._target_rate_plot(feature=feature, bins=bins, type_binning=type_binning, ax=ax2)
 
         ax2.set_xlim(ax1.get_xlim())
 
@@ -173,22 +162,29 @@ class TreeDependencePlotter:
 
         return ax
 
-    def _target_rate_plot(self, feature, bins=10, ax=None, figsize=(15, 10)):
+    def _target_rate_plot(self, feature, bins=10, type_binning='agglomerative', ax=None, figsize=(15, 10)):
         """
         TODO: DOCSTRING
         
         Plots the distributions of the specific features, as well as the default rate as function of the feature
         :param feature:
-        :param bins: can be both int and list?
+        :param bins:
+        :param type_binning: {'simple', 'agglomerative', 'quantile'}
         :param ax:
         :param figsize:
         :return:
         """
         x, y, shap_val = self._get_X_y_shap_with_q_cut(feature=feature)
 
-        if type(bins) == int:
-            counts, bins = np.histogram(x, bins)
-
+        if type(bins) is int:
+            if type_binning == "simple":
+                # counts, bins = np.histogram(x, bins) # TODO: change to probatus binning functions
+                counts, bins = SimpleBucketer.simple_bins(x, bins)
+            elif type_binning == "agglomerative":
+                counts, bins = AgglomerativeBucketer.agglomerative_clustering_binning(x, bins)
+            elif type_binning == "quantile":
+                counts, bins = QuantileBucketer.quantile_bins(x, bins)
+            
         bins[-1] = bins[-1] + 1
         indices = np.digitize(x, bins)
 
@@ -261,13 +257,9 @@ if __name__ == "__main__":
 
     bdp.fit(X, y)
 
-    shap.summary_plot(bdp.shap_vals, features=bdp.X)
-
-    plt.savefig("shap_summary_plot")
-
-    bdp.feature_plot(feature=2)
-
-    plt.savefig("feature_plot")
+    for binning in ['simple', 'agglomerative', 'quantile']:
+        bdp.feature_plot(feature=2, type_binning=binning)
+        plt.savefig(f"feature_plot_{binning}")
 
     feat_importances = bdp.compute_shap_feat_importance()
 
