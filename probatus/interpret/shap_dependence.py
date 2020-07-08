@@ -53,7 +53,6 @@ class TreeDependencePlotter:
         self.isFitted = True
         return self
 
-
     def compute_shap_feat_importance(self, decimals=4):
         """
         TODO: DOCSTRING
@@ -67,7 +66,9 @@ class TreeDependencePlotter:
         if type(decimals) is not int:
             raise TypeError("decimals should be integer")
         if decimals < 0:
-            raise ValueError(f"decimals should be greater than or equals than 0 ({decimals} was given)")
+            raise ValueError(
+                f"decimals should be greater than or equals than 0 ({decimals} was given)"
+            )
 
         shap_abs_feat_importance = (
             self.shap_vals_df.abs().mean().sort_values(ascending=False)
@@ -106,7 +107,14 @@ class TreeDependencePlotter:
             raise NotFittedError("The plotter is not fitted yet..")
 
     def feature_plot(
-        self, feature, figsize=(15, 10), bins=10, type_binning='simple', min_q=0, max_q=1, target_names=None
+        self,
+        feature,
+        figsize=(15, 10),
+        bins=10,
+        type_binning="simple",
+        min_q=0,
+        max_q=1,
+        target_names=None,
     ):
         """
         TODO: DOCSTRING
@@ -116,8 +124,10 @@ class TreeDependencePlotter:
             raise ValueError("min_q must be smaller than max_q")
         if feature not in self.X.columns:
             raise ValueError("Feature not recognized")
-        if type_binning not in ['simple', 'agglomerative', 'quantile']:
-            raise ValueError("Select one of the following binning methods: 'simple', 'agglomerative', 'quantile'")
+        if type_binning not in ["simple", "agglomerative", "quantile"]:
+            raise ValueError(
+                "Select one of the following binning methods: 'simple', 'agglomerative', 'quantile'"
+            )
 
         if target_names is not None:
             self.target_names = target_names
@@ -129,7 +139,9 @@ class TreeDependencePlotter:
         ax2 = plt.subplot2grid((3, 1), (2, 0))
 
         self._dependence_plot(feature=feature, ax=ax1)
-        self._target_rate_plot(feature=feature, bins=bins, type_binning=type_binning, ax=ax2)
+        self._target_rate_plot(
+            feature=feature, bins=bins, type_binning=type_binning, ax=ax2
+        )
 
         ax2.set_xlim(ax1.get_xlim())
 
@@ -164,7 +176,9 @@ class TreeDependencePlotter:
 
         return ax
 
-    def _target_rate_plot(self, feature, bins=10, type_binning='simple', ax=None, figsize=(15, 10)):
+    def _target_rate_plot(
+        self, feature, bins=10, type_binning="simple", ax=None, figsize=(15, 10)
+    ):
         """
         TODO: DOCSTRING
         
@@ -183,10 +197,12 @@ class TreeDependencePlotter:
             if type_binning == "simple":
                 counts, bins = SimpleBucketer.simple_bins(x, bins)
             elif type_binning == "agglomerative":
-                counts, bins = AgglomerativeBucketer.agglomerative_clustering_binning(x, bins)
+                counts, bins = AgglomerativeBucketer.agglomerative_clustering_binning(
+                    x, bins
+                )
             elif type_binning == "quantile":
                 counts, bins = QuantileBucketer.quantile_bins(x, bins)
-            
+
         bins[-1] = bins[-1] + 1
         indices = np.digitize(x, bins)
 
