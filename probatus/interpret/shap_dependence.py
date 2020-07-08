@@ -21,10 +21,12 @@ class TreeDependencePlotter:
 
     def __init__(self, model):
         self.model = model
-        self.explainer = shap.TreeExplainer(self.model, feature_pertubation="tree_path_dependent")
+        self.explainer = shap.TreeExplainer(
+            self.model, feature_pertubation="tree_path_dependent"
+        )
 
         self.isFitted = False
-        self.target_names = ['target = 0', 'target = 1']
+        self.target_names = ["target = 0", "target = 1"]
 
     def __repr__(self):
         return "Shap dependence for {}".format(self.model.__class__.__name__)
@@ -61,10 +63,10 @@ class TreeDependencePlotter:
         TODO: DOCSTRING
         """
         self._check_fitted()
-        
+
         shap.summary_plot(self.shap_vals, features=self.X, **kwargs)
-        
-    def compute_shap_feat_importance(self, decimals = 4):
+
+    def compute_shap_feat_importance(self, decimals=4):
         """
         TODO: DOCSTRING
         
@@ -74,20 +76,33 @@ class TreeDependencePlotter:
 
         """
         self._check_fitted()
-        
-        shap_abs_feat_importance = self.shap_vals_df.abs().mean().sort_values(ascending=False)
+
+        shap_abs_feat_importance = (
+            self.shap_vals_df.abs().mean().sort_values(ascending=False)
+        )
         shap_signed_feat_importance = self.shap_vals_df.mean()
 
-        shap_abs_feat_importance = shap_abs_feat_importance.apply(lambda x: np.round(x,decimals))
-        shap_signed_feat_importance = shap_signed_feat_importance.apply(lambda x: np.round(x, decimals))
+        shap_abs_feat_importance = shap_abs_feat_importance.apply(
+            lambda x: np.round(x, decimals)
+        )
+        shap_signed_feat_importance = shap_signed_feat_importance.apply(
+            lambda x: np.round(x, decimals)
+        )
 
         shap_abs_feat_importance.name = "Shap absolute importance"
-        shap_signed_feat_importance.name = 'Shap signed importance'
+        shap_signed_feat_importance.name = "Shap signed importance"
 
-        out = pd.concat(
-            [shap_abs_feat_importance, shap_signed_feat_importance.iloc[shap_abs_feat_importance.index]],
-            axis=1
-        ).reset_index().rename(columns={'index':'Feature Name'})
+        out = (
+            pd.concat(
+                [
+                    shap_abs_feat_importance,
+                    shap_signed_feat_importance.iloc[shap_abs_feat_importance.index],
+                ],
+                axis=1,
+            )
+            .reset_index()
+            .rename(columns={"index": "Feature Name"})
+        )
 
         return out
 
@@ -98,17 +113,19 @@ class TreeDependencePlotter:
         if not self.isFitted:
             raise NotFittedError("The plotter is not fitted yet..")
 
-    def feature_plot(self, feature, figsize=(15, 10), bins=10, min_q=0, max_q=1, target_names=None):
+    def feature_plot(
+        self, feature, figsize=(15, 10), bins=10, min_q=0, max_q=1, target_names=None
+    ):
         """
         TODO: DOCSTRING
         """
         self._check_fitted()
         if min_q >= max_q:
             raise ValueError, "min_q must be smaller than max_q"
-        
+
         if target_names is not None:
             self.target_names = target_names
-        
+
         self.min_q, self.max_q = min_q, max_q
 
         fig = plt.figure(1, figsize=(10, 10))
@@ -135,15 +152,19 @@ class TreeDependencePlotter:
             feature = self.features[feature]
         if feature not in self.features:
             return "Error"
-        
+
         if ax is None:
             fig, ax = plt.subplots(figsize=figsize)
 
         X, y, shap_val = self._get_X_y_shap_with_q_cut(feature=feature)
 
-        ax.scatter(X[y == 0], shap_val[y == 0], label=self.target_names[0], color="lightblue")
+        ax.scatter(
+            X[y == 0], shap_val[y == 0], label=self.target_names[0], color="lightblue"
+        )
 
-        ax.scatter(X[y == 1], shap_val[y == 1], label=self.target_names[1], color="darkred")
+        ax.scatter(
+            X[y == 1], shap_val[y == 1], label=self.target_names[1], color="darkred"
+        )
 
         ax.set_xlabel(feature)
         ax.set_ylabel("Shap value")
@@ -207,7 +228,7 @@ class TreeDependencePlotter:
             shap_val (pd.Series): shap values of selected datapoints
         """
         self._check_fitted()
-        
+
         # Prepare arrays
         x = self.X[feature]
         y = self.y
@@ -217,7 +238,7 @@ class TreeDependencePlotter:
         x_min = x.quantile(self.min_q)
         x_max = x.quantile(self.max_q)
 
-        # Create filter 
+        # Create filter
         filter = (x >= x_min) & (x <= x_max)
 
         # Filter and return terms
@@ -242,12 +263,12 @@ if __name__ == "__main__":
 
     shap.summary_plot(bdp.shap_vals, features=bdp.X)
 
-    #plt.savefig("shap_summary_plot")
+    # plt.savefig("shap_summary_plot")
 
     bdp.feature_plot(feature=1)
 
-    #plt.savefig("feature_plot")
-    
+    # plt.savefig("feature_plot")
+
     feat_importances = bdp.compute_shap_feat_importance()
-    
+
     print(feat_importances)
