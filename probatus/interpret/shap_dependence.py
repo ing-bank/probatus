@@ -121,7 +121,7 @@ class TreeDependencePlotter:
         """
         self._check_fitted()
         if min_q >= max_q:
-            raise ValueError, "min_q must be smaller than max_q"
+            raise ValueError("min_q must be smaller than max_q")
 
         if target_names is not None:
             self.target_names = target_names
@@ -263,11 +263,11 @@ if __name__ == "__main__":
 
     shap.summary_plot(bdp.shap_vals, features=bdp.X)
 
-    # plt.savefig("shap_summary_plot")
+    plt.savefig("shap_summary_plot")
 
-    bdp.feature_plot(feature=1)
+    bdp.feature_plot(feature=2)
 
-    # plt.savefig("feature_plot")
+    plt.savefig("feature_plot")
 
     feat_importances = bdp.compute_shap_feat_importance()
 
