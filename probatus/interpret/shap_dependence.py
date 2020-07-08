@@ -162,7 +162,7 @@ class TreeDependencePlotter:
 
         return ax
 
-    def _target_rate_plot(self, feature, bins=10, type_binning='agglomerative', ax=None, figsize=(15, 10)):
+    def _target_rate_plot(self, feature, bins=10, type_binning='simple', ax=None, figsize=(15, 10)):
         """
         TODO: DOCSTRING
         
@@ -176,9 +176,9 @@ class TreeDependencePlotter:
         """
         x, y, shap_val = self._get_X_y_shap_with_q_cut(feature=feature)
 
+        # Create bins if not explicitly supplied
         if type(bins) is int:
             if type_binning == "simple":
-                # counts, bins = np.histogram(x, bins) # TODO: change to probatus binning functions
                 counts, bins = SimpleBucketer.simple_bins(x, bins)
             elif type_binning == "agglomerative":
                 counts, bins = AgglomerativeBucketer.agglomerative_clustering_binning(x, bins)
@@ -216,7 +216,7 @@ class TreeDependencePlotter:
         Extracts all X, y pairs and shap values that fall within defined quantiles of the feature
         
         Args:
-            feature (str): name of feature to return values for
+            feature (str): feature to return values for
         
         Returns:
             x (pd.Series): selected datapoints
@@ -224,6 +224,8 @@ class TreeDependencePlotter:
             shap_val (pd.Series): shap values of selected datapoints
         """
         self._check_fitted()
+        if feature not in self.X.columns:
+            raise ValueError("Feature not found in data")
 
         # Prepare arrays
         x = self.X[feature]
