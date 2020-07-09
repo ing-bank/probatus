@@ -1,5 +1,17 @@
 """
-TODO: DOCSTRING
+Module to help visualize a model explanation using shap values
+
+Example:
+    >>> from sklearn.datasets import make_classification
+    >>> from sklearn.ensemble import RandomForestClassifier
+
+    >>> X, y = make_classification(n_samples=15, n_features=3, n_informative=3, n_redundant=0, random_state=42)
+
+    >>> clf = RandomForestClassifier().fit(X, y)
+    >>> bdp = TreeDependencePlotter(clf).fit(X, y)
+
+    >>> bdp.feature_plot(feature=2, type_binning='simple')
+    >>> feat_importances = bdp.compute_shap_feat_importance()
 """
 
 import pandas as pd
@@ -14,10 +26,10 @@ from probatus.utils.exceptions import NotFittedError
 
 class TreeDependencePlotter:
     """
-    TODO: DOCSTRING
+    Plotter used to plot shap dependence and target rates. 
     
     Args:
-    model - classifier for which interpretation is done
+        model: classifier for which interpretation is done
     """
 
     def __init__(self, model):
@@ -55,11 +67,13 @@ class TreeDependencePlotter:
 
     def compute_shap_feat_importance(self, decimals=4):
         """
-        TODO: DOCSTRING
+        Computes the absolute importance and the signed importance for shapley values ordered by decreasing absolute importance.
         
-        Returns the absolute importance and the signed importance for shapley values.
-
-        They are ordered by decreasing absolute importance
+        Args:
+            decimals (int): Optional variable to round shap importances to specified number of decimal places.
+            
+        Returns:
+        out (pd.Dataframe): dataframe containing absolute and signed shap importances
 
         """
         self._check_fitted()
@@ -102,6 +116,9 @@ class TreeDependencePlotter:
     def _check_fitted(self):
         """
         Function to check if plotter is already fitted, raises exception otherwise
+        
+        Raises:
+            NotFittedError: in case the plotter is not yet fitted.
         """
         if not self.isFitted:
             raise NotFittedError("The plotter is not fitted yet..")
@@ -117,7 +134,19 @@ class TreeDependencePlotter:
         target_names=None,
     ):
         """
-        TODO: DOCSTRING
+        Plots the shap values for data points for a given feature, as well as the target rate and values distribution.
+        
+        Args:
+            feature (str or int): feature name of the feature to be analyzed.
+            figsize ((float, float)): tuple specifying size (width, height) of resulting figure in inches.
+            bins (int or list[float]): number of bins or boundaries of bins (supplied in list) for target-rate plot.
+            type_binning {'simple', 'agglomerative', 'quantile'}: type of binning to be used in target-rate plot (see :mod:`binning` for more information).
+            min_q (float): optional minimum quantile from which to consider values, used for plotting under outliers.
+            max_q (float): optional maximum quantile until which data points are considered, used for plotting under outliers.
+            target_names (list[str]): optional list of names for target classes to display in plot.
+            
+        Returns
+            matplotlib.pyplot.Figure: Feature plot.
         """
         self._check_fitted()
         if min_q >= max_q:
@@ -149,12 +178,15 @@ class TreeDependencePlotter:
 
     def _dependence_plot(self, feature, ax=None, figsize=(15, 10)):
         """
-        TODO: DOCSTRING
-        Plot the dependence plot for one feature
-        :param feature:
-        :param ax:
-        :param figsize:
-        :return:
+        Plots shap values for data points with respect to specified feature.
+        
+        Args:
+            feature (str or int): feature for which dependence plot is to be created.
+            ax (matplotlib.pyplot.axes): optional axis on which to draw plot.
+            figsize ((float, float)): optional tuple with desired figsize in inches.
+        
+        Returns:
+            matplotlib.pyplot.axes: axes on which plot is drawn.
         """
         if type(feature) is int:
             feature = self.features[feature]
@@ -179,16 +211,20 @@ class TreeDependencePlotter:
     def _target_rate_plot(
         self, feature, bins=10, type_binning="simple", ax=None, figsize=(15, 10)
     ):
-        """
-        TODO: DOCSTRING
+        """ 
+        Plots the distributions of the specific features, as well as the target rate as function of the feature.
         
-        Plots the distributions of the specific features, as well as the default rate as function of the feature
-        :param feature:
-        :param bins:
-        :param type_binning: {'simple', 'agglomerative', 'quantile'}
-        :param ax:
-        :param figsize:
-        :return:
+        Args:
+            feature (str or int): feature for which to create target rate plot
+            bins (int or list[float]): number of bins or boundaries of desired bins in list.
+            type_binning ({'simple', 'agglomerative', 'quantile'}): type of binning strategy used to create bins.
+            ax (matplotlib.pyplot.axes): optional axis on which to draw plot.
+            figsize ((float, float)): optional tuple with desired figsize in inches.            
+            
+        Returns:
+            bins (list[float]): boundaries of bins used.
+            ax (matplotlib.pyplot.axes): axes on which plot is drawn.
+            target_ratio (float): total ratio of target (positive over negative).
         """
         x, y, shap_val = self._get_X_y_shap_with_q_cut(feature=feature)
 
@@ -210,7 +246,7 @@ class TreeDependencePlotter:
             {feature: x, "y": y, "bin_index": pd.Series(indices, index=x.index)}
         ).groupby("bin_index", as_index=True)
 
-        def_ratio = dfs["y"].mean()
+        target_ratio = dfs["y"].mean()
         x_vals = dfs[feature].mean()
 
         ax.hist(x, bins=bins, lw=2, alpha=0.4)
@@ -219,12 +255,12 @@ class TreeDependencePlotter:
 
         ax2 = ax.twinx()
 
-        ax2.plot(x_vals, def_ratio, color="red")
+        ax2.plot(x_vals, target_ratio, color="red")
         ax2.set_ylabel("Target rate", color="red", fontsize=12)
 
         ax2.set_xlim(x.min(), x.max())
 
-        return bins, ax, def_ratio
+        return bins, ax, target_ratio
 
     def _get_X_y_shap_with_q_cut(self, feature):
         """
@@ -256,30 +292,3 @@ class TreeDependencePlotter:
 
         # Filter and return terms
         return x[filter], y[filter], shap_val[filter]
-
-
-"""
-if __name__ == "__main__":
-    from sklearn.datasets import make_classification
-    from sklearn.ensemble import RandomForestClassifier
-
-    X, y = make_classification(
-        n_samples=15, n_features=3, n_informative=3, n_redundant=0, random_state=42
-    )
-
-    clf = RandomForestClassifier()
-
-    clf.fit(X, y)
-
-    bdp = TreeDependencePlotter(clf)
-
-    bdp.fit(X, y)
-
-    for binning in ['simple', 'agglomerative', 'quantile']:
-        bdp.feature_plot(feature=2, type_binning=binning)
-        plt.savefig(f"feature_plot_{binning}")
-
-    feat_importances = bdp.compute_shap_feat_importance()
-
-    print(feat_importances)
-"""
