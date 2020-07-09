@@ -220,4 +220,4 @@ def test_feature_plot_input(X_y, clf):
 
 def test__repr__(clf):
     plotter = TreeDependencePlotter(clf)
-    assert str(plotter) == "Shap dependence for RandomForestClassifier"
+    assert str(plotter) == "Shap dependence plotter for RandomForestClassifier"
