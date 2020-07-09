@@ -39,7 +39,7 @@ class TreeDependencePlotter:
         self.target_names = ["target = 0", "target = 1"]
 
     def __repr__(self):
-        return "Shap dependence for {}".format(self.model.__class__.__name__)
+        return "Shap dependence plotter for {}".format(self.model.__class__.__name__)
 
     def fit(self, X, y, features=None):
         """
@@ -163,7 +163,7 @@ class TreeDependencePlotter:
 
         self.min_q, self.max_q = min_q, max_q
 
-        fig = plt.figure(1, figsize=(10, 10))
+        fig = plt.figure(1, figsize=figsize)
         ax1 = plt.subplot2grid((3, 1), (0, 0), rowspan=2)
         ax2 = plt.subplot2grid((3, 1), (2, 0))
 
