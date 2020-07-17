@@ -18,16 +18,24 @@ class Bucketer(object):
             repr_ += f"\nResults:\n\tcounts: {self.counts}\n\tboundaries: {self.boundaries}"
         return repr_
 
-    def fit(self, X):
+    def fit(self, X, y=None, **kwargs):
         """
         Fit bucketing on X
 
         Args:
             X: (np.array) Input array on which the boundaries of bins are fitted
+            y: (np.array) One dimensional array, used if the target is needed for the bucketing. By default is set to
+            None
+            **kwargs: (dict) Keyword arguments, to be defined per bucketer if needed
 
         Returns: fitted bucketer object
         """
-        self._fit(X)
+        if y is None:
+            self._fit(X, **kwargs)
+        else:
+            self._fit(X, y, **kwargs)
+
+
         self.fitted = True
         return self
 
@@ -91,7 +99,7 @@ class SimpleBucketer(Bucketer):
         counts, boundaries = np.histogram(x, bins=bin_count)
         return counts, boundaries
 
-    def _fit(self, x):
+    def _fit(self, x,y=None):
         self.counts, self.boundaries = self.simple_bins(x, self.bin_count)
 
 
