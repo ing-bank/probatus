@@ -38,6 +38,29 @@ def test_simple_tree():
     assert tpf1.get_boundaries() == exp_boundaries
     assert all(tpf1.is_leaves[[1,4,5,6]])#
 
+def test_complex_tree():
+    test_tree_2 = mock_tree(
+        node_count=15,
+        cl=np.array([1, -1, 3, 4, 5, -1, -1, 8, -1, -1, 11, 12, -1, -1, -1]),
+        cr=np.array([2, -1, 10, 7, 6, -1, -1, 9, -1, -1, 14, 13, -1, -1, -1]),
+        feat=np.array([0, -2, 0, 0, 0, -2, -2, 0, -2, -2, 0, 0, -2, -2, -2]),
+        thresh=np.array([-3.54, -2, 2.795, -1.985, -2.785, -2., -2., 1.675, -2., -2., 3.925, 3.865, -2., -2., -2.])
+    )
+
+    tpf2 = TreePathFinder(test_tree_2)
+
+    exp_boundaries = {1: {'min': -np.inf, 'max': -3.54},
+                      5: {'min': -3.54, 'max': -2.785},
+                      6: {'min': -2.785, 'max': -1.985},
+                      8: {'min': -1.985, 'max': 1.675},
+                      9: {'min': 1.675, 'max': 2.795},
+                      12: {'min': 2.795, 'max': 3.865},
+                      13: {'min': 3.865, 'max': 3.925},
+                      14: {'min': 3.925, 'max': np.inf}}
+
+    assert tpf2.get_boundaries() == exp_boundaries
+    assert all(tpf2.is_leaves[[1, 5, 6, 8,9,12,13,14]])
+
 def test_warning_raised():
 
     test_tree_2 = mock_tree(
