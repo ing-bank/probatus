@@ -55,7 +55,7 @@ class TreePathFinder():
         is_inright = len(in_right) > 0
 
         if is_inleft & is_inright:
-            return "Error"
+            raise ValueError(f "leaf with id {leaf_id} not found in tree")
         elif is_inleft:
             parent = in_left[0]
             operator = '<='

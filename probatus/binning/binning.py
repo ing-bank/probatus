@@ -3,7 +3,7 @@ import numpy as np
 from sklearn.cluster import AgglomerativeClustering
 from sklearn.tree import DecisionTreeClassifier
 
-from probatus.utils import assure_numpy_array,TreePathFinder,ApproximationWarning,NotFittedError
+from probatus.utils import assure_numpy_array, TreePathFinder, ApproximationWarning, NotFittedError
 
 import warnings
 
@@ -24,8 +24,8 @@ class Bucketer(object):
 
         Args:
             X: (np.array) Input array on which the boundaries of bins are fitted
-            y: (np.array) One dimensional array, used if the target is needed for the bucketing. By default is set to
-            None
+            y: (np.array) optional, One dimensional array, used if the target is needed for the bucketing.
+                By default is set to None
             **kwargs: (dict) Keyword arguments, to be defined per bucketer if needed
 
         Returns: fitted bucketer object
@@ -74,7 +74,7 @@ class Bucketer(object):
         Returns: counts of the elements in x_new using the bucketing that was obtained by fitting the Bucketer instance
 
         """
-        self.fit(X,y)
+        self.fit(X, y)
         return self.compute(X)
 
 
