@@ -70,7 +70,9 @@ def test_complex_tree():
     assert all(tpf2.is_leaves[[1, 5, 6, 8,9,12,13,14]])
 
 def test_warning_raised():
-
+    # This specific tree is trained on two features (feat array has index 0 and 1)
+    # The boundaries found by the TreePathFinder are indended for use only on 1 dimensions
+    # Hence this tests that a warning is being raised in case this happens
     test_tree_2 = mock_tree(
         node_count = 7,
         cl = np.array([ 1, -1,  3,  4, -1, -1, -1]),
