@@ -285,6 +285,15 @@ class TreeBucketer(Bucketer):
         y_in = assure_numpy_array(y).reshape(-1, 1)
         tree = DecisionTreeClassifier(**tree_kwargs)
         tree.fit(X_in,y_in)
+
+        if tree.min_samples_leaf>=X_in.shape[0]:
+            error_msg = (
+                "Cannot Fit decision tree. min_samples_leaf must be < than the length of x.m" +
+                f"Currently min_samples_leaf {tree.min_samples_leaf} " +
+                f"and the length of X is {X_in.shape[0]}"
+            )
+            raise ValueError(error_msg)
+
         leaves = tree.apply(X_in)
         index, counts = np.unique(leaves, return_counts=True)
 
