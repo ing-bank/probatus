@@ -56,12 +56,15 @@ class TreePathFinder():
 
         if is_inleft & is_inright:
             return "Error"
-        if is_inleft:
+        elif is_inleft:
             parent = in_left[0]
             operator = '<='
-        if is_inright:
+        elif is_inright:
             parent = in_right[0]
             operator = '>'
+        else:
+            parent = 0
+            operator = 'None'
 
         threshold = self.threshold[parent]
         feature = self.feature[parent]
