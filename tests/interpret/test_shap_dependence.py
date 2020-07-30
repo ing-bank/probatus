@@ -38,21 +38,21 @@ def X_y():
 def expected_shap_vals():
     return pd.DataFrame(
         [
-            [0.19862036, 0.0344507, 0.24426228],
-            [-0.06764518, 0.13746226, 0.27751626],
-            [-0.14957961, -0.0441542, -0.23893285],
-            [-0.14797009, -0.03603992, -0.23865666],
-            [0.08948749, -0.00153468, 0.24938052],
-            [0.19829059, 0.07319157, 0.24585117],
-            [-0.12474354, -0.03249663, -0.2354265],
-            [-0.05132364, 0.14994058, 0.21871639],
-            [0.2097446, 0.0500709, 0.24751783],
-            [-0.13677833, -0.13156015, -0.08432819],
-            [0.19729059, 0.07419157, 0.24585117],
-            [-0.13436034, -0.1060588, -0.21224753],
-            [-0.13780478, -0.07541991, -0.21944197],
-            [-0.14328407, 0.04549881, -0.24488141],
-            [-0.14224634, -0.09829079, -0.20212953],
+            [0.176667, 0.005833, 0.284167],
+            [-0.042020, 0.224520, 0.284167],
+            [-0.092020, -0.135480, -0.205833],
+            [-0.092020, -0.135480, -0.205833],
+            [0.002424, 0.000909, 0.263333],
+            [0.176667, 0.105833, 0.284167],
+            [-0.092020, -0.135480, -0.205833],
+            [-0.028687, 0.311187, 0.184167],
+            [0.176667, 0.005833, 0.284167],
+            [-0.092020, -0.164646, -0.076667],
+            [0.176667, 0.105833, 0.284167],
+            [-0.092020, -0.164646, -0.176667],
+            [-0.092020, -0.164646, -0.176667],
+            [-0.108687, 0.081187, -0.205833],
+            [-0.092020, -0.164646, -0.176667],
         ]
     )
 
@@ -61,7 +61,7 @@ def expected_shap_vals():
 def clf(X_y):
     X, y = X_y
 
-    model = RandomForestClassifier(random_state=42)
+    model = RandomForestClassifier(random_state=42, n_estimators=10, max_depth=5)
 
     model.fit(X, y)
     return model
@@ -71,9 +71,9 @@ def clf(X_y):
 def expected_feat_importances():
     return pd.DataFrame(
         {
-            "Feature Name": {0: 2, 1: 0, 2: 1},
-            "Shap absolute importance": {0: 0.227, 1: 0.1419, 2: 0.0727},
-            "Shap signed importance": {0: 0.0035, 1: -0.0228, 2: 0.0026},
+            "Feature Name": {0: 2, 1: 1, 2: 0},
+            "Shap absolute importance": {0: 0.2199, 1: 0.1271, 2: 0.1022},
+            "Shap signed importance": {0: 0.0292, 1: -0.0149, 2: -0.0076},
         }
     )
 
@@ -93,25 +93,9 @@ def test_fit_normal(X_y, clf, expected_shap_vals):
     assert plotter.y.equals(y)
     assert np.isclose(
         plotter.proba,
-        [
-            0.94,
-            0.81,
-            0.03,
-            0.04,
-            0.8,
-            0.98,
-            0.07,
-            0.78,
-            0.97,
-            0.11,
-            0.98,
-            0.01,
-            0.03,
-            0.12,
-            0.02,
-        ],
+        [0.9, 0.9, 0.0, 0.0, 0.7, 1.0, 0.0, 0.9, 0.9, 0.1, 1.0, 0.0, 0.0, 0.2, 0.0],
     ).all()
-    assert np.isclose(plotter.shap_vals_df, expected_shap_vals).all()
+    assert np.isclose(plotter.shap_vals_df, expected_shap_vals, atol=1e-06).all()
     assert plotter.isFitted is True
 
 
@@ -119,10 +103,19 @@ def test_fit_features(X_y, clf):
     X, y = X_y
     plotter = TreeDependencePlotter(clf)
 
-    feature_names = ["feature un", "feature dos", "feature tres"]
+    feature_names = [0, 1, 2]
     plotter.fit(X, y, feature_names)
 
     assert plotter.features == feature_names
+
+
+def test_fit_invalid_features(X_y, clf):
+    X, y = X_y
+    plotter = TreeDependencePlotter(clf)
+
+    feature_names = ["not a feature"]
+    with pytest.raises(KeyError):
+        plotter.fit(X, y, feature_names)
 
 
 def test_get_X_y_shap_with_q_cut_normal(X_y, clf):

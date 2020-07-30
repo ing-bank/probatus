@@ -36,7 +36,7 @@ class TreeDependencePlotter:
         self.model = model
 
         self.isFitted = False
-        self.target_names = ["target = 0", "target = 1"]
+        self.target_names = [1, 0]
 
     def __repr__(self):
         return "Shap dependence plotter for {}".format(self.model.__class__.__name__)
@@ -48,7 +48,7 @@ class TreeDependencePlotter:
         Args:
         X (pd.DataFrame): input variables
         y (pd.Series): target variable
-        features (list[str]): names of features
+        features (list[str]): names of features to be considered 
         
         Returns:
         self (TreeDependencePlotter)
@@ -56,7 +56,11 @@ class TreeDependencePlotter:
         self.X = assure_pandas_df(X)
         self.y = y
 
-        self.features = self.X.columns if features is None else features
+        if features is None:
+            self.features = self.X.columns
+        else:
+            self.features = features
+            self.X = self.X[features]
 
         self.proba = self.model.predict_proba(X)[:, 1]
 
@@ -239,25 +243,25 @@ class TreeDependencePlotter:
             elif type_binning == "quantile":
                 counts, bins = QuantileBucketer.quantile_bins(x, bins)
 
+        # Determine bin for datapoints
         bins[-1] = bins[-1] + 1
         indices = np.digitize(x, bins)
 
+        # Create dataframe with binned data
         dfs = pd.DataFrame(
             {feature: x, "y": y, "bin_index": pd.Series(indices, index=x.index)}
         ).groupby("bin_index", as_index=True)
 
+        # Extract target ratio and mean feature value
         target_ratio = dfs["y"].mean()
         x_vals = dfs[feature].mean()
 
+        # Plot target rate
         ax.hist(x, bins=bins, lw=2, alpha=0.4)
-
         ax.set_ylabel("Counts")
-
         ax2 = ax.twinx()
-
         ax2.plot(x_vals, target_ratio, color="red")
         ax2.set_ylabel("Target rate", color="red", fontsize=12)
-
         ax2.set_xlim(x.min(), x.max())
 
         return bins, ax, target_ratio
