@@ -3,7 +3,7 @@ import pandas as pd
 
 import pytest
 
-from probatus.utils import assure_numpy_array, check_1d, DimensionalityError
+from probatus.utils import assure_numpy_array, assure_pandas_df, check_1d, DimensionalityError
 
 
 def test_assure_numpy_array_list():
@@ -91,3 +91,46 @@ def test_check_1d_series():
     y = pd.Series([[1], [2, 3]])
     with pytest.raises(DimensionalityError):
         assert check_1d(y)
+
+@pytest.fixture(scope="function")
+def expected_df_2d():
+    return pd.DataFrame({0: [1, 2], 1: [2, 3], 2: [3, 4]})
+
+@pytest.fixture(scope="function")
+def expected_df():
+    return pd.DataFrame({0: [1, 2, 3]})
+
+def test_assure_pandas_df_list(expected_df):
+    x = [1, 2, 3]
+    x_df = assure_pandas_df(x)
+    assert x_df.equals(expected_df)
+
+def test_assure_pandas_df_list_of_lists(expected_df_2d):
+    x = [[1, 2, 3], [2, 3, 4]]
+    x_df = assure_pandas_df(x)
+    assert x_df.equals(expected_df_2d)
+    
+def test_assure_pandas_df_series(expected_df):
+    x = pd.Series([1, 2, 3])
+    x_df = assure_pandas_df(x)
+    assert x_df.equals(expected_df)
+    
+def test_assure_pandas_df_array(expected_df, expected_df_2d):
+    x = np.array([[1, 2, 3], [2, 3, 4]])
+    x_df = assure_pandas_df(x)
+    assert x_df.equals(expected_df_2d)
+    
+    x = np.array([1, 2, 3])
+    x_df = assure_pandas_df(x)
+    assert x_df.equals(expected_df)
+    
+def test_assure_pandas_df_df(expected_df_2d):
+    x = pd.DataFrame([[1, 2, 3], [2, 3, 4]])
+    x_df = assure_pandas_df(x)
+    assert x_df.equals(expected_df_2d)
+    
+def test_assure_pandas_df_types():
+    with pytest.raises(TypeError):
+        assure_pandas_df("Test")
+    with pytest.raises(TypeError):
+        assure_pandas_df(5)
