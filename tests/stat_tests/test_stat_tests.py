@@ -11,13 +11,15 @@ def test_psi_returns_zero():
     myBucketer.fit(x)
     d1 = myBucketer.counts
     d2 = d1
-    assert psi(d1, d2, verbose=False) == 0.0
+    psi_test, p_value_test = psi(d1, d2, verbose=False)
+    assert psi_test == 0.0
 
 
 def test_psi_returns_large():
     d1 = np.histogram(np.random.normal(size=1000), 10)[0]
     d2 = np.histogram(np.random.weibull(1, size=1000) - 1, 10)[0]
-    assert psi(d1, d2, verbose=False) > 1.0
+    psi_test, p_value_test = psi(d1, d2, verbose=False)
+    assert psi_test > 1.0
 
 
 def test_ks_returns_one():

@@ -1,5 +1,6 @@
 import numpy as np
 import scipy.stats as stats
+
 from ..utils import assure_numpy_array
 
 
@@ -11,6 +12,7 @@ def psi(d1, d2, verbose=False):
     modeling industry. Only works on categorical data or bucketed numerical data. Distributions must be binned/bucketed
     before passing them to this function. Bin boundaries should be same for both distributions. Distributions must have
     same number of buckets. Note that the PSI varies with number of buckets chosen (typically 10-20 bins are used).
+    Quantile bucketing is typically recommended.
 
     Args:
         d1 (np.ndarray or pd.core.series.Series) : first distribution ("expected")
@@ -20,8 +22,11 @@ def psi(d1, d2, verbose=False):
     Returns:
         psi_value (float) : measure of the similarity between d1 & d2. (range 0-inf, with 0 indicating identical
                             distributions and > 0.25 indicating significantly different distributions)
+        p_value (float): p-value
+
     Raises:
         UserWarning: if number of bins in d1 or d2 is less than 10 or greater than 20, where PSI is not well-behaved.
+        ValueError: if d1 & d2 do not have the same number of bins
     """
 
     d1 = assure_numpy_array(d1)
@@ -84,4 +89,7 @@ def psi(d1, d2, verbose=False):
         elif psi_value < psi_critvals[0]:
             print('PSI: Distributions similar.')
 
-    return psi_value
+    z = (psi_value / ((1 / n) + (1 / m)) - (b - 1)) / np.sqrt(2 * (b - 1))
+    p_value = stats.norm.cdf(z)
+
+    return psi_value, p_value

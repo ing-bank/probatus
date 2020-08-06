@@ -21,9 +21,9 @@ def test_distribution_statistics_psi():
     d2 = np.histogram(np.random.weibull(1, size=1000) - 1, 10)[0]
     myTest = DistributionStatistics('psi', 'SimpleBucketer', bin_count=10)
     assert not myTest.fitted
-    res = myTest.compute(d1, d2)
+    psi_test, p_value_test = myTest.compute(d1, d2)
     assert myTest.fitted
-    assert isinstance(res, numbers.Number)
+    assert isinstance(psi_test, numbers.Number)
 
 
 def test_distribution_statistics_tuple_output():
@@ -53,8 +53,8 @@ def test_distribution_statistics_attributes_psi():
     d2 = np.histogram(b, 10)[0]
     myTest = DistributionStatistics('psi', binning_strategy=None)
     _ = myTest.compute(d1, d2, verbose=False)
-    psi_value = psi(d1, d2, verbose=False)
-    assert myTest.statistic == psi_value
+    psi_value_test, p_value_test = psi(d1, d2, verbose=False)
+    assert myTest.statistic == psi_value_test
 
 
 def test_distribution_statistics_attributes_ks():
