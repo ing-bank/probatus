@@ -5,9 +5,9 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
-- TreeBucketer
-- TreePathFinder Helper class to find the boundaries of the leaves of the Decision Tree
+## [1.0.1] - 2020-08-07
+- TreeBucketer, which bins the data based on the target distribution, using Decision Trees fitted on a single feature
+- PSI calculation includes the p-values calculation
 
 ## [1.0.0] - 2020-02-24
 - metric_volatility and sample_similarity rebuilt
