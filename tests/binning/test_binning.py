@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 from probatus.utils import NotFittedError
 
-from probatus.binning import SimpleBucketer, QuantileBucketer, AgglomerativeBucketer
+from probatus.binning import SimpleBucketer, QuantileBucketer, AgglomerativeBucketer, TreeBucketer
 
 
 def test_simple_bins():
@@ -100,3 +100,74 @@ def test_quantile_with_unique_values():
     )
 
     assert (actual_out[0] == expected_out[0]).all()
+
+
+def test_tree_bucketer():
+
+    x = np.array([0. , 0.2, 0.4, 0.6, 0.8, 1. , 1.2, 1.4, 1.6, 1.8, 2. , 2.2, 2.4,
+       2.6, 2.8, 3. , 3.2, 3.4, 3.6, 3.8, 4. , 4.2, 4.4, 4.6, 4.8, 5. ,
+       5.2, 5.4, 5.6, 5.8, 6. , 6.2, 6.4, 6.6, 6.8, 7. , 7.2, 7.4, 7.6,
+       7.8, 8. , 8.2, 8.4, 8.6, 8.8, 9. , 9.2, 9.4, 9.6, 9.8])
+
+    y = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+       1, 0, 0, 0, 1, 0, 0, 1, 0, 1, 1, 0, 0, 0, 1, 1, 0, 1, 1, 1, 1, 1,
+       1, 1, 1, 1, 1, 1])
+
+    myTreeBucketer = TreeBucketer(inf_edges=False,max_depth=3,min_samples_leaf=10,random_state=42)
+
+    assert not myTreeBucketer.fitted
+
+    myTreeBucketer.fit(x,y)
+
+    assert all(myTreeBucketer.counts==np.array([21, 15, 14]))
+    assert myTreeBucketer.bin_count==3
+    assert all(myTreeBucketer.boundaries - np.array([0.0, 4.1, 7.1, 9.8])<0.01)
+
+    # If infinite edges is False, it must get the edges of the x array
+    assert myTreeBucketer.boundaries[0] == 0
+    assert myTreeBucketer.boundaries[-1] == 9.8
+
+
+    myTreeBucketer = TreeBucketer(inf_edges=True,max_depth=3, min_samples_leaf=10, random_state=42)
+
+    myTreeBucketer.fit(x, y)
+    # check that the infinite edges is True, then edges must be infinite
+    assert myTreeBucketer.boundaries[0] == -np.inf
+    assert myTreeBucketer.boundaries[-1] == +np.inf
+
+
+def test_tree_bucketer_dependence():
+    x = np.arange(0, 10, 0.01)
+    y = [1 if z < 0.5 else 0 for z in np.random.uniform(size=x.shape[0])]
+
+
+    # Test number of leaves is always within the expected ranges
+    myTreeBucketer = TreeBucketer(inf_edges=False, max_depth=3, min_samples_leaf=10, random_state=42).fit(x,y)
+    assert myTreeBucketer.bin_count<=np.power(2,myTreeBucketer.tree.max_depth)
+
+    # Test number of leaves is always within the expected ranges
+    myTreeBucketer = TreeBucketer(inf_edges=False, max_depth=6, min_samples_leaf=1, random_state=42).fit(x, y)
+    assert myTreeBucketer.bin_count <= np.power(2, myTreeBucketer.tree.max_depth)
+
+    # Test that the counts per bin never drop below min_samples_leaf
+    myTreeBucketer = TreeBucketer(inf_edges=False, max_depth=6, min_samples_leaf=100, random_state=42).fit(x, y)
+    assert all(myTreeBucketer.counts >= myTreeBucketer.tree.min_samples_leaf)
+
+    myTreeBucketer = TreeBucketer(inf_edges=False, max_depth=6, min_samples_leaf=200, random_state=42).fit(x, y)
+    assert all(myTreeBucketer.counts >= myTreeBucketer.tree.min_samples_leaf)
+
+    # Test that if the leaf is set to the number of entries,it raises an Error
+    myTreeBucketer = TreeBucketer(inf_edges=False, max_depth=6, min_samples_leaf=x.shape[0], random_state=42)
+
+    with pytest.raises(ValueError):
+        assert myTreeBucketer.fit(x, y)
+
+    # Test that if the leaf is set to the number of entries-1, it returns only one bin
+    myTreeBucketer = (
+        TreeBucketer(inf_edges=False, max_depth=6, min_samples_leaf=x.shape[0]-1, random_state=42) \
+        .fit(x, y)
+    )
+    assert myTreeBucketer.bin_count ==1
+    assert all(myTreeBucketer.counts >= myTreeBucketer.tree.min_samples_leaf)
+
+
