@@ -7,7 +7,7 @@ from tqdm.auto import tqdm
 from probatus.utils import assure_numpy_array, NotFittedError, get_scorers, assure_list_of_strings,\
     assure_list_values_allowed
 from probatus.metric_volatility.utils import check_sampling_input
-from probatus.stat_tests import DistributionStatistics
+from probatus.stat_tests.distribution_statistics import DistributionStatistics
 import warnings
 
 

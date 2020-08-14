@@ -1,6 +1,10 @@
 import numpy as np
 import pandas as pd
-from probatus.stat_tests import ad, es, ks, psi, sw
+from probatus.stat_tests import ks, psi
+from probatus.stat_tests.es import es
+from probatus.stat_tests.ad import ad
+from probatus.stat_tests.sw import sw
+
 from probatus.binning import binning
 
 
