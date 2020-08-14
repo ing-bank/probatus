@@ -40,33 +40,29 @@ class DistributionStatistics(object):
     myTest.compute(d1, d2, verbose=True)
 
     """
-    statistical_test_list = ['ES', 'KS', 'PSI', 'AD', 'SW']
     binning_strategy_list = ['simplebucketer', 'agglomerativebucketer', 'quantilebucketer', None]
-
+    statistical_test_dict = {
+        'ES':  {'func': es,  'name': 'Epps-Singleton'},
+        'KS':  {'func': ks,  'name': 'Kolmogorov-Smirnov'},  
+        'AD':  {'func': ad,  'name': 'Anderson-Darling TS'}, 
+        'SW':  {'func': sw,  'name': 'Shapiro-Wilk based difference'},
+        'PSI': {'func': psi, 'name': 'Population Stability Index'}
+    }
+    
     def __init__(self, statistical_test, binning_strategy='simplebucketer', bin_count=10 ):
         self.statistical_test = statistical_test.upper()
         self.binning_strategy = binning_strategy
         self.bin_count = bin_count
         self.fitted = False
 
-        if self.statistical_test.upper() not in self.statistical_test_list:
-            raise NotImplementedError("The statistical test should be one of {}".format(self.statistical_test_list))
-        elif self.statistical_test.upper() == 'ES':
-            self.statistical_test_name = 'Epps-Singleton'
-            self._statistical_test_function = es
-        elif self.statistical_test.upper() == 'KS':
-            self.statistical_test_name = 'Kolmogorov-Smirnov'
-            self._statistical_test_function = ks
-        elif self.statistical_test.upper() == 'PSI':
-            self.statistical_test_name = 'Population Stability Index'
-            self._statistical_test_function = psi
-        elif self.statistical_test.upper() == 'SW':
-            self.statistical_test_name = 'Shapiro-Wilk based difference'
-            self._statistical_test_function = sw
-        elif self.statistical_test.upper() == 'AD':
-            self.statistical_test_name = 'Anderson-Darling TS'
-            self._statistical_test_function = ad
+        # Initialize the statistical test
+        if self.statistical_test not in self.statistical_test_dict:
+            raise NotImplementedError("The statistical test should be one of {}".format(self.statistical_test_dict.keys()))
+        else:
+            self.statistical_test_name = self.statistical_test_dict[self.statistical_test]['name']
+            self._statistical_test_function = self.statistical_test_dict[self.statistical_test]['func']
 
+        # Initialize the binning strategy
         if self.binning_strategy:
             if self.binning_strategy.lower() not in self.binning_strategy_list:
                 raise NotImplementedError("The binning strategy should be one of {}".format(self.binning_strategy_list))
@@ -100,6 +96,7 @@ class DistributionStatistics(object):
 
         Returns: (Touple of floats) statistic value and p_value. For PSI test the return is only statistic
         """
+        # Bin the data
         if self.binning_strategy:
             self.binner.fit(d1)
             d1_preprocessed = self.binner.counts
@@ -107,8 +104,11 @@ class DistributionStatistics(object):
         else:
             d1_preprocessed, d2_preprocessed = d1, d2
 
+        # Perform the statistical test
         res = self._statistical_test_function(d1_preprocessed, d2_preprocessed, verbose=verbose, **kwargs)
         self.fitted = True
+        
+        # Check form of results and return
         if type(res) == tuple:
             self.statistic, self.p_value = res
             return self.statistic, self.p_value
@@ -152,7 +152,7 @@ class AutoDist(object):
     def __init__(self, statistical_tests='all', binning_strategies='all', bin_count=10):
         self.fitted = False
         if statistical_tests == 'all':
-            self.statistical_tests = DistributionStatistics.statistical_test_list
+            self.statistical_tests = list(DistributionStatistics.statistical_test_dict.keys())
         elif isinstance(statistical_tests, str):
             self.statistical_tests = [statistical_tests]
         else:

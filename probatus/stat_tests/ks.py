@@ -16,15 +16,16 @@ def ks(d1, d2, verbose=False):
         ks (float)     : KS test stat
         pvalue (float) : P value of rejecting the null hypothesis (that the two distributions are identical)
     """
-
+    # Perform data checks
     d1 = assure_numpy_array(d1)
     d2 = assure_numpy_array(d2)
 
+    # Perform statistical tests
     ks, pvalue = stats.ks_2samp(d1, d2)
 
+    # Print the evaluation of statistical hypotheses
     if verbose:
         print('\nKS: pvalue =', pvalue)
-
         if pvalue < 0.01:
             print('\nKS: Null hypothesis rejected with 99% confidence. Distributions very different.')
         elif pvalue < 0.05:
