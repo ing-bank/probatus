@@ -69,11 +69,11 @@ def psi(d1, d2, verbose=False):
 
         print('\nPSI: Critical values defined according to de facto industry standard:')
         if psi_value <= 0.1:
-            print('\nPSI <= 0.10: No significant distribution change.\n')
+            print('PSI <= 0.10: No significant distribution change.')
         elif 0.1 < psi_value <= 0.25:
-            print('\nPSI <= 0.25: Small distribution change; may require investigation.\n')
+            print('PSI <= 0.25: Small distribution change; may require investigation.')
         elif psi_value > 0.25:
-            print('\nPSI > 0.25: Significant distribution change; investigate.\n')
+            print('PSI > 0.25: Significant distribution change; investigate.')
 
         # Calculate the critical values and 
         alpha = [0.95, 0.99, 0.999]
@@ -81,13 +81,13 @@ def psi(d1, d2, verbose=False):
         psi_critvals = ((1 / n) + (1 / m)) * (b - 1) + z_alpha * ((1 / n) + (1 / m)) * np.sqrt(2 * (b - 1))
         print('\nPSI: Critical values defined according to Yurdakul (2018):')
         if psi_value > psi_critvals[2]:
-            print('PSI: 99.9% confident distributions have changed.\n')
+            print('99.9% confident distributions have changed.')
         elif psi_value > psi_critvals[1]:
-            print('PSI: 99% confident distributions have changed.\n')
+            print('99% confident distributions have changed.')
         elif psi_value > psi_critvals[0]:
-            print('PSI: 95% confident distributions have changed.\n')
+            print('95% confident distributions have changed.')
         elif psi_value < psi_critvals[0]:
-            print('PSI: Distributions similar.\n')
+            print('No significant distribution change.')
 
     # Calculate p-value 
     z = (psi_value / ((1 / n) + (1 / m)) - (b - 1)) / np.sqrt(2 * (b - 1))

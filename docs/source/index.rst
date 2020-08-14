@@ -23,6 +23,7 @@ Welcome to probatus documentation!
 
    nb_metric_volatility.ipynb
    nb_sample_similarity.ipynb
+   nb_distribution_statistics.ipynb
 
 .. toctree::
    :maxdepth: 2
