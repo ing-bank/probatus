@@ -35,13 +35,19 @@ def es(d1, d2, verbose=False):
     es, pvalue = stats.epps_singleton_2samp(d1, d2)
 
     if verbose:
-        print('\nES: pvalue =', pvalue)
+        print("\nES: pvalue =", pvalue)
 
         if pvalue < 0.01:
-            print('\nES: Null hypothesis rejected with 99% confidence. Distributions very different.')
+            print(
+                "\nES: Null hypothesis rejected with 99% confidence. Distributions very different."
+            )
         elif pvalue < 0.05:
-            print('\nES: Null hypothesis rejected with 95% confidence. Distributions different.')
+            print(
+                "\nES: Null hypothesis rejected with 95% confidence. Distributions different."
+            )
         else:
-            print('\nES: Null hypothesis cannot be rejected. Distributions not statistically different.')
+            print(
+                "\nES: Null hypothesis cannot be rejected. Distributions not statistically different."
+            )
 
     return es, pvalue

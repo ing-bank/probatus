@@ -25,12 +25,18 @@ def ks(d1, d2, verbose=False):
 
     # Print the evaluation of statistical hypotheses
     if verbose:
-        print('\nKS: pvalue =', pvalue)
+        print("\nKS: pvalue =", pvalue)
         if pvalue < 0.01:
-            print('\nKS: Null hypothesis rejected with 99% confidence. Distributions very different.')
+            print(
+                "\nKS: Null hypothesis rejected with 99% confidence. Distributions very different."
+            )
         elif pvalue < 0.05:
-            print('\nKS: Null hypothesis rejected with 95% confidence. Distributions different.')
+            print(
+                "\nKS: Null hypothesis rejected with 95% confidence. Distributions different."
+            )
         else:
-            print('\nKS: Null hypothesis cannot be rejected. Distributions not statistically different.')
+            print(
+                "\nKS: Null hypothesis cannot be rejected. Distributions not statistically different."
+            )
 
     return ks, pvalue

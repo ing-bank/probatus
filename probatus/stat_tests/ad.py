@@ -32,13 +32,19 @@ def ad(d1, d2, verbose=False):
     ad, critical_values, pvalue = stats.anderson_ksamp([d1, d2])
 
     if verbose:
-        print('\nAD: pvalue =', pvalue)
+        print("\nAD: pvalue =", pvalue)
 
         if pvalue < 0.01:
-            print('\nAD: Null hypothesis rejected with 99% confidence. Distributions very different.')
+            print(
+                "\nAD: Null hypothesis rejected with 99% confidence. Distributions very different."
+            )
         elif pvalue < 0.05:
-            print('\nAD: Null hypothesis rejected with 95% confidence. Distributions different.')
+            print(
+                "\nAD: Null hypothesis rejected with 95% confidence. Distributions different."
+            )
         else:
-            print('\nAD: Null hypothesis cannot be rejected. Distributions not statistically different.')
+            print(
+                "\nAD: Null hypothesis cannot be rejected. Distributions not statistically different."
+            )
 
     return ad, pvalue

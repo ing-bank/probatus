@@ -35,11 +35,11 @@ def psi(d1, d2, verbose=False):
     d2 = assure_numpy_array(d2)
 
     if len(d1) < 10:
-        warnings.warn('PSI is not well-behaved when using less than 10 bins.')
+        warnings.warn("PSI is not well-behaved when using less than 10 bins.")
     if len(d1) > 20:
-        warnings.warn('PSI is not well-behaved when using more than 20 bins.')
+        warnings.warn("PSI is not well-behaved when using more than 20 bins.")
     if len(d1) != len(d2):
-        raise ValueError('Distributions do not have the same number of bins.')
+        raise ValueError("Distributions do not have the same number of bins.")
 
     # Number of bins/buckets
     b = len(d1)
@@ -57,39 +57,45 @@ def psi(d1, d2, verbose=False):
         if expected_ratio[i] == 0:
             expected_ratio[i] = 0.0001
             if verbose:
-                print(f"PSI: Bucket {i} has zero counts; may result in over-estimated (larger) PSI value. Decreasing \
-                        the number of buckets may also help avoid buckets with zero counts.")
+                print(
+                    f"PSI: Bucket {i} has zero counts; may result in over-estimated (larger) PSI value. Decreasing \
+                        the number of buckets may also help avoid buckets with zero counts."
+                )
 
     # Calculate the PSI value
-    psi_value = np.sum((actual_ratio - expected_ratio) * np.log(actual_ratio / expected_ratio))
+    psi_value = np.sum(
+        (actual_ratio - expected_ratio) * np.log(actual_ratio / expected_ratio)
+    )
 
     # Print the evaluation of statistical hypotheses
     if verbose:
-        print('\nPSI =', psi_value)
+        print("\nPSI =", psi_value)
 
-        print('\nPSI: Critical values defined according to de facto industry standard:')
+        print("\nPSI: Critical values defined according to de facto industry standard:")
         if psi_value <= 0.1:
-            print('PSI <= 0.10: No significant distribution change.')
+            print("PSI <= 0.10: No significant distribution change.")
         elif 0.1 < psi_value <= 0.25:
-            print('PSI <= 0.25: Small distribution change; may require investigation.')
+            print("PSI <= 0.25: Small distribution change; may require investigation.")
         elif psi_value > 0.25:
-            print('PSI > 0.25: Significant distribution change; investigate.')
+            print("PSI > 0.25: Significant distribution change; investigate.")
 
-        # Calculate the critical values and 
+        # Calculate the critical values and
         alpha = [0.95, 0.99, 0.999]
         z_alpha = stats.norm.ppf(alpha)
-        psi_critvals = ((1 / n) + (1 / m)) * (b - 1) + z_alpha * ((1 / n) + (1 / m)) * np.sqrt(2 * (b - 1))
-        print('\nPSI: Critical values defined according to Yurdakul (2018):')
+        psi_critvals = ((1 / n) + (1 / m)) * (b - 1) + z_alpha * (
+            (1 / n) + (1 / m)
+        ) * np.sqrt(2 * (b - 1))
+        print("\nPSI: Critical values defined according to Yurdakul (2018):")
         if psi_value > psi_critvals[2]:
-            print('99.9% confident distributions have changed.')
+            print("99.9% confident distributions have changed.")
         elif psi_value > psi_critvals[1]:
-            print('99% confident distributions have changed.')
+            print("99% confident distributions have changed.")
         elif psi_value > psi_critvals[0]:
-            print('95% confident distributions have changed.')
+            print("95% confident distributions have changed.")
         elif psi_value < psi_critvals[0]:
-            print('No significant distribution change.')
+            print("No significant distribution change.")
 
-    # Calculate p-value 
+    # Calculate p-value
     z = (psi_value / ((1 / n) + (1 / m)) - (b - 1)) / np.sqrt(2 * (b - 1))
     p_value = stats.norm.cdf(z)
 

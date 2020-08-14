@@ -40,16 +40,24 @@ class DistributionStatistics(object):
     myTest.compute(d1, d2, verbose=True)
 
     """
-    binning_strategy_list = ['simplebucketer', 'agglomerativebucketer', 'quantilebucketer', None]
+
+    binning_strategy_list = [
+        "simplebucketer",
+        "agglomerativebucketer",
+        "quantilebucketer",
+        None,
+    ]
     statistical_test_dict = {
-        'ES':  {'func': es,  'name': 'Epps-Singleton'},
-        'KS':  {'func': ks,  'name': 'Kolmogorov-Smirnov'},  
-        'AD':  {'func': ad,  'name': 'Anderson-Darling TS'}, 
-        'SW':  {'func': sw,  'name': 'Shapiro-Wilk based difference'},
-        'PSI': {'func': psi, 'name': 'Population Stability Index'}
+        "ES": {"func": es, "name": "Epps-Singleton"},
+        "KS": {"func": ks, "name": "Kolmogorov-Smirnov"},
+        "AD": {"func": ad, "name": "Anderson-Darling TS"},
+        "SW": {"func": sw, "name": "Shapiro-Wilk based difference"},
+        "PSI": {"func": psi, "name": "Population Stability Index"},
     }
-    
-    def __init__(self, statistical_test, binning_strategy='simplebucketer', bin_count=10 ):
+
+    def __init__(
+        self, statistical_test, binning_strategy="simplebucketer", bin_count=10
+    ):
         self.statistical_test = statistical_test.upper()
         self.binning_strategy = binning_strategy
         self.bin_count = bin_count
@@ -57,31 +65,49 @@ class DistributionStatistics(object):
 
         # Initialize the statistical test
         if self.statistical_test not in self.statistical_test_dict:
-            raise NotImplementedError("The statistical test should be one of {}".format(self.statistical_test_dict.keys()))
+            raise NotImplementedError(
+                "The statistical test should be one of {}".format(
+                    self.statistical_test_dict.keys()
+                )
+            )
         else:
-            self.statistical_test_name = self.statistical_test_dict[self.statistical_test]['name']
-            self._statistical_test_function = self.statistical_test_dict[self.statistical_test]['func']
+            self.statistical_test_name = self.statistical_test_dict[
+                self.statistical_test
+            ]["name"]
+            self._statistical_test_function = self.statistical_test_dict[
+                self.statistical_test
+            ]["func"]
 
         # Initialize the binning strategy
         if self.binning_strategy:
             if self.binning_strategy.lower() not in self.binning_strategy_list:
-                raise NotImplementedError("The binning strategy should be one of {}".format(self.binning_strategy_list))
-            if self.binning_strategy.lower() == 'simplebucketer':
+                raise NotImplementedError(
+                    "The binning strategy should be one of {}".format(
+                        self.binning_strategy_list
+                    )
+                )
+            if self.binning_strategy.lower() == "simplebucketer":
                 self.binner = SimpleBucketer(bin_count=self.bin_count)
-            elif self.binning_strategy.lower() == 'agglomerativebucketer':
+            elif self.binning_strategy.lower() == "agglomerativebucketer":
                 self.binner = AgglomerativeBucketer(bin_count=self.bin_count)
-            elif self.binning_strategy.lower() == 'quantilebucketer':
+            elif self.binning_strategy.lower() == "quantilebucketer":
                 self.binner = QuantileBucketer(bin_count=self.bin_count)
 
     def __repr__(self):
-        repr_ = "DistributionStatistics object\n\tstatistical_test: {}".format(self.statistical_test)
+        repr_ = "DistributionStatistics object\n\tstatistical_test: {}".format(
+            self.statistical_test
+        )
         if self.binning_strategy:
-            repr_ += "\n\tbinning_strategy: {}\n\tbin_count: {}".format(self.binning_strategy, self.bin_count)
+            repr_ += "\n\tbinning_strategy: {}\n\tbin_count: {}".format(
+                self.binning_strategy, self.bin_count
+            )
         else:
             repr_ += "\n\tNo binning applied"
         if self.fitted:
-            repr_ += "\nResults\n\tvalue {}-statistic: {}".format(self.statistical_test, self.statistic)
-        if hasattr(self, 'p_value'):
+            repr_ += "\nResults\n\tvalue {}-statistic: {}".format(
+                self.statistical_test, self.statistic
+            )
+        if hasattr(self, "p_value"):
             repr_ += "\n\tp-value: {}".format(self.p_value)
         return repr_
 
@@ -105,9 +131,11 @@ class DistributionStatistics(object):
             d1_preprocessed, d2_preprocessed = d1, d2
 
         # Perform the statistical test
-        res = self._statistical_test_function(d1_preprocessed, d2_preprocessed, verbose=verbose, **kwargs)
+        res = self._statistical_test_function(
+            d1_preprocessed, d2_preprocessed, verbose=verbose, **kwargs
+        )
         self.fitted = True
-        
+
         # Check form of results and return
         if type(res) == tuple:
             self.statistic, self.p_value = res
@@ -149,15 +177,17 @@ class AutoDist(object):
         res = myAutoDist.fit(df1, df2, columns=df1.columns)
     """
 
-    def __init__(self, statistical_tests='all', binning_strategies='all', bin_count=10):
+    def __init__(self, statistical_tests="all", binning_strategies="all", bin_count=10):
         self.fitted = False
-        if statistical_tests == 'all':
-            self.statistical_tests = list(DistributionStatistics.statistical_test_dict.keys())
+        if statistical_tests == "all":
+            self.statistical_tests = list(
+                DistributionStatistics.statistical_test_dict.keys()
+            )
         elif isinstance(statistical_tests, str):
             self.statistical_tests = [statistical_tests]
         else:
             self.statistical_tests = statistical_tests
-        if binning_strategies == 'all':
+        if binning_strategies == "all":
             self.binning_strategies = DistributionStatistics.binning_strategy_list
         elif isinstance(binning_strategies, str):
             self.binning_strategies = [binning_strategies]
@@ -179,7 +209,14 @@ class AutoDist(object):
         repr_ += "\n\tbin_count: {}".format(self.bin_count)
         return repr_
 
-    def compute(self, df1, df2, column_selection, return_failed_tests=True, suppress_warnings=True):
+    def compute(
+        self,
+        df1,
+        df2,
+        column_selection,
+        return_failed_tests=True,
+        suppress_warnings=True,
+    ):
         """
         Fit the AutoDist object to data; i.e. apply the statistical tests and binning strategies
 
@@ -194,42 +231,79 @@ class AutoDist(object):
 
         """
         # test if all columns in column_selection are in df1 and df2
-        if len(set(column_selection) - set(df1.columns)) or len(set(column_selection) - set(df2.columns)):
-            raise Exception('Not all columns in `column_selection` are in the provided dataframes')
+        if len(set(column_selection) - set(df1.columns)) or len(
+            set(column_selection) - set(df2.columns)
+        ):
+            raise Exception(
+                "Not all columns in `column_selection` are in the provided dataframes"
+            )
 
         result_all = pd.DataFrame()
         for col, stat_test, bin_strat, bins in tqdm(
-                list(itertools.product(column_selection, self.statistical_tests, self.binning_strategies, self.bin_count))):
-            dist = DistributionStatistics(statistical_test=stat_test, binning_strategy=bin_strat, bin_count=bins)
+            list(
+                itertools.product(
+                    column_selection,
+                    self.statistical_tests,
+                    self.binning_strategies,
+                    self.bin_count,
+                )
+            )
+        ):
+            dist = DistributionStatistics(
+                statistical_test=stat_test, binning_strategy=bin_strat, bin_count=bins
+            )
             try:
                 if suppress_warnings:
-                    warnings.filterwarnings('ignore')
+                    warnings.filterwarnings("ignore")
                 _ = dist.compute(df1[col], df2[col])
                 if suppress_warnings:
-                    warnings.filterwarnings('default')
+                    warnings.filterwarnings("default")
                 statistic = dist.statistic
-                if hasattr(dist, 'p_value'):
+                if hasattr(dist, "p_value"):
                     p_value = dist.p_value
                 else:
                     p_value = None
             except:
-                statistic, p_value = 'an error occurred', None
+                statistic, p_value = "an error occurred", None
                 pass
-            result_ = {'column': col, 'statistical_test': stat_test, 'binning_strategy': bin_strat, 'bin_count': bins,
-                       'statistic': statistic, 'p_value': p_value}
+            result_ = {
+                "column": col,
+                "statistical_test": stat_test,
+                "binning_strategy": bin_strat,
+                "bin_count": bins,
+                "statistic": statistic,
+                "p_value": p_value,
+            }
             result_all = result_all.append(result_, ignore_index=True)
         if not return_failed_tests:
-            result_all = result_all[result_all['statistic'] != 'an error occurred']
+            result_all = result_all[result_all["statistic"] != "an error occurred"]
         self.fitted = True
         self._result = result_all[
-            ['column', 'statistical_test', 'binning_strategy', 'bin_count', 'statistic', 'p_value']]
-        self._result['bin_count'] = self._result['bin_count'].astype(int)
-        self._result.loc[self._result['binning_strategy'].isnull(), 'binning_strategy'] = 'no_bucketing'
+            [
+                "column",
+                "statistical_test",
+                "binning_strategy",
+                "bin_count",
+                "statistic",
+                "p_value",
+            ]
+        ]
+        self._result["bin_count"] = self._result["bin_count"].astype(int)
+        self._result.loc[
+            self._result["binning_strategy"].isnull(), "binning_strategy"
+        ] = "no_bucketing"
 
         # create pivot table as final output
-        self.result = pd.pivot_table(self._result, values=['statistic', 'p_value'], index='column',
-                                     columns=['statistical_test', 'binning_strategy', 'bin_count'], aggfunc='sum')
+        self.result = pd.pivot_table(
+            self._result,
+            values=["statistic", "p_value"],
+            index="column",
+            columns=["statistical_test", "binning_strategy", "bin_count"],
+            aggfunc="sum",
+        )
         # flatten multi-index
-        self.result.columns = ["_".join([str(x) for x in line]) for line in self.result.columns.values]
+        self.result.columns = [
+            "_".join([str(x) for x in line]) for line in self.result.columns.values
+        ]
         self.result.reset_index(inplace=True)
         return self.result
