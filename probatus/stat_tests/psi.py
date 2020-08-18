@@ -58,9 +58,8 @@ def psi(d1, d2, verbose=False):
             expected_ratio[i] = 0.0001
             if verbose:
                 print(
-                    f"PSI: Bucket {i} has zero counts; may result in over-estimated (larger) PSI value. Decreasing \
-                        the number of buckets may also help avoid buckets with zero counts."
-                )
+                    "PSI: Bucket {i} has zero counts; may result in over-estimated (larger) PSI value. Decreasing \
+                        the number of buckets may also help avoid buckets with zero counts.".format(i))
 
     # Calculate the PSI value
     psi_value = np.sum(
