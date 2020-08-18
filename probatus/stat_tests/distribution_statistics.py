@@ -48,15 +48,35 @@ class DistributionStatistics(object):
         None,
     ]
     statistical_test_dict = {
-        "ES": {"func": es, "name": "Epps-Singleton"},
-        "KS": {"func": ks, "name": "Kolmogorov-Smirnov"},
-        "AD": {"func": ad, "name": "Anderson-Darling TS"},
-        "SW": {"func": sw, "name": "Shapiro-Wilk based difference"},
-        "PSI": {"func": psi, "name": "Population Stability Index"},
+        "ES": {
+            "func": es,
+            "name": "Epps-Singleton",
+            "default_binning": "simplebucketer",
+        },
+        "KS": {
+            "func": ks,
+            "name": "Kolmogorov-Smirnov",
+            "default_binning": "simplebucketer",
+        },
+        "AD": {
+            "func": ad,
+            "name": "Anderson-Darling TS",
+            "default_binning": "simplebucketer",
+        },
+        "SW": {
+            "func": sw,
+            "name": "Shapiro-Wilk based difference",
+            "default_binning": "simplebucketer",
+        },
+        "PSI": {
+            "func": psi,
+            "name": "Population Stability Index",
+            "default_binning": "quantilebucketer",
+        },
     }
 
     def __init__(
-        self, statistical_test, binning_strategy="simplebucketer", bin_count=10
+        self, statistical_test, binning_strategy="default", bin_count=10
     ):
         self.statistical_test = statistical_test.upper()
         self.binning_strategy = binning_strategy
@@ -80,17 +100,22 @@ class DistributionStatistics(object):
 
         # Initialize the binning strategy
         if self.binning_strategy:
-            if self.binning_strategy.lower() not in self.binning_strategy_list:
+            self.binning_strategy = self.binning_strategy.lower()
+            if self.binning_strategy == "default":
+                self.binning_strategy = self.statistical_test_dict[
+                    self.statistical_test
+                ]["default_binning"]
+            if self.binning_strategy not in self.binning_strategy_list:
                 raise NotImplementedError(
                     "The binning strategy should be one of {}".format(
                         self.binning_strategy_list
                     )
                 )
-            if self.binning_strategy.lower() == "simplebucketer":
+            elif self.binning_strategy == "simplebucketer":
                 self.binner = SimpleBucketer(bin_count=self.bin_count)
-            elif self.binning_strategy.lower() == "agglomerativebucketer":
+            elif self.binning_strategy == "agglomerativebucketer":
                 self.binner = AgglomerativeBucketer(bin_count=self.bin_count)
-            elif self.binning_strategy.lower() == "quantilebucketer":
+            elif self.binning_strategy == "quantilebucketer":
                 self.binner = QuantileBucketer(bin_count=self.bin_count)
 
     def __repr__(self):
