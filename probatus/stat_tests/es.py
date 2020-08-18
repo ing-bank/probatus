@@ -1,7 +1,9 @@
 from scipy import stats
+
 from ..utils import assure_numpy_array
+from probatus.stat_tests.utils import verbose_p_vals
 
-
+@verbose_p_vals
 def es(d1, d2, verbose=False):
     """
     Calculates the Epps-Singleton test statistic on 2 distributions. Can be used on continuous or discrete
@@ -33,21 +35,5 @@ def es(d1, d2, verbose=False):
     d2 = assure_numpy_array(d2)
 
     es, pvalue = stats.epps_singleton_2samp(d1, d2)
-
-    if verbose:
-        print("\nES: pvalue =", pvalue)
-
-        if pvalue < 0.01:
-            print(
-                "\nES: Null hypothesis rejected with 99% confidence. Distributions very different."
-            )
-        elif pvalue < 0.05:
-            print(
-                "\nES: Null hypothesis rejected with 95% confidence. Distributions different."
-            )
-        else:
-            print(
-                "\nES: Null hypothesis cannot be rejected. Distributions not statistically different."
-            )
 
     return es, pvalue

@@ -1,7 +1,8 @@
 from scipy import stats
 from ..utils import assure_numpy_array
+from probatus.stat_tests.utils import verbose_p_vals
 
-
+@verbose_p_vals
 def ks(d1, d2, verbose=False):
     """
     Calculates the Kolmogorov-Smirnov statistic on 2 samples. Any binning/bucketing of the distributions/samples
@@ -22,21 +23,5 @@ def ks(d1, d2, verbose=False):
 
     # Perform statistical tests
     ks, pvalue = stats.ks_2samp(d1, d2)
-
-    # Print the evaluation of statistical hypotheses
-    if verbose:
-        print("\nKS: pvalue =", pvalue)
-        if pvalue < 0.01:
-            print(
-                "\nKS: Null hypothesis rejected with 99% confidence. Distributions very different."
-            )
-        elif pvalue < 0.05:
-            print(
-                "\nKS: Null hypothesis rejected with 95% confidence. Distributions different."
-            )
-        else:
-            print(
-                "\nKS: Null hypothesis cannot be rejected. Distributions not statistically different."
-            )
 
     return ks, pvalue
