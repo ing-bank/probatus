@@ -41,12 +41,12 @@ class DistributionStatistics(object):
 
     """
 
-    binning_strategy_list = [
-        "simplebucketer",
-        "agglomerativebucketer",
-        "quantilebucketer",
-        None,
-    ]
+    binning_strategy_dict = {
+        "simplebucketer": SimpleBucketer,
+        "agglomerativebucketer": AgglomerativeBucketer,
+        "quantilebucketer": QuantileBucketer,
+        None: None
+    }
     statistical_test_dict = {
         "ES": {
             "func": es,
@@ -105,18 +105,15 @@ class DistributionStatistics(object):
                 self.binning_strategy = self.statistical_test_dict[
                     self.statistical_test
                 ]["default_binning"]
-            if self.binning_strategy not in self.binning_strategy_list:
+            if self.binning_strategy not in self.binning_strategy_dict:
                 raise NotImplementedError(
                     "The binning strategy should be one of {}".format(
-                        self.binning_strategy_list
+                        list(self.binning_strategy_dict.keys())
                     )
                 )
-            elif self.binning_strategy == "simplebucketer":
-                self.binner = SimpleBucketer(bin_count=self.bin_count)
-            elif self.binning_strategy == "agglomerativebucketer":
-                self.binner = AgglomerativeBucketer(bin_count=self.bin_count)
-            elif self.binning_strategy == "quantilebucketer":
-                self.binner = QuantileBucketer(bin_count=self.bin_count)
+            else:
+                binner = self.binning_strategy_dict[self.binning_strategy]
+                self.binner = binner(bin_count=self.bin_count)
 
     def __repr__(self):
         repr_ = "DistributionStatistics object\n\tstatistical_test: {}".format(
@@ -213,7 +210,7 @@ class AutoDist(object):
         else:
             self.statistical_tests = statistical_tests
         if binning_strategies == "all":
-            self.binning_strategies = DistributionStatistics.binning_strategy_list
+            self.binning_strategies = list(DistributionStatistics.binning_strategy_dict.keys())
         elif isinstance(binning_strategies, str):
             self.binning_strategies = [binning_strategies]
         else:
