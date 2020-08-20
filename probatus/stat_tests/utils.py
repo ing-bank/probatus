@@ -1,6 +1,5 @@
 import functools
 
-
 def verbose_p_vals(func):
     """Decorator to enable verbose printing of p-vals"""
 
