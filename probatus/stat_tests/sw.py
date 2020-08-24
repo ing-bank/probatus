@@ -7,15 +7,17 @@ from ..utils import assure_numpy_array
 def sw(d1, d2, verbose=False):
     """
     Examines whether deviation from normality of two distributions are significantly different. By using Shapiro-Wilk test
-    as the basis
+    as the basis.
+
     Args:
-        d1 (np.ndarray or pd.core.series.Series) : first sample
-        d2 (np.ndarray or pd.core.series.Series) : second sample
-        verbose (bool)                           : helpful interpretation msgs printed to stdout (default False)
+        d1 (np.ndarray or pd.core.series.Series) : first sample.
+
+        d2 (np.ndarray or pd.core.series.Series) : second sample.
+
+        verbose (bool)                           : helpful interpretation msgs printed to stdout (default False).
 
     Returns:
-        delta (float)     : test statistic defined as difference between two Shapiro-Wilk statistics
-        pvalue (float) : P value of rejecting the null hypothesis (that the two distributions are identical)
+        (float, float): SW test stat and p-value of rejecting the null hypothesis (that the two distributions are identical).
     """
 
     d1 = assure_numpy_array(d1)

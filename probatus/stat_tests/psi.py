@@ -17,18 +17,16 @@ def psi(d1, d2, verbose=False):
     Quantile bucketing is typically recommended.
 
     Args:
-        d1 (np.ndarray or pd.core.series.Series) : first distribution ("expected")
-        d2 (np.ndarray or pd.core.series.Series) : second distribution ("actual")
-        verbose (bool)                           : print useful interpretation info to stdout (default False)
+        d1 (np.ndarray or pd.core.series.Series) : first distribution ("expected").
+
+        d2 (np.ndarray or pd.core.series.Series) : second distribution ("actual").
+
+        verbose (bool)                           : print useful interpretation info to stdout (default False).
 
     Returns:
-        psi_value (float) : measure of the similarity between d1 & d2. (range 0-inf, with 0 indicating identical
-                            distributions and > 0.25 indicating significantly different distributions)
-        p_value (float): p-value
-
-    Raises:
-        UserWarning: if number of bins in d1 or d2 is less than 10 or greater than 20, where PSI is not well-behaved.
-        ValueError: if d1 & d2 do not have the same number of bins
+        (float, float) : measure of the similarity between d1 & d2. (range 0-inf, with 0 indicating identical
+        distributions and > 0.25 indicating significantly different distributions); p_value for rejecting null
+        hypothesis (that the two distributions are identical).
     """
     # Perform data checks
     d1 = assure_numpy_array(d1)

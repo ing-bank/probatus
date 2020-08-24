@@ -12,33 +12,39 @@ class DistributionStatistics(object):
     """
     Wrapper that applies a statistical method and a binning strategy to data.
 
-    Parameters
-    ----------
-    statistical_test: string
-        Statistical method to apply, statistical methods implemented:
-            'ES': Epps-Singleton
-            'KS': Kolmogorov-Smirnov statistic
-            'PSI': Population Stability Index
-            'SW': Shapiro-Wilk based difference statistic
-            'AD': Anderson-Darling TS
+    Args:
+    statistical_test (string): Statistical method to apply, statistical methods implemented:
+
+        - 'ES': Epps-Singleton
+
+        - 'KS': Kolmogorov-Smirnov statistic
+
+        - 'PSI': Population Stability Index
+
+        - 'SW': Shapiro-Wilk based difference statistic
+
+        - 'AD': Anderson-Darling TS
 
 
-    binning_strategy: string or None
-        Binning strategy to apply, binning strategies implemented:
-            'SimpleBucketer': equally spaced bins
-            'AgglomerativeBucketer': binning by applying the Scikit-learn implementation of Agglomerative Clustering
-            'QuantileBucketer': bins with equal number of elements
+    binning_strategy (Optional, string): Binning strategy to apply, binning strategies implemented:
 
-    bin_count: integer or None
-        In case binning_strategy is not None, specify the number of bins to be used by the binning strategy
+        - 'simplebucketer': equally spaced bins
+
+        - 'agglomerativebucketer': binning by applying the Scikit-learn implementation of Agglomerative Clustering
+
+        - 'quantilebucketer': bins with equal number of elements
+
+        - 'default': applies a default binning for a given stats_test. For all tests appart from PSI, 'simplebucketer'
+        is used. For PSI by default quantilebucketer is used
+
+    bin_count (Optional, int) In case binning_strategy is not None, specify the number of bins to be used by the binning
+    strategy. By default 10 bins are used.
 
     Example:
-    d1 = np.histogram(np.random.normal(size=1000), 10)[0]
-    d2 = np.histogram(np.random.normal(size=1000), 10)[0]
-
-    myTest = DistributionStatistics('KS', 'SimpleBucketer', bin_count=10)
-    myTest.compute(d1, d2, verbose=True)
-
+     >>> d1 = np.histogram(np.random.normal(size=1000), 10)[0]
+     >>> d2 = np.histogram(np.random.normal(size=1000), 10)[0]
+     >>> myTest = DistributionStatistics('KS', 'simplebucketer', bin_count=10)
+     >>> myTest.compute(d1, d2, verbose=True)
     """
 
     binning_strategy_dict = {
@@ -129,11 +135,15 @@ class DistributionStatistics(object):
         Apply the statistical test and compute statistic value and p-value
 
         Args:
-            d1: (np.array or pd.DataFrame) distribution 1
-            d2: (np.array or pd.DataFrame) distribution 2
-            verbose: (bool) Flag indicating whether prints should be shown
+            d1: (np.array or pd.DataFrame): distribution 1.
 
-        Returns: (Touple of floats) statistic value and p_value. For PSI test the return is only statistic
+            d2: (np.array or pd.DataFrame): distribution 2.
+
+            verbose: (bool): Flag indicating whether prints should be shown.
+
+
+        Returns:
+            (Tuple of floats): statistic value and p_value. For PSI test the return is only statistic
         """
         check_numeric_dtypes(d1)
         check_numeric_dtypes(d2)
@@ -167,31 +177,37 @@ class AutoDist(object):
     Class to automatically apply all implemented statistical distribution tests and binning strategies to (a
     selection of) features in two dataframes.
 
-    Parameters
-    ----------
-    statistical_tests: string 'all' or list of strings with tests to apply
-        Statistical tests to apply, statistical methods implemented:
-            'ES': Epps-Singleton
-            'KS': Kolmogorov-Smirnov statistic
-            'PSI': Population Stability Index
-            'AD': Anderson-Darling TS
+    Args:
+        statistical_tests (Optional, str): Statistical tests to apply, either list of tests names, or 'all'. Statistical
+        methods implemented:
 
-    binning_strategies: string 'all' or list of strings with strategies to apply
-        Binning strategy to apply, binning strategies implemented:
-            'SimpleBucketer': equally spaced bins
-            'AgglomerativeBucketer': binning by applying the Scikit-learn implementation of Agglomerative Clustering
-            'QuantileBucketer': bins with equal number of elements
-            None: no binning is applied
+            - 'ES': Epps-Singleton,
 
-    bin_count: integer, None or list of integers
-        bin_count value(s) to be used, note that None can only be used when no bucketing strategy is applied
+            - 'KS': Kolmogorov-Smirnov statistic,
+
+            - 'PSI': Population Stability Index,
+
+            -'AD': Anderson-Darling TS.
+
+    binning_strategies (Optional, str): Binning strategies to apply for each test, either list of tests names, or 'all'.
+    Binning strategies implemented:
+
+            - 'SimpleBucketer': equally spaced bins,
+
+            - 'AgglomerativeBucketer': binning by applying the Scikit-learn implementation of Agglomerative Clustering,
+
+            - 'QuantileBucketer': bins with equal number of elements,
+
+            - None: no binning is applied.
+
+    bin_count (integer, None or list of integers): bin_count value(s) to be used, note that None can only be used when
+    no bucketing strategy is applied.
 
     Example:
-        df1 = pd.DataFrame(np.random.normal(size=(1000, 2)), columns=['feat_0', 'feat_1'])
-        df2 = pd.DataFrame(np.random.normal(size=(1000, 2)), columns=['feat_0', 'feat_1'])
-
-        myAutoDist = AutoDist(statistical_tests='all', binning_strategies='all', bin_count=[10, 20])
-        res = myAutoDist.fit(df1, df2, columns=df1.columns)
+     >>> df1 = pd.DataFrame(np.random.normal(size=(1000, 2)), columns=['feat_0', 'feat_1'])
+     >>> df2 = pd.DataFrame(np.random.normal(size=(1000, 2)), columns=['feat_0', 'feat_1'])
+     >>> myAutoDist = AutoDist(statistical_tests='all', binning_strategies='all', bin_count=[10, 20])
+     >>> res = myAutoDist.fit(df1, df2, columns=df1.columns)
     """
     def __init__(self,
                  statistical_tests="all",
@@ -240,13 +256,19 @@ class AutoDist(object):
         Fit the AutoDist object to data; i.e. apply the statistical tests and binning strategies
 
         Args:
-            df1: dataframe 1 for distribution comparison with dataframe 2
-            df2: dataframe 2 for distribution comparison with dataframe 1
-            column_selection: list of columns in df1 and df2 that should be compared
-            return_failed_tests: remove tests in result that did not succeed
-            suppress_warnings: whether to suppress warnings during the fit process
 
-        Returns: dataframe with results of the performed statistical tests and binning strategies
+            df1 (pd.DataFrame): dataframe 1 for distribution comparison with dataframe 2.
+
+            df2 (pd.DataFrame): dataframe 2 for distribution comparison with dataframe 1.
+
+            column_selection (list of str): list of columns in df1 and df2 that should be compared.
+
+            return_failed_tests (bool): remove tests in result that did not succeed.
+
+            suppress_warnings (bool): whether to suppress warnings during the fit process.
+
+        Returns:
+            (pd.DataFrame): dataframe with results of the performed statistical tests and binning strategies.
 
         """
         # test if all columns in column_selection are in df1 and df2

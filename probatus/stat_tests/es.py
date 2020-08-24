@@ -14,21 +14,25 @@ def es(d1, d2, verbose=False):
     (Epps & Singleton 1986, Goerg & Kaiser 2009).
 
     Advantages:
+
     - Unlike the KS, the ES can be used on both continuous & discrete distributions.
+
     - ES has higher power (vs KS) in many examples.
+
     Disadvantages:
     - Not recommended for fewer than 25 observations. Instead, use the Anderson-Darling TS. (However, ES can still be
-      used for small samples. A correction factor is applied so that the asymptotic TS distribution more closely follows
-      the chi-squared distribution, such that p-values can be computed.)
+    used for small samples. A correction factor is applied so that the asymptotic TS distribution more closely follows
+    the chi-squared distribution, such that p-values can be computed.)
 
     Args:
-        d1 (np.array or pandas.core.series.Series) : first sample
-        d2 (np.array or pandas.core.series.Series) : second sample
-        verbose (bool) : helpful interpretation msgs printed to stdout (default False)
+        d1 (np.array or pandas.core.series.Series) : first sample.
+
+        d2 (np.array or pandas.core.series.Series) : second sample.
+
+        verbose (bool) : helpful interpretation msgs printed to stdout (default False).
 
     Returns:
-        es (float)     : ES test stat
-        pvalue (float) : P value of rejecting the null hypothesis (that the two distributions are identical)
+        (float, float): ES test stat and p-value of rejecting the null hypothesis (that the two distributions are identical)
     """
 
     d1 = assure_numpy_array(d1)

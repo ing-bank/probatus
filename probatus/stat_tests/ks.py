@@ -9,14 +9,16 @@ def ks(d1, d2, verbose=False):
     should be done before passing them to this function.
 
     Args:
-        d1 (np.ndarray or pd.core.series.Series) : first sample
-        d2 (np.ndarray or pd.core.series.Series) : second sample
-        verbose (bool)                           : helpful interpretation msgs printed to stdout (default False)
+        d1 (np.ndarray or pd.core.series.Series) : first sample.
+
+        d2 (np.ndarray or pd.core.series.Series) : second sample.
+
+        verbose (bool)                           : helpful interpretation msgs printed to stdout (default False).
 
     Returns:
-        ks (float)     : KS test stat
-        pvalue (float) : P value of rejecting the null hypothesis (that the two distributions are identical)
+        (float, float): KS test stat and p-value of rejecting the null hypothesis (that the two distributions are identical)
     """
+
     # Perform data checks
     d1 = assure_numpy_array(d1)
     d2 = assure_numpy_array(d2)

@@ -18,13 +18,14 @@ def ad(d1, d2, verbose=False):
     - More powerful than KS, especially for differences in the tails of distributions.
 
     Args:
-        d1 (np.array or pandas.core.series.Series) : first sample
-        d2 (np.array or pandas.core.series.Series) : second sample
-        verbose (bool) : helpful interpretation msgs printed to stdout (default False)
+        d1 (np.array or pandas.core.series.Series): first sample
+
+        d2 (np.array or pandas.core.series.Series): second sample
+
+        verbose (bool): helpful interpretation msgs printed to stdout (default False)
 
     Returns:
-        ad (float)     : AD test stat
-        pvalue (float) : P value of rejecting the null hypothesis (that the two distributions are identical)
+        (float, float): AD test stat and p-value of rejecting the null hypothesis (that the two distributions are identical)
     """
 
     d1 = assure_numpy_array(d1)
