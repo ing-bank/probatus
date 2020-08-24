@@ -1,4 +1,4 @@
-stats_tests
+probatus.stats_tests
 ============================
 
 .. automodule:: probatus.stat_tests

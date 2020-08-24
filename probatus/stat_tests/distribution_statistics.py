@@ -187,7 +187,7 @@ class AutoDist(object):
 
             - 'PSI': Population Stability Index,
 
-            -'AD': Anderson-Darling TS.
+            - 'AD': Anderson-Darling TS.
 
     binning_strategies (Optional, str): Binning strategies to apply for each test, either list of tests names, or 'all'.
     Binning strategies implemented:
