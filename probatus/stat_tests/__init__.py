@@ -1,8 +1,9 @@
 from .ad import ad
 from .es import es
+from .sw import sw
 from .ks import ks
 from .psi import psi
-from .sw import sw
-from .distribution_statistics import DistributionStatistics, AutoDist
+from .distribution_statistics import DistributionStatistics
+from .distribution_statistics import AutoDist
 
-__all__ = ['ad', 'es', 'ks', 'psi', 'sw', 'DistributionStatistics', 'AutoDist']
+__all__ = ["ks", "psi", "ad", "es", "sw", "DistributionStatistics", "AutoDist"]

@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 from unittest.mock import patch
 import matplotlib.pyplot as plt
-from probatus.stat_tests import DistributionStatistics
+from probatus.stat_tests.distribution_statistics import DistributionStatistics
 from probatus.utils import Scorer, NotFittedError
 import sklearn
 

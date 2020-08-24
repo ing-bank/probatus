@@ -3,7 +3,7 @@ import pandas as pd
 
 import pytest
 
-from probatus.utils import assure_numpy_array, assure_pandas_df, check_1d, DimensionalityError
+from probatus.utils import assure_numpy_array, assure_pandas_df, check_1d, DimensionalityError, check_numeric_dtypes
 
 
 def test_assure_numpy_array_list():
@@ -134,3 +134,13 @@ def test_assure_pandas_df_types():
         assure_pandas_df("Test")
     with pytest.raises(TypeError):
         assure_pandas_df(5)
+
+def test_check_numeric_dtype_list():
+    with pytest.raises(TypeError):
+        check_numeric_dtypes(['not numeric', 7, 1.0, True])
+    check_numeric_dtypes([1, 2, 3])
+    check_numeric_dtypes([1.0, 2.0, 3.0])
+    check_numeric_dtypes([False, True, False])
+    check_numeric_dtypes([1, True, 7.0])
+    
+        

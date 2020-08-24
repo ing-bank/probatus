@@ -28,7 +28,8 @@ def check_1d(x):
         else:
             raise DimensionalityError('The input is not 1D')
     if isinstance(x, pd.core.frame.DataFrame):
-        if len(x.columns) == 1 and pd.api.types.is_numeric_dtype(x[x.columns[0]]):
+        if len(x.columns) == 1 and pd.api.types.is_numeric_dtype(
+                x[x.columns[0]]):
             return True
         else:
             raise DimensionalityError('The input is not 1D')
@@ -63,7 +64,8 @@ def assure_numpy_array(x, assure_1d=False):
             return x.values
     if isinstance(x, pd.core.series.Series):
         return x.values
-    
+
+
 def assure_pandas_df(x):
     """
     Returns x as pandas DataFrame. X can be a list, list of lists, numpy array, pandas DataFrame or pandas Series
@@ -76,12 +78,17 @@ def assure_pandas_df(x):
     """
     if isinstance(x, pd.core.frame.DataFrame):
         return x
-    elif any([isinstance(x, np.ndarray),
+    elif any([
+            isinstance(x, np.ndarray),
             isinstance(x, pd.core.series.Series),
-            isinstance(x, list)]):
+            isinstance(x, list)
+    ]):
         return pd.DataFrame(x)
     else:
-        raise TypeError("Please supply a list, numpy array, pandas Series or pandas DataFrame")
+        raise TypeError(
+            "Please supply a list, numpy array, pandas Series or pandas DataFrame"
+        )
+
 
 def warn_if_missing(variable, variable_name):
     """
@@ -100,3 +107,26 @@ def warn_if_missing(variable, variable_name):
     if isinstance(variable, np.ndarray):
         if np.isnan(variable).any():
             warnings.warn(warning_text)
+
+
+def check_numeric_dtypes(x):
+    """
+    Checks if all entries in an array are of a data type that can be interpreted as numeric (int, float or bool)
+    
+    Args:
+        x (np.ndarray or pd.Series, list): array to be checked
+    
+    Returns:
+        x: unchanged input array
+        
+    Raises:
+        TypeError: if not all elements are of numeric dtypes
+    """
+    x = assure_numpy_array(x)
+    allowed_types = [bool, int, float]
+    
+    for element in np.nditer(x):
+        if type(element.item()) not in allowed_types:
+            raise TypeError("Please supply an array with only floats, ints or booleans")
+    return x
+

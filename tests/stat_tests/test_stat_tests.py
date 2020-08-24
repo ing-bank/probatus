@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
-from probatus.stat_tests import ad, es, ks, psi, sw
+from probatus.stat_tests import ks, psi, es, ad, sw
+
 from probatus.binning import binning
 
 
@@ -68,3 +69,4 @@ def test_sw_returns_zero():
     d1 = np.random.normal(size=1000)
     d2 = d1
     assert sw(d1, d2)[0] == 0
+    

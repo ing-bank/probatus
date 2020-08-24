@@ -51,7 +51,7 @@ class BaseVolatilityEstimator(object):
         self.iterations_results = None
         self.report = None
         self.fitted = False
-        self.allowed_stats_tests = DistributionStatistics.statistical_test_list
+        self.allowed_stats_tests = list(DistributionStatistics.statistical_test_dict.keys())
 
         # TODO set reasonable default value for the parameter, to choose the statistical test for the user for different
         #  ways to compute volatility

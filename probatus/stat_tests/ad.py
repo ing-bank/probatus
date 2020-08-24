@@ -1,7 +1,8 @@
 from scipy import stats
 from ..utils import assure_numpy_array
+from probatus.stat_tests.utils import verbose_p_vals
 
-
+@verbose_p_vals
 def ad(d1, d2, verbose=False):
     """
     Calculates the Anderson-Darling TS on 2 distributions.
@@ -17,28 +18,19 @@ def ad(d1, d2, verbose=False):
     - More powerful than KS, especially for differences in the tails of distributions.
 
     Args:
-        d1 (np.array or pandas.core.series.Series) : first sample
-        d2 (np.array or pandas.core.series.Series) : second sample
-        verbose (bool) : helpful interpretation msgs printed to stdout (default False)
+        d1 (np.array or pandas.core.series.Series): first sample
+
+        d2 (np.array or pandas.core.series.Series): second sample
+
+        verbose (bool): helpful interpretation msgs printed to stdout (default False)
 
     Returns:
-        ad (float)     : AD test stat
-        pvalue (float) : P value of rejecting the null hypothesis (that the two distributions are identical)
+        (float, float): AD test stat and p-value of rejecting the null hypothesis (that the two distributions are identical)
     """
 
     d1 = assure_numpy_array(d1)
     d2 = assure_numpy_array(d2)
 
     ad, critical_values, pvalue = stats.anderson_ksamp([d1, d2])
-
-    if verbose:
-        print('\nAD: pvalue =', pvalue)
-
-        if pvalue < 0.01:
-            print('\nAD: Null hypothesis rejected with 99% confidence. Distributions very different.')
-        elif pvalue < 0.05:
-            print('\nAD: Null hypothesis rejected with 95% confidence. Distributions different.')
-        else:
-            print('\nAD: Null hypothesis cannot be rejected. Distributions not statistically different.')
 
     return ad, pvalue

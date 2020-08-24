@@ -4,7 +4,7 @@ import numbers
 
 import pytest
 
-from probatus.stat_tests import DistributionStatistics, ks, psi, AutoDist
+from probatus.stat_tests import ks, psi, DistributionStatistics, AutoDist
 
 
 def test_distribution_statistics_base():
