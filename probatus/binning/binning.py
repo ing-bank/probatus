@@ -206,6 +206,9 @@ class TreeBucketer(Bucketer):
         inf_edges (boolean): Flag to keep the lower and upper boundary as infinite (if set to True).
         If false, the edges will be set to the minimum and maximum value of the fitted
 
+        tree (sklearn.tree.DecisionTreeClassifier): decision tree object defined by the user. By default is None, and
+        it will be constructed using tkhe provided **kwargs
+
         **tree_kwargs: kwargs related to the decision tree.
             For and extensive list of parameteres, please check the sklearn Decision Tree Classifier documentation
             https://scikit-learn.org/stable/modules/generated/sklearn.tree.DecisionTreeClassifier.html
@@ -270,20 +273,21 @@ class TreeBucketer(Bucketer):
 
     """
 
-    def __init__(self, inf_edges = False, **tree_kwargs):
+    def __init__(self, inf_edges = False, tree = None, **tree_kwargs):
         super().__init__()
         self.bin_count = -1
         self.inf_edges = inf_edges
-        self.tree_kwargs = tree_kwargs
-        self.tree = None
+        if tree is None:
+            self.tree = DecisionTreeClassifier(**tree_kwargs)
+        else:
+            self.tree = tree
 
 
     @staticmethod
-    def tree_bins(x, y, inf_edges, **tree_kwargs):
+    def tree_bins(x, y, inf_edges, tree):
 
         X_in = assure_numpy_array(x).reshape(-1, 1)
         y_in = assure_numpy_array(y).reshape(-1, 1)
-        tree = DecisionTreeClassifier(**tree_kwargs)
         tree.fit(X_in,y_in)
 
         if tree.min_samples_leaf>=X_in.shape[0]:
@@ -310,4 +314,4 @@ class TreeBucketer(Bucketer):
         return counts, boundaries, bin_count, tree
 
     def _fit(self, X, y):
-        self.counts, self.boundaries, self.bin_count, self.tree = self.tree_bins(X,y, self.inf_edges,  **self.tree_kwargs)
+        self.counts, self.boundaries, self.bin_count, self.tree = self.tree_bins(X,y, self.inf_edges, self.tree)
