@@ -11,6 +11,14 @@ probatus.utils.arrayfuncs module
     :undoc-members:
     :show-inheritance:
 
+probatus.utils.plots module
+--------------------------------
+
+.. automodule:: probatus.utils.plots
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 probatus.utils.exceptions module
 --------------------------------
 
