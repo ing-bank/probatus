@@ -5,6 +5,7 @@ from probatus.utils import assure_numpy_array, NotFittedError, get_scorers, warn
 from sklearn.inspection import permutation_importance
 import matplotlib.pyplot as plt
 import shap
+import warnings
 
 class BaseResemblanceModel(object):
     """
@@ -47,7 +48,7 @@ class BaseResemblanceModel(object):
         self.auc_test = None
 
 
-    def fit(self, X1, X2, columns=None):
+    def fit(self, X1, X2, column_names=None):
         """
         Base fit functionality that should be executed before each fit.
 
@@ -58,8 +59,8 @@ class BaseResemblanceModel(object):
             X2 (np.ndarray or pd.DataFrame): Second sample to be compared. It needs to have the same number of columns
             as X1.
 
-            columns (list of str, optional): List of feature names of the provided samples. If provided it will be used
-            to overwrite the existing feature names. If not provided the existing feature names are used or default
+            column_names (list of str, optional): List of feature names of the provided samples. If provided it will be
+            used to overwrite the existing feature names. If not provided the existing feature names are used or default
             feature names are generated.
         """
 
@@ -79,30 +80,30 @@ class BaseResemblanceModel(object):
             raise(ValueError("Passed variables do not have the same shape. The passed dimensions are {} and {}".
                              format(self.X1.shape[1], self.X2.shape[1])))
 
-        # Check if columns are passed correctly
-        if columns is None:
+        # Check if column_names are passed correctly
+        if column_names is None:
             # Checking if original X1 was a df then taking its column names
             if isinstance(X1, pd.DataFrame):
-                self.columns = X1.columns
+                self.column_names = X1.columns
             # Otherwise make own feature names
             else:
-                self.columns = ['column_{}'.format(idx)  for idx in range(self.X1.shape[1])]
+                self.column_names = ['column_{}'.format(idx)  for idx in range(self.X1.shape[1])]
         else:
-            if isinstance(columns, list):
-                if  len(columns) == self.X1.shape[1]:
-                    self.columns = columns
+            if isinstance(column_names, list):
+                if  len(column_names) == self.X1.shape[1]:
+                    self.column_names = column_names
                 else:
-                    raise(ValueError("Passed columns have different dimensionality than input samples. "
-                                     "The dimensionality of columns is {} and first sample {}".
-                                     format(len(columns), self.X1.shape[1])))
+                    raise(ValueError("Passed column_names have different dimensionality than input samples. "
+                                     "The dimensionality of column_names is {} and first sample {}".
+                                     format(len(column_names), self.X1.shape[1])))
             else:
-                raise(TypeError("Passed columns must be a list"))
+                raise(TypeError("Passed column_names must be a list"))
 
         # Prepare dataset for modelling
         self.X = pd.DataFrame(np.concatenate([
             self.X1,
             self.X2
-        ]), columns = self.columns)
+        ]), columns = self.column_names)
 
         self.y = pd.Series(np.concatenate([
             np.zeros(self.X1.shape[0]),
@@ -116,8 +117,18 @@ class BaseResemblanceModel(object):
                                                                                 random_state=self.random_state)
         self.model.fit(self.X_train, self.y_train)
 
-        self.auc_train = self.scorer.score(self.model, self.X_train, self.y_train)
-        self.auc_test = self.scorer.score(self.model, self.X_test, self.y_test)
+        self.auc_train = np.round(self.scorer.score(self.model, self.X_train, self.y_train), 3)
+        self.auc_test = np.round(self.scorer.score(self.model, self.X_test, self.y_test), 3)
+
+
+        print(f'Finished model training: Train AUC {self.auc_train},'
+              f' Test AUC {self.auc_test}')
+
+        if self.auc_train > self.auc_test:
+            warnings.warn('Train AUC > Test AUC, which might indicate an overfit. \n'
+                          'Strong overfit might lead to misleading conclusions when analysing feature importance. '
+                          'Consider retraining with more regularization applied to the model.')
+
         self.fitted = True
 
 
@@ -157,7 +168,7 @@ class BaseResemblanceModel(object):
             return self.report
 
 
-    def fit_compute(self, X1, X2, columns=None, return_auc=False, **fit_kwargs):
+    def fit_compute(self, X1, X2, column_names=None, return_auc=False, **fit_kwargs):
         """
         Fits the resemblance model and computes the report regarding feature importance.
 
@@ -168,8 +179,8 @@ class BaseResemblanceModel(object):
             X2 (np.ndarray or pd.DataFrame): Second sample to be compared. It needs to have the same number of columns
             as X1.
 
-            columns (list of str, optional): List of feature names of the provided samples. If provided it will be used
-            to overwrite the existing feature names. If not provided the existing feature names are used or default
+            column_names (list of str, optional): List of feature names of the provided samples. If provided it will be
+            used to overwrite the existing feature names. If not provided the existing feature names are used or default
             feature names are generated.
 
             return_auc (bool, optional): Flag indicating whether the method should return a tuple (feature
@@ -181,7 +192,7 @@ class BaseResemblanceModel(object):
             tuple of (pd.DataFrame, float, float) or pd.DataFrame: Depending on value of return_tuple either returns a
             tuple (feature importances, train AUC, test AUC), or feature importances.
         """
-        self.fit(X1, X2, columns=columns, **fit_kwargs)
+        self.fit(X1, X2, column_names=column_names, **fit_kwargs)
         return self.compute(return_auc=return_auc)
 
 
@@ -236,7 +247,7 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
         self.plot_title = 'Predictive Power of Features'
 
 
-    def fit(self, X1, X2, columns=None):
+    def fit(self, X1, X2, column_names=None):
         """
         This function assigns to labels to each sample, 0 to first sample, 1 to the second. Then, It randomly selects a
         portion of data to train on. The resulting model tries to distinguish which sample does a given test row comes
@@ -250,11 +261,11 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
             X2 (np.ndarray or pd.DataFrame): Second sample to be compared. It needs to have the same number of columns
             as X1.
 
-            columns (list of str, optional): List of feature names of the provided samples. If provided it will be used
-            to overwrite the existing feature names. If not provided the existing feature names are used or default
+            column_names (list of str, optional): List of feature names of the provided samples. If provided it will be
+            used to overwrite the existing feature names. If not provided the existing feature names are used or default
             feature names are generated.
         """
-        super().fit(X1=X1, X2=X2, columns=columns)
+        super().fit(X1=X1, X2=X2, column_names=column_names)
 
 
         permutation_result = permutation_importance(self.model, self.X_test, self.y_test, scoring=self.scorer.scorer,
@@ -262,9 +273,9 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
 
         # Prepare report
         self.report_columns = ['mean_importance', 'std_importance']
-        self.report = pd.DataFrame(index=self.columns, columns=self.report_columns, dtype=float)
+        self.report = pd.DataFrame(index=self.column_names, columns=self.report_columns, dtype=float)
 
-        for feature_index, feature_name in enumerate(self.columns):
+        for feature_index, feature_name in enumerate(self.column_names):
             # Fill in the report
             self.report.loc[feature_name, 'mean_importance'] =\
                 permutation_result['importances_mean'][feature_index]
@@ -327,7 +338,7 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
 
         fig_text = "Train AUC: {},\n" \
                    "Test AUC: {}.". \
-                       format(np.round(self.auc_train, 3), np.round(self.auc_test, 3))
+                       format(self.auc_train, self.auc_test)
 
         ax.annotate(fig_text, (0,0), (0, -50), fontsize=12, xycoords='axes fraction',
                     textcoords='offset points', va='top')
@@ -379,7 +390,7 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
         self.explainer = shap.TreeExplainer
         self.plot_title = 'SHAP summary plot'
 
-    def fit(self, X1, X2, columns=None):
+    def fit(self, X1, X2, column_names=None):
         """
         This function assigns to labels to each sample, 0 to first sample, 1 to the second. Then, It randomly selects a
         portion of data to train on. The resulting model tries to distinguish which sample does a given test row comes
@@ -393,11 +404,11 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
             X2 (np.ndarray or pd.DataFrame): Second sample to be compared. It needs to have the same number of columns
             as X1.
 
-            columns (list of str, optional): List of feature names of the provided samples. If provided it will be used
-            to overwrite the existing feature names. If not provided the existing feature names are used or default
+            column_names (list of str, optional): List of feature names of the provided samples. If provided it will be
+            used to overwrite the existing feature names. If not provided the existing feature names are used or default
             feature names are generated.
         """
-        super().fit(X1=X1, X2=X2, columns=columns)
+        super().fit(X1=X1, X2=X2, column_names=column_names)
 
         self.report, self.shap_values_test = self._calculate_shap_importance(self.model, self.explainer, self.X_train,
                                                                              self.X_test)
@@ -426,7 +437,7 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
 
         fig_text = "Train AUC: {},\n" \
                    "Test AUC: {}.". \
-                       format(np.round(self.auc_train, 3), np.round(self.auc_test, 3))
+                       format(self.auc_train, self.auc_test)
 
         ax.annotate(fig_text, (0,0), (0, -50), fontsize=12, xycoords='axes fraction',
                     textcoords='offset points', va='top')
@@ -452,8 +463,11 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
 
         Args:
             model (model): Classifier.
+
             explainer (shap.Explainer): Explainer that can handle the model.
+
             X_train (pd.DataFrame): DataFrame used to train the model.
+
             X_test (pd.DataFrame): DataFrame used to generate feature importances. Typically test dataset.
 
         Returns:
