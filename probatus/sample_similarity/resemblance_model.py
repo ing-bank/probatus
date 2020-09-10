@@ -43,8 +43,8 @@ class BaseResemblanceModel(object):
         self.X_test = None
         self.y_train = None
         self.y_test = None
-        self.baseline_auc_train = None
-        self.baseline_auc_test = None
+        self.auc_train = None
+        self.auc_test = None
 
 
     def fit(self, X1, X2, columns=None):
@@ -116,8 +116,8 @@ class BaseResemblanceModel(object):
                                                                                 random_state=self.random_state)
         self.model.fit(self.X_train, self.y_train)
 
-        self.baseline_auc_train = self.scorer.score(self.model, self.X_train, self.y_train)
-        self.baseline_auc_test = self.scorer.score(self.model, self.X_test, self.y_test)
+        self.auc_train = self.scorer.score(self.model, self.X_train, self.y_train)
+        self.auc_test = self.scorer.score(self.model, self.X_test, self.y_test)
         self.fitted = True
 
 
@@ -152,7 +152,7 @@ class BaseResemblanceModel(object):
         self._check_if_fitted()
 
         if return_auc:
-            return self.report, self.baseline_auc_train, self.baseline_auc_test
+            return self.report, self.auc_train, self.auc_test
         else:
             return self.report
 
@@ -325,9 +325,9 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
         ax.set_ylabel(self.plot_y_label)
         ax.set_title(self.plot_title)
 
-        fig_text = "AUC performance of baseline model on train: {},\n" \
-                   "AUC performance of baseline model on test: {}.". \
-                       format(np.round(self.baseline_auc_train, 3), np.round(self.baseline_auc_test, 3))
+        fig_text = "Train AUC: {},\n" \
+                   "Test AUC: {}.". \
+                       format(np.round(self.auc_train, 3), np.round(self.auc_test, 3))
 
         ax.annotate(fig_text, (0,0), (0, -50), fontsize=12, xycoords='axes fraction',
                     textcoords='offset points', va='top')
@@ -424,9 +424,9 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
         ax = plt.gca()
         ax.set_title(self.plot_title)
 
-        fig_text = "AUC performance of baseline model on train: {},\n" \
-                   "AUC performance of baseline model on test: {}.". \
-                       format(np.round(self.baseline_auc_train, 3), np.round(self.baseline_auc_test, 3))
+        fig_text = "Train AUC: {},\n" \
+                   "Test AUC: {}.". \
+                       format(np.round(self.auc_train, 3), np.round(self.auc_test, 3))
 
         ax.annotate(fig_text, (0,0), (0, -50), fontsize=12, xycoords='axes fraction',
                     textcoords='offset points', va='top')
