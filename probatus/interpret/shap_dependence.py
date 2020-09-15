@@ -19,7 +19,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from probatus.binning import SimpleBucketer, AgglomerativeBucketer, QuantileBucketer
-from probatus.interpret._shap_helpers import shap_to_df
+from probatus.utils.shap_helpers import shap_to_df
 from probatus.utils.arrayfuncs import assure_pandas_df
 from probatus.utils.exceptions import NotFittedError
 

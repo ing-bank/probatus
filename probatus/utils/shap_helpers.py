@@ -1,0 +1,85 @@
+import shap
+import pandas as pd
+import numpy as np
+
+
+def shap_calc(model, X, approximate=False, **shap_kwargs):
+    """
+    Helper function to calculate the shapley values for a given model.
+    Supported models for the moment are RandomForestClassifiers and XGBClassifiers
+    In case the shapley values have
+    Args:
+        model: pretrained model (Random Forest of XGBoost at the moment)
+        X (pd.DataFrame or np.ndarray): features set
+        approximate: boolean, if True uses shap approximations - less accurate, but very fast
+        **shap_kwargs: kwargs of the shap.TreeExplainer
+
+    Returns: (np.ndarray) shapley_values for the model
+
+    """
+
+    explainer = shap.TreeExplainer(model, **shap_kwargs)
+
+    # Calculate Shap values
+    shap_values = explainer.shap_values(X, approximate=approximate)
+
+    if isinstance(shap_values, list):
+        shap_values = shap_values[1]
+
+    return shap_values
+
+
+def shap_to_df(model, X, **kwargs):
+    """
+    Calculates the shap values and return the pandas DataFrame with the columns and the index of the original
+
+    Args:
+        model: pretrained model (Random Forest of XGBoost at the moment)
+        X (pd.DataFrame or np.ndarray): features set
+        **kwargs: for the function shap_calc
+
+    Returns:
+
+    """
+
+    shap_values = shap_calc(model, X, **kwargs)
+    if isinstance(X, pd.DataFrame):
+        return pd.DataFrame(shap_values, columns=X.columns, index=X.index)
+
+    elif isinstance(X, np.ndarray) and len(X.shape) == 2:
+        return pd.DataFrame(shap_values, columns=[f"col_{ix}" for ix in range(X.shape[1])])
+
+    else:
+        raise NotImplementedError("X must be a dataframe or a 2d array")
+
+
+def calculate_shap_importance(shap_values, columns):
+    """
+    Returns the average shapley value for each column of the dataframe, as well as the average absolute shap value.
+
+    Args:
+        shap_values (np.array): Shap values.
+        columns (list of str): Feature names.
+
+    Returns:
+        (pd.DataFrame): Mean absolute shap values and Mean shap values of features.
+
+    """
+
+    # Find average shap importance for neg and pos class
+    shap_abs_mean = np.mean(np.abs(shap_values), axis=0)
+    shap_mean = np.mean(shap_values, axis=0)
+
+    # Prepare importance values in a handy df
+    importance_df = pd.DataFrame({
+        'mean_abs_shap_value':shap_abs_mean.tolist(),
+        'mean_shap_value': shap_mean.tolist()},
+        index=columns)
+
+    # Set the correct column types
+    importance_df['mean_abs_shap_value'] = importance_df['mean_abs_shap_value'].astype(float)
+    importance_df['mean_shap_value'] = importance_df['mean_shap_value'].astype(float)
+
+    importance_df = importance_df.sort_values('mean_abs_shap_value', ascending=False)
+
+    return importance_df

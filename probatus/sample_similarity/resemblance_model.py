@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
 from probatus.utils import assure_numpy_array, NotFittedError, get_scorers, warn_if_missing
+from probatus.utils.shap_helpers import shap_calc, calculate_shap_importance
 from sklearn.inspection import permutation_importance
 import matplotlib.pyplot as plt
 import shap
@@ -103,12 +104,12 @@ class BaseResemblanceModel(object):
         self.X = pd.DataFrame(np.concatenate([
             self.X1,
             self.X2
-        ]), columns = self.column_names)
+        ]), columns = self.column_names).reset_index(drop=True)
 
         self.y = pd.Series(np.concatenate([
             np.zeros(self.X1.shape[0]),
             np.ones(self.X2.shape[0]),
-        ]))
+        ])).reset_index(drop=True)
 
         # Reinitialize variables in case of multiple times being fit
         self.init_output_variables()
@@ -244,7 +245,7 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
 
         self.plot_x_label = 'Permutation Feature Importance'
         self.plot_y_label = 'Feature Name'
-        self.plot_title = 'Predictive Power of Features'
+        self.plot_title = 'Permutation Feature Importance of Resemblance Model'
 
 
     def fit(self, X1, X2, column_names=None):
@@ -387,7 +388,6 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
     def __init__(self, model,  **kwargs):
         super().__init__(model=model, **kwargs)
 
-        self.explainer = shap.TreeExplainer
         self.plot_title = 'SHAP summary plot'
 
     def fit(self, X1, X2, column_names=None):
@@ -410,8 +410,8 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
         """
         super().fit(X1=X1, X2=X2, column_names=column_names)
 
-        self.report, self.shap_values_test = self._calculate_shap_importance(self.model, self.explainer, self.X_train,
-                                                                             self.X_test)
+        self.shap_values_test = shap_calc(self.model, self.X_test, data=self.X_train)
+        self.report = calculate_shap_importance(self.shap_values_test, self.column_names)
 
     def plot(self, plot_type='bar', **summary_plot_kwargs):
         """
@@ -454,39 +454,3 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
         '''
         self._check_if_fitted()
         return self.shap_values_test
-
-
-    @staticmethod
-    def _calculate_shap_importance(model, explainer, X_train, X_test):
-        """
-        Calculates SHAP based feature importances.
-
-        Args:
-            model (model): Classifier.
-
-            explainer (shap.Explainer): Explainer that can handle the model.
-
-            X_train (pd.DataFrame): DataFrame used to train the model.
-
-            X_test (pd.DataFrame): DataFrame used to generate feature importances. Typically test dataset.
-
-        Returns:
-            (pd.DataFrame, np.array): DataFrame with feature importances and numpy array with shap values for X_eval.
-        """
-
-        shap_values = explainer(model=model, data=X_train).shap_values(X_test)
-
-        # Get the class 1 shap values. For some models, the output of shap_values() function is a list of 2 arrays e.g.
-        # RandomForestClassifier. In such case we need to analyse the class 1 shap_values.
-        if len(shap_values) == 2:
-            shap_values = shap_values[1]
-
-        # Find average shap importance for neg and pos class
-        shap_sum = np.mean(np.abs(shap_values), axis=0)
-
-        # Prepare importance values in a handy df
-        importance_df = pd.DataFrame([X_test.columns.tolist(), shap_sum.tolist()]).T
-        importance_df.columns = ['column_name', 'shap_importance']
-        importance_df['shap_importance'] = importance_df['shap_importance'].astype(float)
-        importance_df = importance_df.sort_values('shap_importance', ascending=False)
-        return importance_df, shap_values

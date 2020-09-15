@@ -4,7 +4,7 @@ import pandas as pd
 import copy
 
 from sklearn.cluster import KMeans
-from probatus.interpret import _shap_helpers
+from probatus.utils import shap_helpers
 
 
 def return_confusion_metric(y_true, y_score, normalize = False):
@@ -259,7 +259,7 @@ class InspectorShap(BaseInspector):
         predicted_proba = pd.Series(self.compute_probabilities(X), index = y.index,name = 'pred_proba')
 
         # Compute SHAP values and cluster them
-        X_shap = _shap_helpers.shap_to_df(self.model, X, **shap_kwargs)
+        X_shap = shap_helpers.shap_to_df(self.model, X, **shap_kwargs)
         if fit_clusters:
             self.fit_clusters(X_shap)
         clusters = pd.Series(self.predict_clusters(X_shap), index=y.index, name='cluster_id')
