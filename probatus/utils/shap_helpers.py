@@ -1,6 +1,7 @@
 import shap
 import pandas as pd
 import numpy as np
+import warnings
 
 
 def shap_calc(model, X, approximate=False, **shap_kwargs):
@@ -23,7 +24,8 @@ def shap_calc(model, X, approximate=False, **shap_kwargs):
     # Calculate Shap values
     shap_values = explainer.shap_values(X, approximate=approximate)
 
-    if isinstance(shap_values, list):
+    if isinstance(shap_values, list) and len(shap_values)==2:
+        warnings.warn('Shap values are related to the output probabilities of class 1 for this model, instead of log odds.')
         shap_values = shap_values[1]
 
     return shap_values
