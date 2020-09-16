@@ -10,7 +10,10 @@ The following features are implemented:
 
 - **BaseResemblance** - Base class, provides main functionality with fit method that can be overwritten by subclasses.
 
+   - **SHAPImportanceResemblance (Recommended)** -  The class applies SHAP library, in order to interpret the tree based resemblance model model.
+
    - **PermutationImportanceResemblance** -  The class applies permutation feature importance, in order to understand, which features does the current model rely the most on. The higher the importance of the feature, the more a given feature possibly differs in X2 compared to X1. The importance indicates how much the test AUC drops if a given feature is permuted.
+
 
 probatus.sample_similarity module
 -----------------------------

@@ -6,3 +6,4 @@ shap>=0.32
 scipy>=1.4.0
 joblib>=0.13.2
 pytest>=5.4.1
+shap>=0.36.0

@@ -27,6 +27,7 @@ Probatus requires to install:
 - scipy (>= 1.4.0)
 - joblib (>= 0.13.2)
 - tqdm (>= 4.41.0)
+- shap (>= 0.36.0)
 
 
 For packages required for development, please refer to requirements.txt.
