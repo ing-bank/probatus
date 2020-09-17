@@ -47,6 +47,7 @@ class BaseResemblanceModel(object):
         self.y_test = None
         self.auc_train = None
         self.auc_test = None
+        self.report = None
 
 
     def fit(self, X1, X2, column_names=None):
@@ -115,7 +116,8 @@ class BaseResemblanceModel(object):
         self.init_output_variables()
 
         self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(self.X, self.y,test_size=self.test_prc,
-                                                                                random_state=self.random_state)
+                                                                                random_state=self.random_state,
+                                                                                stratify=self.y)
         self.model.fit(self.X_train, self.y_train)
 
         self.auc_train = np.round(self.scorer.score(self.model, self.X_train, self.y_train), 3)
@@ -441,7 +443,6 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
 
         ax.annotate(fig_text, (0,0), (0, -50), fontsize=12, xycoords='axes fraction',
                     textcoords='offset points', va='top')
-        plt.show()
         return ax
 
 
