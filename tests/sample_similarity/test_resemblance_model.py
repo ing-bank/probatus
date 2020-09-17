@@ -2,10 +2,10 @@ from probatus.sample_similarity import BaseResemblanceModel, SHAPImportanceResem
 import pytest
 import numpy as np
 import pandas as pd
-from unittest.mock import patch
 from sklearn.tree import DecisionTreeClassifier
 from probatus.utils import NotFittedError
 import matplotlib.pyplot as plt
+
 
 @pytest.fixture(scope='function')
 def X1():
@@ -18,6 +18,7 @@ def X2():
     return pd.DataFrame({'col_1': [0, 0, 0, 0],
                          'col_2': [0, 0, 0, 0],
                          'col_3': [0, 0, 0, 0]}, index=[1, 2, 3, 4])
+
 
 def test_base_class(X1, X2):
     clf = DecisionTreeClassifier(max_depth=1, random_state=1)
@@ -84,7 +85,7 @@ def test_shap_resemblance_class(X1, X2):
 
     actual_shap_values_test = rm.get_shap_values()
     assert actual_shap_values_test.shape == (4, 3)
-    
+
     # Run plots
     rm.plot(plot_type='bar')
     rm.plot(plot_type='dot')
