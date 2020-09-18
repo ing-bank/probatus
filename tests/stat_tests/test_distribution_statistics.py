@@ -116,12 +116,21 @@ def test_distribution_statistics_autodist_return_failed_tests():
     df1 = pd.DataFrame({'feat_0': [1, 2, 3, 4, 5], 'feat_1': [5, 6, 7, 8, 9]})
     df2 = df1
     features = df1.columns.values.tolist()
-    myAutoDist = AutoDist()
+    myAutoDist = AutoDist(binning_strategies="all")
     res = myAutoDist.compute(df1, df2, column_selection=features, return_failed_tests=True)
     assert res.isin(['an error occurred']).any().any()
     res = myAutoDist.compute(df1, df2, column_selection=features, return_failed_tests=False)
     assert not res.isin(['an error occurred']).any().any()
-
+    
+def test_distribution_statistics_autodist_default():
+    df1 = pd.DataFrame({'feat_0': [1, 2, 3, 4, 5], 'feat_1': [5, 6, 7, 8, 9]})
+    df2 = df1
+    features = df1.columns.values.tolist()
+    myAutoDist = AutoDist(binning_strategies="default", bin_count=10)
+    res = myAutoDist.compute(df1, df2, column_selection=features)
+    for stat_test, stat_info in DistributionStatistics.statistical_test_dict.items():
+        assert f"p_value_{stat_test}_{stat_info['default_binning']}_10" in res.columns
+    assert "p_value_agglomerativebucketer_10" not in res.columns
 
 def test_distribution_statistics_autodist_init():
     myAutoDist = AutoDist(statistical_tests='all', binning_strategies='all')
