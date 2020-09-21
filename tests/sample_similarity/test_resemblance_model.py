@@ -1,10 +1,11 @@
 from probatus.sample_similarity import BaseResemblanceModel, SHAPImportanceResemblance, PermutationImportanceResemblance
+from probatus.utils import NotFittedError
+
 import pytest
 import numpy as np
 import pandas as pd
-from sklearn.tree import DecisionTreeClassifier
-from probatus.utils import NotFittedError
 import matplotlib.pyplot as plt
+from sklearn.tree import DecisionTreeClassifier
 
 
 @pytest.fixture(scope='function')
@@ -12,6 +13,7 @@ def X1():
     return pd.DataFrame({'col_1': [1, 1, 1, 1],
                          'col_2': [0, 0, 0, 0],
                          'col_3': [0, 0, 0, 0]}, index=[1, 2, 3, 4])
+
 
 @pytest.fixture(scope='function')
 def X2():
