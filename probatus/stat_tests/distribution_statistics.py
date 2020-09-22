@@ -207,7 +207,8 @@ class AutoDist(object):
 
                     - 'QuantileBucketer': bins with equal number of elements,
 
-                    - None: no binning is applied.
+                    - None: no binning is applied. Note that not all statistical tests will be performed since 
+                      some () require binning strategies.
                     
                     - 'default': the default binning for each statistical test is applied
                     
@@ -223,7 +224,9 @@ class AutoDist(object):
      >>> res = myAutoDist.fit(df1, df2, columns=df1.columns)
     """
 
-    def __init__(self, statistical_tests="all", binning_strategies="all", bin_count=10):
+    def __init__(
+        self, statistical_tests="all", binning_strategies="default", bin_count=10
+    ):
         self.fitted = False
 
         # Initialize statistical tests to be performed
@@ -243,6 +246,8 @@ class AutoDist(object):
             )
         elif isinstance(binning_strategies, str):
             self.binning_strategies = [binning_strategies]
+        elif binning_strategies is None:
+            self.binning_strategies = [None]
         else:
             self.binning_strategies = binning_strategies
         if not isinstance(bin_count, list):
@@ -265,9 +270,9 @@ class AutoDist(object):
         self,
         df1,
         df2,
-        column_selection,
+        column_names=None,
         return_failed_tests=True,
-        suppress_warnings=True,
+        suppress_warnings=False,
     ):
         """
         Fit the AutoDist object to data; i.e. apply the statistical tests and binning strategies
@@ -278,7 +283,8 @@ class AutoDist(object):
 
             df2 (pd.DataFrame): dataframe 2 for distribution comparison with dataframe 1.
 
-            column_selection (list of str): list of columns in df1 and df2 that should be compared.
+            column_names (list of str): list of columns in df1 and df2 that should be compared. If None, 
+            all column names will be compared
 
             return_failed_tests (bool): remove tests in result that did not succeed.
 
@@ -288,12 +294,18 @@ class AutoDist(object):
             (pd.DataFrame): dataframe with results of the performed statistical tests and binning strategies.
 
         """
-        # Check if all columns in column_selection are in df1 and df2
-        if len(set(column_selection) - set(df1.columns)) or len(
-            set(column_selection) - set(df2.columns)
+        if column_names is None:
+            column_names = df1.columns.to_list()
+            if len(set(column_names) - set(df2.columns)):
+                raise Exception(
+                    "column_names was set to None but columns in provided dataframes are different"
+                )
+        # Check if all columns in column_names are in df1 and df2
+        elif len(set(column_names) - set(df1.columns)) or len(
+            set(column_names) - set(df2.columns)
         ):
             raise Exception(
-                "Not all columns in `column_selection` are in the provided dataframes"
+                "Not all columns in `column_names` are in the provided dataframes"
             )
 
         # Calculate statistics and p-values for all combinations
@@ -301,7 +313,7 @@ class AutoDist(object):
         for col, stat_test, bin_strat, bins in tqdm(
             list(
                 itertools.product(
-                    column_selection,
+                    column_names,
                     self.statistical_tests,
                     self.binning_strategies,
                     self.bin_count,
@@ -322,10 +334,7 @@ class AutoDist(object):
                 if suppress_warnings:
                     warnings.filterwarnings("default")
                 statistic = dist.statistic
-                if hasattr(dist, "p_value"):
-                    p_value = dist.p_value
-                else:
-                    p_value = None
+                p_value = dist.p_value
             except:
                 statistic, p_value = "an error occurred", None
                 pass
