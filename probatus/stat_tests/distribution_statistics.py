@@ -51,8 +51,7 @@ class DistributionStatistics(object):
     binning_strategy_dict = {
         "simplebucketer": SimpleBucketer,
         "agglomerativebucketer": AgglomerativeBucketer,
-        "quantilebucketer": QuantileBucketer,
-        None: None,
+        "quantilebucketer": QuantileBucketer
     }
     statistical_test_dict = {
         "ES": {
