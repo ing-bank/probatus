@@ -206,10 +206,13 @@ class AutoDist(object):
                     - 'AgglomerativeBucketer': binning by applying the Scikit-learn implementation of Agglomerative Clustering,
 
                     - 'QuantileBucketer': bins with equal number of elements,
+
+                    - None: no binning is applied. Note that not all statistical tests will be performed since 
+                      some () require binning strategies.
                     
-                    - 'default': the default binning for each statistical test is applied,
+                    - 'default': the default binning for each statistical test is applied
                     
-                    - 'all': each binning strategy is used for each statistical test,
+                    - 'all': each binning strategy is used for each statistical test
 
         bin_count (integer, None or list of integers): bin_count value(s) to be used, note that None can only be used when
         no bucketing strategy is applied.
@@ -243,6 +246,8 @@ class AutoDist(object):
             )
         elif isinstance(binning_strategies, str):
             self.binning_strategies = [binning_strategies]
+        elif binning_strategies is None:
+            self.binning_strategies = [None]
         else:
             self.binning_strategies = binning_strategies
         if not isinstance(bin_count, list):
