@@ -81,8 +81,6 @@ def test_distribution_statistics_autodist_base():
     pd.testing.assert_frame_equal(res, myAutoDist.result)
     assert isinstance(res, pd.DataFrame)
     assert res['column'].values.tolist() == features.to_list()
-    assert len(myAutoDist.statistical_tests) * len(myAutoDist.binning_strategies) * len(
-        myAutoDist.bin_count) * 2 + 1 == res.columns.size
 
     dist = DistributionStatistics(statistical_test='ks', binning_strategy='simplebucketer', bin_count=10)
     dist.compute(df1['feat_0'], df2['feat_0'])
@@ -91,8 +89,8 @@ def test_distribution_statistics_autodist_base():
 
     dist = DistributionStatistics(statistical_test='ks', binning_strategy=None, bin_count=10)
     dist.compute(df1['feat_0'], df2['feat_0'])
-    assert dist.p_value == res.loc[res['column'] == 'feat_0', 'p_value_KS_no_bucketing_10'][0]
-    assert dist.statistic == res.loc[res['column'] == 'feat_0', 'statistic_KS_no_bucketing_10'][0]
+    assert dist.p_value == res.loc[res['column'] == 'feat_0', 'p_value_KS_no_bucketing_0'][0]
+    assert dist.statistic == res.loc[res['column'] == 'feat_0', 'statistic_KS_no_bucketing_0'][0]
 
 
 def test_distribution_statistics_autodist_column_names_error():
@@ -129,7 +127,11 @@ def test_distribution_statistics_autodist_default():
     myAutoDist = AutoDist(binning_strategies="default", bin_count=10)
     res = myAutoDist.compute(df1, df2, column_names=features)
     for stat_test, stat_info in DistributionStatistics.statistical_test_dict.items():
-        assert f"p_value_{stat_test}_{stat_info['default_binning']}_10" in res.columns
+        if stat_info['default_binning']:
+            assert f"p_value_{stat_test}_{stat_info['default_binning']}_10" in res.columns
+        else:
+            assert f"p_value_{stat_test}_no_bucketing_0" in res.columns
+
     assert "p_value_agglomerativebucketer_10" not in res.columns
     assert res.shape == (len(df1.columns), 1 + 2 * len(DistributionStatistics.statistical_test_dict))
 

@@ -35,8 +35,10 @@ class DistributionStatistics(object):
 
         - 'quantilebucketer': bins with equal number of elements
 
-        - 'default': applies a default binning for a given stats_test. For all tests appart from PSI, 'simplebucketer'
-        is used. For PSI by default quantilebucketer is used
+        - 'default': applies a default binning for a given stats_test. For all tests appart from PSI, no binning (None)
+        is used. For PSI by default quantilebucketer is used.
+
+        - None: no binning is applied. The test is computed based on original distribution.
 
     bin_count (Optional, int) In case binning_strategy is not None, specify the number of bins to be used by the binning
     strategy. By default 10 bins are used.
@@ -58,22 +60,22 @@ class DistributionStatistics(object):
         "ES": {
             "func": es,
             "name": "Epps-Singleton",
-            "default_binning": "simplebucketer",
+            "default_binning": None,
         },
         "KS": {
             "func": ks,
             "name": "Kolmogorov-Smirnov",
-            "default_binning": "simplebucketer",
+            "default_binning": None,
         },
         "AD": {
             "func": ad,
             "name": "Anderson-Darling TS",
-            "default_binning": "simplebucketer",
+            "default_binning": None,
         },
         "SW": {
             "func": sw,
             "name": "Shapiro-Wilk based difference",
-            "default_binning": "simplebucketer",
+            "default_binning": None,
         },
         "PSI": {
             "func": psi,
@@ -118,7 +120,8 @@ class DistributionStatistics(object):
                 )
             else:
                 binner = self.binning_strategy_dict[self.binning_strategy]
-                self.binner = binner(bin_count=self.bin_count)
+                if binner is not None:
+                    self.binner = binner(bin_count=self.bin_count)
 
     def __repr__(self):
         repr_ = "DistributionStatistics object\n\tstatistical_test: {}".format(
@@ -210,8 +213,9 @@ class AutoDist(object):
                     - None: no binning is applied. Note that not all statistical tests will be performed since 
                       some () require binning strategies.
                     
-                    - 'default': the default binning for each statistical test is applied
-                    
+                    - 'default': applies a default binning for a given stats_test. For all tests appart from PSI, no binning (None)
+                    is used. For PSI by default quantilebucketer is used.
+
                     - 'all': each binning strategy is used for each statistical test
 
         bin_count (integer, None or list of integers): bin_count value(s) to be used, note that None can only be used when
@@ -365,8 +369,16 @@ class AutoDist(object):
         ]
         self._result["bin_count"] = self._result["bin_count"].astype(int)
         self._result.loc[
+            self._result["binning_strategy"].isnull(), "bin_count"
+        ] = 0
+        self._result.loc[
             self._result["binning_strategy"].isnull(), "binning_strategy"
         ] = "no_bucketing"
+
+        # Remove duplicates that appear if multiple bin numbers are passed, and binning strategy None
+
+        self._result = self._result.\
+            drop_duplicates(subset=['column', 'statistical_test', 'binning_strategy', 'bin_count'], keep='first')
 
         # create pivot table as final output
         self.result = pd.pivot_table(
