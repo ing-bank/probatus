@@ -8,6 +8,7 @@ from probatus.binning import SimpleBucketer, AgglomerativeBucketer, QuantileBuck
 from probatus.stat_tests import es, ks, psi, ad, sw
 from probatus.utils.arrayfuncs import check_numeric_dtypes
 
+
 class DistributionStatistics(object):
     """
     Wrapper that applies a statistical method and a binning strategy to data.
@@ -34,8 +35,10 @@ class DistributionStatistics(object):
 
         - 'quantilebucketer': bins with equal number of elements
 
-        - 'default': applies a default binning for a given stats_test. For all tests appart from PSI, 'simplebucketer'
-        is used. For PSI by default quantilebucketer is used
+        - 'default': applies a default binning for a given stats_test. For all tests appart from PSI, no binning (None)
+        is used. For PSI by default quantilebucketer is used.
+
+        - None: no binning is applied. The test is computed based on original distribution.
 
     bin_count (Optional, int) In case binning_strategy is not None, specify the number of bins to be used by the binning
     strategy. By default 10 bins are used.
@@ -51,28 +54,28 @@ class DistributionStatistics(object):
         "simplebucketer": SimpleBucketer,
         "agglomerativebucketer": AgglomerativeBucketer,
         "quantilebucketer": QuantileBucketer,
-        None: None
+        None: None,
     }
     statistical_test_dict = {
         "ES": {
             "func": es,
             "name": "Epps-Singleton",
-            "default_binning": "simplebucketer",
+            "default_binning": None,
         },
         "KS": {
             "func": ks,
             "name": "Kolmogorov-Smirnov",
-            "default_binning": "simplebucketer",
+            "default_binning": None,
         },
         "AD": {
             "func": ad,
             "name": "Anderson-Darling TS",
-            "default_binning": "simplebucketer",
+            "default_binning": None,
         },
         "SW": {
             "func": sw,
             "name": "Shapiro-Wilk based difference",
-            "default_binning": "simplebucketer",
+            "default_binning": None,
         },
         "PSI": {
             "func": psi,
@@ -81,10 +84,7 @@ class DistributionStatistics(object):
         },
     }
 
-    def __init__(self,
-                 statistical_test,
-                 binning_strategy="default",
-                 bin_count=10):
+    def __init__(self, statistical_test, binning_strategy="default", bin_count=10):
         self.statistical_test = statistical_test.upper()
         self.binning_strategy = binning_strategy
         self.bin_count = bin_count
@@ -94,38 +94,49 @@ class DistributionStatistics(object):
         if self.statistical_test not in self.statistical_test_dict:
             raise NotImplementedError(
                 "The statistical test should be one of {}".format(
-                    self.statistical_test_dict.keys()))
+                    self.statistical_test_dict.keys()
+                )
+            )
         else:
             self.statistical_test_name = self.statistical_test_dict[
-                self.statistical_test]["name"]
+                self.statistical_test
+            ]["name"]
             self._statistical_test_function = self.statistical_test_dict[
-                self.statistical_test]["func"]
+                self.statistical_test
+            ]["func"]
 
         # Initialize the binning strategy
         if self.binning_strategy:
             self.binning_strategy = self.binning_strategy.lower()
             if self.binning_strategy == "default":
                 self.binning_strategy = self.statistical_test_dict[
-                    self.statistical_test]["default_binning"]
+                    self.statistical_test
+                ]["default_binning"]
             if self.binning_strategy not in self.binning_strategy_dict:
                 raise NotImplementedError(
                     "The binning strategy should be one of {}".format(
-                        list(self.binning_strategy_dict.keys())))
+                        list(self.binning_strategy_dict.keys())
+                    )
+                )
             else:
                 binner = self.binning_strategy_dict[self.binning_strategy]
-                self.binner = binner(bin_count=self.bin_count)
+                if binner is not None:
+                    self.binner = binner(bin_count=self.bin_count)
 
     def __repr__(self):
         repr_ = "DistributionStatistics object\n\tstatistical_test: {}".format(
-            self.statistical_test)
+            self.statistical_test
+        )
         if self.binning_strategy:
             repr_ += "\n\tbinning_strategy: {}\n\tbin_count: {}".format(
-                self.binning_strategy, self.bin_count)
+                self.binning_strategy, self.bin_count
+            )
         else:
             repr_ += "\n\tNo binning applied"
         if self.fitted:
             repr_ += "\nResults\n\tvalue {}-statistic: {}".format(
-                self.statistical_test, self.statistic)
+                self.statistical_test, self.statistic
+            )
         if hasattr(self, "p_value"):
             repr_ += "\n\tp-value: {}".format(self.p_value)
         return repr_
@@ -147,7 +158,7 @@ class DistributionStatistics(object):
         """
         check_numeric_dtypes(d1)
         check_numeric_dtypes(d2)
-        
+
         # Bin the data
         if self.binning_strategy:
             self.binner.fit(d1)
@@ -157,10 +168,9 @@ class DistributionStatistics(object):
             d1_preprocessed, d2_preprocessed = d1, d2
 
         # Perform the statistical test
-        res = self._statistical_test_function(d1_preprocessed,
-                                              d2_preprocessed,
-                                              verbose=verbose,
-                                              **kwargs)
+        res = self._statistical_test_function(
+            d1_preprocessed, d2_preprocessed, verbose=verbose, **kwargs
+        )
         self.fitted = True
 
         # Check form of results and return
@@ -189,19 +199,27 @@ class AutoDist(object):
 
             - 'AD': Anderson-Darling TS.
 
-    binning_strategies (Optional, str): Binning strategies to apply for each test, either list of tests names, or 'all'.
-    Binning strategies implemented:
+        binning_strategies (Optional, str): Binning strategies to apply for each test, either list of tests names, 'all'
+        or 'default'.
+    
+            Binning strategies that can be chosen:
 
-            - 'SimpleBucketer': equally spaced bins,
+                    - 'SimpleBucketer': equally spaced bins,
 
-            - 'AgglomerativeBucketer': binning by applying the Scikit-learn implementation of Agglomerative Clustering,
+                    - 'AgglomerativeBucketer': binning by applying the Scikit-learn implementation of Agglomerative Clustering,
 
-            - 'QuantileBucketer': bins with equal number of elements,
+                    - 'QuantileBucketer': bins with equal number of elements,
 
-            - None: no binning is applied.
+                    - None: no binning is applied. Note that not all statistical tests will be performed since 
+                      some () require binning strategies.
+                    
+                    - 'default': applies a default binning for a given stats_test. For all tests appart from PSI, no binning (None)
+                    is used. For PSI by default quantilebucketer is used.
 
-    bin_count (integer, None or list of integers): bin_count value(s) to be used, note that None can only be used when
-    no bucketing strategy is applied.
+                    - 'all': each binning strategy is used for each statistical test
+
+        bin_count (integer, None or list of integers): bin_count value(s) to be used, note that None can only be used when
+        no bucketing strategy is applied.
 
     Example:
      >>> df1 = pd.DataFrame(np.random.normal(size=(1000, 2)), columns=['feat_0', 'feat_1'])
@@ -209,23 +227,31 @@ class AutoDist(object):
      >>> myAutoDist = AutoDist(statistical_tests='all', binning_strategies='all', bin_count=[10, 20])
      >>> res = myAutoDist.fit(df1, df2, columns=df1.columns)
     """
-    def __init__(self,
-                 statistical_tests="all",
-                 binning_strategies="all",
-                 bin_count=10):
+
+    def __init__(
+        self, statistical_tests="all", binning_strategies="default", bin_count=10
+    ):
         self.fitted = False
+
+        # Initialize statistical tests to be performed
         if statistical_tests == "all":
             self.statistical_tests = list(
-                DistributionStatistics.statistical_test_dict.keys())
+                DistributionStatistics.statistical_test_dict.keys()
+            )
         elif isinstance(statistical_tests, str):
             self.statistical_tests = [statistical_tests]
         else:
             self.statistical_tests = statistical_tests
+
+        # Initialize binning strategies to be used
         if binning_strategies == "all":
             self.binning_strategies = list(
-                DistributionStatistics.binning_strategy_dict.keys())
+                DistributionStatistics.binning_strategy_dict.keys()
+            )
         elif isinstance(binning_strategies, str):
             self.binning_strategies = [binning_strategies]
+        elif binning_strategies is None:
+            self.binning_strategies = [None]
         else:
             self.binning_strategies = binning_strategies
         if not isinstance(bin_count, list):
@@ -248,9 +274,9 @@ class AutoDist(object):
         self,
         df1,
         df2,
-        column_selection,
+        column_names=None,
         return_failed_tests=True,
-        suppress_warnings=True,
+        suppress_warnings=False,
     ):
         """
         Fit the AutoDist object to data; i.e. apply the statistical tests and binning strategies
@@ -261,7 +287,8 @@ class AutoDist(object):
 
             df2 (pd.DataFrame): dataframe 2 for distribution comparison with dataframe 1.
 
-            column_selection (list of str): list of columns in df1 and df2 that should be compared.
+            column_names (list of str): list of columns in df1 and df2 that should be compared. If None, 
+            all column names will be compared
 
             return_failed_tests (bool): remove tests in result that did not succeed.
 
@@ -271,25 +298,39 @@ class AutoDist(object):
             (pd.DataFrame): dataframe with results of the performed statistical tests and binning strategies.
 
         """
-        # test if all columns in column_selection are in df1 and df2
-        if len(set(column_selection) - set(df1.columns)) or len(
-                set(column_selection) - set(df2.columns)):
+        if column_names is None:
+            column_names = df1.columns.to_list()
+            if len(set(column_names) - set(df2.columns)):
+                raise Exception(
+                    "column_names was set to None but columns in provided dataframes are different"
+                )
+        # Check if all columns in column_names are in df1 and df2
+        elif len(set(column_names) - set(df1.columns)) or len(
+            set(column_names) - set(df2.columns)
+        ):
             raise Exception(
-                "Not all columns in `column_selection` are in the provided dataframes"
+                "Not all columns in `column_names` are in the provided dataframes"
             )
 
+        # Calculate statistics and p-values for all combinations
         result_all = pd.DataFrame()
         for col, stat_test, bin_strat, bins in tqdm(
-                list(
-                    itertools.product(
-                        column_selection,
-                        self.statistical_tests,
-                        self.binning_strategies,
-                        self.bin_count,
-                    ))):
-            dist = DistributionStatistics(statistical_test=stat_test,
-                                          binning_strategy=bin_strat,
-                                          bin_count=bins)
+            list(
+                itertools.product(
+                    column_names,
+                    self.statistical_tests,
+                    self.binning_strategies,
+                    self.bin_count,
+                )
+            )
+        ):
+            if self.binning_strategies == ["default"]:
+                bin_strat = DistributionStatistics.statistical_test_dict[stat_test][
+                    "default_binning"
+                ]
+            dist = DistributionStatistics(
+                statistical_test=stat_test, binning_strategy=bin_strat, bin_count=bins
+            )
             try:
                 if suppress_warnings:
                     warnings.filterwarnings("ignore")
@@ -297,13 +338,12 @@ class AutoDist(object):
                 if suppress_warnings:
                     warnings.filterwarnings("default")
                 statistic = dist.statistic
-                if hasattr(dist, "p_value"):
-                    p_value = dist.p_value
-                else:
-                    p_value = None
+                p_value = dist.p_value
             except:
                 statistic, p_value = "an error occurred", None
                 pass
+
+            # Append result to results list
             result_ = {
                 "column": col,
                 "statistical_test": stat_test,
@@ -313,21 +353,32 @@ class AutoDist(object):
                 "p_value": p_value,
             }
             result_all = result_all.append(result_, ignore_index=True)
+
         if not return_failed_tests:
-            result_all = result_all[
-                result_all["statistic"] != "an error occurred"]
+            result_all = result_all[result_all["statistic"] != "an error occurred"]
         self.fitted = True
-        self._result = result_all[[
-            "column",
-            "statistical_test",
-            "binning_strategy",
-            "bin_count",
-            "statistic",
-            "p_value",
-        ]]
+        self._result = result_all[
+            [
+                "column",
+                "statistical_test",
+                "binning_strategy",
+                "bin_count",
+                "statistic",
+                "p_value",
+            ]
+        ]
         self._result["bin_count"] = self._result["bin_count"].astype(int)
-        self._result.loc[self._result["binning_strategy"].isnull(),
-                         "binning_strategy"] = "no_bucketing"
+        self._result.loc[
+            self._result["binning_strategy"].isnull(), "bin_count"
+        ] = 0
+        self._result.loc[
+            self._result["binning_strategy"].isnull(), "binning_strategy"
+        ] = "no_bucketing"
+
+        # Remove duplicates that appear if multiple bin numbers are passed, and binning strategy None
+
+        self._result = self._result.\
+            drop_duplicates(subset=['column', 'statistical_test', 'binning_strategy', 'bin_count'], keep='first')
 
         # create pivot table as final output
         self.result = pd.pivot_table(
@@ -337,10 +388,10 @@ class AutoDist(object):
             columns=["statistical_test", "binning_strategy", "bin_count"],
             aggfunc="sum",
         )
+
         # flatten multi-index
         self.result.columns = [
-            "_".join([str(x) for x in line])
-            for line in self.result.columns.values
+            "_".join([str(x) for x in line]) for line in self.result.columns.values
         ]
         self.result.reset_index(inplace=True)
         return self.result
