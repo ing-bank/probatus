@@ -1,66 +1,49 @@
+from abc import abstractmethod
 import pandas as pd
 import numpy as np
 from sklearn.cluster import AgglomerativeClustering
 from sklearn.tree import DecisionTreeClassifier
+from sklearn.utils.validation import check_is_fitted
 
 from probatus.utils import assure_numpy_array, TreePathFinder, ApproximationWarning, NotFittedError
 
 import warnings
+from abc import ABC, abstractmethod
 
-
-class Bucketer(object):
-    def __init__(self):
-        self.fitted = False
+class Bucketer(ABC):
 
     def __repr__(self):
         repr_ = f"{self.__class__.__name__}\n\tbincount: {self.bin_count}"
-        if self.fitted:
-            repr_ += f"\nResults:\n\tcounts: {self.counts}\n\tboundaries: {self.boundaries}"
+        if hasattr(self, "boundaries_"):
+            repr_ += f"\nResults:\n\tcounts: {self.counts_}\n\tboundaries: {self.boundaries_}"
         return repr_
 
-    def fit(self, X, y=None, **kwargs):
-        """
-        Fit bucketing on X
+    @abstractmethod
+    def fit(self):
+        pass
 
-        Args:
-            X: (np.array) Input array on which the boundaries of bins are fitted
-            y: (np.array) optional, One dimensional array, used if the target is needed for the bucketing.
-                By default is set to None
-            **kwargs: (dict) Keyword arguments, to be defined per bucketer if needed
-
-        Returns: fitted bucketer object
-        """
-        if y is None:
-            self._fit(X, **kwargs)
-        else:
-            self._fit(X, y, **kwargs)
-
-
-        self.fitted = True
-        return self
-
-    def compute(self, X):
+    def compute(self, X, y=None):
         """
         Applies fitted bucketing algorithm on input data and counts number of samples per bin
 
         Args:
             X: (np.array) data to be bucketed
+            y: (np.array) ignored, for sklearn compatibility
 
         Returns: counts of the elements in X using the bucketing that was obtained by fitting the Bucketer instance
 
         """
-        if not self.fitted:
-            raise NotFittedError('Bucketer is not fitted')
-        else:
-            # np.digitize returns the indices of the bins to which each value in input array belongs
-            # the smallest value of the `boundaries` attribute equals the lowest value in the set the instance was
-            # fitted on, to prevent the smallest value of x_new to be in his own bucket, we ignore the first boundary
-            # value
-            digitize_result = np.digitize(X, self.boundaries[1:], right=True)
-            result = pd.DataFrame({'bucket': digitize_result}).groupby('bucket')['bucket'].count()
-            # reindex the dataframe such that also empty buckets are included in the result
-            result = result.reindex(np.arange(self.bin_count), fill_value=0)
-            return result.values
+        check_is_fitted(self)
+        
+        # np.digitize returns the indices of the bins to which each value in input array belongs
+        # the smallest value of the `boundaries` attribute equals the lowest value in the set the instance was
+        # fitted on, to prevent the smallest value of x_new to be in his own bucket, we ignore the first boundary
+        # value
+        digitize_result = np.digitize(X, self.boundaries_[1:], right=True)
+        result = pd.DataFrame({'bucket': digitize_result}).groupby('bucket')['bucket'].count()
+        # reindex the dataframe such that also empty buckets are included in the result
+        result = result.reindex(np.arange(self.bin_count), fill_value=0)
+        return result.values
 
     def fit_compute(self, X, y = None):
         """
@@ -75,25 +58,24 @@ class Bucketer(object):
 
         """
         self.fit(X, y)
-        return self.compute(X)
+        return self.compute(X, y)
 
 
 class SimpleBucketer(Bucketer):
     """Create equally spaced bins using numpy.histogram function
 
     Usage:
+    ```python
     x = [1, 2, 1]
     bins = 3
     myBucketer = SimpleBucketer(bin_count=bins)
     myBucketer.fit(x)
+    ```
 
     myBucketer.counts gives the number of elements per bucket
     myBucketer.boundaries gives the boundaries of the buckets
-
     """
-
     def __init__(self, bin_count):
-        super().__init__()
         self.bin_count = bin_count
 
     @staticmethod
@@ -101,26 +83,35 @@ class SimpleBucketer(Bucketer):
         counts, boundaries = np.histogram(x, bins=bin_count)
         return counts, boundaries
 
-    def _fit(self, x,y=None):
-        self.counts, self.boundaries = self.simple_bins(x, self.bin_count)
+    def fit(self, x, y=None):
+        """
+        Fit bucketing on x
+
+        Args:
+            x: (np.array) Input array on which the boundaries of bins are fitted
+            y: (np.array) ignored. For sklearn-compatibility
+
+        Returns: fitted bucketer object
+        """
+        self.counts_, self.boundaries_ = self.simple_bins(x, self.bin_count)
+        return self
 
 
 class AgglomerativeBucketer(Bucketer):
     """Create binning by applying the Scikit-learn implementation of Agglomerative Clustering
 
     Usage:
+    ```python
     x = [1, 2, 1]
     bins = 3
     myBucketer = AgglomerativeBucketer(bin_count=bins)
     myBucketer.fit(x)
+    ```
 
     myBucketer.counts gives the number of elements per bucket
     myBucketer.boundaries gives the boundaries of the buckets
-
     """
-
     def __init__(self, bin_count):
-        super().__init__()
         self.bin_count = bin_count
 
     @staticmethod
@@ -137,26 +128,35 @@ class AgglomerativeBucketer(Bucketer):
         counts = df.groupby('label')['label'].count().values
         return counts, boundaries
 
-    def _fit(self, x):
-        self.counts, self.boundaries = self.agglomerative_clustering_binning(x, self.bin_count)
+    def fit(self, x, y=None):
+        """
+        Fit bucketing on x
+
+        Args:
+            x: (np.array) Input array on which the boundaries of bins are fitted
+            y: (np.array) ignored. For sklearn-compatibility
+
+        Returns: fitted bucketer object
+        """
+        self.counts_, self.boundaries_ = self.agglomerative_clustering_binning(x, self.bin_count)
+        return self
 
 
 class QuantileBucketer(Bucketer):
     """Create bins with equal number of elements
 
     Usage:
+    ```python
     x = [1, 2, 1]
     bins = 3
     myBucketer = QuantileBucketer(bin_count=bins)
     myBucketer.fit(x)
+    ```
 
     myBucketer.counts gives the number of elements per bucket
     myBucketer.boundaries gives the boundaries of the buckets
-
     """
-
     def __init__(self, bin_count):
-        super().__init__()
         self.bin_count = bin_count
 
     @staticmethod
@@ -178,10 +178,18 @@ class QuantileBucketer(Bucketer):
             boundaries[-1] = np.inf
         return counts, boundaries
 
-    def _fit(self, x):
-        self.counts, self.boundaries = self.quantile_bins(x, self.bin_count)
+    def fit(self, x, y=None):
+        """
+        Fit bucketing on x
 
+        Args:
+            x: (np.array) Input array on which the boundaries of bins are fitted
+            y: (np.array) ignored. For sklearn-compatibility
 
+        Returns: fitted bucketer object
+        """
+        self.counts_, self.boundaries_ = self.quantile_bins(x, self.bin_count)
+        return self
 
 
 class TreeBucketer(Bucketer):
@@ -192,12 +200,13 @@ class TreeBucketer(Bucketer):
     the distribution of the target.
     
     Usage:
-
+    ```python
     x = [1, 2, 2, 5 ,3]
     y = [0, 0 ,1 ,1 ,1]
     bins = 3
     myBucketer = TreeBucketer(inf_edges=True,max_depth=2,min_impurity_decrease=0.001)
     myBucketer.fit(x,y)
+    ```
 
     myBucketer.counts gives the number of elements per bucket
     myBucketer.boundaries gives the boundaries of the buckets
@@ -274,7 +283,6 @@ class TreeBucketer(Bucketer):
     """
 
     def __init__(self, inf_edges = False, tree = None, **tree_kwargs):
-        super().__init__()
         self.bin_count = -1
         self.inf_edges = inf_edges
         if tree is None:
@@ -313,5 +321,15 @@ class TreeBucketer(Bucketer):
 
         return counts, boundaries, bin_count, tree
 
-    def _fit(self, X, y):
-        self.counts, self.boundaries, self.bin_count, self.tree = self.tree_bins(X,y, self.inf_edges, self.tree)
+    def fit(self, X, y):
+        """
+        Fit bucketing on x
+
+        Args:
+            x: (np.array) Input array on which the boundaries of bins are fitted
+            y: (np.array) optional, One dimensional array with the target.
+
+        Returns: fitted bucketer object
+        """
+        self.counts_, self.boundaries_, self.bin_count, self.tree = self.tree_bins(X,y, self.inf_edges, self.tree)
+        return self
