@@ -1,11 +1,10 @@
-from abc import abstractmethod
 import pandas as pd
 import numpy as np
 from sklearn.cluster import AgglomerativeClustering
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.utils.validation import check_is_fitted
 
-from probatus.utils import assure_numpy_array, TreePathFinder, ApproximationWarning, NotFittedError
+from probatus.utils import assure_numpy_array, TreePathFinder, ApproximationWarning
 
 import warnings
 from abc import ABC, abstractmethod
