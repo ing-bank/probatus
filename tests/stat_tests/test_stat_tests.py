@@ -10,7 +10,7 @@ def test_psi_returns_zero():
     x = np.random.normal(size=1000)
     myBucketer = binning.QuantileBucketer(bin_count=10)
     myBucketer.fit(x)
-    d1 = myBucketer.counts
+    d1 = myBucketer.counts_
     d2 = d1
     psi_test, p_value_test = psi(d1, d2, verbose=False)
     assert psi_test == 0.0
