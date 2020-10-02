@@ -23,13 +23,17 @@ class Bucketer(ABC):
 
     @property
     def boundaries(self):
-        warnings.DeprecationWarning("The 'boundaries' attribute is deprecated, use 'boundaries_' instead. The underscore suffix signals this is a fitted attribute.")
+        warnings.warn("The 'boundaries' attribute is deprecated, use 'boundaries_' instead. The underscore suffix signals this is a fitted attribute.",
+                       DeprecationWarning)
+        check_is_fitted(self)
         return self.boundaries_
 
     @property
     def counts(self):
-        warnings.DeprecationWarning("The 'counts' attribute is deprecated, use 'counts_' instead. The underscore suffix signals this is a fitted attribute.")
-        return self.counts
+        warnings.warn("The 'counts' attribute is deprecated, use 'counts_' instead. The underscore suffix signals this is a fitted attribute.", 
+            DeprecationWarning)
+        check_is_fitted(self)
+        return self.counts_
 
     def compute(self, X, y=None):
         """

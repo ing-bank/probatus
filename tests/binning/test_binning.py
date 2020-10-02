@@ -5,6 +5,20 @@ from probatus.binning import SimpleBucketer, QuantileBucketer, AgglomerativeBuck
 from sklearn.exceptions import NotFittedError
 from sklearn.utils.validation import check_is_fitted
 
+
+@pytest.mark.filterwarnings("ignore:")
+def test_deprecations():
+    x = [1, 2, 1]
+    bins = 3
+    myBucketer = SimpleBucketer(bin_count=bins)
+    myBucketer.fit(x)
+    with pytest.deprecated_call():
+        myBucketer.counts
+
+    with pytest.deprecated_call():
+        myBucketer.boundaries
+    
+    
 def test_simple_bins():
     x = [1, 2, 1]
     bins = 3
