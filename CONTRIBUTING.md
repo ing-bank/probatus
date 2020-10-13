@@ -211,7 +211,7 @@ It is the responsibility of the reviewee to make sure that the code is easy to r
     - Create a git issue for every chunck of work you do
     - for each issue create a merge request
     - clone the issue branch and work there
-    - once the work is ready, submit your merge request via https://gitlab.ing.net/
+    - once the work is ready, submit your merge request via https://gitlab.com/ing_rpaa/probatus
 
 
 - **Developing on master**
