@@ -20,8 +20,8 @@ sys.path.insert(0, os.path.abspath('../../'))
 # -- Project information -----------------------------------------------------
 
 project = 'probatus'
-copyright = '2019, RPAA'
-author = 'RPAA'
+copyright = '2019, ING'
+author = 'ING'
 
 # The short X.Y version
 version = ''
