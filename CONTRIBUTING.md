@@ -1,7 +1,5 @@
 # Contributing guide
 
-Work at ING? Join our slack channel `#probatus`! :coffee:
-
 There are many ways to contribute to probatus, including:
 
 - Contribution to code
@@ -43,33 +41,39 @@ https://github.com/jonschlinkert/markdown-toc
 <!-- tocstop -->
 
 
-
 ## Code development
 
-### Jupyter notebooks
+### Project workflow
+For each new version of Probatus we loosely follow the steps:
+* Set up a next release milestone, with the release date
+* Plan issues that are picked up in a given milestone, and assign contributors
+* Deploy new version of Probatus
 
-- Do not collaborate on notebooks. Always create your own personal notebooks. This is because they are hard to version control as they include more than just code (cells & output).
-- **Clear output cells that may contain sensitive information before commits to prevent personal data leaking into the git repo.**
-- Try to clear large cell outputs before committing. Printing huge tables or plotting large graphs will only bloat your git repository and you run a larget risk of leaking sensitive data.
-- Do not copy and paste code. Instead write reusable functions in `src/` and load them into your notebooks (tip: use `%autoreload`). This blogpost details the workflow: [write less terrible notebook code](https://blog.godatadriven.com/write-less-terrible-notebook-code)
+Milestones are created by the Maintainer, in collaboration with contributors, based on contributors availability and priority of the backlog.
 
+### Developing new functionality
 
-### Functions in .py files
+For new functionality that can be developed in Probatus, we follow the workflow:
+1. Make an issue on the board, clearly describe the idea and discuss it in the comments with other contributors.
+2. Plan development of the feature, as part of one or multiple releases.
+3. Implement the feature: feature code, unit tests and documentation (including notebook in `docs/` with tutorial on how to use the feature). Each of these can be implemented as a separate Merge Request.
+4. Maintainer deploys new version of Probatus and expose it and new docs to the users.
 
-- Reusable functions must be stored into `.py files`. This includes (but is not limited to):
-    * data loading
-    * data cleaning
-    * feature generation
-    * model hyperparameter tuning
-    * plotting
-    * validation steps
-- The `.py files` must be stored into the directory `/probatus/` or a subdirectory of the same
-- Written functions should follow the [Technical Standards](#technical-standards)
-- Verbosity
-    * There should be no print statements to stdout by default.
-    * If you want optional printing to stdout, add the argument `verbose` to your function, by default set to `False`.
+### Ad-hoc development
 
+For any other work picked up in the project, e.g. refactoring code, fixing bugs, refining docs we loosely follow this workflow:  
+1. Make an issue on the board, clearly describe the idea and discuss it in the comments with other contributors.
+2. Assign a contributor, and implement the change using Merge Request functionality.
+3. Maintainer deploys new version of Probatus and expose it and new docs to the users.
 
+### New contributors
+
+We are always glad if new contributors want to spend time improving the package, do not hesitate to reach out to us.
+
+For new contributors, a good starting point would be the following:
+* Make an issues, describing and discussing ideas for improvements
+* Look over issues that do not have an assignee, and assign yourself. Best to start with simple ones, e.g. improving docs, improving code style etc. This way you can get to know the package better.
+* Create a Merge Request to master, that implements the issue that you are assigned to. Start with something small :)
 
 ## Technical Standards
 
@@ -78,9 +82,6 @@ https://github.com/jonschlinkert/markdown-toc
 * Use Python 3.6 or higher depends on availability in your dev/prod environment.
 * Use environments (conda). To create one, run `conda env create -f requirements.yml`.
 * Keep track of dependencies in `requirements.yml` and run `conda install --file requirements.yml` to install them. Remember to notify your colleagues of the change in requirements since they'll need to conda install them.
-* Use environment variables for simple configurations and secrets
-  * You can load the environment variables in Python scripts using the [https://github.com/theskumar/python-dotenv](dotenv) package.
-  * You can load the variables in bash scripts using the `dotenv.sh` script
 * Line length is 120
 * Follow [PEP8](http://pep8.org/) as closely as possible (except line length)
 * Use ```__name__ == '__main__'```, otherwise Sphinx will execute your script upon building.
@@ -103,41 +104,49 @@ def func(arg1, arg2):
     return True
 ```
 
-### Code for model validation modules
-* Model validation modules assume that trained models passed for validation are developed in scikit-learn framework (have predict_proba and other standard functions)
-* They implement fit and transform methods and preferably inherit from BaseEstimator and TransformerMixin
+### Code structure
+* Model validation modules assume that trained models passed for validation are developed in scikit-learn framework (have predict_proba and other standard functions), or follows scikit-learn API e.g. XGBoost.
 * Every python file used for model validation, needs to be in `/probatus/`
-* Every python module that validate the model needs to take at minimum three inputs: 
-    - model - model trained in scikit-learn framework
-    - credit_data - pandas DataFrame with features and targets
-    - X - array/list with names of featuers
-    - y - string with name of the target variables
-    - Other necessary parameters are allowed, but they need to be predefined
-* An example in pseudocode of a function generating the features is as follows:
-
-```python 
-def KS_test(model, credit_data, X, Y):
-    """
-    Description of the function
-    """
-    # does operations with the tables and returns the feature
-    
-    return ks__scores
-```
+* Class structure for a given module should have a base class, and specific functionality classes that inherit from base. If a given module implements only single way of computing the output, the base class is not required. 
 * Functions should not exceed 10-15 lines of code. If more code is needed, try to put together snippets of code into 
 other functions. This make the code more readable, and easier to test.
 
-### Functions for multiple modules
+### Functions in .py files
 
-Some functions might be useful for multiple features. Therefore, it does not make sense to store them in 
-`feature_specific.py` file, but rather create add them in a helper file, i.e. `src/features/helpers.py`.<br>
-An example:
-- A function that helps with repartitioning the tables could be defined in `helpers.py`
-- A function that helps with the naming convention (for example with the time interval definiton) could be
- defined in `helpers.py`
- - A function converts all IDs from String to Integers could be defined in `helpers.py`
+- Reusable functions must be stored into `.py files`. This includes (but is not limited to):
+    * data loading
+    * data cleaning
+    * feature generation
+    * model hyperparameter tuning
+    * plotting
+    * validation steps
+- The `.py files` must be stored into the directory `/probatus/` or a subdirectory of the same
+- Written functions should follow the [Technical Standards](#technical-standards)
+- Code is structured into folders, depending on the functionality. For code that is reusable across different modules, place it in `\utils\`.
 
+
+### Probatus API
+Classes follow the probatus API structure:
+* Each class implements fit(), compute() and fit_compute() methods. Fit is used to fit object with provided data (unless no fit is required), and compute calculates the output e.g. DataFrame with report for the user. Lastly, fit_compute applies one after the other.
+* If applicable, plot() method presents user with the appropriate graphs.
+* For compute(), and plot(), check if the object is fitted first.
     
+    
+### Unit tests
+Unit tests follow the following convention:
+* Use pytest framework
+* Structure tests in `tests/` folder the same way as `probatus/` modules. Each test file and function should start its name with `test_`.
+* Do not store test data in git, use fixtures instead. For fixtures that can be reused across modules, store them in conftest.py, for others, keep them in the test file.
+* **Make simple and quick unit tests. For most of them, it is best if you are able to compute the output by hand and make it deterministic.**
+* For tests where functionality of other packages is run, or are undeterministic, consider mocking the functionality.
+* Test most important units of code. If a single function calls multiple others, try to mock the function calls, and test those units separately.
+
+### Jupyter notebooks
+
+- Jupyter notebooks are used only to make documentation of the package.
+- Do not collaborate on notebooks. Always create your own personal notebooks. This is because they are hard to version control as they include more than just code (cells & output).
+- Do not copy and paste code. Instead write reusable functions in `src/` and load them into your notebooks (tip: use `%autoreload`). This blogpost details the workflow: [write less terrible notebook code](https://blog.godatadriven.com/write-less-terrible-notebook-code)
+
 
 ### Line endings (optional)
 
@@ -146,14 +155,21 @@ We have included a `.gitattributes` file that forces unix-style line endings (LF
 
 If you do run into trouble, please see our [dealing with windows line endings guide](https://confluence.europe.intranet/display/IAAT/Dealing+with+windows+line+endings+in+GIT).
 
+### Documentation
+
+Documentation is a very crucial part of the project, because it ensures usability of the package.
+We develop the docs in the following way:
+* `docs/` folder contains all the relevant documentation
+* We use sphinx-build to build html files (`site/` folder), based on `docs/`. If you want to build the `site/` folder, run the following in the root of the directory `sphinx-build -M html docs/source/ site/
+`.
+* For crucial functionality, we develop a jupyter notebooks, which serve as a tutorials for the users.
+
 ## Project Data
 
 - **Do not commit data to git!**. As git preserves history, onces data has been pushed to gitlab it is **very** difficult to remove.
 - Do not add pickle models into the repo, since they are dependent on the sklearn version used to initialize them
-- Very small .csv/.pkl files can be permitted when used for examples, testing, metadata or configuration purposes
-- Source data should never be edited, instead create a reproducible pipeline with the immutable source data as input
-- Large files should go into HDFS, preferably in the parquet format or stored in Hive, depending on your development environment
 - Use the `/data` folder to store project data. This is .gitignore-ed directory by default
+- If you need data for unit tests, initialize simple datasets as fixtures.
 
 ## Code Reviews
 
@@ -205,33 +221,6 @@ It is the responsibility of the reviewee to make sure that the code is easy to r
 - Once the code is ready to be merged with master, resolve WIP status and create a new pull request
 - Ask one of your peers to review the code and merge the pull request
 - Any feature added to the project should include unit tests. If anyone modifies the features that are already there, tests should be refined accordingly. Finally if a bug is found, a test should be written that makes sure this bug would be detected in the future
-    
-<!---
-- **Development on feature branches**:
-    - Create a git issue for every chunck of work you do
-    - for each issue create a merge request
-    - clone the issue branch and work there
-    - once the work is ready, submit your merge request via https://gitlab.com/ing_rpaa/probatus
-
-
-- **Developing on master**
-    - Easy work with, little git knowledge required
-    - Higher chance of errors/bugs in `master` branch
-    - More merge conflicts
-    - Can't use merge requests for code review
-    - In order to allow commits to master in ING's gitlab, you need to add `disable-peer-review` to settings > general > tags
-- **Develop on dev, merge to master**
-    - Requires basic knowledge of branching and merging
-    - Errors/bugs can be caught before reaching `master`
-    - Code reviews with merge requests are difficult, as everyone's work is in the same branch
-- **Develop on feature branches, merge to master**
-    - Requires disciplined team familiar with git
-    - Errors/bugs can be caught and easily debugged within feature branch
-    - Fewer merge conflicts with other features while developing
-    - Code review is scoped to individual features/improvements, when using merge requests
-
-    > We advise teams that are just starting out with git to use **Developing on master**, but later on they should keep the more advanced options in mind as they have some clear advantages.
-    --->
 
 ###  Commit Messages
 
@@ -242,7 +231,6 @@ When creating commit messages, keep these guidelines in mind. They are meant to 
 - Include a short description of *what* and *why* was done, *how* can be seen in the code.
 - Use present tense, imperative mood
 - Limit the length of the first line to 72 chars. You can use multiple messages to specify a second (longer) line: `git commit -m "Patch load function" -m "This is a much longer explanation of what was done"`
-<!---- To refer to a Jira or Gitlab ticket, use **"See #123"** or **"Closes #123"**--->
 
 To help you with this message format, you can have git generate new commit messages with template by running:
 
@@ -258,12 +246,6 @@ This is a longer description of what the commit contains. See #123
 
 Issue tracking is recommended even for solo projects. In this project we use Gitlab issue board for issue tracking.
 
-<!---
-## (Optional) Testing: py.test
-* To run a single testfile: `pytest tests/test_environment.py`
-* Run all tests: `pytest`
-* For informat: on on how to write tests using py.test, see the current examples and [https://docs.pytest.org/en/latest/](py.test's docs).
---->
 
 ## Versioning and Deployment
 
@@ -274,4 +256,5 @@ Deployment is made in the following steps:
     - Bump the version in setup.py
     - Bump release variable in docs/source/conf.py
     - Update Changelog with changes made from previous version
-- Create a git tag for the version. This will trigger a CI pipeline which deploys  
+- Create a git tag for the version. This will trigger a CI pipeline which deploys 
+- Deployment of new version is performed by Maintainers. 
