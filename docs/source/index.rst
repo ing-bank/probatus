@@ -65,7 +65,6 @@ all functions, and all parameters available for the algorithms.
 `Additional Information <examples.html>`_
 --------------------------------------
 
-Probatus is created under `MIT License <license.html>`_.
-To know more about probatus see the `README <https://gitlab.com/ing_rpaa/probatus/blob/master/README.md>`_ .
+Probatus is created under MIT License, see more in `LICENCE file <https://gitlab.com/ing_rpaa/probatus/-/blob/master/LICENCE>`_ .
 
 
