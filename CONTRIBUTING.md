@@ -163,6 +163,7 @@ We develop the docs in the following way:
 * We use sphinx-build to build html files (`site/` folder), based on `docs/`. If you want to build the `site/` folder, run the following in the root of the directory `sphinx-build -M html docs/source/ site/
 `.
 * For crucial functionality, we develop a jupyter notebooks, which serve as a tutorials for the users.
+* Documentation is automatically deployed to `https://probatus.readthedocs.io/en/latest/`, whenever a new version of Probatus is created (using tag).
 
 ## Project Data
 
