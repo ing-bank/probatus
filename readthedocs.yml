@@ -1,4 +1,6 @@
 build:
   image: stable
-conda:
-  file: docs/rtd_environment.yml
+python:
+  version: 3.7
+  install:
+    - requirements: docs/rtd_requirements.txt
