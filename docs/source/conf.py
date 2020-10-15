@@ -20,7 +20,7 @@ sys.path.insert(0, os.path.abspath('../../'))
 # -- Project information -----------------------------------------------------
 
 project = 'probatus'
-copyright = '2019, ING Risk and Pricing Advanced Analytics'
+copyright = '2020, ING Risk and Pricing Advanced Analytics'
 author = 'ING RPAA'
 
 # The short X.Y version
