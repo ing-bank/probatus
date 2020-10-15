@@ -20,8 +20,8 @@ sys.path.insert(0, os.path.abspath('../../'))
 # -- Project information -----------------------------------------------------
 
 project = 'probatus'
-copyright = '2020, ING Risk and Pricing Advanced Analytics'
-author = 'ING RPAA'
+copyright = '2020, ING Bank N.V.'
+author = 'ING Bank N.V.'
 
 # The short X.Y version
 version = ''
@@ -143,7 +143,7 @@ latex_elements = {
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
     (master_doc, 'probatus.tex', 'probatus Documentation',
-     'ING RPAA', 'manual'),
+     'ING Bank N.V.', 'manual'),
 ]
 
 
