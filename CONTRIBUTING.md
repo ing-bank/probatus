@@ -18,25 +18,28 @@ https://github.com/jonschlinkert/markdown-toc
 
 <!-- toc -->
 
-
-- [Code development](#code-development)
-  * [Jupyter notebooks](#jupyter-notebooks)
-  * [Functions in .py files](#functions-in-.py-files)
-
-- [Technical Standards](#technical-standards)
-  * [Python](#python)
-  * [Jupyter notebooks](#jupyter-notebooks)
-  * [Code for model validation modules](#code-for-model-validation-modules)
-  * [Functions for multiple modules](#functions-for-multiple-modules)
-  
-- [Project Data](#project-data)
-- [Code Reviews](#code-reviews)
-  * [What to review](#what-to-review)
-  * [Code review workflows](#code-review-workflows)
-
-- [Using GIT](#using-git)
-  * [Development workflow with GIT: Branching strategy](#development-workflow-with-git-branching-strategy)
-  * [Commit Messages](#optional-commit-messages)
+* [Code development](#Code-development)
+	* [Project workflow](#Project-workflow)
+	* [Developing new functionality](#Developing-new-functionality)
+	* [Ad-hoc development](#Ad-hoc-development)
+	* [New contributors](#New-contributors)
+* [Technical Standards](#Technical-Standards)
+	* [Python](#Python)
+	* [Code structure](#Code-structure)
+	* [Functions in .py files](#Functions-in-.py-files)
+	* [Probatus API](#Probatus-API)
+	* [Unit tests](#Unit-tests)
+	* [Jupyter notebooks](#Jupyter-notebooks)
+	* [Line endings (optional)](#Line-endings-(optional))
+	* [Documentation](#Documentation)
+* [Project Data](#Project-Data)
+* [Code Reviews](#Code-Reviews)
+	* [What to review](#What-to-review)
+* [Using GIT](#Using-GIT)
+	* [Development workflow with GIT: Branching strategy](#Development-workflow-with-GIT:-Branching-strategy)
+	* [ Commit Messages](#Commit-Messages)
+* [Issue tracking](#Issue-tracking)
+* [Versioning and Deployment](#Versioning-and-Deployment)
 
 <!-- tocstop -->
 
