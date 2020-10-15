@@ -1,4 +1,5 @@
 pandoc
 ipykernel
 Sphinx==3.2.1
-nbsphinx
+nbsphinx==0.2.12
+docutils<0.13.1
