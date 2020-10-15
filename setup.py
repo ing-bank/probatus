@@ -12,9 +12,9 @@ setuptools.setup(
     description="Tools for machine learning model validation",
     long_description=read("README.md"),
     long_description_content_type="text/markdown",
-    author="RPAA ING",
+    author="ING Risk and Pricing Advanced Analytics",
     author_email="ml_risk_and_pricing_aa@ing.com",
-    license="ING Open Source",
+    license="MIT",
     python_requires=">=3.6",
     classifiers=[
         "Programming Language :: Python :: 3",
