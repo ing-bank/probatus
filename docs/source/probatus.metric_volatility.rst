@@ -19,5 +19,4 @@ probatus.metric\_volatility module
 
 .. automodule:: probatus.metric_volatility.volatility
     :members:
-    :undoc-members:
     :show-inheritance:
