@@ -1,13 +1,12 @@
 # Welcome to probatus documentation!
 
-![](img/logo_large.png)
+<div style="text-align:center"><img src="img/logo_large.png" width="500"></div>
 
 **Probatus** is a Python library that standardizes and collects different validation steps to be performed on the models. It focuses on binary classification models to test and measure model robustness.
 
-`Getting started <install.html>`_
----------------------------------
+## Installation
 
-In order to install probatus you need to use Python 3.6 or higher.
+In order to install Probatus you need to use Python 3.6 or higher.
 
 Install `probatus` via pip with:
 
@@ -23,17 +22,10 @@ cd probatus
 pip install .
 ```
 
-`API Documentation <modules.html>`_
--------------------------------
+For packages required for development, please refer to [requirements.txt](https://gitlab.com/ing_rpaa/probatus/-/blob/master/requirements.txt).
 
-The exact API of all functions and classes, as given in the
-docstrings. The API documents expected types and allowed features for
-all functions, and all parameters available for the algorithms.
+## Licence
 
-
-`Additional Information <examples.html>`_
---------------------------------------
-
-Probatus is created under MIT License, see more in `LICENCE file <https://gitlab.com/ing_rpaa/probatus/-/blob/master/LICENCE>`_ .
+Probatus is created under MIT License, see more in [LICENCE file](https://gitlab.com/ing_rpaa/probatus/-/blob/master/LICENCE).
 
 

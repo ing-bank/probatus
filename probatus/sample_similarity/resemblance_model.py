@@ -35,17 +35,20 @@ class BaseResemblanceModel(object):
 
     This is a base class and needs to be extended by a fit() method, which implements how data is split, how model is
     trained and evaluated. Further, inheriting classes need to implement how feature importance should be indicated.
-
-    Args:
-        model (model object): Binary classification model or pipeline.
-
-        test_prc (float, optional): Percentage of data used to test the model. By default 0.25 is set.
-
-        n_jobs (int, optional): Number of parallel executions. If -1 use all available cores. By default 1.
-
-        random_state (int, optional): The seed used by the random number generator.
     """
     def __init__(self, model, test_prc=0.25, n_jobs=1, random_state=42):
+        """
+        Initializes the class.
+
+        Args:
+            model (model object): Binary classification model or pipeline.
+
+            test_prc (float, optional): Percentage of data used to test the model. By default 0.25 is set.
+
+            n_jobs (int, optional): Number of parallel executions. If -1 use all available cores. By default 1.
+
+            random_state (int, optional): The seed used by the random number generator.
+        """
         self.model = model
         self.test_prc = test_prc
         self.n_jobs = n_jobs
@@ -57,7 +60,7 @@ class BaseResemblanceModel(object):
         self.scorer = get_scorers(self.metric_name)[0]
 
 
-    def init_output_variables(self):
+    def _init_output_variables(self):
         """
         Initializes variables that will be filled in during fit() method, and are used as output
         """
@@ -133,7 +136,7 @@ class BaseResemblanceModel(object):
         ])).reset_index(drop=True)
 
         # Reinitialize variables in case of multiple times being fit
-        self.init_output_variables()
+        self._init_output_variables()
 
         self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(self.X, self.y,test_size=self.test_prc,
                                                                                 random_state=self.random_state,
@@ -209,11 +212,17 @@ class BaseResemblanceModel(object):
             return_auc (bool, optional): Flag indicating whether the method should return a tuple (feature
             importances, train AUC, test AUC), or only feature importances. By default the second option is selected.
 
-            **fit_kwargs: arguments passed to the fit() method.
+            **fit_kwargs: keyword arguments passed to the fit() method:
+
+                - X1: First sample to be compared. It needs to have the same number of columns as X2.
+                - X2: Second sample to be compared. It needs to have the same number of columns as X1.
+                - column_names: List of feature names of the provided samples. If provided it will be
+                 used to overwrite the existing feature names. If not provided the existing feature names are used or default
+                 feature names are generated.
 
         Returns:
             tuple of (pd.DataFrame, float, float) or pd.DataFrame: Depending on value of return_tuple either returns a
-            tuple (feature importances, train AUC, test AUC), or feature importances.
+             tuple (feature importances, train AUC, test AUC), or feature importances.
         """
         self.fit(X1, X2, column_names=column_names, **fit_kwargs)
         return self.compute(return_auc=return_auc)
@@ -233,31 +242,36 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
     the samples, and therefore, the samples differ. Features with high permutation importance contribute to that
     effect the most. Thus, their distribution might differ between two samples.
 
-    Args:
-        model (model object): Binary classification model or pipeline.
-
-        iterations (int, optional): Number of iterations performed to calculate permutation importance. By default 100
-        iterations per feature are done.
-
-        test_prc (float, optional): Percentage of data used to test the model. By default 0.25 is set.
-
-        n_jobs (int, optional): Number of parallel executions. If -1 use all available cores. By default 1.
-
-        random_state (int, optional): The seed used by the random number generator.
-
     Examples:
-        >>> from sklearn.datasets import make_classification
-        >>> from sklearn.ensemble import RandomForestClassifier
-        >>> from probatus.sample_similarity import PermutationImportanceResemblance
-        >>> X1, _ = make_classification(n_samples=1000, n_features=5)
-        >>> X2, _ = make_classification(n_samples=1000, n_features=5, shift=0.5)
-        >>> clf = RandomForestClassifier(max_depth=2)
-        >>> perm = PermutationResemblanceModel(clf)
-        >>> feature_importance = perm.fit_compute(X1, X2)
-        >>> perm.plot()
+    ```python
+    from sklearn.datasets import make_classification
+    from sklearn.ensemble import RandomForestClassifier
+    from probatus.sample_similarity import PermutationImportanceResemblance
+    X1, _ = make_classification(n_samples=1000, n_features=5)
+    X2, _ = make_classification(n_samples=1000, n_features=5, shift=0.5)
+    clf = RandomForestClassifier(max_depth=2)
+    perm = PermutationResemblanceModel(clf)
+    feature_importance = perm.fit_compute(X1, X2)
+    perm.plot()
+    ```
     """
 
     def __init__(self, model, iterations=100, **kwargs):
+        """
+        Initializes the class.
+
+        Args:
+            model (model object): Binary classification model or pipeline.
+
+            iterations (int, optional): Number of iterations performed to calculate permutation importance. By default 100
+            iterations per feature are done.
+
+            **kwargs: Keyword arguments that can overwrite inherited default values in BaseResemblanceModel:
+
+                - test_prc: Percentage of data used to test the model. By default 0.25 is set.
+                - n_jobs: Number of parallel executions. If -1 use all available cores. By default 1.
+                - random_state (int, optional): The seed used by the random number generator.
+        """
         super().__init__(model=model, **kwargs)
 
         self.iterations = iterations
@@ -385,29 +399,33 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
 
     This class currently works only with the Tree based models.
 
-    Args:
-        model (model object): Binary classification model or pipeline. It needs to be a tree based model, e.g.
-        RandomForestClassifier, such that the shap.TreeExplainer can be used.
-
-        test_prc (float, optional): Percentage of data used to test the model. By default 0.25 is set.
-
-        n_jobs (int, optional): Number of parallel executions. If -1 use all available cores. By default 1.
-
-        random_state (int, optional): The seed used by the random number generator.
-
     Examples:
-        >>> from sklearn.datasets import make_classification
-        >>> from sklearn.ensemble import RandomForestClassifier
-        >>> from probatus.sample_similarity import SHAPImportanceResemblance
-        >>> X1, _ = make_classification(n_samples=1000, n_features=5)
-        >>> X2, _ = make_classification(n_samples=1000, n_features=5, shift=0.5)
-        >>> clf = RandomForestClassifier(max_depth=2)
-        >>> rm = SHAPImportanceResemblance(clf)
-        >>> feature_importance = rm.fit_compute(X1, X2)
-        >>> rm.plot()
+    ```python
+    from sklearn.datasets import make_classification
+    from sklearn.ensemble import RandomForestClassifier
+    from probatus.sample_similarity import SHAPImportanceResemblance
+    X1, _ = make_classification(n_samples=1000, n_features=5)
+    X2, _ = make_classification(n_samples=1000, n_features=5, shift=0.5)
+    clf = RandomForestClassifier(max_depth=2)
+    rm = SHAPImportanceResemblance(clf)
+    feature_importance = rm.fit_compute(X1, X2)
+    rm.plot()
+    ```
     """
 
     def __init__(self, model,  **kwargs):
+        """
+        Initializes the class.
+
+        Args:
+            model (model object): Binary classification model or pipeline.
+
+            **kwargs: Keyword arguments that can overwrite inherited default values in BaseResemblanceModel:
+
+                - test_prc: Percentage of data used to test the model. By default 0.25 is set.
+                - n_jobs: Number of parallel executions. If -1 use all available cores. By default 1.
+                - random_state (int, optional): The seed used by the random number generator.
+        """
         super().__init__(model=model, **kwargs)
 
         self.plot_title = 'SHAP summary plot'
