@@ -1,0 +1,56 @@
+site_name: Clumper Docs
+
+repo_url: https://gitlab.com/ing_rpaa/probatus
+site_url: https://probatus.readthedocs.io/
+site_description: Python package for validation of binary classifiers
+site_author: ING
+
+use_directory_urls: false
+
+nav:
+  - Home:
+    - Index: index.md
+    - Installation: install.md
+  - Tutorials:
+    - tutorials/nb_distribution_statistics.ipynb
+    - tutorials/nb_metric_volatility.ipynb
+    - tutorials/nb_sample_similarity.ipynb
+  - API:
+    - api/metric_volatility.md
+
+
+plugins:
+  - mkdocstrings:
+      watch:
+        - probatus
+  - search
+  - mknotebooks:
+      enable_default_jupyter_cell_styling: true
+      enable_default_pandas_dataframe_styling: true
+
+copyright: Copyright &copy; 2020 ING Bank N.V.
+
+theme:
+  name: material
+  icon:
+    logo: material/library
+  font:
+    text: Ubuntu
+    code: Ubuntu Mono
+  features:
+    - navigation.tabs
+  palette:
+    scheme: preference
+    primary: deep orange
+    accent: indigo
+
+
+markdown_extensions:
+  - codehilite
+  - pymdownx.inlinehilite
+  - pymdownx.details
+  - pymdownx.tabbed
+  - pymdownx.highlight:
+      use_pygments: true
+  - toc:
+      permalink: true
