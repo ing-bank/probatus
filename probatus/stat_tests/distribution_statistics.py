@@ -169,6 +169,10 @@ class DistributionStatistics(object):
 
             verbose: (bool): Flag indicating whether prints should be shown.
 
+            **kwargs: Keyword arguments passed to the statistical test function:
+
+                - `verbose`:  helpful interpretation msgs printed to stdout (default False).
+
         Returns:
             (Tuple of floats): statistic value and p_value. For PSI test the return is only statistic
         """

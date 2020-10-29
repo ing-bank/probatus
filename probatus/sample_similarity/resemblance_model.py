@@ -214,9 +214,9 @@ class BaseResemblanceModel(object):
 
             **fit_kwargs: keyword arguments passed to the fit() method:
 
-                - X1: First sample to be compared. It needs to have the same number of columns as X2.
-                - X2: Second sample to be compared. It needs to have the same number of columns as X1.
-                - column_names: List of feature names of the provided samples. If provided it will be
+                - `X1`: First sample to be compared. It needs to have the same number of columns as X2.
+                - `X2`: Second sample to be compared. It needs to have the same number of columns as X1.
+                - `column_names`: List of feature names of the provided samples. If provided it will be
                  used to overwrite the existing feature names. If not provided the existing feature names are used or default
                  feature names are generated.
 
@@ -268,9 +268,9 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
 
             **kwargs: Keyword arguments that can overwrite inherited default values in BaseResemblanceModel:
 
-                - test_prc: Percentage of data used to test the model. By default 0.25 is set.
-                - n_jobs: Number of parallel executions. If -1 use all available cores. By default 1.
-                - random_state (int, optional): The seed used by the random number generator.
+                - `test_prc`: Percentage of data used to test the model. By default 0.25 is set.
+                - `n_jobs`: Number of parallel executions. If -1 use all available cores. By default 1.
+                - `random_state`: The seed used by the random number generator.
         """
         super().__init__(model=model, **kwargs)
 
@@ -422,9 +422,9 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
 
             **kwargs: Keyword arguments that can overwrite inherited default values in BaseResemblanceModel:
 
-                - test_prc: Percentage of data used to test the model. By default 0.25 is set.
-                - n_jobs: Number of parallel executions. If -1 use all available cores. By default 1.
-                - random_state (int, optional): The seed used by the random number generator.
+                - `test_prc`: Percentage of data used to test the model. By default 0.25 is set.
+                - `n_jobs`: Number of parallel executions. If -1 use all available cores. By default 1.
+                - `random_state`: The seed used by the random number generator.
         """
         super().__init__(model=model, **kwargs)
 
@@ -461,7 +461,7 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
             plot_type (Optional, str): Type of plot, used to compute shap.summary_plot. By default 'bar', available ones
             are  "dot", "bar", "violin",
 
-            **summary_plot_kwargs: kwargs passed to the shap.summary_plot
+            **summary_plot_kwargs: kwargs passed to the shap.summary_plot.
 
         Returns:
             matplotlib.axes, optional: Axes that include the plot.
@@ -493,3 +493,4 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
         '''
         self._check_if_fitted()
         return self.shap_values_test
+

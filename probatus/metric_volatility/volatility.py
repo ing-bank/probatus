@@ -320,15 +320,15 @@ class TrainTestVolatility(BaseVolatilityEstimator):
 
             **kwargs: keyword arguments used to overwrite default parameters from init of BaseVolatilityEstimator:
 
-                - metrics : Metrics for which the score is calculated.
+                - `metrics` : Metrics for which the score is calculated.
                  It can be either a name or list of names metric names and needs to be aligned with predefined classification
                  scorers names in sklearn, see the [sklearn documentation](https://scikit-learn.org/stable/modules/model_evaluation.html).
                  In case a custom metric is used, one can create own Scorer (probatus.utils) and provide as a metric.
                  By default 'roc_auc' is measured.
-                - test_prc:  Percentage of input data used as test. By default 0.25.
-                - n_jobs: Number of parallel executions. If -1 use all available cores. By default 1.
-                - stats_tests_to_apply:  List of tests to apply. Available options described in BaseVolatilityEstimator.
-                - random_state (int, optional): The seed used by the random number generator.
+                - `test_prc`:  Percentage of input data used as test. By default 0.25.
+                - `n_jobs`: Number of parallel executions. If -1 use all available cores. By default 1.
+                - `stats_tests_to_apply`:  List of tests to apply. Available options described in BaseVolatilityEstimator.
+                - `random_state`: The seed used by the random number generator.
         """
         super().__init__(model=model, **kwargs)
         self.iterations = iterations
@@ -400,16 +400,16 @@ class SplitSeedVolatility(TrainTestVolatility):
 
             **kwargs: Keyword arguments that can be overwrite the default parameters from TrainTestVolatility:
 
-                - iterations: Number of iterations in seed bootstrapping. By default 1000.
-                - metrics : Metrics for which the score is calculated.
+                - `iterations`: Number of iterations in seed bootstrapping. By default 1000.
+                - `metrics` : Metrics for which the score is calculated.
                  It can be either a name or list of names metric names and needs to be aligned with predefined classification
                  scorers names in sklearn, see the [sklearn documentation](https://scikit-learn.org/stable/modules/model_evaluation.html).
                  In case a custom metric is used, one can create own Scorer (probatus.utils) and provide as a metric.
                  By default 'roc_auc' is measured.
-                - test_prc:  Percentage of input data used as test. By default 0.25.
-                - n_jobs: Number of parallel executions. If -1 use all available cores. By default 1.
-                - stats_tests_to_apply:  List of tests to apply. Available options described in BaseVolatilityEstimator.
-                - random_state (int, optional): The seed used by the random number generator.
+                - `test_prc`:  Percentage of input data used as test. By default 0.25.
+                - `n_jobs`: Number of parallel executions. If -1 use all available cores. By default 1.
+                - `stats_tests_to_apply`:  List of tests to apply. Available options described in BaseVolatilityEstimator.
+                - `random_state`: The seed used by the random number generator.
         """
         super().__init__(model=model, sample_train_test_split_seed=True, train_sampling_type=None,
                          test_sampling_type=None, train_sampling_fraction=1,  test_sampling_fraction=1, **kwargs)
@@ -443,20 +443,20 @@ class BootstrappedVolatility(TrainTestVolatility):
 
             **kwargs: Keyword arguments that can be overwrite the default parameters from TrainTestVolatility:
 
-                - iterations: Number of iterations in seed bootstrapping. By default 1000.
-                - train_sampling_fraction: Fraction of train data sampled, if sample_train_type is not None.
+                - `iterations`: Number of iterations in seed bootstrapping. By default 1000.
+                - `train_sampling_fraction`: Fraction of train data sampled, if sample_train_type is not None.
                  Default value is 1.
-                - test_sampling_fraction: Fraction of test data sampled, if sample_test_type is not None.
+                - `test_sampling_fraction`: Fraction of test data sampled, if sample_test_type is not None.
                  Default value is 1.
-                - metrics : Metrics for which the score is calculated.
+                - `metrics` : Metrics for which the score is calculated.
                  It can be either a name or list of names metric names and needs to be aligned with predefined classification
                  scorers names in sklearn, see the [sklearn documentation](https://scikit-learn.org/stable/modules/model_evaluation.html).
                  In case a custom metric is used, one can create own Scorer (probatus.utils) and provide as a metric.
                  By default 'roc_auc' is measured.
-                - test_prc:  Percentage of input data used as test. By default 0.25.
-                - n_jobs: Number of parallel executions. If -1 use all available cores. By default 1.
-                - stats_tests_to_apply:  List of tests to apply. Available options described in BaseVolatilityEstimator.
-                - random_state (int, optional): The seed used by the random number generator.
+                - `test_prc`:  Percentage of input data used as test. By default 0.25.
+                - `n_jobs`: Number of parallel executions. If -1 use all available cores. By default 1.
+                - `stats_tests_to_apply`:  List of tests to apply. Available options described in BaseVolatilityEstimator.
+                - `random_state`: The seed used by the random number generator.
         """
         super().__init__(model=model, sample_train_test_split_seed=False, train_sampling_type='bootstrap',
                          test_sampling_type='bootstrap', **kwargs)

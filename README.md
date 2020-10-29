@@ -10,7 +10,8 @@
 
 ## Overview
 
-**Probatus** is a Python library that standardizes and collects different validation steps to be performed on the models. It focuses on binary classification models to test and measure model robustness. 
+**Probatus** is a Python library that allows to analyse binary classification models as well as the data used to develop them.
+The main features assess the metric stability and analyse differences between two data samples e.g. shift between train and test splits.
 
 ## Installation
 
