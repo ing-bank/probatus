@@ -19,6 +19,7 @@
 
 
 from .inspector import InspectorShap
+from .shap_features_analysis import ShapFeaturesAnalyser
 from .shap_dependence import TreeDependencePlotter
 
 
