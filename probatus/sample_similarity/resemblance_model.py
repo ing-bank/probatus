@@ -21,7 +21,8 @@
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
-from probatus.utils import assure_numpy_array, NotFittedError, get_scorers, warn_if_missing
+from probatus.utils import assure_numpy_array, NotFittedError, get_scorers, warn_if_missing,\
+    assure_column_names_consistency
 from probatus.utils.shap_helpers import shap_calc, calculate_shap_importance
 from sklearn.inspection import permutation_importance
 import matplotlib.pyplot as plt
@@ -103,23 +104,7 @@ class BaseResemblanceModel(object):
                              format(self.X1.shape[1], self.X2.shape[1])))
 
         # Check if column_names are passed correctly
-        if column_names is None:
-            # Checking if original X1 was a df then taking its column names
-            if isinstance(X1, pd.DataFrame):
-                self.column_names = X1.columns
-            # Otherwise make own feature names
-            else:
-                self.column_names = ['column_{}'.format(idx)  for idx in range(self.X1.shape[1])]
-        else:
-            if isinstance(column_names, list):
-                if  len(column_names) == self.X1.shape[1]:
-                    self.column_names = column_names
-                else:
-                    raise(ValueError("Passed column_names have different dimensionality than input samples. "
-                                     "The dimensionality of column_names is {} and first sample {}".
-                                     format(len(column_names), self.X1.shape[1])))
-            else:
-                raise(TypeError("Passed column_names must be a list"))
+        self.column_names = assure_column_names_consistency(column_names, X1)
 
         # Prepare dataset for modelling
         self.X = pd.DataFrame(np.concatenate([
