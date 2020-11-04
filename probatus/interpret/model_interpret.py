@@ -1,3 +1,23 @@
+# Copyright (c) 2020 ING Bank N.V.
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of
+# this software and associated documentation files (the "Software"), to deal in
+# the Software without restriction, including without limitation the rights to
+# use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+# the Software, and to permit persons to whom the Software is furnished to do so,
+# subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+# COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+# IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+# CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+
 from probatus.interpret import TreeDependencePlotter
 from probatus.utils import assure_column_names_consistency, assure_pandas_df, shap_calc, assure_list_of_strings,\
     calculate_shap_importance
@@ -7,7 +27,7 @@ import shap
 import matplotlib.pyplot as plt
 
 
-class ShapModelAnalyser:
+class ShapModelInterpreter:
     """
     This class is a wrapper that allows to easily analyse model's features. It allows to plot SHAP feature importance,
      SHAP summary plot and SHAP dependence plots.
@@ -193,7 +213,7 @@ class ShapModelAnalyser:
             for feature_name in target_columns:
                 print()
                 ax.append(
-                    self.tdp.feature_plot(feature=feature_name, figsize=(10, 7), target_names=self.class_names))
+                    self.tdp.plot(feature=feature_name, figsize=(10, 7), target_names=self.class_names))
                 plt.show()
             if len(ax) == 1:
                 ax = ax[0]

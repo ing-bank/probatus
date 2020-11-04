@@ -91,31 +91,8 @@ def test_fit_normal(X_y, clf, expected_shap_vals):
 
     assert plotter.X.equals(X)
     assert plotter.y.equals(y)
-    assert np.isclose(
-        plotter.proba,
-        [0.9, 0.9, 0.0, 0.0, 0.7, 1.0, 0.0, 0.9, 0.9, 0.1, 1.0, 0.0, 0.0, 0.2, 0.0],
-    ).all()
     assert np.isclose(plotter.shap_vals_df, expected_shap_vals, atol=1e-06).all()
     assert plotter.isFitted is True
-
-
-def test_fit_features(X_y, clf):
-    X, y = X_y
-    plotter = TreeDependencePlotter(clf)
-
-    feature_names = [0, 1, 2]
-    plotter.fit(X, y, feature_names)
-
-    assert plotter.features == feature_names
-
-
-def test_fit_invalid_features(X_y, clf):
-    X, y = X_y
-    plotter = TreeDependencePlotter(clf)
-
-    feature_names = ["not a feature"]
-    with pytest.raises(KeyError):
-        plotter.fit(X, y, feature_names)
 
 
 def test_get_X_y_shap_with_q_cut_normal(X_y, clf):
@@ -161,54 +138,26 @@ def test_get_X_y_shap_with_q_cut_input(X_y, clf):
         plotter._get_X_y_shap_with_q_cut("not a feature")
 
 
-def test_compute_shap_feat_importance_normal(X_y, clf, expected_feat_importances):
-    plotter = TreeDependencePlotter(clf).fit(X_y[0], X_y[1])
-    feat_importances = plotter.compute_shap_feat_importance()
-    assert feat_importances.equals(expected_feat_importances)
-
-
-def test_compute_shap_feat_importance_not_fitted(X_y, clf):
-    plotter = TreeDependencePlotter(clf)
-    with pytest.raises(NotFittedError):
-        plotter.compute_shap_feat_importance()
-
-
-def test_compute_shap_feat_importance_decimals(X_y, clf):
-    plotter = TreeDependencePlotter(clf).fit(X_y[0], X_y[1])
-    feat_importances = plotter.compute_shap_feat_importance()
-    assert feat_importances.round(2).equals(
-        plotter.compute_shap_feat_importance(decimals=2)
-    )
-
-
-def test_compute_shap_feat_importance_input(X_y, clf):
-    plotter = TreeDependencePlotter(clf).fit(X_y[0], X_y[1])
-    with pytest.raises(TypeError):
-        feat_importances = plotter.compute_shap_feat_importance(decimals="not an int")
-    with pytest.raises(ValueError):
-        feat_importances = plotter.compute_shap_feat_importance(decimals=-1)
-
-
-def test_feature_plot_normal(X_y, clf):
+def test_plot_normal(X_y, clf):
     plotter = TreeDependencePlotter(clf).fit(X_y[0], X_y[1])
     for binning in ["simple", "agglomerative", "quantile"]:
-        fig = plotter.feature_plot(feature=0, type_binning=binning)
+        fig = plotter.plot(feature=0, type_binning=binning)
 
 
-def test_feature_plot_target_names(X_y, clf):
+def test_plot_target_names(X_y, clf):
     plotter = TreeDependencePlotter(clf).fit(X_y[0], X_y[1])
-    fig = plotter.feature_plot(feature=0, target_names=["a", "b"])
+    fig = plotter.plot(feature=0, target_names=["a", "b"])
     assert plotter.target_names == ["a", "b"]
 
 
-def test_feature_plot_input(X_y, clf):
+def test_plot_input(X_y, clf):
     plotter = TreeDependencePlotter(clf).fit(X_y[0], X_y[1])
     with pytest.raises(ValueError):
-        plotter.feature_plot(feature="not a feature")
+        plotter.plot(feature="not a feature")
     with pytest.raises(ValueError):
-        plotter.feature_plot(feature=0, type_binning=5)
+        plotter.plot(feature=0, type_binning=5)
     with pytest.raises(ValueError):
-        plotter.feature_plot(feature=0, min_q=1, max_q=0)
+        plotter.plot(feature=0, min_q=1, max_q=0)
 
 
 def test__repr__(clf):

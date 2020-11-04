@@ -20,6 +20,6 @@
 
 from .inspector import InspectorShap
 from .shap_dependence import TreeDependencePlotter
-from .model_analysis import ShapModelAnalyser
+from .model_interpret import ShapModelInterpreter
 
-__all__ = ['InspectorShap', 'TreeDependencePlotter', 'ShapModelAnalyser']
+__all__ = ['InspectorShap', 'TreeDependencePlotter', 'ShapModelInterpreter']

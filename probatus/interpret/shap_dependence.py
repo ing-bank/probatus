@@ -44,7 +44,7 @@ class TreeDependencePlotter:
     clf = RandomForestClassifier().fit(X, y)
     bdp = TreeDependencePlotter(clf).fit(X, y)
 
-    bdp.feature_plot(feature=2, type_binning='simple')
+    bdp.plot(feature=2, type_binning='simple')
     ```
     """
 
@@ -65,12 +65,12 @@ class TreeDependencePlotter:
         Args:
         X (pd.DataFrame): input variables
         y (pd.Series): target variable
-        features (Optional, list of str): names of features to be considered
         precalc_shap (Optional, None or np.array): Precalculated shap values, If provided they don't need to be
          computed.
         """
         self.X = assure_pandas_df(X)
         self.y = y
+        self.features = self.X.columns
 
         self.shap_vals_df = shap_to_df(self.model, self.X, precalc_shap=precalc_shap)
 
@@ -88,7 +88,7 @@ class TreeDependencePlotter:
         if not self.isFitted:
             raise NotFittedError("The plotter is not fitted yet..")
 
-    def feature_plot(
+    def plot(
         self,
         feature,
         figsize=(15, 10),
