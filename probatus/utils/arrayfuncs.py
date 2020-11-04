@@ -109,6 +109,38 @@ def assure_pandas_df(x):
             "Please supply a list, numpy array, pandas Series or pandas DataFrame"
         )
 
+def assure_column_names_consistency(column_names, df):
+    """
+    Ensure that the column names are correct. If they are None, then, the column names from df are taken. Otherwise,
+    the function checks if the passed list has the correct shape, to be consistent with the size of the df.
+
+    Args:
+        column_names (None, or list of str): List of column names to use for the df.
+        df (pd.DataFrame): Dataset.
+
+    Returns:
+        (list of str): List of column names.
+    """
+    # Check if column_names are passed correctly
+    if column_names is None:
+        # Checking if original X1 was a df then taking its column names
+        if isinstance(df, pd.DataFrame):
+            column_names = df.columns.tolist()
+        # Otherwise make own feature names
+        else:
+            column_names = ['column_{}'.format(idx) for idx in range(df.shape[1])]
+    else:
+        if isinstance(column_names, list):
+            if len(column_names) == df.shape[1]:
+                column_names = column_names
+            else:
+                raise (ValueError("Passed column_names have different dimensionality than input samples. "
+                                  "The dimensionality of column_names is {} and first sample {}".
+                                  format(len(column_names), df.shape[1])))
+        else:
+            raise (TypeError("Passed column_names must be a list"))
+    return column_names
+
 
 def warn_if_missing(variable, variable_name):
     """
@@ -149,4 +181,5 @@ def check_numeric_dtypes(x):
         if type(element.item()) not in allowed_types:
             raise TypeError("Please supply an array with only floats, ints or booleans")
     return x
+
 

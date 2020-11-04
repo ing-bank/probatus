@@ -51,20 +51,23 @@ def shap_calc(model, X, approximate=False, **shap_kwargs):
     return shap_values
 
 
-def shap_to_df(model, X, **kwargs):
+def shap_to_df(model, X, precalc_shap=None, **kwargs):
     """
     Calculates the shap values and return the pandas DataFrame with the columns and the index of the original
 
     Args:
         model: pretrained model (Random Forest of XGBoost at the moment)
         X (pd.DataFrame or np.ndarray): features set
+        precalc_shap (np.array): Precalculated SHAP values. If None, they are computed.
         **kwargs: for the function shap_calc
 
     Returns:
 
     """
-
-    shap_values = shap_calc(model, X, **kwargs)
+    if precalc_shap is not None:
+        shap_values = precalc_shap
+    else:
+        shap_values = shap_calc(model, X, **kwargs)
     if isinstance(X, pd.DataFrame):
         return pd.DataFrame(shap_values, columns=X.columns, index=X.index)
 
