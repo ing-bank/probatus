@@ -38,6 +38,7 @@ class ShapModelInterpreter:
     from sklearn.ensemble import RandomForestClassifier
     from sklearn.model_selection import train_test_split
     import numpy as np
+    import pandas as pd
 
     feature_names = ['f1', 'f2', 'f3', 'f4']
 
@@ -51,13 +52,13 @@ class ShapModelInterpreter:
     clf.fit(X_train, y_train)
 
     # Train ShapModelAnalyser
-    shap_analyser = ShapModelAnalyser(clf)
-    feature_importance = shap_analyser.fit_compute(X_train, X_test, y_train, y_test)
+    shap_interpreter = ShapModelInterpreter(clf)
+    feature_importance = shap_interpreter.fit_compute(X_train, X_test, y_train, y_test)
 
     # Make plots
-    shap_analyser.plot('importance')
-    shap_analyser.plot('summary')
-    shap_analyser.plot('dependence', ['f1', 'f2'])
+    shap_interpreter.plot('importance')
+    shap_interpreter.plot('summary')
+    shap_interpreter.plot('dependence', ['f1', 'f2'])
     ```
     """
 
@@ -91,7 +92,7 @@ class ShapModelInterpreter:
              names from the X_train dataframe are used.
             class_names (Optional, None, or list of str): List of class names e.g. ['neg', 'pos']. If none, the default
              ['Negative Class', 'Positive Class'] are used.
-            **shap_kwargs: keyword arguments passed to shap.TreeExplainer.
+            **shap_kwargs: keyword arguments passed to [shap.TreeExplainer](https://shap.readthedocs.io/en/latest/generated/shap.TreeExplainer.html).
         """
 
         self.X_train = assure_pandas_df(X_train)
@@ -150,7 +151,7 @@ class ShapModelInterpreter:
              names from the X_train dataframe are used.
             class_names (Optional, None, or list of str): List of class names e.g. ['neg', 'pos']. If none, the default
              ['Negative Class', 'Positive Class'] are used.
-            **shap_kwargs: keyword arguments passed to shap.TreeExplainer.
+            **shap_kwargs: keyword arguments passed to [shap.TreeExplainer](https://shap.readthedocs.io/en/latest/generated/shap.TreeExplainer.html).
 
         Returns:
             (pd.DataFrame): Dataframe with SHAP feature importance.
