@@ -51,13 +51,13 @@ class ShapModelInterpreter:
     clf.fit(X_train, y_train)
 
     # Train ShapModelAnalyser
-    shap_analyser = ShapModelAnalyser(clf)
-    feature_importance = shap_analyser.fit_compute(X_train, X_test, y_train, y_test)
+    shap_interpreter = ShapModelInterpreter(clf)
+    feature_importance = shap_interpreter.fit_compute(X_train, X_test, y_train, y_test)
 
     # Make plots
-    shap_analyser.plot('importance')
-    shap_analyser.plot('summary')
-    shap_analyser.plot('dependence', ['f1', 'f2'])
+    shap_interpreter.plot('importance')
+    shap_interpreter.plot('summary')
+    shap_interpreter.plot('dependence', ['f1', 'f2'])
     ```
     """
 
