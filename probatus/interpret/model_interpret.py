@@ -20,7 +20,7 @@
 
 from probatus.interpret import TreeDependencePlotter
 from probatus.utils import assure_column_names_consistency, assure_pandas_df, shap_calc, assure_list_of_strings,\
-    calculate_shap_importance
+    calculate_shap_importance, NotFittedError
 from sklearn.metrics import roc_auc_score
 import numpy as np
 import shap
@@ -193,7 +193,7 @@ class ShapModelInterpreter:
             target_shap_values = self.shap_values[:, target_columns_indices]
 
             # Set summary plot settings
-            if plot_type is 'importance':
+            if plot_type == 'importance':
                 plot_type = 'bar'
                 plot_title = 'SHAP Feature Importance'
             else:
