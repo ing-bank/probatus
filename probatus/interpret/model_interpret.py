@@ -25,7 +25,7 @@ from sklearn.metrics import roc_auc_score
 import numpy as np
 import shap
 import matplotlib.pyplot as plt
-
+import pandas as pd
 
 class ShapModelInterpreter:
     """
