@@ -252,7 +252,6 @@ class ShapModelInterpreter:
                 current_ax = plt.gca()
                 current_ax.set_title(plot_title)
                 plt.show()
-                ax.append(current_ax)
         else:
             raise ValueError("Wrong plot type, select from 'importance', 'summary', or 'dependence'")
 
