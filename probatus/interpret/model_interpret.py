@@ -38,6 +38,7 @@ class ShapModelInterpreter:
     from sklearn.ensemble import RandomForestClassifier
     from sklearn.model_selection import train_test_split
     import numpy as np
+    import pandas as pd
 
     feature_names = ['f1', 'f2', 'f3', 'f4']
 
@@ -58,6 +59,7 @@ class ShapModelInterpreter:
     shap_interpreter.plot('importance')
     shap_interpreter.plot('summary')
     shap_interpreter.plot('dependence', ['f1', 'f2'])
+    shap_interpreter.plot('sample', [521, 78])
     ```
     """
 
@@ -78,7 +80,8 @@ class ShapModelInterpreter:
             raise(NotFittedError('The object has not been fitted. Please run fit() method first'))
 
 
-    def fit(self, X_train, X_test, y_train, y_test, column_names=None, class_names=None, **shap_kwargs):
+    def fit(self, X_train, X_test, y_train, y_test, column_names=None, class_names=None, approximate=False,
+            **shap_kwargs):
         """
         Fits the object and calculates the shap values for the provided datasets.
 
@@ -91,6 +94,7 @@ class ShapModelInterpreter:
              names from the X_train dataframe are used.
             class_names (Optional, None, or list of str): List of class names e.g. ['neg', 'pos']. If none, the default
              ['Negative Class', 'Positive Class'] are used.
+            approximate (boolean):, if True uses shap approximations - less accurate, but very fast.
             **shap_kwargs: keyword arguments passed to shap.TreeExplainer.
         """
 
@@ -115,7 +119,14 @@ class ShapModelInterpreter:
             np.round(self.auc_test, 3)
         )
 
-        self.shap_values = shap_calc(self.clf, self.X_test, data=self.X_train, **shap_kwargs)
+        self.shap_values, self.explainer = shap_calc(self.clf, self.X_test, approximate=approximate,
+                                                     return_explainer=True, data=self.X_train, **shap_kwargs)
+
+        # Get expected_value from the explainer
+        self.expected_value = self.explainer.expected_value
+        # For sklearn models the expected values consists of two elements (negative_class and positive_class)
+        if isinstance(self.expected_value, list) or isinstance(self.expected_value, np.ndarray):
+            self.expected_value = self.expected_value[1]
 
         # Initialize tree dependence plotter
         self.tdp = TreeDependencePlotter(self.clf).fit(self.X_test, self.y_test, precalc_shap=self.shap_values)
@@ -137,7 +148,8 @@ class ShapModelInterpreter:
         return self.importance_df
 
 
-    def fit_compute(self,  X_train, X_test, y_train, y_test, column_names=None, class_names=None, **shap_kwargs):
+    def fit_compute(self,  X_train, X_test, y_train, y_test, column_names=None, class_names=None, approximate=False,
+                    **shap_kwargs):
         """
         Fits the object and calculates the shap values for the provided datasets.
 
@@ -150,17 +162,18 @@ class ShapModelInterpreter:
              names from the X_train dataframe are used.
             class_names (Optional, None, or list of str): List of class names e.g. ['neg', 'pos']. If none, the default
              ['Negative Class', 'Positive Class'] are used.
+            approximate (boolean):, if True uses shap approximations - less accurate, but very fast.
             **shap_kwargs: keyword arguments passed to shap.TreeExplainer.
 
         Returns:
             (pd.DataFrame): Dataframe with SHAP feature importance.
         """
         self.fit(X_train=X_train, X_test=X_test, y_train=y_train, y_test=y_test, column_names=column_names,
-                 class_names=class_names, **shap_kwargs)
+                 class_names=class_names, approximate=approximate, **shap_kwargs)
         return self.compute()
 
 
-    def plot(self, plot_type, target_columns=None, **plot_kwargs):
+    def plot(self, plot_type, target_columns=None, samples_index=None, **plot_kwargs):
         """
         Plots the appropriate SHAP plot
 
@@ -170,9 +183,12 @@ class ShapModelInterpreter:
                 - 'importance': Feature importance plot, SHAP bar summary plot
                 - 'summary': SHAP Summary plot
                 - 'dependence': Dependence plot for each feature
+                - 'sample': Explanation of a given sample in the test data
 
             target_columns (Optional, None, str or list of str): List of features names, for which the plots should be
              generated. If None, all features will be plotted.
+
+            samples_index (None, int, list or pd.Index): Index of samples to be explained if the `plot_type=sample`.
 
             **plot_kwargs: Keyword arguments passed to the plot method. For 'importance' and 'summary' plot_type, the
              kwargs are passed to shap.summary_plot, for 'dependence' plot_type, they are passed to
@@ -183,11 +199,9 @@ class ShapModelInterpreter:
             target_columns = self.column_names
 
         target_columns = assure_list_of_strings(target_columns, 'target_columns')
-
         target_columns_indices = [self.column_names.index(target_column) for target_column in target_columns]
 
         if plot_type in ['importance', 'summary']:
-
             # Get the target features
             target_X_test = self.X_test[target_columns]
             target_shap_values = self.shap_values[:, target_columns_indices]
@@ -215,8 +229,33 @@ class ShapModelInterpreter:
                 ax.append(
                     self.tdp.plot(feature=feature_name, figsize=(10, 7), target_names=self.class_names))
                 plt.show()
-            if len(ax) == 1:
-                ax = ax[0]
+
+        elif plot_type == 'sample':
+            # Ensure the correct samples_index type
+            if samples_index is None:
+                raise(ValueError('For sample plot, you need to specify the samples_index be plotted plot'))
+            elif isinstance(samples_index, int) or isinstance(samples_index, str):
+                samples_index = [samples_index]
+            elif not(isinstance(samples_index, list) or isinstance(samples_index, pd.Index)):
+                raise(TypeError('sample_index must be one of the following: int, str, list or pd.Index'))
+
+            ax = []
+            for sample_index in samples_index:
+                sample_loc = self.X_test.index.get_loc(sample_index)
+
+                shap.plots._waterfall.waterfall_legacy(self.expected_value,
+                                                       self.shap_values[sample_loc, :],
+                                                       self.X_test.loc[sample_index],
+                                                       show=False, **plot_kwargs)
+
+                plot_title = f'SHAP Sample Explanation for index={sample_index}'
+                current_ax = plt.gca()
+                current_ax.set_title(plot_title)
+                plt.show()
+                ax.append(current_ax)
         else:
             raise ValueError("Wrong plot type, select from 'importance', 'summary', or 'dependence'")
+
+        if isinstance(ax, list) and len(ax) == 1:
+            ax = ax[0]
         return ax
