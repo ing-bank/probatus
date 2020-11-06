@@ -14,7 +14,7 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     author="ING Bank N.V.",
     author_email="ml_risk_and_pricing_aa@ing.com",
-    license=("MIT License"),
+    license="MIT License",
     python_requires=">=3.6",
     classifiers=[
         "Programming Language :: Python :: 3",
