@@ -309,10 +309,8 @@ class ShapBackwardsFeaturesElimination:
             plt.title('Feature selection using SHAP')
             plt.legend(loc="upper right")
             ax = plt.gca()
-            current_ax.invert_xaxis()
+            ax.invert_xaxis()
             ax.set_xticks(x_ticks)
-            for x_tick in x_ticks:
-                plt.axvline(x=x_tick, color='grey', linestyle='-')
             plt.show()
 
         elif plot_type == 'parameter':
