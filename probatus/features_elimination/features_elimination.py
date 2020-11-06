@@ -95,17 +95,17 @@ class ShapBackwardsFeaturesElimination:
         # Make sure that X is a pd.DataFrame
         X = assure_pandas_df(X)
 
-        # Warn if missing
-        columns_with_missing = [column for column in X.columns if X[column].isnull().values.any()]
-        if len(columns_with_missing) > 0:
-            warnings.warn(f'The following variables contain missing values {columns_with_missing}. Make sure to impute'
-                          f'missing or apply a model that handles them automatically.')
-
         # Remove static features, those that have only one value for all samples
         static_features = [i for i in X.columns if len(X[i].unique()) == 1]
         if len(static_features)>0:
             warnings.warn(f'Removing static features f{static_features}.')
             X = X.drop(columns=static_features)
+
+        # Warn if missing
+        columns_with_missing = [column for column in X.columns if X[column].isnull().values.any()]
+        if len(columns_with_missing) > 0:
+            warnings.warn(f'The following variables contain missing values {columns_with_missing}. Make sure to impute'
+                          f'missing or apply a model that handles them automatically.')
 
         # Transform Categorical variables into category dtype
         indices_obj_dtype_features = [column[0] for column in enumerate(X.dtypes) if column[1] == 'O']
