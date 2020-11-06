@@ -7,11 +7,12 @@ stages:
 before_script:
   - pip install pytest
   - pip install pytest-cov
-  - pip install twine
   - pip install pyflakes
   - pip install mypy
   - pip install -U setuptools
-  - pip install wheel
+  - pip install -U wheel
+  - pip install -U twine
+
 
 test_merge_requests:
   stage: test
@@ -40,6 +41,6 @@ deploy_production:
     TWINE_PASSWORD: $PRODUCTION_PASSWORD
   script:
     - python setup.py sdist
-    - twine upload dist/*
+    - twine upload --verbose dist/*
   only:
     - tags
