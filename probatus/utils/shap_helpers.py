@@ -33,6 +33,7 @@ def shap_calc(model, X, approximate=False, return_explainer=False, suppress_warn
         X (pd.DataFrame or np.ndarray): features set
         approximate (boolean):, if True uses shap approximations - less accurate, but very fast
         return_explainer (boolean): if True, returns a a tuple (shap_values, explainer).
+        suppress_warnings (boolean): If True, warnings from SHAP will be suppressed.
         **shap_kwargs: kwargs of the shap.TreeExplainer
 
     Returns: (np.ndarray or tuple(np.ndarray, shap.TreeExplainer)) shapley_values for the model.

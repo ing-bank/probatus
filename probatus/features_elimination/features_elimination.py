@@ -9,6 +9,10 @@ import warnings
 
 class ShapBackwardsFeaturesElimination:
     """
+    This class performs Backwards Features Elimination. At each round, for a given features set, starting from all
+     available features, a model is optimized (e.g. using RandomSearchCV) and trained. At the end of each round, the n
+     lowest SHAP feature importance features are removed and the model results are stored. The user can plot the
+     performance of the model for each round, and select the optimal number of features and the features set.
 
     Example:
     ```python
@@ -53,10 +57,42 @@ class ShapBackwardsFeaturesElimination:
         'reg_lambda': [0, 1, 10, 50, 100, 200]
     }
 
-    def __init__(self, clf='lgbm_balanced', search_schema='random', param_grid=None, n_removed_each_step='',random_state=42,
-                 **opt_kwargs):
+    def __init__(self, clf='lgbm_balanced', search_schema='random', param_grid=None, n_removed_each_step=0.1,
+                 random_state=42, **search_kwargs):
         """
+        This method initializes the class:
 
+        Args:
+            clf (Optional, str or binary classifier): A model that will be optimized and trained at each round of features
+             elimination. It can either be a model, or one of the following strings:
+
+                - `lgbm`: [LightGBMClassifier](https://lightgbm.readthedocs.io/en/latest/pythonapi/lightgbm.LGBMClassifier.html)
+                  model without balancing of the classes.
+                - `lgbm_balanced`: [LightGBMClassifier](https://lightgbm.readthedocs.io/en/latest/pythonapi/lightgbm.LGBMClassifier.html)
+                  model with balancing of the classes (class_weights='balanced').
+
+            search_schema (Optional, str): The hyperparameter search algorithm that should be used to optimize the model.
+              It can be one of the following:
+
+                - `random`: [RandomSearchCV](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.RandomizedSearchCV.html)
+                  which randomly selects hyperparameters from the prowided param_grid, and performs optimization using
+                  Cross-Validation. It is recommended option, when you optimize a large number of hyperparameters.
+                - `grid`: [GridSearchCV](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.GridSearchCV.html)
+                  which searches through all permutations of hyperparameters values from param_grid, and performs
+                  optimization using Cross-Validation. It is recommended option, for low number of hyperparameters.
+
+            param_grid (Optional, None, dict of sklearn.ParamGrid): Parameter grid, which will be explored during the
+             hyperparameter search. If None (default), then the param_grid (class_variable) is used.
+
+            n_removed_each_step (Optional, int or float): Number of lowest importance features removed each round. If it
+             is an int, then each round such number of features is discarded. If float, such n * n_remaining_features
+             rounded up os removed. It is recommended to use float, since it is faster for a large number of features,
+             and slows down and becomes more precise towards less features.
+
+            random_state (Optional, int): Random state set at each round of features elimination.
+
+            **search_kwargs: The keywords arguments passed to a given search schema, during initialization. Please refer
+             to the parameters of a given search schema.
         """
         if clf == 'lgbm':
             self.clf = lightgbm.LGBMClassifier()
@@ -68,18 +104,24 @@ class ShapBackwardsFeaturesElimination:
             self.clf = clf
 
         if search_schema == 'random':
-            self.opt_class = RandomizedSearchCV
+            self.search_class = RandomizedSearchCV
         elif search_schema == 'grid':
-            self.opt_class = GridSearchCV
+            self.search_class = GridSearchCV
         else:
             raise(ValueError('Unsupported search_schema, choose one of the following: "random", "grid".'))
 
         if param_grid is not None:
             self.param_grid = param_grid
 
-        self.opt_kwargs = opt_kwargs
+        self.search_kwargs = search_kwargs
 
-        self.n_removed_each_step = n_removed_each_step
+        if (isinstance(n_removed_each_step, int) or isinstance(n_removed_each_step, float)) and \
+                n_removed_each_step > 0:
+            self.n_removed_each_step = n_removed_each_step
+        else:
+            raise (ValueError(f"The current value of n_removed_each_step = {self.n_removed_each_step} is not allowed. "
+                              f"It needs to be a positive integer or positive float."))
+
         self.random_state = random_state
 
         self.report_df = pd.DataFrame([])
@@ -87,11 +129,24 @@ class ShapBackwardsFeaturesElimination:
 
 
     def _check_if_fitted(self):
+        """
+        Checks if object has been fitted. If not, NotFittedError is raised.
+        """
         if self.fitted is False:
             raise(NotFittedError('The object has not been fitted. Please run fit() method first'))
 
 
     def _preprocess_data(self, X):
+        """
+        Does basic preprocessing of the data: Removal of static features, Warns which features have missing variables,
+        and transform object dtype features to category type, such that LightGBM handles them by default.
+
+        Args:
+            X (pd.DataFrame): Provided dataset.
+
+        Returns:
+            (pd.DataFrame): Preprocessed dataset.
+        """
         # Make sure that X is a pd.DataFrame
         X = assure_pandas_df(X)
 
@@ -122,34 +177,44 @@ class ShapBackwardsFeaturesElimination:
 
 
     def _get_current_features_to_remove(self, shap_importance_df):
+        """
+        Implements the logic used to determine which features to remove. If n_removed_each_step is a positive integer,
+        at each round n_removed_each_step lowest SHAP importance features are selected. If float, the
+        n_removed_each_step * num_remaining_features rounded up features with lowest SHAP importance are chosen.
+
+        Args:
+            shap_importance_df (pd.DataFrame): DataFrame presenting SHAP importance of remaining features.
+
+        Returns:
+            (list): List of features to be removed at a given round.
+        """
+
         # If the n_removed_each_step is an int remove n features.
-        if isinstance(self.n_removed_each_step, int) and self.n_removed_each_step > 0:
+        if isinstance(self.n_removed_each_step, int):
             if self.n_removed_each_step > shap_importance_df.shape[0]:
                 features_to_remove = shap_importance_df.index.tolist()
             else:
                 features_to_remove = shap_importance_df.iloc[-self.n_removed_each_step:].index.tolist()
         # If the n_removed_each_step is a float remove n * number features that are left, rounded up.
-        elif isinstance(self.n_removed_each_step, float) and self.n_removed_each_step > 0:
+        elif isinstance(self.n_removed_each_step, float):
             num_features_to_remove = int(np.ceil(shap_importance_df.shape[0] * self.n_removed_each_step))
             features_to_remove = shap_importance_df.iloc[-num_features_to_remove:].index.tolist()
-        else:
-            raise(ValueError(f"The current value of n_removed_each_step = {self.n_removed_each_step} is not allowed. "
-                             f"It needs to be a positive integer or positive float."))
+
         return features_to_remove
 
 
-    def _report_current_results(self, round_number, current_features_set, features_to_remove, opt_algorithm):
+    def _report_current_results(self, round_number, current_features_set, features_to_remove, search):
         current_results = {
             'num_features': len(current_features_set),
             'features_set': None,
             'eliminated_features':  None,
-            'train_metric_mean': np.round(opt_algorithm.cv_results_['mean_train_score'][opt_algorithm.best_index_], 3),
-            'train_metric_std': np.round(opt_algorithm.cv_results_['std_train_score'][opt_algorithm.best_index_], 3),
-            'val_metric_mean': np.round(opt_algorithm.cv_results_['mean_test_score'][opt_algorithm.best_index_], 3),
-            'val_metric_std': np.round(opt_algorithm.cv_results_['std_test_score'][opt_algorithm.best_index_], 3),
+            'train_metric_mean': np.round(search.cv_results_['mean_train_score'][search.best_index_], 3),
+            'train_metric_std': np.round(search.cv_results_['std_train_score'][search.best_index_], 3),
+            'val_metric_mean': np.round(search.cv_results_['mean_test_score'][search.best_index_], 3),
+            'val_metric_std': np.round(search.cv_results_['std_test_score'][search.best_index_], 3),
         }
 
-        for param_name, param_value in opt_algorithm.best_params_.items():
+        for param_name, param_value in search.best_params_.items():
             current_results[f'param_{param_name}'] = param_value
 
         current_row = pd.DataFrame(current_results, index=[round_number])
@@ -179,12 +244,12 @@ class ShapBackwardsFeaturesElimination:
             current_X = self.X[current_features_set]
 
             # Optimize parameters
-            opt_algorithm = self.opt_class(estimator=self.clf, param_distributions=self.param_grid, refit=True,
-                                           return_train_score=True, **self.opt_kwargs)
-            opt_algorithm = opt_algorithm.fit(current_X, y)
+            search = self.search_class(estimator=self.clf, param_distributions=self.param_grid, refit=True,
+                                       return_train_score=True, **self.search_kwargs)
+            search = search.fit(current_X, y)
 
             # Compute SHAP values
-            shap_values = shap_calc(opt_algorithm.best_estimator_, current_X, suppress_warnings=True)
+            shap_values = shap_calc(search.best_estimator_, current_X, suppress_warnings=True)
             shap_importance_df = calculate_shap_importance(shap_values, remaining_features)
 
             # Get features to remove
@@ -193,12 +258,13 @@ class ShapBackwardsFeaturesElimination:
 
             # Report results
             self._report_current_results(round_number=round_number, current_features_set=current_features_set,
-                                         features_to_remove=features_to_remove, opt_algorithm=opt_algorithm)
+                                         features_to_remove=features_to_remove, search=search)
+
             print(f'Round: {round_number}, Current number of features: {len(current_features_set)}, '
                   f'Current performance: Train {self.report_df.loc[round_number]["train_metric_mean"]} '
                   f'+/- {self.report_df.loc[round_number]["train_metric_std"]}, Test '
-                  f'{self.report_df.loc[round_number]["train_metric_mean"]} '
-                  f'+/- {self.report_df.loc[round_number]["train_metric_std"]}. \n'
+                  f'{self.report_df.loc[round_number]["val_metric_mean"]} '
+                  f'+/- {self.report_df.loc[round_number]["val_metric_std"]}. \n'
                   f'Removed features at the end of the round: {features_to_remove}, '
                   f'Num of features left: {len(remaining_features)}.')
         self.fitted = True
@@ -223,6 +289,8 @@ class ShapBackwardsFeaturesElimination:
 
 
     def plot(self, plot_type='performance', param_names=None, **figure_kwargs):
+        x_ticks = list(reversed(self.report_df['num_features'].tolist()))
+
         if plot_type == 'performance':
             plt.figure(**figure_kwargs)
 
@@ -239,9 +307,12 @@ class ShapBackwardsFeaturesElimination:
             plt.xlabel('Number of features')
             plt.ylabel('Performance')
             plt.title('Feature selection using SHAP')
-            plt.legend(loc="lower right")
+            plt.legend(loc="upper right")
             ax = plt.gca()
-            ax.invert_xaxis()
+            current_ax.invert_xaxis()
+            ax.set_xticks(x_ticks)
+            for x_tick in x_ticks:
+                plt.axvline(x=x_tick, color='grey', linestyle='-')
             plt.show()
 
         elif plot_type == 'parameter':
@@ -256,9 +327,10 @@ class ShapBackwardsFeaturesElimination:
                 plt.xlabel('Number of features')
                 plt.ylabel(f'Optimizal {param_name} value')
                 plt.title(f'Optimization of {param_name} for different numbers of features')
-                plt.legend(loc="lower right")
+                plt.legend(loc="upper right")
                 current_ax = plt.gca()
                 current_ax.invert_xaxis()
+                current_ax.set_xticks(x_ticks)
                 ax.append(current_ax)
                 plt.show()
         else:
