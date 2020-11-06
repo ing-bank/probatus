@@ -6,3 +6,4 @@ shap>=0.36
 scipy>=1.4.0
 joblib>=0.13.2
 pytest>=5.4.1
+lightgbm>=3.0.0

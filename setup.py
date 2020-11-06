@@ -37,6 +37,7 @@ setuptools.setup(
         "joblib>=0.13.2",
         "tqdm>=4.41.0",
         "shap>=0.36.0",
+        "lightgbm>=3.0.0"
     ],
     url="https://gitlab.com/ing_rpaa/probatus",
     zip_safe=False,
