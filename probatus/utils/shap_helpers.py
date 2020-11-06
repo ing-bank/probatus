@@ -38,8 +38,8 @@ def shap_calc(model, X, approximate=False, return_explainer=False, suppress_warn
     Returns: (np.ndarray or tuple(np.ndarray, shap.TreeExplainer)) shapley_values for the model.
 
     """
-    # Supress warnings regarding XGboost and Lightgbm models.
-    with warnings.catch_warnings() as w:
+    # Suppress warnings regarding XGboost and Lightgbm models.
+    with warnings.catch_warnings():
         if suppress_warnings:
             warnings.simplefilter("ignore")
 
