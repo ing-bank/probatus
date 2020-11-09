@@ -18,6 +18,6 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
-from .features_elimination import ShapBackwardsFeaturesElimination
+from .features_elimination import ShapBFE
 
-__all__ = ['ShapBackwardsFeaturesElimination']
+__all__ = ['ShapBFE']

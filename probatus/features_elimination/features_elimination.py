@@ -6,12 +6,13 @@ import pandas as pd
 from sklearn.model_selection import RandomizedSearchCV, GridSearchCV
 import warnings
 
-class ShapBackwardsFeaturesElimination:
+class ShapBFE:
     """
-    This class performs Backwards Features Elimination. At each round, for a given features set, starting from all
-     available features, a model is optimized (e.g. using RandomSearchCV) and trained. At the end of each round, the n
-     lowest SHAP feature importance features are removed and the model results are stored. The user can plot the
-     performance of the model for each round, and select the optimal number of features and the features set.
+    This class performs Backwards Features Elimination using SHAP features importance. At each round, for a given
+     features set, starting from all available features, a model is optimized (e.g. using RandomSearchCV) and trained.
+     At the end of each round, the n lowest SHAP feature importance features are removed and the model results are
+     stored. The user can plot the performance of the model for each round, and select the optimal number of features
+     and the features set.
 
     We recommend using LightGBM model, because by default it handles missing values and categorical features. In case
      of other models, make sure to handle these issues for your dataset and consider impact it might have on features
@@ -19,7 +20,7 @@ class ShapBackwardsFeaturesElimination:
 
     Example:
     ```python
-    from probatus.features_elimination import ShapBackwardsFeaturesElimination
+    from probatus.features_elimination import ShapBFE
     from sklearn.datasets import make_classification
     from sklearn.model_selection import train_test_split
     import numpy as np
@@ -43,7 +44,7 @@ class ShapBackwardsFeaturesElimination:
     }
 
         # Run feature elimination
-    shap_elimination = ShapBackwardsFeaturesElimination(
+    shap_elimination = ShapBFE(
         clf=clf, search_space=param_grid, search_schema='grid',
         n_removed_per_iter=0.2, cv=20, scoring='roc_auc', n_jobs=3, random_state=42)
     report = shap_elimination.fit_compute(X, y)
@@ -191,6 +192,16 @@ class ShapBackwardsFeaturesElimination:
 
 
     def _report_current_results(self, round_number, current_features_set, features_to_remove, search):
+        """
+        This function adds the results from a current iteration to the report.
+
+        Args:
+            round_number (int): Current number of the round.
+            current_features_set (list of str): Current list of features.
+            features_to_remove (list of str): List of features to be removed at the end of this iteration.
+            search (sklearn.GridSearchCV or sklearn.RandomSearchCV): The fitted hyperparameter search object, containing
+             results of the optimization.
+        """
         current_results = {
             'num_features': len(current_features_set),
             'features_set': None,
@@ -212,6 +223,15 @@ class ShapBackwardsFeaturesElimination:
 
 
     def fit(self, X, y):
+        """
+        Fits the object with the provided data. The algorithm starts with the entire dataset, and then sequentially
+         eliminates features. At each step, it optimizes hyperparameters of the model, computes SHAP features importance
+         and removes the lowest importance features.
+
+        Args:
+            X (pd.DataFrame): Provided dataset.
+            y (pd.Series): Binary labels for X.
+        """
         # Set seed for results reproducibility
         if self.random_state is not None:
             np.random.seed(self.random_state)
@@ -274,11 +294,47 @@ class ShapBackwardsFeaturesElimination:
 
 
     def fit_compute(self, X, y):
+        """
+        Fits the object and computes the report. The algorithm starts with the entire dataset, and then sequentially
+         eliminates features. At each step, it optimizes hyperparameters of the model, computes SHAP features importance
+         and removes the lowest importance features. At the end, the report containing results from each iteration is
+         computed and returned to the user.
+
+        Args:
+            X (pd.DataFrame): Provided dataset.
+            y (pd.Series): Binary labels for X.
+
+        Returns:
+            (pd.DataFrame): DataFrame containing results of features elimination from each iteration.
+        """
+
         self.fit(X, y)
         return self.compute()
 
 
     def plot(self, plot_type='performance', param_names=None, show=True, **figure_kwargs):
+        """
+        Generates plots that allow to analyse the results.
+
+        Args:
+            plot_type (Optional, str): String indicating the plot type:
+
+                - `performance`: Performance of the optimized model at each iteration. This plot allows to select the
+                 optimal features set.
+                - `parameter`: Plots the optimized hyperparameter's values at each iteration. This plot allows to
+                 analyse stability of parameters for different features set. In case large variability of optimal
+                 hyperparameters values is seen, consider reducing the search space.
+
+            param_names (Optional, str, list of str): Name or names of parameters that will be plotted in case of
+            `plot_type="parameter"`
+
+            show (Optional, bool): If True, the plots are showed to the user, otherwise they are not shown.
+
+            **figure_kwargs: Keyword arguments that are passed to the plt.figure, at its initialization.
+
+        Returns:
+            (plt.axis or list of plt.axis) Axis containing the target plot, or list of such axes.
+        """
         x_ticks = list(reversed(self.report_df['num_features'].tolist()))
 
         if plot_type == 'performance':
