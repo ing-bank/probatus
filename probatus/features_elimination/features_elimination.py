@@ -6,13 +6,17 @@ import pandas as pd
 from sklearn.model_selection import RandomizedSearchCV, GridSearchCV
 import warnings
 
-class ShapBFE:
+class ShapRFECV:
     """
-    This class performs Backwards Features Elimination using SHAP features importance. At each round, for a given
+    This class performs Backwards Recursive Features Elimination, using SHAP features importance. At each round, for a given
      features set, starting from all available features, a model is optimized (e.g. using RandomSearchCV) and trained.
      At the end of each round, the n lowest SHAP feature importance features are removed and the model results are
      stored. The user can plot the performance of the model for each round, and select the optimal number of features
      and the features set.
+
+    The functionality is similar to [sklearn.feature_selection.RFECV](https://scikit-learn.org/stable/modules/generated/sklearn.feature_selection.RFECV.html),
+     yet, it removes the lowest importance features based on SHAP features importance and optimizes the hyperparameters
+     of the model at each round.
 
     We recommend using LightGBM model, because by default it handles missing values and categorical features. In case
      of other models, make sure to handle these issues for your dataset and consider impact it might have on features
@@ -20,7 +24,7 @@ class ShapBFE:
 
     Example:
     ```python
-    from probatus.features_elimination import ShapBFE
+    from probatus.features_elimination import ShapRFECV
     from sklearn.datasets import make_classification
     from sklearn.model_selection import train_test_split
     import numpy as np
@@ -44,9 +48,9 @@ class ShapBFE:
     }
 
         # Run feature elimination
-    shap_elimination = ShapBFE(
+    shap_elimination = ShapRFECV(
         clf=clf, search_space=param_grid, search_schema='grid',
-        n_removed_per_iter=0.2, cv=20, scoring='roc_auc', n_jobs=3, random_state=42)
+        step=0.2, cv=20, scoring='roc_auc', n_jobs=3, random_state=42)
     report = shap_elimination.fit_compute(X, y)
 
     # Make plots
@@ -58,7 +62,7 @@ class ShapBFE:
     ```
     """
 
-    def __init__(self, clf, search_space, search_schema='random', n_removed_per_iter=0.1,
+    def __init__(self, clf, search_space, search_schema='random', step=1, min_features_to_select=1,
                  random_state=None, **search_kwargs):
         """
         This method initializes the class:
@@ -82,12 +86,18 @@ class ShapBFE:
                   which searches through all permutations of hyperparameters values from param_grid, and performs
                   optimization using Cross-Validation. It is recommended option, for low number of hyperparameters.
 
-            n_removed_per_iter (Optional, int or float): Number of lowest importance features removed each round. If it
+            step (Optional, int or float): Number of lowest importance features removed each round. If it
              is an int, then each round such number of features is discarded. If float, such percentage of remaining
-             features (rounded up) is removed each iteration. It is recommended to use float, since it is faster for a
-             large number of features, and slows down and becomes more precise towards less features.
+             features (rounded down) is removed each iteration. It is recommended to use float, since it is faster for a
+             large number of features, and slows down and becomes more precise towards less features. Note: the last
+             round may remove fewer features in order to reach min_features_to_select.
 
-            random_state (Optional, int): Random state set at each round of features elimination.
+            min_features_to_select (Optional, unt): Minimum number of features to be kept. This is a stopping criterion
+             of the features elimination. By default the process stops when one feature is left.
+
+            random_state (Optional, int): Random state set at each round of features elimination. If it is None, the
+             results will not be reproducible and in random search at each iteration a different hyperparameters might
+             be tested. For reproducible results set it to integer.
 
             **search_kwargs: The keywords arguments passed to a given search schema, during initialization. Please refer
              to the parameters of a given search schema.
@@ -105,12 +115,18 @@ class ShapBFE:
 
         self.search_kwargs = search_kwargs
 
-        if (isinstance(n_removed_per_iter, int) or isinstance(n_removed_per_iter, float)) and \
-                n_removed_per_iter > 0:
-            self.n_removed_per_iter = n_removed_per_iter
+        if (isinstance(step, int) or isinstance(step, float)) and \
+                step > 0:
+            self.step = step
         else:
-            raise (ValueError(f"The current value of n_removed_per_iter = {self.n_removed_per_iter} is not allowed. "
+            raise (ValueError(f"The current value of step = {step} is not allowed. "
                               f"It needs to be a positive integer or positive float."))
+
+        if isinstance(min_features_to_select, int) and min_features_to_select>0:
+            self.min_features_to_select=min_features_to_select
+        else:
+            raise (ValueError(f"The current value of min_features_to_select = {min_features_to_select} is not allowed. "
+                              f"It needs to be a positive integer."))
 
         self.random_state = random_state
 
@@ -125,8 +141,8 @@ class ShapBFE:
         if self.fitted is False:
             raise(NotFittedError('The object has not been fitted. Please run fit() method first'))
 
-
-    def _preprocess_data(self, X):
+    @staticmethod
+    def _preprocess_data(X):
         """
         Does basic preprocessing of the data: Removal of static features, Warns which features have missing variables,
         and transform object dtype features to category type, such that LightGBM handles them by default.
@@ -168,8 +184,8 @@ class ShapBFE:
 
     def _get_current_features_to_remove(self, shap_importance_df):
         """
-        Implements the logic used to determine which features to remove. If n_removed_per_iter is a positive integer,
-        at each round n_removed_per_iter lowest SHAP importance features are selected. If it is a float, such percentage
+        Implements the logic used to determine which features to remove. If step is a positive integer,
+        at each round step lowest SHAP importance features are selected. If it is a float, such percentage
         of remaining features (rounded up) is removed each iteration. It is recommended to use float, since it is faster
         for a large set of features, and slows down and becomes more precise towards less features.
 
@@ -180,18 +196,55 @@ class ShapBFE:
             (list): List of features to be removed at a given round.
         """
 
-        # If the n_removed_per_iter is an int remove n features.
-        if isinstance(self.n_removed_per_iter, int):
-            if self.n_removed_per_iter > shap_importance_df.shape[0]:
-                features_to_remove = shap_importance_df.index.tolist()
-            else:
-                features_to_remove = shap_importance_df.iloc[-self.n_removed_per_iter:].index.tolist()
-        # If the n_removed_per_iter is a float remove n * number features that are left, rounded up.
-        elif isinstance(self.n_removed_per_iter, float):
-            num_features_to_remove = int(np.ceil(shap_importance_df.shape[0] * self.n_removed_per_iter))
-            features_to_remove = shap_importance_df.iloc[-num_features_to_remove:].index.tolist()
+        # If the step is an int remove n features.
+        if isinstance(self.step, int):
+            num_features_to_remove = self._calculate_number_of_features_to_remove(
+                current_num_of_features=shap_importance_df.shape[0],
+                num_features_to_remove=self.step,
+                min_num_features_to_keep=self.min_features_to_select
+            )
+        # If the step is a float remove n * number features that are left, rounded down
+        elif isinstance(self.step, float):
+            current_step = int(np.floor(shap_importance_df.shape[0] * self.step))
+            # The step after rounding down should be at least 1
+            if current_step < 1:
+                current_step = 1
 
-        return features_to_remove
+            num_features_to_remove = self._calculate_number_of_features_to_remove(
+                current_num_of_features=shap_importance_df.shape[0],
+                num_features_to_remove=current_step,
+                min_num_features_to_keep=self.min_features_to_select
+            )
+
+        if num_features_to_remove == 0:
+            return []
+        else:
+
+            return shap_importance_df.iloc[-num_features_to_remove:].index.tolist()
+
+
+    @staticmethod
+    def _calculate_number_of_features_to_remove(current_num_of_features, num_features_to_remove,
+                                                min_num_features_to_keep):
+        """
+        Calculates the number of features to be removed, and makes sure that after removal at least
+         min_num_features_to_keep are kept
+
+         Args:
+            current_num_of_features (int): Current number of features in the data.
+            num_features_to_remove (int): Number of features to be removed at this stage.
+            min_num_features_to_keep (int): Minimum number of features to be left after removal.
+
+        Returns:
+            (int) Number of features to be removed.
+        """
+        num_features_after_removal = current_num_of_features - num_features_to_remove
+        if num_features_after_removal >= min_num_features_to_keep:
+            num_to_remove = num_features_to_remove
+        else:
+            # take all available features minus number of them that should stay
+            num_to_remove = current_num_of_features - min_num_features_to_keep
+        return num_to_remove
 
 
     def _report_current_results(self, round_number, current_features_set, features_to_remove, search):
@@ -242,10 +295,10 @@ class ShapBFE:
         self.X = self._preprocess_data(X)
         self.y = y
 
-        remaining_features = self.X.columns.tolist()
+        remaining_features = current_features_set = self.X.columns.tolist()
         round_number = 0
 
-        while len(remaining_features) > 0:
+        while len(current_features_set) > self.min_features_to_select:
             round_number += 1
 
             # Get current dataset info
@@ -278,8 +331,8 @@ class ShapBFE:
                   f'+/- {self.report_df.loc[round_number]["train_metric_std"]}, CV Validation '
                   f'{self.report_df.loc[round_number]["val_metric_mean"]} '
                   f'+/- {self.report_df.loc[round_number]["val_metric_std"]}. \n'
-                  f'Removed features at the end of the round: {features_to_remove}, '
-                  f'Num of features left: {len(remaining_features)}.')
+                  f'Num of features left: {len(remaining_features)}. '
+                  f'Removed features at the end of the round: {features_to_remove}')
         self.fitted = True
 
 
@@ -381,6 +434,8 @@ class ShapBFE:
             ax.set_xticks(x_ticks)
             if show:
                 plt.show()
+            else:
+                plt.close()
 
         elif plot_type == 'parameter':
             param_names = assure_list_of_strings(param_names, 'target_columns')
@@ -400,6 +455,8 @@ class ShapBFE:
                 ax.append(current_ax)
                 if show:
                     plt.show()
+                else:
+                    plt.close()
         else:
             raise(ValueError('Wrong value of plot_type. Select from "performance" or "parameter"'))
 
