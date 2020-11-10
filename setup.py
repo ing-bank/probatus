@@ -8,7 +8,7 @@ def read(fname):
 
 setuptools.setup(
     name="probatus",
-    version="1.4.0",
+    version="1.4.1",
     description="Tools for machine learning model validation",
     long_description=read("README.md"),
     long_description_content_type="text/markdown",
