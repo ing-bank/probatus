@@ -58,8 +58,8 @@ class ShapModelInterpreter:
     # Make plots
     shap_interpreter.plot('importance')
     shap_interpreter.plot('summary')
-    shap_interpreter.plot('dependence', ['f1', 'f2'])
-    shap_interpreter.plot('sample', [521, 78])
+    shap_interpreter.plot('dependence', target_columns=['f1', 'f2'])
+    shap_interpreter.plot('sample', samples_index=[521, 78])
     ```
     """
 
@@ -251,6 +251,7 @@ class ShapModelInterpreter:
                 plot_title = f'SHAP Sample Explanation for index={sample_index}'
                 current_ax = plt.gca()
                 current_ax.set_title(plot_title)
+                ax.append(current_ax)
                 plt.show()
         else:
             raise ValueError("Wrong plot type, select from 'importance', 'summary', or 'dependence'")
