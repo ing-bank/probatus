@@ -22,6 +22,7 @@ Welcome to probatus documentation!
    :caption: Tutorial - Examples
 
    nb_shap_model_interpreter.ipynb
+   nb_shap_features_elimination.ipynb
    nb_metric_volatility.ipynb
    nb_sample_similarity.ipynb
    nb_distribution_statistics.ipynb
