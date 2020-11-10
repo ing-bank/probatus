@@ -312,6 +312,25 @@ class ShapBFE:
         return self.compute()
 
 
+    def get_reduced_features_set(self, num_features):
+        """
+        Gets the features set after the features elimination process, for a given number of features.
+
+        Args:
+            num_features (int): Number of features in the reduced features set.
+
+        Returns:
+            (list of str): Reduced features set.
+        """
+        self._check_if_fitted()
+
+        if num_features not in self.report_df.num_features.tolist():
+            raise(ValueError(f'The provided number of features has not been achieved at any stage of the process. '
+                             f'You can select one of the following: {self.report_df.num_features.tolist()}'))
+        else:
+            return self.report_df[self.report_df.num_features == num_features]['features_set'].values[0]
+
+
     def plot(self, plot_type='performance', param_names=None, show=True, **figure_kwargs):
         """
         Generates plots that allow to analyse the results.
