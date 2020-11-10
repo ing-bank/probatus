@@ -8,7 +8,7 @@ import warnings
 
 class ShapRFECV:
     """
-    This class performs Backwards Recursive Features Elimination, using SHAP features importance. At each round, for a given
+    This class performs Backwards Recursive Feature Elimination, using SHAP features importance. At each round, for a given
      features set, starting from all available features, a model is optimized (e.g. using RandomSearchCV) and trained.
      At the end of each round, the n lowest SHAP feature importance features are removed and the model results are
      stored. The user can plot the performance of the model for each round, and select the optimal number of features
@@ -24,7 +24,7 @@ class ShapRFECV:
 
     Example:
     ```python
-    from probatus.features_elimination import ShapRFECV
+    from probatus.feature_elimination import ShapRFECV
     from sklearn.datasets import make_classification
     from sklearn.model_selection import train_test_split
     import numpy as np
@@ -93,9 +93,9 @@ class ShapRFECV:
              round may remove fewer features in order to reach min_features_to_select.
 
             min_features_to_select (Optional, unt): Minimum number of features to be kept. This is a stopping criterion
-             of the features elimination. By default the process stops when one feature is left.
+             of the feature elimination. By default the process stops when one feature is left.
 
-            random_state (Optional, int): Random state set at each round of features elimination. If it is None, the
+            random_state (Optional, int): Random state set at each round of feature elimination. If it is None, the
              results will not be reproducible and in random search at each iteration a different hyperparameters might
              be tested. For reproducible results set it to integer.
 
@@ -338,11 +338,11 @@ class ShapRFECV:
 
     def compute(self):
         """
-        Checks if fit() method has been run and computes the DataFrame with results of features elimintation for each
+        Checks if fit() method has been run and computes the DataFrame with results of feature elimintation for each
          round.
 
         Returns:
-            (pd.DataFrame): DataFrame with results of features elimination for each round.
+            (pd.DataFrame): DataFrame with results of feature elimination for each round.
         """
         self._check_if_fitted()
 
@@ -361,7 +361,7 @@ class ShapRFECV:
             y (pd.Series): Binary labels for X.
 
         Returns:
-            (pd.DataFrame): DataFrame containing results of features elimination from each iteration.
+            (pd.DataFrame): DataFrame containing results of feature elimination from each iteration.
         """
 
         self.fit(X, y)
@@ -370,7 +370,7 @@ class ShapRFECV:
 
     def get_reduced_features_set(self, num_features):
         """
-        Gets the features set after the features elimination process, for a given number of features.
+        Gets the features set after the feature elimination process, for a given number of features.
 
         Args:
             num_features (int): Number of features in the reduced features set.
