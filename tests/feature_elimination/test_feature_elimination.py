@@ -2,7 +2,7 @@ from sklearn.tree import DecisionTreeClassifier
 import pytest
 import numpy as np
 import pandas as pd
-from probatus.features_elimination import ShapRFECV
+from probatus.feature_elimination import ShapRFECV
 from unittest.mock import patch
 
 @pytest.fixture(scope='function')
