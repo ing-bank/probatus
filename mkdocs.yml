@@ -12,10 +12,12 @@ nav:
     - Index: index.md
   - Tutorials:
     - Tree-based Model Interpretation with SHAP: tutorials/nb_shap_model_interpreter.ipynb
+    - Recursive Features Elimination using SHAP importance and CV: tutorials/nb_shap_features_elimination.ipynb
     - Model Metrics Volatility: tutorials/nb_metric_volatility.ipynb
     - Multivariate Sample Similarity: tutorials/nb_sample_similarity.ipynb
     - Univariate Sample Similarity: tutorials/nb_distribution_statistics.ipynb
   - API:
+    - probatus.features_elimination: api/features_elimination.md
     - probatus.interpret: api/model_interpret.md
     - probatus.metric_volatility: api/metric_volatility.md
     - probatus.sample_similarity: api/sample_similarity.md
