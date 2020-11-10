@@ -52,6 +52,9 @@ class ShapBFE:
     # Make plots
     shap_elimination.plot('performance')
     shap_elimination.plot('parameter', param_names=['n_estimators', 'num_leaves'])
+
+    # Get final features set
+    final_features_set = shap_elimination.get_reduced_features_set(num_features=2)
     ```
     """
 
