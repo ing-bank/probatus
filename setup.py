@@ -14,7 +14,7 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     author="ING Bank N.V.",
     author_email="ml_risk_and_pricing_aa@ing.com",
-    license=("MIT License"),
+    license="MIT License",
     python_requires=">=3.6",
     classifiers=[
         "Programming Language :: Python :: 3",
@@ -28,7 +28,7 @@ setuptools.setup(
         "scipy>=1.4.0",
         "joblib>=0.13.2",
         "tqdm>=4.41.0",
-        "shap>=0.36.0",
+        "shap>=0.36.0"
     ],
     url="https://gitlab.com/ing_rpaa/probatus",
     zip_safe=False,
