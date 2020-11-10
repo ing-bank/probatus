@@ -17,7 +17,7 @@ def y():
     return pd.Series([1, 0, 1, 0, 1, 0, 1, 0], index=[1, 2, 3, 4, 5, 6, 7, 8])
 
 
-def test_shap_bfe_grid(X, y):
+def test_shap_rfe_grid(X, y):
 
     clf = DecisionTreeClassifier(max_depth=1)
     param_grid = {
@@ -43,7 +43,7 @@ def test_shap_bfe_grid(X, y):
     assert isinstance(ax2, list) and len(ax2) == 2
 
 
-def test_shap_bfe_random(X, y):
+def test_shap_rfe_random(X, y):
 
     clf = DecisionTreeClassifier(max_depth=1)
     param_grid = {
