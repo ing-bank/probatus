@@ -8,13 +8,14 @@ def read(fname):
 
 setuptools.setup(
     name="probatus",
-    version="1.4.1",
+    version="1.4.3",
     description="Tools for machine learning model validation",
     long_description=read("README.md"),
     long_description_content_type="text/markdown",
     author="ING Bank N.V.",
     author_email="ml_risk_and_pricing_aa@ing.com",
     license="MIT License",
+    packages=['probatus'],
     python_requires=">=3.6",
     classifiers=[
         "Programming Language :: Python :: 3",
