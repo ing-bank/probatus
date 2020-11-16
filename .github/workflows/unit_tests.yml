@@ -5,9 +5,7 @@ on:
   push:
     branches:
       - master
-    pull_request:
-      branches:
-        - master
+    pull_request
 jobs:
   run:
     name: Run unit tests
