@@ -1,26 +1,32 @@
-from probatus.utils import assure_pandas_df, shap_calc, assure_list_of_strings, calculate_shap_importance, \
-    NotFittedError
+from probatus.utils import assure_pandas_df, shap_calc, calculate_shap_importance, \
+    NotFittedError, assure_pandas_series
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
-from sklearn.model_selection import RandomizedSearchCV, GridSearchCV
 import warnings
+from sklearn.model_selection import RandomizedSearchCV, GridSearchCV, check_cv
+from sklearn.base import clone, is_classifier
+from sklearn.metrics import check_scoring
+from joblib import Parallel, delayed
 
 class ShapRFECV:
     """
-    This class performs Backwards Recursive Feature Elimination, using SHAP features importance. At each round, for a given
-     features set, starting from all available features, a model is optimized (e.g. using RandomSearchCV) and trained.
-     At the end of each round, the n lowest SHAP feature importance features are removed and the model results are
-     stored. The user can plot the performance of the model for each round, and select the optimal number of features
-     and the features set.
+    This class performs Backwards Recursive Feature Elimination, using SHAP feature importance. At each round, for a
+        given feature set, starting from all available features, Cross-Validation in order to estimate the SHAP feature
+        importance. For each CV iteration, the model is fitted on n-1 folds, and the SHAP values are computed for the
+        last fold. Later, the SHAP values are combined for all test folds, and the `step` lowest SHAP feature importance
+        features are removed. At the end of the process, the user can plot the performance of the model for each
+        iteration, and select the optimal number of features and the features set.
 
-    The functionality is similar to [sklearn.feature_selection.RFECV](https://scikit-learn.org/stable/modules/generated/sklearn.feature_selection.RFECV.html),
-     yet, it removes the lowest importance features based on SHAP features importance and optimizes the hyperparameters
-     of the model at each round.
+    The functionality is similar to sklearn.feature_selection.RFECV, yet, it removes the lowest importance features
+        based on SHAP features importance. It also supports the use of GridSearchCV and RandomizedSearchCV passed as a
+        clf, thanks to which you can perform hyperparameter optimization at each step of the search. hyperparameters of
+        the model at each round, to tune the model for each features set. Lastly, it supports categorical features
+        (object and category dtype) and missing values in the data, as long as the model supports them.
 
     We recommend using LightGBM model, because by default it handles missing values and categorical features. In case
-     of other models, make sure to handle these issues for your dataset and consider impact it might have on features
-     importance.
+        of other models, make sure to handle these issues for your dataset and consider impact it might have on features
+        importance.
 
     Example:
     ```python
@@ -30,11 +36,13 @@ class ShapRFECV:
     import numpy as np
     import pandas as pd
     import lightgbm
+    from sklearn.model_selection import RandomizedSearchCV
 
-    feature_names = ['f1_categorical', 'f2_missing', 'f3_static', 'f4', 'f5', 'f6', 'f7', 'f8', 'f9', 'f10', 'f11', 'f12', 'f13', 'f14', 'f15']
+    feature_names = ['f1_categorical', 'f2_missing', 'f3_static', 'f4', 'f5', 'f6', 'f7', 'f8', 'f9', 'f10', 'f11', 'f12', 'f13', 'f14', 'f15', 'f16', 'f17', 'f18', 'f19', 'f20']
 
     # Prepare two samples
-    X, y = make_classification(n_samples=1000, n_features=15, random_state=0, n_redundant=10)
+    X, y = make_classification(n_samples=1000, class_sep=0.05, n_informative=6, n_features=20,
+                               random_state=0, n_redundant=10, n_clusters_per_class=1)
     X = pd.DataFrame(X, columns=feature_names)
     X['f1_categorical'] = X['f1_categorical'].apply(lambda x: str(np.round(x*10)))
     X['f2_missing'] = X['f2_missing'].apply(lambda x: x if np.random.rand()<0.8 else np.nan)
@@ -42,28 +50,28 @@ class ShapRFECV:
 
     # Prepare model and parameter search space
     clf = lightgbm.LGBMClassifier(max_depth=5, class_weight='balanced')
+
     param_grid = {
         'n_estimators': [5, 7, 10],
-        'num_leaves': [3, 5, 7],
+        'num_leaves': [3, 5, 7, 10],
     }
+    search = RandomizedSearchCV(clf, param_grid)
 
-        # Run feature elimination
+
+    # Run feature elimination
     shap_elimination = ShapRFECV(
-        clf=clf, search_space=param_grid, search_schema='grid',
-        step=0.2, cv=20, scoring='roc_auc', n_jobs=3, random_state=42)
+        clf=search, step=0.2, cv=10, scoring='roc_auc', n_jobs=3)
     report = shap_elimination.fit_compute(X, y)
 
     # Make plots
-    shap_elimination.plot('performance')
-    shap_elimination.plot('parameter', param_names=['n_estimators', 'num_leaves'])
+    performance_plot = shap_elimination.plot()
 
-    # Get final features set
-    final_features_set = shap_elimination.get_reduced_features_set(num_features=2)
+    # Get final feature set
+    final_features_set = shap_elimination.get_reduced_features_set(num_features=3)
     ```
     """
 
-    def __init__(self, clf, search_space, search_schema='random', step=1, min_features_to_select=1,
-                 random_state=None, **search_kwargs):
+    def __init__(self, clf, step=1, min_features_to_select=1, cv=None, scoring=None, n_jobs=-1, random_state=None):
         """
         This method initializes the class:
 
@@ -72,48 +80,37 @@ class ShapRFECV:
                 elimination. The recommended model is LightGBM, because it by default handles the missing values and
                 categorical variables.
 
-            search_space (dict of sklearn.ParamGrid): Parameter search space, which will be explored during the
-                hyperparameter search. In case `grid` search_schema, it is passed to GridSearchCV as `param_grid`, in case
-                of `random` search_schema, then this value is passed to RandomSearchCV as `param_distributions` parameter.
-
-            search_schema (Optional, str): The hyperparameter search algorithm that should be used to optimize the model.
-                It can be one of the following:
-
-                - `random`: [RandomSearchCV](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.RandomizedSearchCV.html)
-                  which randomly selects hyperparameters from the prowided param_grid, and performs optimization using
-                  Cross-Validation. It is recommended option, when you optimize a large number of hyperparameters.
-                - `grid`: [GridSearchCV](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.GridSearchCV.html)
-                  which searches through all permutations of hyperparameters values from param_grid, and performs
-                  optimization using Cross-Validation. It is recommended option, for low number of hyperparameters.
-
             step (Optional, int or float): Number of lowest importance features removed each round. If it
-             is an int, then each round such number of features is discarded. If float, such percentage of remaining
-             features (rounded down) is removed each iteration. It is recommended to use float, since it is faster for a
-             large number of features, and slows down and becomes more precise towards less features. Note: the last
-             round may remove fewer features in order to reach min_features_to_select.
+                 is an int, then each round such number of features is discarded. If float, such percentage of remaining
+                 features (rounded down) is removed each iteration. It is recommended to use float, since it is faster
+                 for a large number of features, and slows down and becomes more precise towards less features. Note:
+                 the last round may remove fewer features in order to reach min_features_to_select.
 
             min_features_to_select (Optional, unt): Minimum number of features to be kept. This is a stopping criterion
-             of the feature elimination. By default the process stops when one feature is left.
+                of the feature elimination. By default the process stops when one feature is left.
+
+            cv (Optional, int, cross-validation generator or an iterable): Determines the cross-validation splitting
+                strategy. Compatible with sklearn
+                [cv parameter](https://scikit-learn.org/stable/modules/generated/sklearn.feature_selection.RFECV.html).
+                If None, then cv of 5 is used.
+
+            scoring (Optional, string, callable or None): A string (see sklearn
+                [model scoring](https://scikit-learn.org/stable/modules/model_evaluation.html)) or a scorer callable
+                object, function with the signature `scorer(estimator, X, y)`.
+
+            n_jobs (Optional, int): Number of cores to run in parallel while fitting across folds. None means 1 unless
+                in a `joblib.parallel_backend` context. -1 means using all processors.
 
             random_state (Optional, int): Random state set at each round of feature elimination. If it is None, the
-             results will not be reproducible and in random search at each iteration a different hyperparameters might
-             be tested. For reproducible results set it to integer.
-
-            **search_kwargs: The keywords arguments passed to a given search schema, during initialization. Please refer
-             to the parameters of a given search schema.
+                results will not be reproducible and in random search at each iteration a different hyperparameters
+                might be tested. For reproducible results set it to integer.
         """
         self.clf = clf
 
-        if search_schema == 'random':
-            self.search_class = RandomizedSearchCV
-        elif search_schema == 'grid':
-            self.search_class = GridSearchCV
+        if isinstance(self.clf, RandomizedSearchCV) or isinstance(self.clf, GridSearchCV):
+            self.search_clf = True
         else:
-            raise(ValueError('Unsupported search_schema, choose one of the following: "random", "grid".'))
-
-        self.search_space = search_space
-
-        self.search_kwargs = search_kwargs
+            self.search_clf=False
 
         if (isinstance(step, int) or isinstance(step, float)) and \
                 step > 0:
@@ -128,8 +125,10 @@ class ShapRFECV:
             raise (ValueError(f"The current value of min_features_to_select = {min_features_to_select} is not allowed. "
                               f"It needs to be a positive integer."))
 
+        self.cv = cv
+        self.scorer = check_scoring(self.clf, scoring=scoring)
         self.random_state = random_state
-
+        self.n_jobs = n_jobs
         self.report_df = pd.DataFrame([])
         self.fitted = False
 
@@ -140,6 +139,7 @@ class ShapRFECV:
         """
         if self.fitted is False:
             raise(NotFittedError('The object has not been fitted. Please run fit() method first'))
+
 
     @staticmethod
     def _preprocess_data(X):
@@ -185,9 +185,9 @@ class ShapRFECV:
     def _get_current_features_to_remove(self, shap_importance_df):
         """
         Implements the logic used to determine which features to remove. If step is a positive integer,
-        at each round step lowest SHAP importance features are selected. If it is a float, such percentage
-        of remaining features (rounded up) is removed each iteration. It is recommended to use float, since it is faster
-        for a large set of features, and slows down and becomes more precise towards less features.
+            at each round step lowest SHAP importance features are selected. If it is a float, such percentage
+            of remaining features (rounded up) is removed each iteration. It is recommended to use float, since it is
+            faster for a large set of features, and slows down and becomes more precise towards less features.
 
         Args:
             shap_importance_df (pd.DataFrame): DataFrame presenting SHAP importance of remaining features.
@@ -228,11 +228,13 @@ class ShapRFECV:
                                                 min_num_features_to_keep):
         """
         Calculates the number of features to be removed, and makes sure that after removal at least
-         min_num_features_to_keep are kept
+            min_num_features_to_keep are kept
 
          Args:
             current_num_of_features (int): Current number of features in the data.
+
             num_features_to_remove (int): Number of features to be removed at this stage.
+
             min_num_features_to_keep (int): Minimum number of features to be left after removal.
 
         Returns:
@@ -247,7 +249,8 @@ class ShapRFECV:
         return num_to_remove
 
 
-    def _report_current_results(self, round_number, current_features_set, features_to_remove, search):
+    def _report_current_results(self, round_number, current_features_set, features_to_remove, train_metric_mean,
+                                train_metric_std, val_metric_mean, val_metric_std):
         """
         This function adds the results from a current iteration to the report.
 
@@ -255,21 +258,21 @@ class ShapRFECV:
             round_number (int): Current number of the round.
             current_features_set (list of str): Current list of features.
             features_to_remove (list of str): List of features to be removed at the end of this iteration.
-            search (sklearn.GridSearchCV or sklearn.RandomSearchCV): The fitted hyperparameter search object, containing
-             results of the optimization.
+            train_metric_mean (float or int): Mean scoring metric measured on train set during CV.
+            train_metric_std (float or int): Std scoring metric measured on train set during CV.
+            val_metric_mean (float or int): Mean scoring metric measured on validation set during CV.
+            val_metric_std (float or int): Std scoring metric measured on validation set during CV.
         """
+
         current_results = {
             'num_features': len(current_features_set),
             'features_set': None,
             'eliminated_features':  None,
-            'train_metric_mean': np.round(search.cv_results_['mean_train_score'][search.best_index_], 3),
-            'train_metric_std': np.round(search.cv_results_['std_train_score'][search.best_index_], 3),
-            'val_metric_mean': np.round(search.cv_results_['mean_test_score'][search.best_index_], 3),
-            'val_metric_std': np.round(search.cv_results_['std_test_score'][search.best_index_], 3),
+            'train_metric_mean': train_metric_mean,
+            'train_metric_std': train_metric_std,
+            'val_metric_mean': val_metric_mean,
+            'val_metric_std': val_metric_std,
         }
-
-        for param_name, param_value in search.best_params_.items():
-            current_results[f'param_{param_name}'] = param_value
 
         current_row = pd.DataFrame(current_results, index=[round_number])
         current_row['features_set'] = [current_features_set]
@@ -278,11 +281,46 @@ class ShapRFECV:
         self.report_df = pd.concat([self.report_df, current_row], axis=0)
 
 
+    @staticmethod
+    def _get_feature_shap_values_per_fold(X, y, clf, train_index, val_index, scorer):
+        """
+        This function calculates the shap values on validation set, and Train and Val score.
+
+        Args:
+            X (pd.DataFrame): Dataset.
+            y (pd.Series): Binary labels for X.
+            clf (binary classifier): Model to be fitted on the train folds.
+            train_index (np.array): Positions of train folds samples.
+            val_index (np.array): Positions of validation fold samples.
+            scorer (Optional, string, callable or None): A string (see sklearn
+                [model scoring](https://scikit-learn.org/stable/modules/model_evaluation.html)) or a scorer callable
+                object, function with the signature `scorer(estimator, X, y)`.
+
+        Returns:
+            (np.array, float, float): Tuple with the results: Shap Values on validation fold, train
+                score, validation score.
+        """
+        X_train, X_val = X.iloc[train_index, :], X.iloc[val_index, :]
+        y_train, y_val = y.iloc[train_index], y.iloc[val_index]
+
+        # Fit model with train folds
+        clf = clf.fit(X_train, y_train)
+
+        # Score the model
+        score_train = scorer(clf, X_train, y_train)
+        score_val = scorer(clf, X_val, y_val)
+
+        # Compute SHAP values
+        shap_values = shap_calc(clf, X_val, suppress_warnings=True)
+        return shap_values, score_train, score_val
+
+
     def fit(self, X, y):
         """
         Fits the object with the provided data. The algorithm starts with the entire dataset, and then sequentially
-         eliminates features. At each step, it optimizes hyperparameters of the model, computes SHAP features importance
-         and removes the lowest importance features.
+             eliminates features. If GridSearchCV or RandomizedSearchCV object assigned as clf, the hyperparameter
+             optimization is applied first. Then, the SHAP feature importance is calculated using Cross-Validation,
+             and `step` lowest importance features are removed.
 
         Args:
             X (pd.DataFrame): Provided dataset.
@@ -293,7 +331,8 @@ class ShapRFECV:
             np.random.seed(self.random_state)
 
         self.X = self._preprocess_data(X)
-        self.y = y
+        self.y = assure_pandas_series(y, index=self.X.index)
+        self.cv = check_cv(self.cv, self.y, classifier=is_classifier(self.clf))
 
         remaining_features = current_features_set = self.X.columns.tolist()
         round_number = 0
@@ -305,17 +344,26 @@ class ShapRFECV:
             current_features_set = remaining_features
             current_X = self.X[current_features_set]
 
-            # Optimize parameters
             # Set seed for results reproducibility
             if self.random_state is not None:
                 np.random.seed(self.random_state)
 
-            search = self.search_class(self.clf, self.search_space, refit=True,
-                                       return_train_score=True, **self.search_kwargs)
-            search = search.fit(current_X, y)
+            # Optimize parameters
+            if self.search_clf:
+                current_search_clf = clone(self.clf).fit(current_X, self.y)
+                current_clf = current_search_clf.estimator.set_params(**current_search_clf.best_params_)
+            else:
+                current_clf = clone(self.clf)
 
-            # Compute SHAP values
-            shap_values = shap_calc(search.best_estimator_, current_X, suppress_warnings=True)
+            # Perform CV to estimate feature importance with SHAP
+            results_per_fold = Parallel(n_jobs=self.n_jobs)(delayed(self._get_feature_shap_values_per_fold)(
+                X=current_X, y=self.y, clf=current_clf, train_index=train_index, val_index=val_index, scorer=self.scorer
+            ) for train_index, val_index in self.cv.split(current_X, self.y))
+
+            shap_values = np.vstack([current_result[0] for current_result in results_per_fold])
+            scores_train = [current_result[1] for current_result in results_per_fold]
+            scores_val = [current_result[2] for current_result in results_per_fold]
+
             shap_importance_df = calculate_shap_importance(shap_values, remaining_features)
 
             # Get features to remove
@@ -324,7 +372,11 @@ class ShapRFECV:
 
             # Report results
             self._report_current_results(round_number=round_number, current_features_set=current_features_set,
-                                         features_to_remove=features_to_remove, search=search)
+                                         features_to_remove=features_to_remove,
+                                         train_metric_mean = np.round(np.mean(scores_train), 3),
+                                         train_metric_std = np.round(np.std(scores_train), 3),
+                                         val_metric_mean = np.round(np.mean(scores_val), 3),
+                                         val_metric_std = np.round(np.std(scores_val), 3))
 
             print(f'Round: {round_number}, Current number of features: {len(current_features_set)}, '
                   f'Current performance: Train {self.report_df.loc[round_number]["train_metric_mean"]} '
@@ -351,10 +403,11 @@ class ShapRFECV:
 
     def fit_compute(self, X, y):
         """
-        Fits the object and computes the report. The algorithm starts with the entire dataset, and then sequentially
-         eliminates features. At each step, it optimizes hyperparameters of the model, computes SHAP features importance
-         and removes the lowest importance features. At the end, the report containing results from each iteration is
-         computed and returned to the user.
+        Fits the object with the provided data. The algorithm starts with the entire dataset, and then sequentially
+             eliminates features. If GridSearchCV or RandomizedSearchCV object assigned as clf, the hyperparameter
+             optimization is applied first. Then, the SHAP feature importance is calculated using Cross-Validation,
+             and `step` lowest importance features are removed. At the end, the report containing results from each
+             iteration is computed and returned to the user.
 
         Args:
             X (pd.DataFrame): Provided dataset.
@@ -387,80 +440,42 @@ class ShapRFECV:
             return self.report_df[self.report_df.num_features == num_features]['features_set'].values[0]
 
 
-    def plot(self, plot_type='performance', param_names=None, show=True, **figure_kwargs):
+    def plot(self, show=True, **figure_kwargs):
         """
-        Generates plots that allow to analyse the results.
+        Generates plot of the model performance for each iteration of feature elimination.
 
         Args:
-            plot_type (Optional, str): String indicating the plot type:
-
-                - `performance`: Performance of the optimized model at each iteration. This plot allows to select the
-                 optimal features set.
-                - `parameter`: Plots the optimized hyperparameter's values at each iteration. This plot allows to
-                 analyse stability of parameters for different features set. In case large variability of optimal
-                 hyperparameters values is seen, consider reducing the search space.
-
-            param_names (Optional, str, list of str): Name or names of parameters that will be plotted in case of
-                `plot_type="parameter"`
-
             show (Optional, bool): If True, the plots are showed to the user, otherwise they are not shown.
 
             **figure_kwargs: Keyword arguments that are passed to the plt.figure, at its initialization.
 
         Returns:
-            Plot (plt.axis or list of plt.axis): Axis containing the target plot, or list of such axes.
+            Plot (plt.axis): Axis containing the performance plot.
         """
         x_ticks = list(reversed(self.report_df['num_features'].tolist()))
 
-        if plot_type == 'performance':
-            plt.figure(**figure_kwargs)
+        plt.figure(**figure_kwargs)
 
-            plt.plot(self.report_df['num_features'], self.report_df['train_metric_mean'], label='Train Score')
-            plt.fill_between(pd.to_numeric(self.report_df.num_features, errors='coerce'),
-                             self.report_df['train_metric_mean'] - self.report_df['train_metric_std'],
-                             self.report_df['train_metric_mean'] + self.report_df['train_metric_std'], alpha=.3)
+        plt.plot(self.report_df['num_features'], self.report_df['train_metric_mean'], label='Train Score')
+        plt.fill_between(pd.to_numeric(self.report_df.num_features, errors='coerce'),
+                         self.report_df['train_metric_mean'] - self.report_df['train_metric_std'],
+                         self.report_df['train_metric_mean'] + self.report_df['train_metric_std'], alpha=.3)
 
-            plt.plot(self.report_df['num_features'], self.report_df['val_metric_mean'], label='Validation Score')
-            plt.fill_between(pd.to_numeric(self.report_df.num_features, errors='coerce'),
-                             self.report_df['val_metric_mean'] - self.report_df['val_metric_std'],
-                             self.report_df['val_metric_mean'] + self.report_df['val_metric_std'], alpha=.3)
+        plt.plot(self.report_df['num_features'], self.report_df['val_metric_mean'], label='Validation Score')
+        plt.fill_between(pd.to_numeric(self.report_df.num_features, errors='coerce'),
+                         self.report_df['val_metric_mean'] - self.report_df['val_metric_std'],
+                         self.report_df['val_metric_mean'] + self.report_df['val_metric_std'], alpha=.3)
 
-            plt.xlabel('Number of features')
-            plt.ylabel('Performance')
-            plt.title('Backwards Feature Elimination using SHAP & CV')
-            plt.legend(loc="lower left")
-            ax = plt.gca()
-            ax.invert_xaxis()
-            ax.set_xticks(x_ticks)
-            if show:
-                plt.show()
-            else:
-                plt.close()
-
-        elif plot_type == 'parameter':
-            param_names = assure_list_of_strings(param_names, 'target_columns')
-            ax = []
-            for param_name in param_names:
-                plt.figure(**figure_kwargs)
-
-                plt.plot(self.report_df['num_features'], self.report_df[f'param_{param_name}'],
-                         label=f'{param_name} optimized value')
-                plt.xlabel('Number of features')
-                plt.ylabel(f'Optimizal {param_name} value')
-                plt.title(f'Optimization of {param_name} for different numbers of features')
-                plt.legend(loc="lower left")
-                current_ax = plt.gca()
-                current_ax.invert_xaxis()
-                current_ax.set_xticks(x_ticks)
-                ax.append(current_ax)
-                if show:
-                    plt.show()
-                else:
-                    plt.close()
+        plt.xlabel('Number of features')
+        plt.ylabel('Performance')
+        plt.title('Backwards Feature Elimination using SHAP & CV')
+        plt.legend(loc="lower left")
+        ax = plt.gca()
+        ax.invert_xaxis()
+        ax.set_xticks(x_ticks)
+        if show:
+            plt.show()
         else:
-            raise(ValueError('Wrong value of plot_type. Select from "performance" or "parameter"'))
-
-        if isinstance(ax, list) and len(ax) == 1:
-            ax = ax[0]
+            plt.close()
         return ax
 
