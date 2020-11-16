@@ -99,7 +99,7 @@ class DistributionStatistics(object):
                  is used. For PSI by default quantilebucketer is used.
                 - None: no binning is applied. The test is computed based on original distribution.
 
-            bin_count (Optional, int) In case binning_strategy is not None, specify the number of bins to be used by the binning
+            bin_count (Optional, int): In case binning_strategy is not None, specify the number of bins to be used by the binning
              strategy. By default 10 bins are used.
         """
         self.statistical_test = statistical_test.upper()
@@ -301,7 +301,7 @@ class AutoDist(object):
             df2 (pd.DataFrame): dataframe 2 for distribution comparison with dataframe 1.
 
             column_names (list of str): list of columns in df1 and df2 that should be compared. If None, 
-            all column names will be compared
+             all column names will be compared
 
             return_failed_tests (bool): remove tests in result that did not succeed.
 

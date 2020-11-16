@@ -114,7 +114,7 @@ class BaseVolatilityEstimator(object):
 
         Args:
             metrics (str or list of strings, optional):  Name or list of names of metrics to be plotted. If not all
-            metrics are presented.
+             metrics are presented.
 
         Returns:
             pandas.Dataframe: Report that contains the evaluation mean and std on train and test sets for each metric.
@@ -139,7 +139,7 @@ class BaseVolatilityEstimator(object):
 
         Args:
             metrics (str or list of strings, optional):  Name or list of names of metrics to be plotted. If not all
-                metrics are presented.
+             metrics are presented.
 
             bins (int, optional):  Number of bins into which histogram is built.
 

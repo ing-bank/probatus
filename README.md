@@ -33,7 +33,7 @@ pip install .
 
 ## Documentation
 
-Latest documentation can be found [here](https://probatus.readthedocs.io/en/latest/).
+Documentation can be found [here](https://ing-bank.github.io/probatus/).
 
 ## Contribution
 

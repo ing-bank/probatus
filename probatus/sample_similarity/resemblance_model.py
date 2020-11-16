@@ -32,10 +32,10 @@ import warnings
 class BaseResemblanceModel(object):
     """
     This model checks for similarity of two samples. A possible use case is analysis whether train sample differs
-    from test sample, due to e.g. non-stationarity.
+     from test sample, due to e.g. non-stationarity.
 
     This is a base class and needs to be extended by a fit() method, which implements how data is split, how model is
-    trained and evaluated. Further, inheriting classes need to implement how feature importance should be indicated.
+     trained and evaluated. Further, inheriting classes need to implement how feature importance should be indicated.
     """
     def __init__(self, model, test_prc=0.25, n_jobs=1, random_state=42):
         """
@@ -80,14 +80,14 @@ class BaseResemblanceModel(object):
 
         Args:
             X1 (np.ndarray or pd.DataFrame): First sample to be compared. It needs to have the same number of columns
-            as X2.
+             as X2.
 
             X2 (np.ndarray or pd.DataFrame): Second sample to be compared. It needs to have the same number of columns
-            as X1.
+             as X1.
 
             column_names (list of str, optional): List of feature names of the provided samples. If provided it will be
-            used to overwrite the existing feature names. If not provided the existing feature names are used or default
-            feature names are generated.
+             used to overwrite the existing feature names. If not provided the existing feature names are used or default
+             feature names are generated.
         """
 
         # Set seed for results reproducibility
@@ -165,7 +165,7 @@ class BaseResemblanceModel(object):
 
         Args:
             return_auc (bool, optional): Flag indicating whether the method should return a tuple (feature
-            importances, train AUC, test AUC), or feature importances. By default the second option is selected.
+             importances, train AUC, test AUC), or feature importances. By default the second option is selected.
 
         Returns:
             tuple(pd.DataFrame, float, float) or pd.DataFrame: Depending on value of return_tuple either returns a
@@ -185,17 +185,17 @@ class BaseResemblanceModel(object):
 
         Args:
             X1 (np.ndarray or pd.DataFrame): First sample to be compared. It needs to have the same number of columns
-            as X2.
+             as X2.
 
             X2 (np.ndarray or pd.DataFrame): Second sample to be compared. It needs to have the same number of columns
-            as X1.
+             as X1.
 
             column_names (list of str, optional): List of feature names of the provided samples. If provided it will be
-            used to overwrite the existing feature names. If not provided the existing feature names are used or default
-            feature names are generated.
+             used to overwrite the existing feature names. If not provided the existing feature names are used or default
+             feature names are generated.
 
             return_auc (bool, optional): Flag indicating whether the method should return a tuple (feature
-            importances, train AUC, test AUC), or only feature importances. By default the second option is selected.
+             importances, train AUC, test AUC), or only feature importances. By default the second option is selected.
 
             **fit_kwargs: keyword arguments passed to the fit() method:
 
@@ -216,16 +216,16 @@ class BaseResemblanceModel(object):
 class PermutationImportanceResemblance(BaseResemblanceModel):
     """
     This model checks for similarity of two samples. A possible use case is analysis whether train sample differs
-    from test sample, due to e.g. non-stationarity.
+     from test sample, due to e.g. non-stationarity.
 
     It assigns to labels to each sample, 0 to first sample, 1 to the second. Then, It randomly selects a portion of
-    data to train on. The resulting model tries to distinguish which sample does a given test row comes from. This
-    provides insights on how distinguishable these samples are and which features contribute to that. The feature
-    importance is calculated using permutation importance.
+     data to train on. The resulting model tries to distinguish which sample does a given test row comes from. This
+     provides insights on how distinguishable these samples are and which features contribute to that. The feature
+     importance is calculated using permutation importance.
 
     If the model achieves test AUC significantly different than 0.5, it indicates that it is possible to distinguish
-    the samples, and therefore, the samples differ. Features with high permutation importance contribute to that
-    effect the most. Thus, their distribution might differ between two samples.
+     the samples, and therefore, the samples differ. Features with high permutation importance contribute to that
+     effect the most. Thus, their distribution might differ between two samples.
 
     Examples:
     ```python
@@ -249,7 +249,7 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
             model (model object): Binary classification model or pipeline.
 
             iterations (int, optional): Number of iterations performed to calculate permutation importance. By default 100
-            iterations per feature are done.
+             iterations per feature are done.
 
             **kwargs: Keyword arguments that can overwrite inherited default values in BaseResemblanceModel:
 
@@ -278,14 +278,14 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
 
         Args:
             X1 (np.ndarray or pd.DataFrame): First sample to be compared. It needs to have the same number of columns
-            as X2.
+             as X2.
 
             X2 (np.ndarray or pd.DataFrame): Second sample to be compared. It needs to have the same number of columns
-            as X1.
+             as X1.
 
             column_names (list of str, optional): List of feature names of the provided samples. If provided it will be
-            used to overwrite the existing feature names. If not provided the existing feature names are used or default
-            feature names are generated.
+             used to overwrite the existing feature names. If not provided the existing feature names are used or default
+             feature names are generated.
         """
         super().fit(X1=X1, X2=X2, column_names=column_names)
 
@@ -326,10 +326,10 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
 
         Args:
             ax (matplotlib.axes, optional): Axes to which the output should be plotted. If not provided a new axes are
-            created.
+             created.
 
             top_n (int, optional): Number of the most important features to be plotted. By default are features are
-            included into the plot.
+             included into the plot.
 
         Returns:
             matplotlib.axes, optional: Axes that include the plot.
@@ -371,16 +371,16 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
 class SHAPImportanceResemblance(BaseResemblanceModel):
     """
     This model checks for similarity of two samples. A possible use case is analysis whether train sample differs
-    from test sample, due to e.g. non-stationarity.
+     from test sample, due to e.g. non-stationarity.
 
     It assigns to labels to each sample, 0 to first sample, 1 to the second. Then, It randomly selects a portion of
-    data to train on. The resulting model tries to distinguish which sample does a given test row comes from. This
-    provides insights on how distinguishable these samples are and which features contribute to that. The feature
-    importance is calculated using SHAP feature importance.
+     data to train on. The resulting model tries to distinguish which sample does a given test row comes from. This
+     provides insights on how distinguishable these samples are and which features contribute to that. The feature
+     importance is calculated using SHAP feature importance.
 
     If the model achieves test AUC significantly different than 0.5, it indicates that it is possible to distinguish
-    the samples, and therefore, the samples differ. Features with high permutation importance contribute to that
-    effect the most. Thus, their distribution might differ between two samples.
+     the samples, and therefore, the samples differ. Features with high permutation importance contribute to that
+     effect the most. Thus, their distribution might differ between two samples.
 
     This class currently works only with the Tree based models.
 
@@ -418,20 +418,20 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
     def fit(self, X1, X2, column_names=None):
         """
         This function assigns to labels to each sample, 0 to first sample, 1 to the second. Then, It randomly selects a
-        portion of data to train on. The resulting model tries to distinguish which sample does a given test row comes
-        from. This provides insights on how distinguishable these samples are and which features contribute to that. The
-        feature importance is calculated using SHAP feature importance.
+         portion of data to train on. The resulting model tries to distinguish which sample does a given test row comes
+         from. This provides insights on how distinguishable these samples are and which features contribute to that. The
+         feature importance is calculated using SHAP feature importance.
 
         Args:
             X1 (np.ndarray or pd.DataFrame): First sample to be compared. It needs to have the same number of columns
-            as X2.
+             as X2.
 
             X2 (np.ndarray or pd.DataFrame): Second sample to be compared. It needs to have the same number of columns
-            as X1.
+             as X1.
 
             column_names (list of str, optional): List of feature names of the provided samples. If provided it will be
-            used to overwrite the existing feature names. If not provided the existing feature names are used or default
-            feature names are generated.
+             used to overwrite the existing feature names. If not provided the existing feature names are used or default
+             feature names are generated.
         """
         super().fit(X1=X1, X2=X2, column_names=column_names)
 
@@ -444,7 +444,7 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
 
         Args:
             plot_type (Optional, str): Type of plot, used to compute shap.summary_plot. By default 'bar', available ones
-            are  "dot", "bar", "violin",
+             are  "dot", "bar", "violin",
 
             **summary_plot_kwargs: kwargs passed to the shap.summary_plot.
 

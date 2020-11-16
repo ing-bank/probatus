@@ -31,6 +31,6 @@ setuptools.setup(
         "shap>=0.36.0",
         "numpy>=1.19.0"
     ],
-    url="https://gitlab.com/ing_rpaa/probatus",
+    url="https://github.com/ing-bank/probatus",
     zip_safe=False,
 )
