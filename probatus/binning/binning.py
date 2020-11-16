@@ -97,7 +97,7 @@ class Bucketer(ABC):
 class SimpleBucketer(Bucketer):
     """Create equally spaced bins using numpy.histogram function
 
-    Usage:
+    Example:
     ```python
     x = [1, 2, 1]
     bins = 3

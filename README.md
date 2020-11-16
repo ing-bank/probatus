@@ -1,6 +1,6 @@
-<img src="docs/source/logo_large_white.png" width="120" align="right">
+<img src="docs/img/logo_large.png" width="120" align="right">
 
-[![pipeline status](https://gitlab.com/ing_rpaa/probatus/badges/master/pipeline.svg)](https://gitlab.com/ing_rpaa/probatus/-/commits/master)
+[![pytest](https://github.com/ing_rpaa/probatus/workflows/unit_tests/badge.svg)](https://github.com/ing_rpaa/probatus/actions)
 [![coverage report](https://gitlab.com/ing_rpaa/probatus/badges/master/coverage.svg)](https://gitlab.com/ing_rpaa/probatus/-/commits/master)
 [![PyPi Version](https://img.shields.io/pypi/pyversions/probatus)](#)
 [![PyPI](https://img.shields.io/pypi/v/probatus)](#)
@@ -10,7 +10,8 @@
 
 ## Overview
 
-**Probatus** is a Python library that standardizes and collects different validation steps to be performed on the models. It focuses on binary classification models to test and measure model robustness. 
+**Probatus** is a Python library that allows to analyse binary classification models as well as the data used to develop them.
+The main features assess the metric stability and analyse differences between two data samples e.g. shift between train and test splits.
 
 ## Installation
 
@@ -30,24 +31,9 @@ cd probatus
 pip install .
 ```
 
-#### Dependencies
-
-Probatus requires to install:
-
-- scikit-learn (>= 0.22.2)
-- pandas (>= 0.25)
-- matplotlib (>= 3.1.1)
-- scipy (>= 1.4.0)
-- joblib (>= 0.13.2)
-- tqdm (>= 4.41.0)
-- shap (>=0.36.0)
-
-
-For packages required for development, please refer to requirements.txt.
-
 ## Documentation
 
-Latest documentation can be found [here](https://probatus.readthedocs.io/en/latest/).
+Documentation can be found [here](https://ing-bank.github.io/probatus/).
 
 ## Contribution
 

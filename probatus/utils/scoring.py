@@ -65,14 +65,7 @@ def _append_single_metric_to_scorers(metric, scorers):
 
 class Scorer:
     """
-    Scores the samples model based on the provided metric name
-
-    Args:
-        metric_name (str):  Name of the metric used to evaluate the model. If the custom_scorer is not passed, the
-        metric name needs to be aligned with predefined classification scorers names in sklearn, see the
-        `sklearn documentation <https://scikit-learn.org/stable/modules/model_evaluation.html>`_
-
-        custom_scorer (Optional sklearn.metrics Scorer callable): Object that can score samples.
+    Scores a given machine learning model based on the provided metric name.
 
     Examples:
         >>> from probatus.utils import Scorer
@@ -85,6 +78,16 @@ class Scorer:
     """
 
     def __init__(self, metric_name, custom_scorer=None):
+        """
+        Initializes the class.
+
+        Args:
+            metric_name (str):  Name of the metric used to evaluate the model. If the custom_scorer is not passed, the
+             metric name needs to be aligned with predefined classification scorers names in sklearn, see the
+             [sklearn documentation](https://scikit-learn.org/stable/modules/model_evaluation.html).
+
+            custom_scorer (Optional sklearn.metrics Scorer callable): Object that can score samples.
+        """
         self.metric_name = metric_name
         if custom_scorer is not None:
             self.scorer = custom_scorer

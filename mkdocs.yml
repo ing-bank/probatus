@@ -1,0 +1,65 @@
+site_name: Probatus Docs
+
+repo_url: https://gitlab.com/ing_rpaa/probatus
+site_url: https://probatus.readthedocs.io/
+site_description: Python package for validation of binary classifiers
+site_author: ING Bank N. V.
+
+use_directory_urls: false
+
+nav:
+  - Home:
+    - Index: index.md
+  - Tutorials:
+    - Tree-based Model Interpretation with SHAP: tutorials/nb_shap_model_interpreter.ipynb
+    - Recursive Feature Elimination using SHAP importance and CV: tutorials/nb_shap_feature_elimination.ipynb
+    - Model Metrics Volatility: tutorials/nb_metric_volatility.ipynb
+    - Multivariate Sample Similarity: tutorials/nb_sample_similarity.ipynb
+    - Univariate Sample Similarity: tutorials/nb_distribution_statistics.ipynb
+  - API:
+    - probatus.feature_elimination: api/feature_elimination.md
+    - probatus.interpret: api/model_interpret.md
+    - probatus.metric_volatility: api/metric_volatility.md
+    - probatus.sample_similarity: api/sample_similarity.md
+    - probatus.stat_tests: api/stat_tests.md
+
+
+plugins:
+  - mkdocstrings:
+      handlers:
+          python:
+            selection:
+              inherited_members: true
+      watch:
+        - probatus
+  - search
+  - mknotebooks:
+      enable_default_jupyter_cell_styling: true
+      enable_default_pandas_dataframe_styling: true
+
+copyright: Copyright &copy; 2020 ING Bank N.V.
+
+theme:
+  name: material
+  logo: img/Probatus_P_white.png
+  favicon: img/Probatus_P_white.png
+  font:
+    text: Ubuntu
+    code: Ubuntu Mono
+  features:
+    - navigation.tabs
+  palette:
+    scheme: default
+    primary: deep orange
+    accent: indigo
+
+
+markdown_extensions:
+  - codehilite
+  - pymdownx.inlinehilite
+  - pymdownx.details
+  - pymdownx.tabbed
+  - pymdownx.highlight:
+      use_pygments: true
+  - toc:
+      permalink: true

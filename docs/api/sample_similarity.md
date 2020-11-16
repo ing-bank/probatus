@@ -1,5 +1,4 @@
-probatus.sample_similarity module
-========================
+# Sample Similarity
 
 The goal of sample similarity module is understanding how different two samples are from a multivariate perspective.
 
@@ -15,10 +14,4 @@ The following features are implemented:
    - **PermutationImportanceResemblance** -  The class applies permutation feature importance, in order to understand, which features does the current model rely the most on. The higher the importance of the feature, the more a given feature possibly differs in X2 compared to X1. The importance indicates how much the test AUC drops if a given feature is permuted.
 
 
-probatus.sample_similarity module
------------------------------
-
-.. automodule:: probatus.sample_similarity.resemblance_model
-    :members:
-    :undoc-members:
-    :show-inheritance:
+::: probatus.sample_similarity.resemblance_model

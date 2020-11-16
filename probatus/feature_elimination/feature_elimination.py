@@ -69,15 +69,15 @@ class ShapRFECV:
 
         Args:
             clf (binary classifier): A model that will be optimized and trained at each round of features
-             elimination. The recommended model is LightGBM, because it by default handles the missing values and
-             categorical variables.
+                elimination. The recommended model is LightGBM, because it by default handles the missing values and
+                categorical variables.
 
             search_space (dict of sklearn.ParamGrid): Parameter search space, which will be explored during the
-             hyperparameter search. In case `grid` search_schema, it is passed to GridSearchCV as `param_grid`, in case
-             of `random` search_schema, then this value is passed to RandomSearchCV as `param_distributions` parameter.
+                hyperparameter search. In case `grid` search_schema, it is passed to GridSearchCV as `param_grid`, in case
+                of `random` search_schema, then this value is passed to RandomSearchCV as `param_distributions` parameter.
 
             search_schema (Optional, str): The hyperparameter search algorithm that should be used to optimize the model.
-              It can be one of the following:
+                It can be one of the following:
 
                 - `random`: [RandomSearchCV](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.RandomizedSearchCV.html)
                   which randomly selects hyperparameters from the prowided param_grid, and performs optimization using
@@ -401,14 +401,14 @@ class ShapRFECV:
                  hyperparameters values is seen, consider reducing the search space.
 
             param_names (Optional, str, list of str): Name or names of parameters that will be plotted in case of
-            `plot_type="parameter"`
+                `plot_type="parameter"`
 
             show (Optional, bool): If True, the plots are showed to the user, otherwise they are not shown.
 
             **figure_kwargs: Keyword arguments that are passed to the plt.figure, at its initialization.
 
         Returns:
-            (plt.axis or list of plt.axis) Axis containing the target plot, or list of such axes.
+            Plot (plt.axis or list of plt.axis): Axis containing the target plot, or list of such axes.
         """
         x_ticks = list(reversed(self.report_df['num_features'].tolist()))
 

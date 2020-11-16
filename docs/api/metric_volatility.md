@@ -1,5 +1,4 @@
-probatus.metric\_volatility
-====================================
+# Metric Volatility
 
 The aim of this module is analysis of how well a model performs on a given dataset, and how stable the performance is.
 
@@ -14,9 +13,4 @@ The following features are implemented:
       - **BootstrappedVolatility** - stimates volatility of metrics based on splitting the data into train and test with static seed, and bootstrapping train and test set.
 
 
-probatus.metric\_volatility module
-----------------------------------------------
-
-.. automodule:: probatus.metric_volatility.volatility
-    :members:
-    :show-inheritance:
+::: probatus.metric_volatility.volatility

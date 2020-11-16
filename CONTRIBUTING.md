@@ -163,10 +163,9 @@ If you do run into trouble, please see our [dealing with windows line endings gu
 Documentation is a very crucial part of the project, because it ensures usability of the package.
 We develop the docs in the following way:
 * `docs/` folder contains all the relevant documentation
-* We use sphinx-build to build html files (`site/` folder), based on `docs/`. If you want to build the `site/` folder, run the following in the root of the directory `sphinx-build -M html docs/source/ site/
-`.
+* We use mkdocs to build the documentation. In order to install the required packages execute in command line `pip install -r mkdocs_requirements.txt`.
+* In order to build the docs locally run `mkdocs serve`, for deploying online run `mkdocs gh-deploy`. Then, the documentation is deployed to `https://ing-bank.github.io/probatus/`.
 * For crucial functionality, we develop a jupyter notebooks, which serve as a tutorials for the users.
-* Documentation is automatically deployed to `https://probatus.readthedocs.io/en/latest/`, whenever a new version of Probatus is created (using tag).
 
 ## Project Data
 

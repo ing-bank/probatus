@@ -118,7 +118,7 @@ def test_plot(report, mock_model, iterations_train, iterations_test, iterations_
     num_figures_before = plt.gcf().number
 
     with patch.object(BaseVolatilityEstimator, 'compute', return_value=report.loc[['roc_auc']]) as mock_compute:
-        with patch.object(BaseVolatilityEstimator, 'get_samples_to_plot',
+        with patch.object(BaseVolatilityEstimator, '_get_samples_to_plot',
                           return_value=(iterations_train, iterations_test, iterations_delta)) as mock_get_samples:
 
             vol = BaseVolatilityEstimator(mock_model)
@@ -138,7 +138,7 @@ def test_get_samples_to_plot(mock_model, iteration_results, iterations_train, it
     vol.fitted = True
     vol.iterations_results=iteration_results
 
-    train, test, delta = vol.get_samples_to_plot(metric_name='roc_auc')
+    train, test, delta = vol._get_samples_to_plot(metric_name='roc_auc')
     pd.testing.assert_series_equal(train, iterations_train)
     pd.testing.assert_series_equal(test, iterations_test)
     pd.testing.assert_series_equal(delta, iterations_delta)
@@ -149,13 +149,13 @@ def test_create_report(mock_model, iteration_results, report):
     vol.fitted = True
     vol.iterations_results = iteration_results
 
-    vol.create_report()
+    vol._create_report()
     pd.testing.assert_frame_equal(vol.report, report, check_less_precise=3)
 
 
 def test_compute_mean_std_from_runs(mock_model, iteration_results):
     vol = BaseVolatilityEstimator(mock_model)
-    results = vol.compute_mean_std_from_runs(iteration_results[iteration_results['metric_name'] == 'roc_auc'])
+    results = vol._compute_mean_std_from_runs(iteration_results[iteration_results['metric_name'] == 'roc_auc'])
     expected_results = [0.8, 0.08164, 0.7, 0.08164, 0.1, 0]
     for idx, item in enumerate(results):
         assert pytest.approx(item, 0.01) == expected_results[idx]
@@ -165,7 +165,7 @@ def test_compute_stats_tests_values(mock_model, iteration_results):
     vol = BaseVolatilityEstimator(mock_model, stats_tests_to_apply=['KS'])
 
     with patch.object(DistributionStatistics, 'compute', return_value=(0.1, 0.05)):
-        stats = vol.compute_stats_tests_values(iteration_results)
+        stats = vol._compute_stats_tests_values(iteration_results)
 
     assert stats[0] == 0.1
     assert stats[1] == 0.05
@@ -188,7 +188,7 @@ def test_fit_train_test_sample_seed(mock_model, X_df, y_series, X_array, y_array
     vol = TrainTestVolatility(mock_model, metrics='roc_auc', iterations=3, sample_train_test_split_seed=True)
 
     with patch.object(BaseVolatilityEstimator, 'fit') as mock_base_fit:
-        with patch.object(TrainTestVolatility, 'create_report') as mock_create_report:
+        with patch.object(TrainTestVolatility, '_create_report') as mock_create_report:
             with patch('probatus.metric_volatility.volatility.assure_numpy_array', side_effect=[X_array, y_array]):
                 with patch('probatus.metric_volatility.volatility.get_metric', side_effect=[iteration_results.iloc[[0]], iteration_results.iloc[[1]], iteration_results.iloc[[2]]]):
 

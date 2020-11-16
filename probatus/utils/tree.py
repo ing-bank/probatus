@@ -26,8 +26,8 @@ from .warnings import  NotIntendedUseWarning
 
 
 class TreePathFinder():
-    """Class to calculate the boundaries of a decision tree.
-
+    """
+    Class to calculate the boundaries of a decision tree.
     It retrieves the structure from the decision tree
 
     """
