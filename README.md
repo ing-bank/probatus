@@ -1,6 +1,6 @@
 <img src="docs/img/logo_large.png" width="120" align="right">
 
-[![pytest](https://github.com/ing_rpaa/probatus/workflows/unit_tests/badge.svg)](https://github.com/ing_rpaa/probatus/actions)
+[![pytest](https://github.com/ing-bank/probatus/workflows/Unit%20tests/badge.svg)](https://github.com/ing_rpaa/probatus/actions)
 [![coverage report](https://gitlab.com/ing_rpaa/probatus/badges/master/coverage.svg)](https://gitlab.com/ing_rpaa/probatus/-/commits/master)
 [![PyPi Version](https://img.shields.io/pypi/pyversions/probatus)](#)
 [![PyPI](https://img.shields.io/pypi/v/probatus)](#)
