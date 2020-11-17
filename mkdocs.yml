@@ -1,7 +1,7 @@
 site_name: Probatus Docs
 
-repo_url: https://gitlab.com/ing_rpaa/probatus
-site_url: https://probatus.readthedocs.io/
+repo_url: https://github.com/ing-bank/probatus/
+site_url: https://ing-bank.github.io/probatus/
 site_description: Python package for validation of binary classifiers
 site_author: ING Bank N. V.
 
