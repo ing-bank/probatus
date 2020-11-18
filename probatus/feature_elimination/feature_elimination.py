@@ -12,21 +12,31 @@ from joblib import Parallel, delayed
 class ShapRFECV:
     """
     This class performs Backwards Recursive Feature Elimination, using SHAP feature importance. At each round, for a
-        given feature set, starting from all available features, Cross-Validation in order to estimate the SHAP feature
-        importance. For each CV iteration, the model is fitted on n-1 folds, and the SHAP values are computed for the
-        last fold. Later, the SHAP values are combined for all test folds, and the `step` lowest SHAP feature importance
-        features are removed. At the end of the process, the user can plot the performance of the model for each
-        iteration, and select the optimal number of features and the features set.
+        given feature set, starting from all available features, the following steps are applied:
 
-    The functionality is similar to sklearn.feature_selection.RFECV, yet, it removes the lowest importance features
-        based on SHAP features importance. It also supports the use of GridSearchCV and RandomizedSearchCV passed as a
-        clf, thanks to which you can perform hyperparameter optimization at each step of the search. hyperparameters of
-        the model at each round, to tune the model for each features set. Lastly, it supports categorical features
-        (object and category dtype) and missing values in the data, as long as the model supports them.
+    1. (Optional) Tune the hyperparameters of the model using [GridSearchCV](https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.LassoCV.html)
+        or [RandomizedSearchCV](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.RandomizedSearchCV.html?highlight=randomized#sklearn.model_selection.RandomizedSearchCV),
+    2. Apply Cross-validation (CV) to estimate the SHAP feature importance on the provided dataset. In each CV
+        iteration, the model is fitted on the train folds, and applied on the validation fold to estimate
+        SHAP feature importance.
+    3. Remove `step` lowest SHAP importance features from the dataset.
 
-    We recommend using LightGBM model, because by default it handles missing values and categorical features. In case
-        of other models, make sure to handle these issues for your dataset and consider impact it might have on features
-        importance.
+    At the end of the process, the user can plot the performance of the model for each iteration, and select the
+        optimal number of features and the features set.
+
+    The functionality is similar to [RFECV](https://scikit-learn.org/stable/modules/generated/sklearn.feature_selection.RFECV.html).
+        The main difference is removing the lowest importance features based on SHAP features importance. It also
+        supports the use of [GridSearchCV](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.GridSearchCV.html)
+        and [RandomizedSearchCV](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.RandomizedSearchCV.html)
+        passed as the `clf`, thanks to which` you can perform hyperparameter optimization at each step of the search.
+        hyperparameters of the model at each round, to tune the model for each features set. Lastly, it supports
+        categorical features (object and category dtype) and missing values in the data, as long as the model supports
+        them.
+
+    We recommend using [LGBMClassifier](https://lightgbm.readthedocs.io/en/latest/pythonapi/lightgbm.LGBMClassifier.html),
+        because by default it handles missing values and categorical features. In case of other models, make sure to
+        handle these issues for your dataset and consider impact it might have on features importance.
+
 
     Example:
     ```python
@@ -69,6 +79,7 @@ class ShapRFECV:
     # Get final feature set
     final_features_set = shap_elimination.get_reduced_features_set(num_features=3)
     ```
+
     """
 
     def __init__(self, clf, step=1, min_features_to_select=1, cv=None, scoring=None, n_jobs=-1, random_state=None):
@@ -76,34 +87,41 @@ class ShapRFECV:
         This method initializes the class:
 
         Args:
-            clf (binary classifier): A model that will be optimized and trained at each round of features
-                elimination. The recommended model is LightGBM, because it by default handles the missing values and
-                categorical variables.
+            clf (binary classifier, GridSearchCV or RandomizedSearchCV):
+                A model that will be optimized and trained at each round of features elimination. The recommended model
+                is [LGBMClassifier](https://lightgbm.readthedocs.io/en/latest/pythonapi/lightgbm.LGBMClassifier.html),
+                because it by default handles the missing values and categorical variables. This parameter also supports
+                [GridSearchCV](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.GridSearchCV.html)
+                and [RandomizedSearchCV](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.RandomizedSearchCV.html).
 
-            step (Optional, int or float): Number of lowest importance features removed each round. If it
-                 is an int, then each round such number of features is discarded. If float, such percentage of remaining
-                 features (rounded down) is removed each iteration. It is recommended to use float, since it is faster
-                 for a large number of features, and slows down and becomes more precise towards less features. Note:
-                 the last round may remove fewer features in order to reach min_features_to_select.
+            step (Optional, int or float):
+                Number of lowest importance features removed each round. If it is an int, then each round such number of
+                features is discarded. If float, such percentage of remaining features (rounded down) is removed each
+                iteration. It is recommended to use float, since it is faster for a large number of features, and slows
+                down and becomes more precise towards less features. Note: the last round may remove fewer features in
+                order to reach min_features_to_select.
 
-            min_features_to_select (Optional, unt): Minimum number of features to be kept. This is a stopping criterion
-                of the feature elimination. By default the process stops when one feature is left.
+            min_features_to_select (Optional, int):
+                Minimum number of features to be kept. This is a stopping criterion of the feature elimination. By
+                default the process stops when one feature is left.
 
-            cv (Optional, int, cross-validation generator or an iterable): Determines the cross-validation splitting
-                strategy. Compatible with sklearn
+            cv (Optional, int, cross-validation generator or an iterable):
+                Determines the cross-validation splitting strategy. Compatible with sklearn
                 [cv parameter](https://scikit-learn.org/stable/modules/generated/sklearn.feature_selection.RFECV.html).
                 If None, then cv of 5 is used.
 
-            scoring (Optional, string, callable or None): A string (see sklearn
-                [model scoring](https://scikit-learn.org/stable/modules/model_evaluation.html)) or a scorer callable
-                object, function with the signature `scorer(estimator, X, y)`.
+            scoring (Optional, string, callable or None):
+                A string (see sklearn [model scoring](https://scikit-learn.org/stable/modules/model_evaluation.html)) or
+                a scorer callable object, function with the signature `scorer(estimator, X, y)`.
 
-            n_jobs (Optional, int): Number of cores to run in parallel while fitting across folds. None means 1 unless
-                in a `joblib.parallel_backend` context. -1 means using all processors.
+            n_jobs (Optional, int):
+                Number of cores to run in parallel while fitting across folds. None means 1 unless in a
+                `joblib.parallel_backend` context. -1 means using all processors.
 
-            random_state (Optional, int): Random state set at each round of feature elimination. If it is None, the
-                results will not be reproducible and in random search at each iteration a different hyperparameters
-                might be tested. For reproducible results set it to integer.
+            random_state (Optional, int):
+                Random state set at each round of feature elimination. If it is None, the results will not be
+                reproducible and in random search at each iteration a different hyperparameters might be tested. For
+                reproducible results set it to integer.
         """
         self.clf = clf
 
@@ -148,10 +166,12 @@ class ShapRFECV:
         and transform object dtype features to category type, such that LightGBM handles them by default.
 
         Args:
-            X (pd.DataFrame): Provided dataset.
+            X (pd.DataFrame):
+                Provided dataset.
 
         Returns:
-            (pd.DataFrame): Preprocessed dataset.
+            (pd.DataFrame):
+                Preprocessed dataset.
         """
         # Make sure that X is a pd.DataFrame
         X = assure_pandas_df(X)
@@ -190,10 +210,12 @@ class ShapRFECV:
             faster for a large set of features, and slows down and becomes more precise towards less features.
 
         Args:
-            shap_importance_df (pd.DataFrame): DataFrame presenting SHAP importance of remaining features.
+            shap_importance_df (pd.DataFrame):
+                DataFrame presenting SHAP importance of remaining features.
 
         Returns:
-            (list): List of features to be removed at a given round.
+            (list):
+                List of features to be removed at a given round.
         """
 
         # If the step is an int remove n features.
@@ -231,14 +253,18 @@ class ShapRFECV:
             min_num_features_to_keep are kept
 
          Args:
-            current_num_of_features (int): Current number of features in the data.
+            current_num_of_features (int):
+                Current number of features in the data.
 
-            num_features_to_remove (int): Number of features to be removed at this stage.
+            num_features_to_remove (int):
+                Number of features to be removed at this stage.
 
-            min_num_features_to_keep (int): Minimum number of features to be left after removal.
+            min_num_features_to_keep (int):
+                Minimum number of features to be left after removal.
 
         Returns:
-            (int) Number of features to be removed.
+            (int):
+                Number of features to be removed.
         """
         num_features_after_removal = current_num_of_features - num_features_to_remove
         if num_features_after_removal >= min_num_features_to_keep:
@@ -255,13 +281,26 @@ class ShapRFECV:
         This function adds the results from a current iteration to the report.
 
         Args:
-            round_number (int): Current number of the round.
-            current_features_set (list of str): Current list of features.
-            features_to_remove (list of str): List of features to be removed at the end of this iteration.
-            train_metric_mean (float or int): Mean scoring metric measured on train set during CV.
-            train_metric_std (float or int): Std scoring metric measured on train set during CV.
-            val_metric_mean (float or int): Mean scoring metric measured on validation set during CV.
-            val_metric_std (float or int): Std scoring metric measured on validation set during CV.
+            round_number (int):
+                Current number of the round.
+
+            current_features_set (list of str):
+                Current list of features.
+
+            features_to_remove (list of str):
+                List of features to be removed at the end of this iteration.
+
+            train_metric_mean (float or int):
+                Mean scoring metric measured on train set during CV.
+
+            train_metric_std (float or int):
+                Std scoring metric measured on train set during CV.
+
+            val_metric_mean (float or int):
+                Mean scoring metric measured on validation set during CV.
+
+            val_metric_std (float or int):
+                Std scoring metric measured on validation set during CV.
         """
 
         current_results = {
@@ -287,18 +326,28 @@ class ShapRFECV:
         This function calculates the shap values on validation set, and Train and Val score.
 
         Args:
-            X (pd.DataFrame): Dataset.
-            y (pd.Series): Binary labels for X.
-            clf (binary classifier): Model to be fitted on the train folds.
-            train_index (np.array): Positions of train folds samples.
-            val_index (np.array): Positions of validation fold samples.
-            scorer (Optional, string, callable or None): A string (see sklearn
-                [model scoring](https://scikit-learn.org/stable/modules/model_evaluation.html)) or a scorer callable
-                object, function with the signature `scorer(estimator, X, y)`.
+            X (pd.DataFrame):
+                Dataset used in CV.
+
+            y (pd.Series):
+                Binary labels for X.
+
+            clf (binary classifier):
+                Model to be fitted on the train folds.
+
+            train_index (np.array):
+                Positions of train folds samples.
+
+            val_index (np.array):
+                Positions of validation fold samples.
+
+            scorer (Optional, string, callable or None):
+                A string (see sklearn [model scoring](https://scikit-learn.org/stable/modules/model_evaluation.html)) or
+                a scorer callable object, function with the signature `scorer(estimator, X, y)`.
 
         Returns:
-            (np.array, float, float): Tuple with the results: Shap Values on validation fold, train
-                score, validation score.
+            (np.array, float, float):
+                Tuple with the results: Shap Values on validation fold, train score, validation score.
         """
         X_train, X_val = X.iloc[train_index, :], X.iloc[val_index, :]
         y_train, y_val = y.iloc[train_index], y.iloc[val_index]
@@ -318,13 +367,17 @@ class ShapRFECV:
     def fit(self, X, y):
         """
         Fits the object with the provided data. The algorithm starts with the entire dataset, and then sequentially
-             eliminates features. If GridSearchCV or RandomizedSearchCV object assigned as clf, the hyperparameter
-             optimization is applied first. Then, the SHAP feature importance is calculated using Cross-Validation,
-             and `step` lowest importance features are removed.
+             eliminates features. If [GridSearchCV](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.GridSearchCV.html)
+             or [RandomizedSearchCV](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.RandomizedSearchCV.html)
+             object assigned as clf, the hyperparameter optimization is applied first. Then, the SHAP feature importance
+             is calculated using Cross-Validation, and `step` lowest importance features are removed.
 
         Args:
-            X (pd.DataFrame): Provided dataset.
-            y (pd.Series): Binary labels for X.
+            X (pd.DataFrame):
+                Provided dataset.
+
+            y (pd.Series):
+                Binary labels for X.
         """
         # Set seed for results reproducibility
         if self.random_state is not None:
@@ -394,7 +447,8 @@ class ShapRFECV:
          round.
 
         Returns:
-            (pd.DataFrame): DataFrame with results of feature elimination for each round.
+            (pd.DataFrame):
+                DataFrame with results of feature elimination for each round.
         """
         self._check_if_fitted()
 
@@ -404,17 +458,22 @@ class ShapRFECV:
     def fit_compute(self, X, y):
         """
         Fits the object with the provided data. The algorithm starts with the entire dataset, and then sequentially
-             eliminates features. If GridSearchCV or RandomizedSearchCV object assigned as clf, the hyperparameter
-             optimization is applied first. Then, the SHAP feature importance is calculated using Cross-Validation,
-             and `step` lowest importance features are removed. At the end, the report containing results from each
-             iteration is computed and returned to the user.
+             eliminates features. If [GridSearchCV](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.GridSearchCV.html)
+             or [RandomizedSearchCV](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.RandomizedSearchCV.html)
+             object assigned as clf, the hyperparameter optimization is applied first. Then, the SHAP feature importance
+             is calculated using Cross-Validation, and `step` lowest importance features are removed. At the end, the
+             report containing results from each iteration is computed and returned to the user.
 
         Args:
-            X (pd.DataFrame): Provided dataset.
-            y (pd.Series): Binary labels for X.
+            X (pd.DataFrame):
+                Provided dataset.
+
+            y (pd.Series):
+                Binary labels for X.
 
         Returns:
-            (pd.DataFrame): DataFrame containing results of feature elimination from each iteration.
+            (pd.DataFrame):
+                DataFrame containing results of feature elimination from each iteration.
         """
 
         self.fit(X, y)
@@ -426,10 +485,12 @@ class ShapRFECV:
         Gets the features set after the feature elimination process, for a given number of features.
 
         Args:
-            num_features (int): Number of features in the reduced features set.
+            num_features (int):
+                Number of features in the reduced features set.
 
         Returns:
-            (list of str): Reduced features set.
+            (list of str):
+                Reduced features set.
         """
         self._check_if_fitted()
 
@@ -445,12 +506,15 @@ class ShapRFECV:
         Generates plot of the model performance for each iteration of feature elimination.
 
         Args:
-            show (Optional, bool): If True, the plots are showed to the user, otherwise they are not shown.
+            show (Optional, bool):
+                If True, the plots are showed to the user, otherwise they are not shown.
 
-            **figure_kwargs: Keyword arguments that are passed to the plt.figure, at its initialization.
+            **figure_kwargs:
+                Keyword arguments that are passed to the plt.figure, at its initialization.
 
         Returns:
-            Plot (plt.axis): Axis containing the performance plot.
+            (plt.axis):
+                Axis containing the performance plot.
         """
         x_ticks = list(reversed(self.report_df['num_features'].tolist()))
 
