@@ -109,6 +109,29 @@ def assure_pandas_df(x):
             "Please supply a list, numpy array, pandas Series or pandas DataFrame"
         )
 
+
+def assure_pandas_series(x, index=None):
+    """
+    Returns x as pandas Series. X can be a list, numpy array, or pandas Series
+
+    Args:
+        x (list, numpy array, pandas DataFrame, pandas Series): array to be tested
+
+    Returns:
+        pandas Series
+    """
+    if isinstance(x, pd.Series):
+        return x
+    elif any([
+        isinstance(x, np.ndarray),
+        isinstance(x, list)
+    ]):
+        return pd.Series(x, index=index)
+    else:
+        raise TypeError(
+            "Please supply a list, numpy array, pandas Series"
+        )
+
 def assure_column_names_consistency(column_names, df):
     """
     Ensure that the column names are correct. If they are None, then, the column names from df are taken. Otherwise,
@@ -145,7 +168,6 @@ def assure_column_names_consistency(column_names, df):
 def warn_if_missing(variable, variable_name):
     """
     Checks if for missing values: if there are notify the user
-
     Args:
         variable (pandas.DataFrame, pandas.Series or numpy.ndarray): data to be checked for missing values.
         variable_name (str): Name of the variable checked.
@@ -157,7 +179,7 @@ def warn_if_missing(variable, variable_name):
         if variable.isnull().values.any():
             warnings.warn(warning_text)
     if isinstance(variable, np.ndarray):
-        if np.isnan(variable).any():
+        if pd.isnull(variable).any():
             warnings.warn(warning_text)
 
 
