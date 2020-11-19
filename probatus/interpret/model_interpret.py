@@ -80,7 +80,7 @@ class ShapModelInterpreter:
             raise(NotFittedError('The object has not been fitted. Please run fit() method first'))
 
 
-    def fit(self, X_train, X_test, y_train, y_test, column_names=None, class_names=None, approximate=False,
+    def fit(self, X_train, X_test, y_train, y_test, column_names=None, class_names=None,
             **shap_kwargs):
         """
         Fits the object and calculates the shap values for the provided datasets.
@@ -94,7 +94,6 @@ class ShapModelInterpreter:
              names from the X_train dataframe are used.
             class_names (Optional, None, or list of str): List of class names e.g. ['neg', 'pos']. If none, the default
              ['Negative Class', 'Positive Class'] are used.
-            approximate (boolean):, if True uses shap approximations - less accurate, but very fast.
             **shap_kwargs: keyword arguments passed to shap.TreeExplainer.
         """
 
@@ -119,8 +118,8 @@ class ShapModelInterpreter:
             np.round(self.auc_test, 3)
         )
 
-        self.shap_values, self.explainer = shap_calc(self.clf, self.X_test, approximate=approximate,
-                                                     return_explainer=True, data=self.X_train, **shap_kwargs)
+        self.shap_values, self.explainer = shap_calc(self.clf, self.X_test, return_explainer=True, masker=self.X_train,
+                                                     **shap_kwargs)
 
         # Get expected_value from the explainer
         self.expected_value = self.explainer.expected_value

@@ -435,7 +435,7 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
         """
         super().fit(X1=X1, X2=X2, column_names=column_names)
 
-        self.shap_values_test = shap_calc(self.model, self.X_test, data=self.X_train)
+        self.shap_values_test = shap_calc(self.model, self.X_test, masker=self.X_train)
         self.report = calculate_shap_importance(self.shap_values_test, self.column_names)
 
     def plot(self, plot_type='bar', **summary_plot_kwargs):

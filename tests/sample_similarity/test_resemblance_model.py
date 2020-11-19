@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.tree import DecisionTreeClassifier
+from sklearn.linear_model import LogisticRegression
 
 
 @pytest.fixture(scope='function')
@@ -69,6 +70,43 @@ def test_shap_resemblance_class(X1, X2):
     # After the fit this should not raise any error
     rm._check_if_fitted()
 
+    assert train_auc == 1
+    assert test_auc == 1
+
+    # Check report shape
+    assert actual_report.shape == (3, 2)
+    # Check if it is sorted by importance
+    print(actual_report)
+    assert actual_report.iloc[0].name == 'col_1'
+    # Check report values
+    assert actual_report.loc['col_1']['mean_abs_shap_value'] > 0
+    assert actual_report.loc['col_1']['mean_shap_value'] == 0
+    assert actual_report.loc['col_2']['mean_abs_shap_value'] == 0
+    assert actual_report.loc['col_2']['mean_shap_value'] == 0
+    assert actual_report.loc['col_3']['mean_abs_shap_value'] == 0
+    assert actual_report.loc['col_3']['mean_shap_value'] == 0
+
+    actual_shap_values_test = rm.get_shap_values()
+    assert actual_shap_values_test.shape == (4, 3)
+
+    # Run plots
+    rm.plot(plot_type='bar')
+    rm.plot(plot_type='dot')
+
+
+
+def test_shap_resemblance_linear_model(X1, X2):
+    clf = LogisticRegression()
+    rm = SHAPImportanceResemblance(clf, test_prc=0.5, n_jobs=1, random_state=42)
+
+    # Before fit it should raise an exception
+    with pytest.raises(NotFittedError) as _:
+        rm._check_if_fitted()
+
+    actual_report, train_auc, test_auc = rm.fit_compute(X1, X2, return_auc=True)
+
+    # After the fit this should not raise any error
+    rm._check_if_fitted()
     assert train_auc == 1
     assert test_auc == 1
 

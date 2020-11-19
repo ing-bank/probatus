@@ -23,7 +23,7 @@ import pandas as pd
 import numpy as np
 import warnings
 
-def shap_calc(model, X, approximate=False, return_explainer=False, suppress_warnings=False, **shap_kwargs):
+def shap_calc(model, X, return_explainer=False, suppress_warnings=False, **shap_kwargs):
     """
     Helper function to calculate the shapley values for a given model.
     Supported models for the moment are RandomForestClassifiers and XGBClassifiers
@@ -31,7 +31,6 @@ def shap_calc(model, X, approximate=False, return_explainer=False, suppress_warn
     Args:
         model: pretrained model (Random Forest of XGBoost at the moment)
         X (pd.DataFrame or np.ndarray): features set
-        approximate (boolean):, if True uses shap approximations - less accurate, but very fast
         return_explainer (boolean): if True, returns a a tuple (shap_values, explainer).
         suppress_warnings (boolean): If True, warnings from SHAP will be suppressed.
         **shap_kwargs: kwargs of the shap.TreeExplainer
@@ -39,14 +38,15 @@ def shap_calc(model, X, approximate=False, return_explainer=False, suppress_warn
     Returns: (np.ndarray or tuple(np.ndarray, shap.TreeExplainer)) shapley_values for the model.
 
     """
-    # Suppress warnings regarding XGboost and Lightgbm models.
+    # Suppress warnings regarding.
     with warnings.catch_warnings():
         if suppress_warnings:
             warnings.simplefilter("ignore")
 
-        explainer = shap.TreeExplainer(model, **shap_kwargs)
+        explainer = shap.Explainer(model, **shap_kwargs)
+
         # Calculate Shap values
-        shap_values = explainer.shap_values(X, approximate=approximate)
+        shap_values = explainer.shap_values(X)
 
         if isinstance(shap_values, list) and len(shap_values)==2:
             warnings.warn('Shap values are related to the output probabilities of class 1 for this model, instead of log odds.')

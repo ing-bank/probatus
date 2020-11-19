@@ -360,7 +360,7 @@ class ShapRFECV:
         score_val = scorer(clf, X_val, y_val)
 
         # Compute SHAP values
-        shap_values = shap_calc(clf, X_val, suppress_warnings=True)
+        shap_values = shap_calc(clf, X_val, suppress_warnings=True, masker=X_train)
         return shap_values, score_train, score_val
 
 

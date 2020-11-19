@@ -1,8 +1,9 @@
-from sklearn.tree import DecisionTreeClassifier
 import pytest
 import numpy as np
 import pandas as pd
 from probatus.interpret import ShapModelInterpreter
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.linear_model import LogisticRegression
 from unittest.mock import patch
 
 @pytest.fixture(scope='function')
@@ -60,6 +61,33 @@ def test_shap_interpret(fitted_tree, X_train, y_train, X_test, y_test, expected_
 
     importance_df = shap_interpret.compute()
     pd.testing.assert_frame_equal(expected_feature_importance, importance_df)
+
+    with patch('matplotlib.pyplot.figure') as mock_plt:
+        with patch('shap.plots._waterfall.waterfall_legacy'):
+            ax1 = shap_interpret.plot('importance')
+            ax2 = shap_interpret.plot('summary')
+            ax3 =shap_interpret.plot('dependence', target_columns='col_3')
+            ax4 = shap_interpret.plot('sample', samples_index=[5, 6])
+    assert not(isinstance(ax1, list))
+    assert not(isinstance(ax2, list))
+    assert not(isinstance(ax3, list))
+    assert isinstance(ax4, list) and len(ax4) == 2
+
+
+def test_shap_interpret_linear_model(X_train, y_train, X_test, y_test):
+    class_names = ['neg', 'pos']
+    clf = LogisticRegression().fit(X_train, y_train)
+
+    shap_interpret = ShapModelInterpreter(clf)
+    shap_interpret.fit(X_train, X_test, y_train, y_test, class_names=class_names)
+
+    # Check parameters
+    assert shap_interpret.fitted == True
+    shap_interpret._check_if_fitted
+
+    assert shap_interpret.class_names == class_names
+    assert shap_interpret.auc_train == 1
+    assert shap_interpret.auc_test == pytest.approx(0.833, 0.01)
 
     with patch('matplotlib.pyplot.figure') as mock_plt:
         with patch('shap.plots._waterfall.waterfall_legacy'):
