@@ -23,7 +23,8 @@ from .arrayfuncs import assure_numpy_array, assure_pandas_df, check_1d, warn_if_
     assure_column_names_consistency, assure_pandas_series
 from .shap_helpers import shap_calc, shap_to_df, calculate_shap_importance
 from .warnings import ApproximationWarning
-from ._utils import class_name_from_object, assure_list_of_strings, assure_list_values_allowed, sample_row
+from ._utils import class_name_from_object, assure_list_of_strings, assure_list_values_allowed
+from .sampling import sample_row
 from .tree import TreePathFinder
 from .plots import plot_distributions_of_feature
 
