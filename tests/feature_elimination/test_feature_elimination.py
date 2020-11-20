@@ -27,7 +27,7 @@ def test_shap_rfe_randomized_search(X, y):
     }
     search = RandomizedSearchCV(clf, param_grid, cv=2)
 
-    shap_elimination = ShapRFECV(search, step=0.8, cv=2, scoring='roc_auc', n_jobs=4)
+    shap_elimination = ShapRFECV(search, step=0.8, cv=2, scoring='roc_auc', n_jobs=4, verbose=150)
 
     report = shap_elimination.fit_compute(X, y)
 

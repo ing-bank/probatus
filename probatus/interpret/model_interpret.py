@@ -225,7 +225,6 @@ class ShapModelInterpreter:
         elif plot_type == 'dependence':
             ax = []
             for feature_name in target_columns:
-                print()
                 ax.append(
                     self.tdp.plot(feature=feature_name, figsize=(10, 7), target_names=self.class_names))
                 plt.show()

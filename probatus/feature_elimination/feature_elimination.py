@@ -82,7 +82,8 @@ class ShapRFECV:
 
     """
 
-    def __init__(self, clf, step=1, min_features_to_select=1, cv=None, scoring=None, n_jobs=-1, random_state=None):
+    def __init__(self, clf, step=1, min_features_to_select=1, cv=None, scoring=None, n_jobs=-1, verbose=0,
+                 random_state=None):
         """
         This method initializes the class:
 
@@ -118,6 +119,14 @@ class ShapRFECV:
                 Number of cores to run in parallel while fitting across folds. None means 1 unless in a
                 `joblib.parallel_backend` context. -1 means using all processors.
 
+            verbose (Optional, int):
+                Controls verbosity of the output:
+
+                - 0 - nether prints nor warnings are shown
+                - 1 - 50 - only most important warnings regarding data properties are shown (excluding SHAP warnings)
+                - 51 - 100 - shows most important warnings, prints of the feature removal process
+                - above 100 - presents all prints and all warnings (including SHAP warnings).
+
             random_state (Optional, int):
                 Random state set at each round of feature elimination. If it is None, the results will not be
                 reproducible and in random search at each iteration a different hyperparameters might be tested. For
@@ -148,6 +157,7 @@ class ShapRFECV:
         self.random_state = random_state
         self.n_jobs = n_jobs
         self.report_df = pd.DataFrame([])
+        self.verbose = verbose
         self.fitted = False
 
 
@@ -160,7 +170,7 @@ class ShapRFECV:
 
 
     @staticmethod
-    def _preprocess_data(X):
+    def _preprocess_data(X, verbose=0):
         """
         Does basic preprocessing of the data: Removal of static features, Warns which features have missing variables,
         and transform object dtype features to category type, such that LightGBM handles them by default.
@@ -168,6 +178,14 @@ class ShapRFECV:
         Args:
             X (pd.DataFrame):
                 Provided dataset.
+
+            verbose (Optional, int):
+                Controls verbosity of the output:
+
+                - 0 - neither prints nor warnings are shown
+                - 1 - 50 - only most important warnings regarding data properties are shown (excluding SHAP warnings)
+                - 51 - 100 - shows most important warnings, prints of the feature removal process
+                - above 100 - presents all prints and all warnings (including SHAP warnings).
 
         Returns:
             (pd.DataFrame):
@@ -179,14 +197,16 @@ class ShapRFECV:
         # Remove static features, those that have only one value for all samples
         static_features = [i for i in X.columns if len(X[i].unique()) == 1]
         if len(static_features)>0:
-            warnings.warn(f'Removing static features {static_features}.')
+            if verbose > 0:
+                warnings.warn(f'Removing static features {static_features}.')
             X = X.drop(columns=static_features)
 
         # Warn if missing
         columns_with_missing = [column for column in X.columns if X[column].isnull().values.any()]
         if len(columns_with_missing) > 0:
-            warnings.warn(f'The following variables contain missing values {columns_with_missing}. Make sure to impute'
-                          f'missing or apply a model that handles them automatically.')
+            if verbose > 0:
+                warnings.warn(f'The following variables contain missing values {columns_with_missing}. Make sure to '
+                              f'impute missing or apply a model that handles them automatically.')
 
         # Transform Categorical variables into category dtype
         indices_obj_dtype_features = [column[0] for column in enumerate(X.dtypes) if column[1] == 'O']
@@ -194,9 +214,10 @@ class ShapRFECV:
 
         # Set categorical features type to category
         if len(obj_dtype_features) > 0:
-            warnings.warn(f'Changing dtype of {obj_dtype_features} from "object" to "category". Treating it as '
-                          f'categorical variable. Make sure that the model handles categorical variables, or encode '
-                          f'them first.')
+            if verbose > 0:
+                warnings.warn(f'Changing dtype of {obj_dtype_features} from "object" to "category". Treating it as '
+                              f'categorical variable. Make sure that the model handles categorical variables, or encode'
+                              f' them first.')
             for obj_dtype_feature in obj_dtype_features:
                 X[obj_dtype_feature] = X[obj_dtype_feature].astype('category')
         return X
@@ -321,7 +342,7 @@ class ShapRFECV:
 
 
     @staticmethod
-    def _get_feature_shap_values_per_fold(X, y, clf, train_index, val_index, scorer):
+    def _get_feature_shap_values_per_fold(X, y, clf, train_index, val_index, scorer, verbose=0):
         """
         This function calculates the shap values on validation set, and Train and Val score.
 
@@ -345,6 +366,14 @@ class ShapRFECV:
                 A string (see sklearn [model scoring](https://scikit-learn.org/stable/modules/model_evaluation.html)) or
                 a scorer callable object, function with the signature `scorer(estimator, X, y)`.
 
+            verbose (Optional, int):
+                Controls verbosity of the output:
+
+                - 0 - neither prints nor warnings are shown
+                - 1 - 50 - only most important warnings regarding data properties are shown (excluding SHAP warnings)
+                - 51 - 100 - shows most important warnings, prints of the feature removal process
+                - above 100 - presents all prints and all warnings (including SHAP warnings).
+
         Returns:
             (np.array, float, float):
                 Tuple with the results: Shap Values on validation fold, train score, validation score.
@@ -359,8 +388,13 @@ class ShapRFECV:
         score_train = scorer(clf, X_train, y_train)
         score_val = scorer(clf, X_val, y_val)
 
+        if verbose > 100:
+            suppress_warnings = False
+        else:
+            suppress_warnings = True
+
         # Compute SHAP values
-        shap_values = shap_calc(clf, X_val, suppress_warnings=True)
+        shap_values = shap_calc(clf, X_val, suppress_warnings=suppress_warnings)
         return shap_values, score_train, score_val
 
 
@@ -383,7 +417,7 @@ class ShapRFECV:
         if self.random_state is not None:
             np.random.seed(self.random_state)
 
-        self.X = self._preprocess_data(X)
+        self.X = self._preprocess_data(X, verbose=self.verbose)
         self.y = assure_pandas_series(y, index=self.X.index)
         self.cv = check_cv(self.cv, self.y, classifier=is_classifier(self.clf))
 
@@ -410,7 +444,8 @@ class ShapRFECV:
 
             # Perform CV to estimate feature importance with SHAP
             results_per_fold = Parallel(n_jobs=self.n_jobs)(delayed(self._get_feature_shap_values_per_fold)(
-                X=current_X, y=self.y, clf=current_clf, train_index=train_index, val_index=val_index, scorer=self.scorer
+                X=current_X, y=self.y, clf=current_clf, train_index=train_index, val_index=val_index,
+                scorer=self.scorer, verbose=self.verbose
             ) for train_index, val_index in self.cv.split(current_X, self.y))
 
             shap_values = np.vstack([current_result[0] for current_result in results_per_fold])
@@ -430,14 +465,14 @@ class ShapRFECV:
                                          train_metric_std = np.round(np.std(scores_train), 3),
                                          val_metric_mean = np.round(np.mean(scores_val), 3),
                                          val_metric_std = np.round(np.std(scores_val), 3))
-
-            print(f'Round: {round_number}, Current number of features: {len(current_features_set)}, '
-                  f'Current performance: Train {self.report_df.loc[round_number]["train_metric_mean"]} '
-                  f'+/- {self.report_df.loc[round_number]["train_metric_std"]}, CV Validation '
-                  f'{self.report_df.loc[round_number]["val_metric_mean"]} '
-                  f'+/- {self.report_df.loc[round_number]["val_metric_std"]}. \n'
-                  f'Num of features left: {len(remaining_features)}. '
-                  f'Removed features at the end of the round: {features_to_remove}')
+            if self.verbose > 50:
+                print(f'Round: {round_number}, Current number of features: {len(current_features_set)}, '
+                      f'Current performance: Train {self.report_df.loc[round_number]["train_metric_mean"]} '
+                      f'+/- {self.report_df.loc[round_number]["train_metric_std"]}, CV Validation '
+                      f'{self.report_df.loc[round_number]["val_metric_mean"]} '
+                      f'+/- {self.report_df.loc[round_number]["val_metric_std"]}. \n'
+                      f'Num of features left: {len(remaining_features)}. '
+                      f'Removed features at the end of the round: {features_to_remove}')
         self.fitted = True
 
 
