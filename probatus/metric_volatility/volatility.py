@@ -34,9 +34,7 @@ import warnings
 class BaseVolatilityEstimator(object):
     """
     Base object for estimating volatility estimation. This class is a base class, therefore cannot be used on its
-    own.
-
-    Implements common API that can be used by all subclasses.
+        own. Implements common API that can be used by all subclasses.
     """
 
 
@@ -45,27 +43,33 @@ class BaseVolatilityEstimator(object):
         Initializes the class
 
         Args:
-            model (model object): Binary classification model or pipeline.
+            model (model object):
+                Binary classification model or pipeline.
 
-            metrics (string, list of strings, Scorer or list of Scorers): Metrics for which the score is calculated.
-             It can be either a name or list of names metric names and needs to be aligned with predefined classification
-             scorers names in sklearn, see the [sklearn documentation](https://scikit-learn.org/stable/modules/model_evaluation.html).
-             In case a custom metric is used, one can create own Scorer (probatus.utils) and provide as a metric.
-             By default 'roc_auc' is measured.
+            metrics (string, list of strings, Scorer or list of Scorers, optional):
+                Metrics for which the score is calculated. It can be either a name or list of names metric names and
+                needs to be aligned with predefined classification scorers names in sklearn, see the
+                [sklearn documentation](https://scikit-learn.org/stable/modules/model_evaluation.html). In case a custom
+                metric is used, one can create own Scorer (probatus.utils) and provide as a metric. By default 'roc_auc'
+                is measured.
 
-            test_prc (float, optional): Percentage of input data used as test. By default 0.25.
+            test_prc (float, optional):
+                Percentage of input data used as test. By default 0.25.
 
-            n_jobs (int, optional): Number of parallel executions. If -1 use all available cores. By default 1.
+            n_jobs (int, optional):
+                Number of parallel executions. If -1 use all available cores. By default 1.
 
-            stats_tests_to_apply (None, string or list of strings, optional): List of tests to apply. Available options:
+            stats_tests_to_apply (None, string or list of strings, optional):
+                List of tests to apply. Available options:
 
-                - 'ES': Epps-Singleton,
-                - 'KS': Kolmogorov-Smirnov statistic,
-                - 'PSI': Population Stability Index,
-                - 'SW': Shapiro-Wilk based difference statistic,
-                - 'AD': Anderson-Darling TS.
+                - `'ES'`: Epps-Singleton,
+                - `'KS'`: Kolmogorov-Smirnov statistic,
+                - `'PSI'`: Population Stability Index,
+                - `'SW'`: Shapiro-Wilk based difference statistic,
+                - `'AD'`: Anderson-Darling TS.
 
-            random_state (int, optional): The seed used by the random number generator.
+            random_state (int, optional):
+                The seed used by the random number generator.
         """
         self.model = model
         self.n_jobs = n_jobs
@@ -113,11 +117,12 @@ class BaseVolatilityEstimator(object):
         Reports the statistics.
 
         Args:
-            metrics (str or list of strings, optional):  Name or list of names of metrics to be plotted. If not all
-             metrics are presented.
+            metrics (str or list of strings, optional):
+                Name or list of names of metrics to be plotted. If not all metrics are presented.
 
         Returns:
-            pandas.Dataframe: Report that contains the evaluation mean and std on train and test sets for each metric.
+            (pandas.Dataframe):
+                Report that contains the evaluation mean and std on train and test sets for each metric.
         """
 
         if self.fitted is False:
@@ -138,14 +143,17 @@ class BaseVolatilityEstimator(object):
         Plots distribution of the metric
 
         Args:
-            metrics (str or list of strings, optional):  Name or list of names of metrics to be plotted. If not all
-             metrics are presented.
+            metrics (str or list of strings, optional):
+                Name or list of names of metrics to be plotted. If not all metrics are presented.
 
-            bins (int, optional):  Number of bins into which histogram is built.
+            bins (int, optional):
+                Number of bins into which histogram is built.
 
-            height_per_subplot (int, optional):  Height of each subplot. Default is 5.
+            height_per_subplot (int, optional):
+                Height of each subplot. Default is 5.
 
-            width_per_subplot (int, optional): Width of each subplot. Default is 5.
+            width_per_subplot (int, optional):
+                Width of each subplot. Default is 5.
         """
 
         target_report = self.compute(metrics=metrics)
@@ -180,7 +188,8 @@ class BaseVolatilityEstimator(object):
         Selects samples to be plotted.
 
         Args:
-            metric_name (str):  Name of metric for which the data should be selected.
+            metric_name (str):
+                Name of metric for which the data should be selected.
         """
 
         current_metric_results = self.iterations_results[self.iterations_results['metric_name'] == metric_name]
@@ -220,10 +229,12 @@ class BaseVolatilityEstimator(object):
         Compute mean and std of results.
 
         Args:
-            metric_iterations_results (pandas.DataFrame): Scores for a single metric for each iteration.
+            metric_iterations_results (pandas.DataFrame):
+                Scores for a single metric for each iteration.
 
         Returns:
-            list: List containing mean and std of train, test and deltas.
+            (list):
+                List containing mean and std of train, test and deltas.
         """
         train_mean_score = np.mean(metric_iterations_results['train_score'])
         test_mean_score = np.mean(metric_iterations_results['test_score'])
@@ -238,10 +249,12 @@ class BaseVolatilityEstimator(object):
         Compute statistics and p-values of specified tests.
 
         Args:
-            metric_iterations_results (pandas.DataFrame):  Scores for a single metric for each iteration.
+            metric_iterations_results (pandas.DataFrame):
+                Scores for a single metric for each iteration.
 
         Returns:
-            list: List containing statistics and p-values of distributions.
+            (list):
+                List containing statistics and p-values of distributions.
         """
         statistics = []
         for stats_test in self.stats_tests_objects:
@@ -253,10 +266,13 @@ class BaseVolatilityEstimator(object):
     def fit_compute(self,  *args, **kwargs):
         """
         Runs trains and evaluates a number of models on train and test sets extracted using different random seeds.
-        Reports the statistics of the selected metric.
+            Reports the statistics of the selected metric.
+
+        Takes as arguments the same parameters as fit() method.
 
         Returns:
-            pandas.Dataframe: Report that contains the evaluation mean and std on train and test sets for each metric.
+            (pandas.Dataframe):
+                Report that contains the evaluation mean and std on train and test sets for each metric.
         """
 
         self.fit(*args, **kwargs)
@@ -266,8 +282,8 @@ class BaseVolatilityEstimator(object):
 class TrainTestVolatility(BaseVolatilityEstimator):
     """
     Estimation of volatility of metrics. The estimation is done by splitting the data into train and test multiple times
-    and training and scoring a model based on these metrics. The class allows for choosing whether at each iteration
-    the train test split should be the same or different, whether and how the train and test sets should be sampled.
+        and training and scoring a model based on these metrics. The class allows for choosing whether at each iteration
+        the train test split should be the same or different, whether and how the train and test sets should be sampled.
 
     Examples:
     ```python
@@ -280,59 +296,79 @@ class TrainTestVolatility(BaseVolatilityEstimator):
     volatility_report = volatility.fit_compute(X, y)
     volatility.plot()
     ```
-    <img src="../img/metric_volatility_train_test.png" width="500" />
 
+    <img src="../img/metric_volatility_train_test.png" width="500" />
     """
 
 
     def __init__(self, model, iterations=1000, sample_train_test_split_seed=True, train_sampling_type=None,
-                 test_sampling_type=None, train_sampling_fraction=1, test_sampling_fraction=1, **kwargs):
+                 test_sampling_type=None, train_sampling_fraction=1, test_sampling_fraction=1, metrics='roc_auc',
+                 test_prc=0.25, n_jobs=1, stats_tests_to_apply=None, random_state=42):
 
         """
         Initializes the class.
 
         Args:
+            model (model object):
+                Binary classification model or pipeline.
 
-            model (model object): Binary classification model or pipeline.
+            iterations (int, optional):
+                Number of iterations in seed bootstrapping. By default 1000.
 
-            iterations (int, optional): Number of iterations in seed bootstrapping. By default 1000.
+            sample_train_test_split_seed (bool, optional):
+                Flag indicating whether each train test split should be done
+                randomly or measurement should be done for single split. Default is True, which indicates that each.
+                iteration is performed on a random train test split. If the value is False, the random_seed for the
+                split is set to train_test_split_seed.
 
-            sample_train_test_split_seed (bool, optional): Flag indicating whether each train test split should be done
-             randomly or measurement should be done for single split. Default is True, which indicates that each.
-             iteration is performed on a random train test split. If the value is False, the random_seed for the
-             split is set to train_test_split_seed.
+            train_sampling_type (str, optional):
+                String indicating what type of sampling should be applied on train set:
 
-            train_sampling_type (str, optional): String indicating what type of sampling should be applied on train set:
+                - `None` indicates that no additional sampling is done after splitting data,
+                - `'bootstrap'` indicates that sampling with replacement will be performed on train data,
+                - `'subsample'` indicates that sampling without repetition will be performed  on train data.
 
-                - None indicates that no additional sampling is done after splitting data,
-                - 'bootstrap' indicates that sampling with replacement will be performed on train data,
-                - 'subsample': indicates that sampling without repetition will be performed  on train data.
+            test_sampling_type (str, optional):
+                String indicating what type of sampling should be applied on test set:
 
-            test_sampling_type (str, optional): String indicating what type of sampling should be applied on test set:
+                - `None` indicates that no additional sampling is done after splitting data,
+                - `'bootstrap'` indicates that sampling with replacement will be performed on test data,
+                - `'subsample'` indicates that sampling without repetition will be performed  on test data.
 
-                - None indicates that no additional sampling is done after splitting data,
-                - 'bootstrap' indicates that sampling with replacement will be performed on test data,
-                - 'subsample': indicates that sampling without repetition will be performed  on test data.
+            train_sampling_fraction (float, optional):
+                Fraction of train data sampled, if sample_train_type is not None.
+                Default value is 1.
 
-            train_sampling_fraction (float, optional): Fraction of train data sampled, if sample_train_type is not None.
-             Default value is 1.
+            test_sampling_fraction (float, optional):
+                Fraction of test data sampled, if sample_test_type is not None. Default value is 1.
 
-            test_sampling_fraction (Optional float): Fraction of test data sampled, if sample_test_type is not None.
-             Default value is 1.
+            metrics (string, list of strings, Scorer or list of Scorers, optional):
+                Metrics for which the score is calculated. It can be either a name or list of names metric names and
+                needs to be aligned with predefined classification scorers names in sklearn, see the
+                [sklearn documentation](https://scikit-learn.org/stable/modules/model_evaluation.html). In case a custom
+                metric is used, one can create own Scorer (probatus.utils) and provide as a metric. By default 'roc_auc'
+                is measured.
 
-            **kwargs: keyword arguments used to overwrite default parameters from init of BaseVolatilityEstimator:
+            test_prc (float, optional):
+                Percentage of input data used as test. By default 0.25.
 
-                - `metrics` : Metrics for which the score is calculated.
-                 It can be either a name or list of names metric names and needs to be aligned with predefined classification
-                 scorers names in sklearn, see the [sklearn documentation](https://scikit-learn.org/stable/modules/model_evaluation.html).
-                 In case a custom metric is used, one can create own Scorer (probatus.utils) and provide as a metric.
-                 By default 'roc_auc' is measured.
-                - `test_prc`:  Percentage of input data used as test. By default 0.25.
-                - `n_jobs`: Number of parallel executions. If -1 use all available cores. By default 1.
-                - `stats_tests_to_apply`:  List of tests to apply. Available options described in BaseVolatilityEstimator.
-                - `random_state`: The seed used by the random number generator.
+            n_jobs (int, optional):
+                Number of parallel executions. If -1 use all available cores. By default 1.
+
+            stats_tests_to_apply (None, string or list of strings, optional):
+                List of tests to apply, default is None. Available options:
+
+                - `'ES'`: Epps-Singleton,
+                - `'KS'`: Kolmogorov-Smirnov statistic,
+                - `'PSI'`: Population Stability Index,
+                - `'SW'`: Shapiro-Wilk based difference statistic,
+                - `'AD'`: Anderson-Darling TS.
+
+            random_state (int, optional):
+                The seed used by the random number generator.
         """
-        super().__init__(model=model, **kwargs)
+        super().__init__(model=model, metrics=metrics, test_prc=test_prc, n_jobs=n_jobs,
+                         stats_tests_to_apply=stats_tests_to_apply, random_state=random_state)
         self.iterations = iterations
         self.train_sampling_type = train_sampling_type
         self.test_sampling_type = test_sampling_type
@@ -346,12 +382,14 @@ class TrainTestVolatility(BaseVolatilityEstimator):
     def fit(self, X, y):
         """
         Bootstraps a number of random seeds, then splits the data based on the sampled seeds and estimates performance
-        of the model based on the split data.
+            of the model based on the split data.
 
         Args:
-            X (pandas.DataFrame or numpy.ndarray):  Array with samples and features.
+            X (pandas.DataFrame or numpy.ndarray):
+                Array with samples and features.
 
-            y (pandas.DataFrame or numpy.ndarray):  Array with targets.
+            y (pandas.DataFrame or numpy.ndarray):
+                Array with targets.
 
         """
         super().fit()
@@ -379,7 +417,7 @@ class TrainTestVolatility(BaseVolatilityEstimator):
 class SplitSeedVolatility(TrainTestVolatility):
     """
     Estimation of volatility of metrics depending on the seed used to split the data. At every iteration it splits the
-    data into train and test set using a different stratified split and volatility of the metrics is calculated.
+        data into train and test set using a different stratified split and volatility of the metrics is calculated.
 
     Examples:
     ```python
@@ -396,35 +434,54 @@ class SplitSeedVolatility(TrainTestVolatility):
 
     """
 
-    def __init__(self, model, **kwargs):
+    def __init__(self, model, iterations=1000, metrics='roc_auc', test_prc=0.25, n_jobs=1, stats_tests_to_apply=None,
+                 random_state=42):
         """
         Initializes the class
 
         Args:
-            model (model object): Binary classification model or pipeline.
+            model (model object):
+                Binary classification model or pipeline.
 
-            **kwargs: Keyword arguments that can be overwrite the default parameters from TrainTestVolatility:
+            iterations (int, optional):
+                Number of iterations in seed bootstrapping. By default 1000.
 
-                - `iterations`: Number of iterations in seed bootstrapping. By default 1000.
-                - `metrics` : Metrics for which the score is calculated.
-                 It can be either a name or list of names metric names and needs to be aligned with predefined classification
-                 scorers names in sklearn, see the [sklearn documentation](https://scikit-learn.org/stable/modules/model_evaluation.html).
-                 In case a custom metric is used, one can create own Scorer (probatus.utils) and provide as a metric.
-                 By default 'roc_auc' is measured.
-                - `test_prc`:  Percentage of input data used as test. By default 0.25.
-                - `n_jobs`: Number of parallel executions. If -1 use all available cores. By default 1.
-                - `stats_tests_to_apply`:  List of tests to apply. Available options described in BaseVolatilityEstimator.
-                - `random_state`: The seed used by the random number generator.
+            metrics (string, list of strings, Scorer or list of Scorers, optional):
+                Metrics for which the score is calculated. It can be either a name or list of names metric names and
+                needs to be aligned with predefined classification scorers names in sklearn, see the
+                [sklearn documentation](https://scikit-learn.org/stable/modules/model_evaluation.html). In case a custom
+                metric is used, one can create own Scorer (probatus.utils) and provide as a metric. By default 'roc_auc'
+                is measured.
+
+            test_prc (float, optional):
+                Percentage of input data used as test. By default 0.25.
+
+            n_jobs (int, optional):
+                Number of parallel executions. If -1 use all available cores. By default 1.
+
+            stats_tests_to_apply (None, string or list of strings, optional):
+                List of tests to apply, default is None. Available options:
+
+                - `'ES'`: Epps-Singleton,
+                - `'KS'`: Kolmogorov-Smirnov statistic,
+                - `'PSI'`: Population Stability Index,
+                - `'SW'`: Shapiro-Wilk based difference statistic,
+                - `'AD'`: Anderson-Darling TS.
+
+            random_state (int, optional):
+                The seed used by the random number generator.
         """
         super().__init__(model=model, sample_train_test_split_seed=True, train_sampling_type=None,
-                         test_sampling_type=None, train_sampling_fraction=1,  test_sampling_fraction=1, **kwargs)
+                         test_sampling_type=None, train_sampling_fraction=1,  test_sampling_fraction=1,
+                         iterations=iterations, metrics=metrics, test_prc=test_prc, n_jobs=n_jobs,
+                         stats_tests_to_apply=stats_tests_to_apply, random_state=random_state)
 
 
 class BootstrappedVolatility(TrainTestVolatility):
     """
     Estimation of volatility of metrics by bootstrapping both train and test set. By default at every iteration the
-    train test split is the same. The test shows volatility of metric with regards to sampling different rows from
-    static train and test sets.
+        train test split is the same. The test shows volatility of metric with regards to sampling different rows from
+        static train and test sets.
 
     Examples:
     ```python
@@ -440,29 +497,51 @@ class BootstrappedVolatility(TrainTestVolatility):
     <img src="../img/metric_volatility_bootstrapped.png" width="500" />
     """
 
-    def __init__(self, model, **kwargs):
+    def __init__(self, model, iterations=1000, train_sampling_fraction=1, test_sampling_fraction=1, metrics='roc_auc',
+                 test_prc=0.25, n_jobs=1, stats_tests_to_apply=None, random_state=42):
         """
         Initializes the class.
 
         Args:
-            model (model object): Binary classification model or pipeline.
+            model (model object):
+                Binary classification model or pipeline.
 
-            **kwargs: Keyword arguments that can be overwrite the default parameters from TrainTestVolatility:
+            iterations (int, optional):
+                Number of iterations in seed bootstrapping. By default 1000.
 
-                - `iterations`: Number of iterations in seed bootstrapping. By default 1000.
-                - `train_sampling_fraction`: Fraction of train data sampled, if sample_train_type is not None.
-                 Default value is 1.
-                - `test_sampling_fraction`: Fraction of test data sampled, if sample_test_type is not None.
-                 Default value is 1.
-                - `metrics` : Metrics for which the score is calculated.
-                 It can be either a name or list of names metric names and needs to be aligned with predefined classification
-                 scorers names in sklearn, see the [sklearn documentation](https://scikit-learn.org/stable/modules/model_evaluation.html).
-                 In case a custom metric is used, one can create own Scorer (probatus.utils) and provide as a metric.
-                 By default 'roc_auc' is measured.
-                - `test_prc`:  Percentage of input data used as test. By default 0.25.
-                - `n_jobs`: Number of parallel executions. If -1 use all available cores. By default 1.
-                - `stats_tests_to_apply`:  List of tests to apply. Available options described in BaseVolatilityEstimator.
-                - `random_state`: The seed used by the random number generator.
+            train_sampling_fraction (float, optional):
+                Fraction of train data sampled, if sample_train_type is not None. Default value is 1.
+
+            test_sampling_fraction (float, optional):
+                Fraction of test data sampled, if sample_test_type is not None. Default value is 1.
+
+            metrics (string, list of strings, Scorer or list of Scorers, optional):
+                Metrics for which the score is calculated. It can be either a name or list of names metric names and
+                needs to be aligned with predefined classification scorers names in sklearn, see the
+                [sklearn documentation](https://scikit-learn.org/stable/modules/model_evaluation.html). In case a custom
+                metric is used, one can create own Scorer (probatus.utils) and provide as a metric. By default 'roc_auc'
+                is measured.
+
+            test_prc (float, optional):
+                Percentage of input data used as test. By default 0.25.
+
+            n_jobs (int, optional):
+                Number of parallel executions. If -1 use all available cores. By default 1.
+
+            stats_tests_to_apply (None, string or list of strings, optional):
+                List of tests to apply, default is None. Available options:
+
+                - `'ES'`: Epps-Singleton,
+                - `'KS'`: Kolmogorov-Smirnov statistic,
+                - `'PSI'`: Population Stability Index,
+                - `'SW'`: Shapiro-Wilk based difference statistic,
+                - `'AD'`: Anderson-Darling TS.
+
+            random_state (int, optional):
+                The seed used by the random number generator.
         """
         super().__init__(model=model, sample_train_test_split_seed=False, train_sampling_type='bootstrap',
-                         test_sampling_type='bootstrap', **kwargs)
+                         test_sampling_type='bootstrap', iterations=iterations, metrics=metrics,
+                         train_sampling_fraction=train_sampling_fraction, test_sampling_fraction=test_sampling_fraction,
+                         test_prc=test_prc, n_jobs=n_jobs, stats_tests_to_apply=stats_tests_to_apply,
+                         random_state=random_state)

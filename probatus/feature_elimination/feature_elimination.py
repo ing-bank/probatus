@@ -95,31 +95,31 @@ class ShapRFECV:
                 [GridSearchCV](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.GridSearchCV.html)
                 and [RandomizedSearchCV](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.RandomizedSearchCV.html).
 
-            step (Optional, int or float):
+            step (int or float, optional):
                 Number of lowest importance features removed each round. If it is an int, then each round such number of
                 features is discarded. If float, such percentage of remaining features (rounded down) is removed each
                 iteration. It is recommended to use float, since it is faster for a large number of features, and slows
                 down and becomes more precise towards less features. Note: the last round may remove fewer features in
                 order to reach min_features_to_select.
 
-            min_features_to_select (Optional, int):
+            min_features_to_select (int, optional):
                 Minimum number of features to be kept. This is a stopping criterion of the feature elimination. By
                 default the process stops when one feature is left.
 
-            cv (Optional, int, cross-validation generator or an iterable):
+            cv (int, cross-validation generator or an iterable, optional):
                 Determines the cross-validation splitting strategy. Compatible with sklearn
                 [cv parameter](https://scikit-learn.org/stable/modules/generated/sklearn.feature_selection.RFECV.html).
                 If None, then cv of 5 is used.
 
-            scoring (Optional, string, callable or None):
+            scoring (string, callable or None, optional):
                 A string (see sklearn [model scoring](https://scikit-learn.org/stable/modules/model_evaluation.html)) or
                 a scorer callable object, function with the signature `scorer(estimator, X, y)`.
 
-            n_jobs (Optional, int):
+            n_jobs (int, optional):
                 Number of cores to run in parallel while fitting across folds. None means 1 unless in a
                 `joblib.parallel_backend` context. -1 means using all processors.
 
-            verbose (Optional, int):
+            verbose (int, optional):
                 Controls verbosity of the output:
 
                 - 0 - nether prints nor warnings are shown
@@ -127,7 +127,7 @@ class ShapRFECV:
                 - 51 - 100 - shows most important warnings, prints of the feature removal process
                 - above 100 - presents all prints and all warnings (including SHAP warnings).
 
-            random_state (Optional, int):
+            random_state (int, optional):
                 Random state set at each round of feature elimination. If it is None, the results will not be
                 reproducible and in random search at each iteration a different hyperparameters might be tested. For
                 reproducible results set it to integer.
@@ -179,7 +179,7 @@ class ShapRFECV:
             X (pd.DataFrame):
                 Provided dataset.
 
-            verbose (Optional, int):
+            verbose (int, optional):
                 Controls verbosity of the output:
 
                 - 0 - neither prints nor warnings are shown
@@ -362,11 +362,11 @@ class ShapRFECV:
             val_index (np.array):
                 Positions of validation fold samples.
 
-            scorer (Optional, string, callable or None):
+            scorer (string, callable or None):
                 A string (see sklearn [model scoring](https://scikit-learn.org/stable/modules/model_evaluation.html)) or
                 a scorer callable object, function with the signature `scorer(estimator, X, y)`.
 
-            verbose (Optional, int):
+            verbose (int, optional):
                 Controls verbosity of the output:
 
                 - 0 - neither prints nor warnings are shown
@@ -541,7 +541,7 @@ class ShapRFECV:
         Generates plot of the model performance for each iteration of feature elimination.
 
         Args:
-            show (Optional, bool):
+            show (bool, optional):
                 If True, the plots are showed to the user, otherwise they are not shown.
 
             **figure_kwargs:

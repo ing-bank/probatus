@@ -30,7 +30,7 @@ import pandas as pd
 class ShapModelInterpreter:
     """
     This class is a wrapper that allows to easily analyse model's features. It allows to plot SHAP feature importance,
-     SHAP summary plot and SHAP dependence plots.
+        SHAP summary plot and SHAP dependence plots.
 
     Example:
     ```python
@@ -66,7 +66,6 @@ class ShapModelInterpreter:
     <img src="../img/model_interpret_summary.png" width="320" />
     <img src="../img/model_interpret_dep.png" width="320" />
     <img src="../img/model_interpret_sample.png" width="320" />
-
     """
 
 
@@ -75,7 +74,8 @@ class ShapModelInterpreter:
         Initializes the class.
 
         Args:
-            clf (binary classifier): Model fitted on X_train.
+            clf (binary classifier):
+                Model fitted on X_train.
         """
         self.clf = clf
         self.fitted = False
@@ -92,16 +92,30 @@ class ShapModelInterpreter:
         Fits the object and calculates the shap values for the provided datasets.
 
         Args:
-            X_train (pd.DataFrame): Dataframe containing training data.
-            X_test (pd.DataFrame): Dataframe containing test data.
-            y_train (pd.Series): Series of binary labels for train data.
-            y_test (pd.Series): Series of binary labels for test data.
-            column_names (Optional, None, or list of str): List of feature names for the dataset. If None, then column
-             names from the X_train dataframe are used.
-            class_names (Optional, None, or list of str): List of class names e.g. ['neg', 'pos']. If none, the default
-             ['Negative Class', 'Positive Class'] are used.
-            approximate (boolean):, if True uses shap approximations - less accurate, but very fast.
-            **shap_kwargs: keyword arguments passed to shap.TreeExplainer.
+            X_train (pd.DataFrame):
+                Dataframe containing training data.
+
+            X_test (pd.DataFrame):
+                Dataframe containing test data.
+
+            y_train (pd.Series):
+                Series of binary labels for train data.
+
+            y_test (pd.Series):
+                Series of binary labels for test data.
+
+            column_names (None, or list of str, optional):
+                List of feature names for the dataset. If None, then column names from the X_train dataframe are used.
+
+            class_names (None, or list of str, optional):
+                List of class names e.g. ['neg', 'pos']. If none, the default ['Negative Class', 'Positive Class'] are
+                used.
+
+            approximate (boolean, optional):
+                if True uses shap approximations - less accurate, but very fast.
+
+            **shap_kwargs:
+                keyword arguments passed to [shap.TreeExplainer](https://shap.readthedocs.io/en/latest/generated/shap.TreeExplainer.html).
         """
 
         self.X_train = assure_pandas_df(X_train)
@@ -145,7 +159,8 @@ class ShapModelInterpreter:
         Computes the DataFrame, that presents the importance of each feature.
 
         Returns:
-            (pd.DataFrame): Dataframe with SHAP feature importance.
+            (pd.DataFrame):
+                Dataframe with SHAP feature importance.
         """
         self._check_if_fitted()
 
@@ -160,19 +175,34 @@ class ShapModelInterpreter:
         Fits the object and calculates the shap values for the provided datasets.
 
         Args:
-            X_train (pd.DataFrame): Dataframe containing training data.
-            X_test (pd.DataFrame): Dataframe containing test data.
-            y_train (pd.Series): Series of binary labels for train data.
-            y_test (pd.Series): Series of binary labels for test data.
-            column_names (Optional, None, or list of str): List of feature names for the dataset. If None, then column
-             names from the X_train dataframe are used.
-            class_names (Optional, None, or list of str): List of class names e.g. ['neg', 'pos']. If none, the default
-             ['Negative Class', 'Positive Class'] are used.
-            approximate (boolean):, if True uses shap approximations - less accurate, but very fast.
-            **shap_kwargs: keyword arguments passed to shap.TreeExplainer.
+            X_train (pd.DataFrame):
+                Dataframe containing training data.
+
+            X_test (pd.DataFrame):
+                Dataframe containing test data.
+
+            y_train (pd.Series):
+                Series of binary labels for train data.
+
+            y_test (pd.Series):
+                Series of binary labels for test data.
+
+            column_names (None, or list of str, optional):
+                List of feature names for the dataset. If None, then column names from the X_train dataframe are used.
+
+            class_names (None, or list of str, optional):
+                List of class names e.g. ['neg', 'pos']. If none, the default ['Negative Class', 'Positive Class'] are
+                used.
+
+            approximate (boolean, optional):
+                if True uses shap approximations - less accurate, but very fast.
+
+            **shap_kwargs: keyword arguments passed to
+                keyword arguments passed to [shap.TreeExplainer](https://shap.readthedocs.io/en/latest/generated/shap.TreeExplainer.html).
 
         Returns:
-            (pd.DataFrame): Dataframe with SHAP feature importance.
+            (pd.DataFrame):
+                Dataframe with SHAP feature importance.
         """
         self.fit(X_train=X_train, X_test=X_test, y_train=y_train, y_test=y_test, column_names=column_names,
                  class_names=class_names, approximate=approximate, **shap_kwargs)
@@ -184,21 +214,24 @@ class ShapModelInterpreter:
         Plots the appropriate SHAP plot
 
         Args:
-            plot_type (str): One of the following:
+            plot_type (str):
+                One of the following:
 
-                - 'importance': Feature importance plot, SHAP bar summary plot
-                - 'summary': SHAP Summary plot
-                - 'dependence': Dependence plot for each feature
-                - 'sample': Explanation of a given sample in the test data
+                - `'importance'`: Feature importance plot, SHAP bar summary plot
+                - `'summary'`: SHAP Summary plot
+                - `'dependence'`: Dependence plot for each feature
+                - `'sample'`: Explanation of a given sample in the test data
 
-            target_columns (Optional, None, str or list of str): List of features names, for which the plots should be
-             generated. If None, all features will be plotted.
+            target_columns (None, str or list of str, optional):
+                List of features names, for which the plots should be generated. If None, all features will be plotted.
 
-            samples_index (None, int, list or pd.Index): Index of samples to be explained if the `plot_type=sample`.
+            samples_index (None, int, list or pd.Index, optional):
+                Index of samples to be explained if the `plot_type=sample`.
 
-            **plot_kwargs: Keyword arguments passed to the plot method. For 'importance' and 'summary' plot_type, the
-             kwargs are passed to shap.summary_plot, for 'dependence' plot_type, they are passed to
-             probatus.interpret.TreeDependencePlotter.feature_plot method.
+            **plot_kwargs:
+                Keyword arguments passed to the plot method. For 'importance' and 'summary' plot_type, the kwargs are
+                passed to shap.summary_plot, for 'dependence' plot_type, they are passed to
+                probatus.interpret.TreeDependencePlotter.feature_plot method.
 
         """
         if target_columns is None:
