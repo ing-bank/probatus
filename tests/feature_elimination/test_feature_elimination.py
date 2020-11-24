@@ -46,6 +46,7 @@ def test_shap_rfe_randomized_search(X, y, capsys):
     out, _ = capsys.readouterr()
     assert len(out) > 0
 
+
 def test_shap_rfe(X, y, capsys):
 
     clf = DecisionTreeClassifier(max_depth=1)
@@ -68,6 +69,7 @@ def test_shap_rfe(X, y, capsys):
     # Check if there is any prints
     out, _ = capsys.readouterr()
     assert len(out) == 0
+
 
 def test_calculate_number_of_features_to_remove():
     assert 3 == ShapRFECV._calculate_number_of_features_to_remove(current_num_of_features=10,
