@@ -20,7 +20,7 @@
 
 from probatus.interpret import TreeDependencePlotter
 from probatus.utils import assure_column_names_consistency, assure_pandas_df, shap_calc, assure_list_of_strings,\
-    calculate_shap_importance, NotFittedError, BaseFitComputePlotClass
+    calculate_shap_importance, BaseFitComputePlotClass
 from sklearn.metrics import roc_auc_score
 import numpy as np
 import shap

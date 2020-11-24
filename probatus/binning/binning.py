@@ -25,7 +25,7 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.utils.validation import check_is_fitted
 from probatus.utils import assure_numpy_array, TreePathFinder, ApproximationWarning, BaseFitComputeClass
 import warnings
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 
 class Bucketer(BaseFitComputeClass):
 

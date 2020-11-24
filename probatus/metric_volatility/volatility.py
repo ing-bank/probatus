@@ -24,7 +24,7 @@ import matplotlib.pyplot as plt
 from probatus.metric_volatility.metric import get_metric
 from joblib import Parallel, delayed
 from tqdm.auto import tqdm
-from probatus.utils import assure_numpy_array, NotFittedError, get_scorers, assure_list_of_strings,\
+from probatus.utils import assure_numpy_array, get_scorers, assure_list_of_strings,\
     assure_list_values_allowed, BaseFitComputePlotClass
 from probatus.metric_volatility.utils import check_sampling_input
 from probatus.stat_tests import DistributionStatistics
