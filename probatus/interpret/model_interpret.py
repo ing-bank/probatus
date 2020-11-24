@@ -27,6 +27,7 @@ import shap
 import matplotlib.pyplot as plt
 import pandas as pd
 
+
 class ShapModelInterpreter(BaseFitComputePlotClass):
     """
     This class is a wrapper that allows to easily analyse model's features. It allows to plot SHAP feature importance,
