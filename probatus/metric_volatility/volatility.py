@@ -280,6 +280,8 @@ class TrainTestVolatility(BaseVolatilityEstimator):
     volatility_report = volatility.fit_compute(X, y)
     volatility.plot()
     ```
+    <img src="../img/metric_volatility_train_test.png" width="500" />
+
     """
 
 
@@ -378,6 +380,7 @@ class SplitSeedVolatility(TrainTestVolatility):
     """
     Estimation of volatility of metrics depending on the seed used to split the data. At every iteration it splits the
     data into train and test set using a different stratified split and volatility of the metrics is calculated.
+
     Examples:
     ```python
     from sklearn.datasets import make_classification
@@ -389,6 +392,8 @@ class SplitSeedVolatility(TrainTestVolatility):
     volatility_report = volatility.fit_compute(X, y)
     volatility.plot()
     ```
+    <img src="../img/metric_volatility_split_seed.png" width="500" />
+
     """
 
     def __init__(self, model, **kwargs):
@@ -432,6 +437,7 @@ class BootstrappedVolatility(TrainTestVolatility):
     volatility_report = volatility.fit_compute(X, y)
     volatility.plot()
     ```
+    <img src="../img/metric_volatility_bootstrapped.png" width="500" />
     """
 
     def __init__(self, model, **kwargs):

@@ -30,6 +30,12 @@ plugins:
           python:
             selection:
               inherited_members: true
+              filters:
+                - "!^Base"
+                - "!^_"  # exlude all members starting with _
+                - "^__init__$"  # but always include __init__ modules and methods
+            rendering:
+              show_root_toc_entry: false
       watch:
         - probatus
   - search

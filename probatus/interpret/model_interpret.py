@@ -61,6 +61,12 @@ class ShapModelInterpreter:
     shap_interpreter.plot('dependence', target_columns=['f1', 'f2'])
     shap_interpreter.plot('sample', samples_index=[521, 78])
     ```
+
+    <img src="../img/model_interpret_importance.png" width="320" />
+    <img src="../img/model_interpret_summary.png" width="320" />
+    <img src="../img/model_interpret_dep.png" width="320" />
+    <img src="../img/model_interpret_sample.png" width="320" />
+
     """
 
 

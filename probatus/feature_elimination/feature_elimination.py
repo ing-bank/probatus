@@ -79,7 +79,7 @@ class ShapRFECV:
     # Get final feature set
     final_features_set = shap_elimination.get_reduced_features_set(num_features=3)
     ```
-
+    <img src="../img/shaprfecv.png" width="500" />
     """
 
     def __init__(self, clf, step=1, min_features_to_select=1, cv=None, scoring=None, n_jobs=-1, verbose=0,

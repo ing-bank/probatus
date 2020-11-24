@@ -239,6 +239,7 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
     feature_importance = perm.fit_compute(X1, X2)
     perm.plot()
     ```
+    <img src="../img/sample_similarity_permutation_importance.png" width="500" />
     """
 
     def __init__(self, model, iterations=100, **kwargs):
@@ -396,6 +397,8 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
     feature_importance = rm.fit_compute(X1, X2)
     rm.plot()
     ```
+    <img src="../img/sample_similarity_shap_importance.png" width="320" />
+    <img src="../img/sample_similarity_shap_summary.png" width="320" />
     """
 
     def __init__(self, model,  **kwargs):
