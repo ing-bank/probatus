@@ -21,15 +21,16 @@
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
-from probatus.utils import assure_numpy_array, NotFittedError, get_scorers, warn_if_missing,\
-    assure_column_names_consistency
+from probatus.utils import assure_numpy_array, get_scorers, warn_if_missing, assure_column_names_consistency, \
+    BaseFitComputePlotClass
 from probatus.utils.shap_helpers import shap_calc, calculate_shap_importance
 from sklearn.inspection import permutation_importance
 import matplotlib.pyplot as plt
 import shap
 import warnings
 
-class BaseResemblanceModel(object):
+
+class BaseResemblanceModel(BaseFitComputePlotClass):
     """
     This model checks for similarity of two samples. A possible use case is analysis whether train sample differs
         from test sample, due to e.g. non-stationarity.
@@ -58,8 +59,6 @@ class BaseResemblanceModel(object):
         self.test_prc = test_prc
         self.n_jobs = n_jobs
         self.random_state = random_state
-
-        self.fitted = False
 
         self.metric_name = 'roc_auc'
         self.scorer = get_scorers(self.metric_name)[0]
@@ -93,6 +92,10 @@ class BaseResemblanceModel(object):
                 List of feature names of the provided samples. If provided it will be used to overwrite the existing
                 feature names. If not provided the existing feature names are used or default feature names are
                 generated.
+
+        Returns:
+            (BaseResemblanceModel):
+                Fitted object
         """
 
         # Set seed for results reproducibility
@@ -146,11 +149,7 @@ class BaseResemblanceModel(object):
                           'Consider retraining with more regularization applied to the model.')
 
         self.fitted = True
-
-
-    def _check_if_fitted(self):
-        if self.fitted is False:
-            raise(NotFittedError('The object has not been fitted. Please run fit() method first'))
+        return self
 
 
     def get_data_splits(self):
@@ -217,6 +216,10 @@ class BaseResemblanceModel(object):
         """
         self.fit(X1, X2, column_names=column_names, **fit_kwargs)
         return self.compute(return_auc=return_auc)
+
+
+    def plot(self):
+        raise(NotImplementedError('Plot method has not been implemented.'))
 
 
 class PermutationImportanceResemblance(BaseResemblanceModel):
@@ -298,6 +301,10 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
                 List of feature names of the provided samples. If provided it will be used to overwrite the existing
                 feature names. If not provided the existing feature names are used or default feature names are
                 generated.
+
+        Returns:
+            (PermutationImportanceResemblance):
+                Fitted object.
         """
         super().fit(X1=X1, X2=X2, column_names=column_names)
 
@@ -331,6 +338,7 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
         # Sort by mean test score of first metric
         self.report.sort_values(by='mean_importance', ascending=False, inplace=True)
 
+        return self
 
     def plot(self, ax=None, top_n=None):
         """
@@ -414,17 +422,13 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
     <img src="../img/sample_similarity_shap_summary.png" width="320" />
     """
 
-    def __init__(self, model, iterations=100, test_prc=0.25, n_jobs=1, random_state=42):
+    def __init__(self, model, test_prc=0.25, n_jobs=1, random_state=42):
         """
         Initializes the class.
 
         Args:
             model (model object):
                 Binary classification model or pipeline.
-
-            iterations (int, optional):
-                Number of iterations performed to calculate permutation importance. By default 100 iterations per
-                feature are done.
 
             test_prc (float, optional):
                 Percentage of data used to test the model. By default 0.25 is set.
@@ -438,6 +442,7 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
         super().__init__(model=model, test_prc=test_prc, n_jobs=n_jobs, random_state=random_state)
 
         self.plot_title = 'SHAP summary plot'
+
 
     def fit(self, X1, X2, column_names=None):
         """
@@ -457,11 +462,17 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
                 List of feature names of the provided samples. If provided it will be used to overwrite the existing
                 feature names. If not provided the existing feature names are used or default feature names are
                 generated.
+
+        Returns:
+            (PermutationImportanceResemblance):
+                Fitted object.
         """
         super().fit(X1=X1, X2=X2, column_names=column_names)
 
         self.shap_values_test = shap_calc(self.model, self.X_test, data=self.X_train)
         self.report = calculate_shap_importance(self.shap_values_test, self.column_names)
+        return self
+
 
     def plot(self, plot_type='bar', **summary_plot_kwargs):
         """

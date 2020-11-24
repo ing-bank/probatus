@@ -32,7 +32,7 @@ def test_shap_rfe_randomized_search(X, y, capsys):
         report = shap_elimination.fit_compute(X, y)
 
     assert shap_elimination.fitted == True
-    shap_elimination._check_if_fitted
+    shap_elimination._check_if_fitted()
 
     assert report.shape[0] == 2
     assert shap_elimination.get_reduced_features_set(1) == ['col_3']
@@ -51,10 +51,10 @@ def test_shap_rfe(X, y, capsys):
     clf = DecisionTreeClassifier(max_depth=1)
     with pytest.warns(None) as record:
         shap_elimination = ShapRFECV(clf, random_state=1, step=1, cv=2, scoring='roc_auc', n_jobs=4)
-        shap_elimination.fit(X, y)
+        shap_elimination = shap_elimination.fit(X, y)
 
     assert shap_elimination.fitted == True
-    shap_elimination._check_if_fitted
+    shap_elimination._check_if_fitted()
 
     report = shap_elimination.compute()
 

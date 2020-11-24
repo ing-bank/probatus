@@ -23,12 +23,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from probatus.binning import SimpleBucketer, AgglomerativeBucketer, QuantileBucketer
-from probatus.utils.shap_helpers import shap_to_df
-from probatus.utils.arrayfuncs import assure_pandas_df
-from probatus.utils.exceptions import NotFittedError
+from probatus.utils import BaseFitComputePlotClass, assure_pandas_df, shap_to_df
 
 
-class TreeDependencePlotter:
+class TreeDependencePlotter(BaseFitComputePlotClass):
     """
     Plotter used to plot shap dependence and target rates. 
     
@@ -42,7 +40,8 @@ class TreeDependencePlotter:
 
     X, y = make_classification(n_samples=15, n_features=3, n_informative=3, n_redundant=0, random_state=42)
     clf = RandomForestClassifier().fit(X, y)
-    bdp = TreeDependencePlotter(clf).fit(X, y)
+    bdp = TreeDependencePlotter(clf)
+    shap_values = bdp.fit_compute(X, y)
 
     bdp.plot(feature=2, type_binning='simple')
     ```
@@ -51,7 +50,6 @@ class TreeDependencePlotter:
     def __init__(self, model):
         self.model = model
 
-        self.isFitted = False
         self.target_names = [1, 0]
 
     def __repr__(self):
@@ -59,14 +57,18 @@ class TreeDependencePlotter:
 
     def fit(self, X, y, precalc_shap=None):
         """
-        Fits the plotter to the model and data by computing the shap values.
-        If the shap_values are passed, they do not need to be computed
+        Fits the plotter to the model and data by computing the shap values. If the shap_values are passed, they do not
+            need to be computed
         
         Args:
-        X (pd.DataFrame): input variables
-        y (pd.Series): target variable
-        precalc_shap (Optional, None or np.array): Precalculated shap values, If provided they don't need to be
-         computed.
+            X (pd.DataFrame):
+                input variables.
+
+            y (pd.Series):
+                target variable
+
+            precalc_shap (Optional, None or np.array):
+                Precalculated shap values, If provided they don't need to be computed.
         """
         self.X = assure_pandas_df(X)
         self.y = y
@@ -74,30 +76,45 @@ class TreeDependencePlotter:
 
         self.shap_vals_df = shap_to_df(self.model, self.X, precalc_shap=precalc_shap)
 
-        self.isFitted = True
+        self.fitted = True
         return self
 
-
-    def _check_fitted(self):
+    def compute(self):
         """
-        Function to check if plotter is already fitted, raises exception otherwise
-        
-        Raises:
-            NotFittedError: in case the plotter is not yet fitted.
-        """
-        if not self.isFitted:
-            raise NotFittedError("The plotter is not fitted yet..")
+        Computes the report returned to the user, namely the SHAP values generated on the dataset.
 
-    def plot(
-        self,
-        feature,
-        figsize=(15, 10),
-        bins=10,
-        type_binning="simple",
-        min_q=0,
-        max_q=1,
-        target_names=None,
-    ):
+        Returns:
+            (pd.DataFrame):
+                SHAP Values for X.
+        """
+        self._check_if_fitted()
+        return self.shap_vals_df
+
+
+    def fit_compute(self, X, y, precalc_shap=None):
+        """
+        Fits the plotter to the model and data by computing the shap values.
+            If the shap_values are passed, they do not need to be computed
+
+        Args:
+            X (pd.DataFrame):
+                Provided dataset.
+
+            y (pd.Series):
+                Binary labels for X.
+
+            precalc_shap (Optional, None or np.array):
+                Precalculated shap values, If provided they don't need to be computed.
+
+        Returns:
+            (pd.DataFrame):
+                SHAP Values for X.
+        """
+
+        self.fit(X, y, precalc_shap=precalc_shap)
+        return self.compute()
+
+    def plot(self, feature, figsize=(15, 10), bins=10, type_binning="simple", min_q=0, max_q=1, target_names=None):
         """
         Plots the shap values for data points for a given feature, as well as the target rate and values distribution.
         
@@ -113,7 +130,7 @@ class TreeDependencePlotter:
         Returns
             matplotlib.pyplot.Figure: Feature plot.
         """
-        self._check_fitted()
+        self._check_if_fitted()
         if min_q >= max_q:
             raise ValueError("min_q must be smaller than max_q")
         if feature not in self.X.columns:
@@ -239,7 +256,7 @@ class TreeDependencePlotter:
             y (pd.Series): target values of selected datapoints
             shap_val (pd.Series): shap values of selected datapoints
         """
-        self._check_fitted()
+        self._check_if_fitted()
         if feature not in self.X.columns:
             raise ValueError("Feature not found in data")
 
