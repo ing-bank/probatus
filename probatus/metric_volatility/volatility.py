@@ -25,7 +25,7 @@ from probatus.metric_volatility.metric import get_metric
 from joblib import Parallel, delayed
 from tqdm.auto import tqdm
 from probatus.utils import assure_numpy_array, NotFittedError, get_scorers, assure_list_of_strings,\
-    assure_list_values_allowed
+    assure_list_values_allowed, preprocess_data, preprocess_labels
 from probatus.metric_volatility.utils import check_sampling_input
 from probatus.stat_tests import DistributionStatistics
 import warnings
@@ -38,7 +38,8 @@ class BaseVolatilityEstimator(object):
     """
 
 
-    def __init__(self, model, metrics='roc_auc', test_prc=0.25, n_jobs=1, stats_tests_to_apply=None, random_state=42):
+    def __init__(self, model, metrics='roc_auc', test_prc=0.25, n_jobs=1, stats_tests_to_apply=None, verbose=0,
+                 random_state=42):
         """
         Initializes the class
 
@@ -68,6 +69,14 @@ class BaseVolatilityEstimator(object):
                 - `'SW'`: Shapiro-Wilk based difference statistic,
                 - `'AD'`: Anderson-Darling TS.
 
+            verbose (int, optional):
+                Controls verbosity of the output:
+
+                - 0 - nether prints nor warnings are shown
+                - 1 - 50 - only most important warnings regarding data properties are shown (excluding SHAP warnings)
+                - 51 - 100 - shows most important warnings, prints of the feature removal process
+                - above 100 - presents all prints and all warnings (including SHAP warnings).
+
             random_state (int, optional):
                 The seed used by the random number generator.
         """
@@ -77,6 +86,7 @@ class BaseVolatilityEstimator(object):
         self.test_prc = test_prc
         self.iterations_results = None
         self.report = None
+        self.verbose = verbose
         self.fitted = False
         self.allowed_stats_tests = list(DistributionStatistics.statistical_test_dict.keys())
 
@@ -303,7 +313,7 @@ class TrainTestVolatility(BaseVolatilityEstimator):
 
     def __init__(self, model, iterations=1000, sample_train_test_split_seed=True, train_sampling_type=None,
                  test_sampling_type=None, train_sampling_fraction=1, test_sampling_fraction=1, metrics='roc_auc',
-                 test_prc=0.25, n_jobs=1, stats_tests_to_apply=None, random_state=42):
+                 test_prc=0.25, n_jobs=1, stats_tests_to_apply=None, verbose=0, random_state=42):
 
         """
         Initializes the class.
@@ -364,11 +374,19 @@ class TrainTestVolatility(BaseVolatilityEstimator):
                 - `'SW'`: Shapiro-Wilk based difference statistic,
                 - `'AD'`: Anderson-Darling TS.
 
+            verbose (int, optional):
+                Controls verbosity of the output:
+
+                - 0 - nether prints nor warnings are shown
+                - 1 - 50 - only most important warnings regarding data properties are shown (excluding SHAP warnings)
+                - 51 - 100 - shows most important warnings, prints of the feature removal process
+                - above 100 - presents all prints and all warnings (including SHAP warnings).
+
             random_state (int, optional):
                 The seed used by the random number generator.
         """
         super().__init__(model=model, metrics=metrics, test_prc=test_prc, n_jobs=n_jobs,
-                         stats_tests_to_apply=stats_tests_to_apply, random_state=random_state)
+                         stats_tests_to_apply=stats_tests_to_apply, verbose=verbose, random_state=random_state)
         self.iterations = iterations
         self.train_sampling_type = train_sampling_type
         self.test_sampling_type = test_sampling_type
@@ -379,7 +397,7 @@ class TrainTestVolatility(BaseVolatilityEstimator):
         check_sampling_input(train_sampling_type, train_sampling_fraction, 'train')
         check_sampling_input(test_sampling_type, test_sampling_fraction, 'test')
 
-    def fit(self, X, y):
+    def fit(self, X, y, column_names=None):
         """
         Bootstraps a number of random seeds, then splits the data based on the sampled seeds and estimates performance
             of the model based on the split data.
@@ -388,14 +406,18 @@ class TrainTestVolatility(BaseVolatilityEstimator):
             X (pandas.DataFrame or numpy.ndarray):
                 Array with samples and features.
 
-            y (pandas.DataFrame or numpy.ndarray):
+            y (pandas.Series or numpy.ndarray):
                 Array with targets.
 
+            column_names (list of str, optional):
+                List of feature names of the provided samples. If provided it will be used to overwrite the existing
+                feature names. If not provided the existing feature names are used or default feature names are
+                generated.
         """
         super().fit()
 
-        X = assure_numpy_array(X)
-        y = assure_numpy_array(y)
+        self.X, self.column_names = preprocess_data(X, X_name='X', column_names=column_names, verbose=self.verbose)
+        self.y = preprocess_labels(y, y_name='y', index=self.X.index, verbose=self.verbose)
 
         if self.sample_train_test_split_seed:
             random_seeds = np.random.random_integers(0, 999999, self.iterations)
@@ -403,7 +425,7 @@ class TrainTestVolatility(BaseVolatilityEstimator):
             random_seeds = (np.ones(self.iterations) * self.random_state).astype(int)
 
         results_per_iteration = Parallel(n_jobs=self.n_jobs)(delayed(get_metric)(
-            X=X, y=y, model=self.model, test_size=self.test_prc, split_seed=split_seed,
+            X=self.X, y=self.y, model=self.model, test_size=self.test_prc, split_seed=split_seed,
             scorers=self.scorers, train_sampling_type=self.train_sampling_type,
             test_sampling_type=self.test_sampling_type, train_sampling_fraction=self.train_sampling_fraction,
             test_sampling_fraction=self.test_sampling_fraction
@@ -435,7 +457,7 @@ class SplitSeedVolatility(TrainTestVolatility):
     """
 
     def __init__(self, model, iterations=1000, metrics='roc_auc', test_prc=0.25, n_jobs=1, stats_tests_to_apply=None,
-                 random_state=42):
+                 verbose=0, random_state=42):
         """
         Initializes the class
 
@@ -468,13 +490,21 @@ class SplitSeedVolatility(TrainTestVolatility):
                 - `'SW'`: Shapiro-Wilk based difference statistic,
                 - `'AD'`: Anderson-Darling TS.
 
+            verbose (int, optional):
+                Controls verbosity of the output:
+
+                - 0 - nether prints nor warnings are shown
+                - 1 - 50 - only most important warnings regarding data properties are shown (excluding SHAP warnings)
+                - 51 - 100 - shows most important warnings, prints of the feature removal process
+                - above 100 - presents all prints and all warnings (including SHAP warnings).
+
             random_state (int, optional):
                 The seed used by the random number generator.
         """
         super().__init__(model=model, sample_train_test_split_seed=True, train_sampling_type=None,
                          test_sampling_type=None, train_sampling_fraction=1,  test_sampling_fraction=1,
                          iterations=iterations, metrics=metrics, test_prc=test_prc, n_jobs=n_jobs,
-                         stats_tests_to_apply=stats_tests_to_apply, random_state=random_state)
+                         stats_tests_to_apply=stats_tests_to_apply, verbose=verbose, random_state=random_state)
 
 
 class BootstrappedVolatility(TrainTestVolatility):
@@ -498,7 +528,7 @@ class BootstrappedVolatility(TrainTestVolatility):
     """
 
     def __init__(self, model, iterations=1000, train_sampling_fraction=1, test_sampling_fraction=1, metrics='roc_auc',
-                 test_prc=0.25, n_jobs=1, stats_tests_to_apply=None, random_state=42):
+                 test_prc=0.25, n_jobs=1, stats_tests_to_apply=None, verbose=0, random_state=42):
         """
         Initializes the class.
 
@@ -537,11 +567,19 @@ class BootstrappedVolatility(TrainTestVolatility):
                 - `'SW'`: Shapiro-Wilk based difference statistic,
                 - `'AD'`: Anderson-Darling TS.
 
+            verbose (int, optional):
+                Controls verbosity of the output:
+
+                - 0 - nether prints nor warnings are shown
+                - 1 - 50 - only most important warnings regarding data properties are shown (excluding SHAP warnings)
+                - 51 - 100 - shows most important warnings, prints of the feature removal process
+                - above 100 - presents all prints and all warnings (including SHAP warnings).
+
             random_state (int, optional):
                 The seed used by the random number generator.
         """
         super().__init__(model=model, sample_train_test_split_seed=False, train_sampling_type='bootstrap',
                          test_sampling_type='bootstrap', iterations=iterations, metrics=metrics,
                          train_sampling_fraction=train_sampling_fraction, test_sampling_fraction=test_sampling_fraction,
-                         test_prc=test_prc, n_jobs=n_jobs, stats_tests_to_apply=stats_tests_to_apply,
+                         test_prc=test_prc, n_jobs=n_jobs, stats_tests_to_apply=stats_tests_to_apply, verbose=verbose,
                          random_state=random_state)

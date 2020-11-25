@@ -24,7 +24,7 @@ import matplotlib.pyplot as plt
 
 from probatus.binning import SimpleBucketer, AgglomerativeBucketer, QuantileBucketer
 from probatus.utils.shap_helpers import shap_to_df
-from probatus.utils.arrayfuncs import assure_pandas_df
+from probatus.utils.arrayfuncs import preprocess_data, preprocess_labels
 from probatus.utils.exceptions import NotFittedError
 
 
@@ -48,16 +48,31 @@ class TreeDependencePlotter:
     ```
     """
 
-    def __init__(self, model):
-        self.model = model
+    def __init__(self, model, verbose=0):
+        """
+        Initializes the class
 
+        Args:
+            clf (binary classifier):
+                Model fitted on X_train.
+
+            verbose (int, optional):
+                Controls verbosity of the output:
+
+                - 0 - nether prints nor warnings are shown
+                - 1 - 50 - only most important warnings regarding data properties are shown (excluding SHAP warnings)
+                - 51 - 100 - shows most important warnings, prints of the feature removal process
+                - above 100 - presents all prints and all warnings (including SHAP warnings).
+        """
+        self.model = model
+        self.verbose = verbose
         self.isFitted = False
         self.target_names = [1, 0]
 
     def __repr__(self):
         return "Shap dependence plotter for {}".format(self.model.__class__.__name__)
 
-    def fit(self, X, y, precalc_shap=None):
+    def fit(self, X, y, column_names=None, precalc_shap=None):
         """
         Fits the plotter to the model and data by computing the shap values.
         If the shap_values are passed, they do not need to be computed
@@ -68,11 +83,10 @@ class TreeDependencePlotter:
         precalc_shap (Optional, None or np.array): Precalculated shap values, If provided they don't need to be
          computed.
         """
-        self.X = assure_pandas_df(X)
-        self.y = y
-        self.features = self.X.columns
+        self.X, self.column_names = preprocess_data(X, X_name='X', column_names=column_names, verbose=self.verbose)
+        self.y = preprocess_labels(y, y_name='y', index=self.X.index, verbose=self.verbose)
 
-        self.shap_vals_df = shap_to_df(self.model, self.X, precalc_shap=precalc_shap)
+        self.shap_vals_df = shap_to_df(self.model, self.X, precalc_shap=precalc_shap, verbose=self.verbose)
 
         self.isFitted = True
         return self
@@ -154,7 +168,7 @@ class TreeDependencePlotter:
             matplotlib.pyplot.axes: axes on which plot is drawn.
         """
         if type(feature) is int:
-            feature = self.features[feature]
+            feature = self.column_names[feature]
 
         X, y, shap_val = self._get_X_y_shap_with_q_cut(feature=feature)
 

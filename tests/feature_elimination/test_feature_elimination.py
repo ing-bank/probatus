@@ -5,6 +5,7 @@ import pandas as pd
 from probatus.feature_elimination import ShapRFECV
 from sklearn.model_selection import RandomizedSearchCV
 from sklearn.metrics import get_scorer
+import lightgbm
 
 @pytest.fixture(scope='function')
 def X():
@@ -22,10 +23,10 @@ def test_shap_rfe_randomized_search(X, y, capsys):
 
     clf = DecisionTreeClassifier(max_depth=1)
     param_grid = {
-        'criterion': ['gini', 'entropy'],
+        'criterion': ['gini'],
         'min_samples_split': [1, 2]
     }
-    search = RandomizedSearchCV(clf, param_grid, cv=2)
+    search = RandomizedSearchCV(clf, param_grid, cv=2, n_iter=2)
     with pytest.warns(None) as record:
 
         shap_elimination = ShapRFECV(search, step=0.8, cv=2, scoring='roc_auc', n_jobs=4, verbose=150)
@@ -69,6 +70,7 @@ def test_shap_rfe(X, y, capsys):
     out, _ = capsys.readouterr()
     assert len(out) == 0
 
+
 def test_calculate_number_of_features_to_remove():
     assert 3 == ShapRFECV._calculate_number_of_features_to_remove(current_num_of_features=10,
                                                                   num_features_to_remove=3,
@@ -84,21 +86,6 @@ def test_calculate_number_of_features_to_remove():
                                                                   min_num_features_to_keep=1)
 
 
-def test_preprocess_data(X):
-    X['col_static'] = 1
-    X['col_categorical'] = X['col_3'].apply(lambda x: str(x))
-    X['col_missing'] = X['col_3'].apply(lambda x: x if x < 0.5 else np.nan)
-
-    X_output = ShapRFECV._preprocess_data(X)
-
-    # Check if categoricals correctly handled
-    assert X_output['col_categorical'].dtype.name == 'category'
-
-    # Check if static feature removed
-    assert 'col_static' not in X_output.columns.tolist()
-    assert X_output.shape[1] == X.shape[1] - 1
-
-
 def test_get_feature_shap_values_per_fold(X, y):
     clf = DecisionTreeClassifier(max_depth=1)
     shap_values, train_score, test_score = ShapRFECV._get_feature_shap_values_per_fold(X, y, clf,
@@ -110,4 +97,21 @@ def test_get_feature_shap_values_per_fold(X, y):
     assert shap_values.shape == (2, 3)
 
 
+def test_complex_dataset(complex_data):
+    X, y = complex_data
 
+    clf = lightgbm.LGBMClassifier(max_depth=5, class_weight='balanced')
+
+    param_grid = {
+        'n_estimators': [5, 7, 10],
+        'num_leaves': [3, 5, 7, 10],
+    }
+    search = RandomizedSearchCV(clf, param_grid, n_iter=1)
+
+    shap_elimination = ShapRFECV(
+        clf=search, step=1, cv=10, scoring='roc_auc', n_jobs=3, verbose=50)
+    with pytest.warns(None) as record:
+        report = shap_elimination.fit_compute(X, y)
+
+    assert report.shape[0] == X.shape[1]
+    assert len(record) == 2

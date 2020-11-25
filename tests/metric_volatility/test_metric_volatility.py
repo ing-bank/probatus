@@ -31,7 +31,7 @@ def X_df(X_array):
 
 @pytest.fixture(scope='function')
 def y_series(y_list):
-    return pd.DataFrame(y_list)
+    return pd.Series(y_list)
 
 @pytest.fixture(scope='function')
 def iteration_results():
