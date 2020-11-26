@@ -24,14 +24,14 @@ import matplotlib.pyplot as plt
 from probatus.metric_volatility.metric import get_metric
 from joblib import Parallel, delayed
 from tqdm.auto import tqdm
-from probatus.utils import assure_numpy_array, NotFittedError, get_scorers, assure_list_of_strings,\
-    assure_list_values_allowed
+from probatus.utils import assure_numpy_array, get_scorers, assure_list_of_strings,\
+    assure_list_values_allowed, BaseFitComputePlotClass
 from probatus.metric_volatility.utils import check_sampling_input
 from probatus.stat_tests import DistributionStatistics
 import warnings
 
 
-class BaseVolatilityEstimator(object):
+class BaseVolatilityEstimator(BaseFitComputePlotClass):
     """
     Base object for estimating volatility estimation. This class is a base class, therefore cannot be used on its
         own. Implements common API that can be used by all subclasses.
@@ -77,7 +77,6 @@ class BaseVolatilityEstimator(object):
         self.test_prc = test_prc
         self.iterations_results = None
         self.report = None
-        self.fitted = False
         self.allowed_stats_tests = list(DistributionStatistics.statistical_test_dict.keys())
 
         # TODO set reasonable default value for the parameter, to choose the statistical test for the user for different
@@ -102,6 +101,10 @@ class BaseVolatilityEstimator(object):
     def fit(self, *args, **kwargs):
         """
         Base fit functionality that should be executed before each fit.
+
+        Returns:
+            (BaseVolatilityEstimator):
+                Fitted object.
         """
 
         # Set seed for results reproducibility
@@ -111,6 +114,7 @@ class BaseVolatilityEstimator(object):
         self.iterations_results = None
         self.report = None
         self.fitted = True
+        return self
 
     def compute(self, metrics=None):
         """
@@ -125,8 +129,7 @@ class BaseVolatilityEstimator(object):
                 Report that contains the evaluation mean and std on train and test sets for each metric.
         """
 
-        if self.fitted is False:
-            raise(NotFittedError('The object has not been fitted. Please run fit() method first'))
+        self._check_if_fitted()
         if self.report is None:
             raise(ValueError('Report is None, thus it has not been computed by fit method. Please extend the '
                              'BaseVolatilityEstimator class, overwrite fit method, and within fit run compute_report()'))
@@ -391,6 +394,9 @@ class TrainTestVolatility(BaseVolatilityEstimator):
             y (pandas.DataFrame or numpy.ndarray):
                 Array with targets.
 
+        Returns:
+            (TrainTestVolatility):
+                Fitted object.
         """
         super().fit()
 
@@ -412,6 +418,7 @@ class TrainTestVolatility(BaseVolatilityEstimator):
         self.iterations_results = pd.concat(results_per_iteration, ignore_index=True)
 
         self._create_report()
+        return self
 
 
 class SplitSeedVolatility(TrainTestVolatility):

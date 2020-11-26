@@ -18,7 +18,7 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
-from ..utils import NotFittedError, UnsupportedModelError
+from ..utils import NotFittedError, UnsupportedModelError, BaseFitComputeClass
 import numpy as np
 import pandas as pd
 import copy
@@ -45,9 +45,8 @@ def return_confusion_metric(y_true, y_score, normalize = False):
 
     return np.abs(y_true - y_score)
 
-class BaseInspector(object):
+class BaseInspector(BaseFitComputeClass):
     def __init__(self, algotype, **kwargs):
-        self.fitted = False
         self.algotype = algotype
         # TODO fix compilatiopn issue on  for hdbscan
         # if algotype =='dbscan':

@@ -80,19 +80,19 @@ def expected_feat_importances():
 
 def test_not_fitted(clf):
     plotter = TreeDependencePlotter(clf)
-    assert plotter.isFitted is False
+    assert plotter.fitted is False
 
 
 def test_fit_normal(X_y, clf, expected_shap_vals):
     X, y = X_y
     plotter = TreeDependencePlotter(clf)
 
-    plotter.fit(X, y)
+    shap_vals = plotter.fit_compute(X, y)
 
     assert plotter.X.equals(X)
     assert plotter.y.equals(y)
-    assert np.isclose(plotter.shap_vals_df, expected_shap_vals, atol=1e-06).all()
-    assert plotter.isFitted is True
+    assert np.isclose(shap_vals, expected_shap_vals, atol=1e-06).all()
+    assert plotter.fitted is True
 
 
 def test_get_X_y_shap_with_q_cut_normal(X_y, clf):
