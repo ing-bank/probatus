@@ -33,7 +33,6 @@ def complex_data_split(complex_data):
 
 @pytest.fixture(scope='function')
 def complex_lightgbm():
-    assert os.environ["INPUT_SKIP_LIGHTGBM"]
     import lightgbm
     return lightgbm.LGBMClassifier(max_depth=5, class_weight='balanced')
 

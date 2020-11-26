@@ -104,7 +104,7 @@ def test_fit_normal(X_y, clf, expected_shap_vals):
     assert plotter.isFitted is True
 
 
-@pytest.mark.skipif(os.environ.get("SKIP_LIGHTGBM"), reason="LightGBM tests disabled")
+@pytest.mark.skipif(os.environ.get("SKIP_LIGHTGBM") == 'true', reason="LightGBM tests disabled")
 def test_fit_complex(complex_data_split, complex_fitted_lightgbm):
     X_train, X_test, y_train, y_test = complex_data_split
 

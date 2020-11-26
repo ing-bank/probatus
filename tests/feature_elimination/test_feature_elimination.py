@@ -97,7 +97,7 @@ def test_get_feature_shap_values_per_fold(X, y):
     assert train_score > 0.9
     assert shap_values.shape == (2, 3)
 
-@pytest.mark.skipif(os.environ.get("SKIP_LIGHTGBM"), reason="LightGBM tests disabled")
+@pytest.mark.skipif(os.environ.get("SKIP_LIGHTGBM") == 'true', reason="LightGBM tests disabled")
 def test_complex_dataset(complex_data, complex_lightgbm):
     X, y = complex_data
 
