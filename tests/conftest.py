@@ -4,7 +4,7 @@ from sklearn.datasets import make_classification
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
-
+import os
 
 @pytest.fixture(scope='function')
 def mock_model():
@@ -33,6 +33,7 @@ def complex_data_split(complex_data):
 
 @pytest.fixture(scope='function')
 def complex_lightgbm():
+    print(f'OS IS {os.environ.get("SKIP_LIGHTGBM")}')
     import lightgbm
     return lightgbm.LGBMClassifier(max_depth=5, class_weight='balanced')
 

@@ -13,15 +13,15 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        build: [1, 2, 3]
+        build: [macos, ubuntu, windows]
         include:
-          - build: 1
+          - build: macos
             os: macos-latest
             SKIP_LIGHTGBM: True
-          - build: 2
+          - build: ubuntu
             os: ubuntu-latest
             SKIP_LIGHTGBM: False
-          - build: 3
+          - build: windows
             os: windows-latest
             SKIP_LIGHTGBM: False
         python-version: [3.6, 3.7, 3.8]
