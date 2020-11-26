@@ -6,7 +6,8 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.tree import DecisionTreeClassifier
-
+import os
+from pandas.api.types import is_numeric_dtype
 
 @pytest.fixture(scope='function')
 def X1():
@@ -75,7 +76,6 @@ def test_shap_resemblance_class(X1, X2):
     # Check report shape
     assert actual_report.shape == (3, 2)
     # Check if it is sorted by importance
-    print(actual_report)
     assert actual_report.iloc[0].name == 'col_1'
     # Check report values
     assert actual_report.loc['col_1']['mean_abs_shap_value'] > 0
@@ -87,6 +87,48 @@ def test_shap_resemblance_class(X1, X2):
 
     actual_shap_values_test = rm.get_shap_values()
     assert actual_shap_values_test.shape == (4, 3)
+
+    # Run plots
+    rm.plot(plot_type='bar')
+    rm.plot(plot_type='dot')
+
+
+@pytest.mark.skipif(os.environ.get("SKIP_LIGHTGBM") == 'true', reason="LightGBM tests disabled")
+def test_shap_resemblance_class(complex_data, complex_lightgbm):
+    X1, _ = complex_data
+    X2 = X1.copy()
+    X2['f4'] = X2['f4'] + 100
+
+    rm = SHAPImportanceResemblance(complex_lightgbm, test_prc=0.5, n_jobs=1, random_state=42)
+
+    # Before fit it should raise an exception
+    with pytest.raises(NotFittedError) as _:
+        rm._check_if_fitted()
+
+    actual_report, train_auc, test_auc = rm.fit_compute(X1, X2, return_auc=True)
+
+    # Check if the X and y within the rm have correct types
+    assert rm.X['f1_categorical'].dtype.name == 'category'
+    for num_column in ['f2_missing', 'f3_static', 'f4', 'f5']:
+        assert is_numeric_dtype(rm.X[num_column])
+
+    # After the fit this should not raise any error
+    rm._check_if_fitted()
+
+    assert train_auc == 1
+    assert test_auc == 1
+
+    # Check report shape
+    assert actual_report.shape == (5, 2)
+    # Check if it is sorted by importance
+    assert actual_report.iloc[0].name == 'f4'
+
+    # Check report values
+    assert actual_report.loc['f4']['mean_abs_shap_value'] > 0
+
+    actual_shap_values_test = rm.get_shap_values()
+    # 50 test samples and 5 features
+    assert actual_shap_values_test.shape == (X1.shape[0], X1.shape[1])
 
     # Run plots
     rm.plot(plot_type='bar')
@@ -112,7 +154,6 @@ def test_permutation_resemblance_class(X1, X2):
     # Check report shape
     assert actual_report.shape == (3, 2)
     # Check if it is sorted by importance
-    print(actual_report)
     assert actual_report.iloc[0].name == 'col_1'
     # Check report values
     assert actual_report.loc['col_1']['mean_importance'] > 0

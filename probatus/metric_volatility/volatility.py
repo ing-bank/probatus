@@ -519,7 +519,7 @@ class BootstrappedVolatility(TrainTestVolatility):
     from sklearn.ensemble import RandomForestClassifier
     from probatus.metric_volatility import BootstrappedVolatility
     X, y = make_classification(n_features=4)
-    RandomForestClassifier()
+    clf = RandomForestClassifier()
     volatility = BootstrappedVolatility(clf, iterations=500 , test_prc = 0.5)
     volatility_report = volatility.fit_compute(X, y)
     volatility.plot()

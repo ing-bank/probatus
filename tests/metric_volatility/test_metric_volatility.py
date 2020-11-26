@@ -1,5 +1,6 @@
 from probatus.metric_volatility import BaseVolatilityEstimator, TrainTestVolatility, SplitSeedVolatility,\
     BootstrappedVolatility, get_metric, sample_data, check_sampling_input
+from sklearn.tree import DecisionTreeClassifier
 import pytest
 import numpy as np
 import pandas as pd
@@ -7,7 +8,7 @@ from unittest.mock import patch
 import matplotlib.pyplot as plt
 from probatus.stat_tests.distribution_statistics import DistributionStatistics
 from probatus.utils import Scorer, NotFittedError
-
+import os
 
 @pytest.fixture(scope='function')
 def X_array():
@@ -257,3 +258,28 @@ def test_check_sampling_input(X_array, y_array):
         check_sampling_input('subsample', 10, 'dataset')
     with pytest.raises(ValueError):
         check_sampling_input('wrong_name', 0.5, 'dataset')
+
+
+def test_fit_compute_full_process(X_df, y_series):
+    clf = DecisionTreeClassifier()
+    vol = TrainTestVolatility(clf, metrics=['roc_auc', 'recall'], iterations=3, sample_train_test_split_seed=False)
+
+    report = vol.fit_compute(X_df, y_series)
+    assert report.shape == (2, 6)
+
+    # Check if plot runs
+    with patch('matplotlib.pyplot.figure') as mock_plt:
+        vol.plot()
+
+
+@pytest.mark.skipif(os.environ.get("SKIP_LIGHTGBM") == 'true', reason="LightGBM tests disabled")
+def test_fit_compute_complex(complex_data, complex_lightgbm):
+    X, y = complex_data
+    vol = TrainTestVolatility(complex_lightgbm, metrics='roc_auc', iterations=3, sample_train_test_split_seed=True)
+
+    report = vol.fit_compute(X, y)
+    assert report.shape == (1, 6)
+
+    # Check if plot runs
+    with patch('matplotlib.pyplot.figure') as mock_plt:
+        vol.plot()

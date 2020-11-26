@@ -111,10 +111,10 @@ class BaseResemblanceModel(object):
         self.X2, _ = preprocess_data(X2, X_name='X2', column_names=column_names, verbose=self.verbose)
 
         # Prepare dataset for modelling
-        self.X = pd.DataFrame(np.concatenate([
+        self.X = pd.DataFrame(pd.concat([
             self.X1,
             self.X2
-        ]), columns = self.column_names).reset_index(drop=True)
+        ], axis=0), columns = self.column_names).reset_index(drop=True)
 
         self.y = pd.Series(np.concatenate([
             np.zeros(self.X1.shape[0]),
@@ -122,14 +122,16 @@ class BaseResemblanceModel(object):
         ])).reset_index(drop=True)
 
         # Assure the type and number of classes for the variable
+        self.X, _ = preprocess_data(self.X, X_name='X', column_names=self.column_names, verbose=self.verbose)
+
         self.y = preprocess_labels(self.y, y_name='y', index=self.X.index, verbose=self.verbose)
 
         # Reinitialize variables in case of multiple times being fit
         self._init_output_variables()
 
-        self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(self.X, self.y,test_size=self.test_prc,
+        self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(self.X, self.y, test_size=self.test_prc,
                                                                                 random_state=self.random_state,
-                                                                                stratify=self.y)
+                                                                                shuffle=True, stratify=self.y)
         self.model.fit(self.X_train, self.y_train)
 
         self.auc_train = np.round(self.scorer.score(self.model, self.X_train, self.y_train), 3)
@@ -471,7 +473,7 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
         """
         super().fit(X1=X1, X2=X2, column_names=column_names)
 
-        self.shap_values_test = shap_calc(self.model, self.X_test, verbose=self.verbose, data=self.X_train)
+        self.shap_values_test = shap_calc(self.model, self.X_test, verbose=self.verbose)
         self.report = calculate_shap_importance(self.shap_values_test, self.column_names)
 
     def plot(self, plot_type='bar', **summary_plot_kwargs):

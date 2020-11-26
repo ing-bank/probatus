@@ -34,12 +34,11 @@ def complex_data_split(complex_data):
 @pytest.fixture(scope='function')
 def complex_lightgbm():
     import lightgbm
-    return lightgbm.LGBMClassifier(max_depth=5, class_weight='balanced')
+    return lightgbm.LGBMClassifier(max_depth=5, num_leaves=11, class_weight='balanced')
 
 
 @pytest.fixture(scope='function')
 def complex_fitted_lightgbm(complex_data_split, complex_lightgbm):
-
     X_train, _, y_train, _ = complex_data_split
     X_train['f1_categorical'] = X_train['f1_categorical'].astype('category')
 
