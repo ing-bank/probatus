@@ -21,14 +21,16 @@
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
-from probatus.utils import preprocess_labels, NotFittedError, get_scorers, preprocess_data
+from probatus.utils import preprocess_labels, get_scorers, preprocess_data, \
+    BaseFitComputePlotClass
 from probatus.utils.shap_helpers import shap_calc, calculate_shap_importance
 from sklearn.inspection import permutation_importance
 import matplotlib.pyplot as plt
 import shap
 import warnings
 
-class BaseResemblanceModel(object):
+
+class BaseResemblanceModel(BaseFitComputePlotClass):
     """
     This model checks for similarity of two samples. A possible use case is analysis whether train sample differs
         from test sample, due to e.g. non-stationarity.
@@ -67,8 +69,6 @@ class BaseResemblanceModel(object):
         self.random_state = random_state
         self.verbose = verbose
 
-        self.fitted = False
-
         self.metric_name = 'roc_auc'
         self.scorer = get_scorers(self.metric_name)[0]
 
@@ -101,6 +101,10 @@ class BaseResemblanceModel(object):
                 List of feature names of the provided samples. If provided it will be used to overwrite the existing
                 feature names. If not provided the existing feature names are used or default feature names are
                 generated.
+
+        Returns:
+            (BaseResemblanceModel):
+                Fitted object
         """
 
         # Set seed for results reproducibility
@@ -147,11 +151,7 @@ class BaseResemblanceModel(object):
                           'Consider retraining with more regularization applied to the model.')
 
         self.fitted = True
-
-
-    def _check_if_fitted(self):
-        if self.fitted is False:
-            raise(NotFittedError('The object has not been fitted. Please run fit() method first'))
+        return self
 
 
     def get_data_splits(self):
@@ -218,6 +218,10 @@ class BaseResemblanceModel(object):
         """
         self.fit(X1, X2, column_names=column_names, **fit_kwargs)
         return self.compute(return_auc=return_auc)
+
+
+    def plot(self):
+        raise(NotImplementedError('Plot method has not been implemented.'))
 
 
 class PermutationImportanceResemblance(BaseResemblanceModel):
@@ -307,6 +311,10 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
                 List of feature names of the provided samples. If provided it will be used to overwrite the existing
                 feature names. If not provided the existing feature names are used or default feature names are
                 generated.
+
+        Returns:
+            (PermutationImportanceResemblance):
+                Fitted object.
         """
         super().fit(X1=X1, X2=X2, column_names=column_names)
 
@@ -340,6 +348,7 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
         # Sort by mean test score of first metric
         self.report.sort_values(by='mean_importance', ascending=False, inplace=True)
 
+        return self
 
     def plot(self, ax=None, top_n=None):
         """
@@ -424,6 +433,7 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
     """
 
     def __init__(self, model, test_prc=0.25, n_jobs=1, verbose=0, random_state=42):
+
         """
         Initializes the class.
 
@@ -452,6 +462,7 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
 
         self.plot_title = 'SHAP summary plot'
 
+
     def fit(self, X1, X2, column_names=None):
         """
         This function assigns to labels to each sample, 0 to first sample, 1 to the second. Then, It randomly selects a
@@ -470,11 +481,17 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
                 List of feature names of the provided samples. If provided it will be used to overwrite the existing
                 feature names. If not provided the existing feature names are used or default feature names are
                 generated.
+
+        Returns:
+            (PermutationImportanceResemblance):
+                Fitted object.
         """
         super().fit(X1=X1, X2=X2, column_names=column_names)
 
         self.shap_values_test = shap_calc(self.model, self.X_test, verbose=self.verbose)
         self.report = calculate_shap_importance(self.shap_values_test, self.column_names)
+        return self
+
 
     def plot(self, plot_type='bar', **summary_plot_kwargs):
         """

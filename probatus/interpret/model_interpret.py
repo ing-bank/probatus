@@ -19,15 +19,16 @@
 
 
 from probatus.interpret import TreeDependencePlotter
-from probatus.utils import preprocess_data, shap_calc, assure_list_of_strings,\
-    calculate_shap_importance, NotFittedError, preprocess_labels
+from probatus.utils import preprocess_data, preprocess_labels, shap_calc, calculate_shap_importance, \
+    BaseFitComputePlotClass, assure_list_of_strings
 from sklearn.metrics import roc_auc_score
 import numpy as np
 import shap
 import matplotlib.pyplot as plt
 import pandas as pd
 
-class ShapModelInterpreter:
+
+class ShapModelInterpreter(BaseFitComputePlotClass):
     """
     This class is a wrapper that allows to easily analyse model's features. It allows to plot SHAP feature importance,
         SHAP summary plot and SHAP dependence plots.
@@ -87,12 +88,6 @@ class ShapModelInterpreter:
         """
         self.clf = clf
         self.verbose = verbose
-        self.fitted = False
-
-
-    def _check_if_fitted(self):
-        if self.fitted is False:
-            raise(NotFittedError('The object has not been fitted. Please run fit() method first'))
 
 
     def fit(self, X_train, X_test, y_train, y_test, column_names=None, class_names=None, approximate=False,

@@ -1,5 +1,5 @@
-from probatus.utils import preprocess_data, shap_calc, calculate_shap_importance, \
-    NotFittedError, preprocess_labels
+from probatus.utils import preprocess_data, shap_calc, calculate_shap_importance, BaseFitComputePlotClass, \
+    preprocess_labels
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -8,7 +8,7 @@ from sklearn.base import clone, is_classifier
 from sklearn.metrics import check_scoring
 from joblib import Parallel, delayed
 
-class ShapRFECV:
+class ShapRFECV(BaseFitComputePlotClass):
     """
     This class performs Backwards Recursive Feature Elimination, using SHAP feature importance. At each round, for a
         given feature set, starting from all available features, the following steps are applied:
@@ -157,15 +157,6 @@ class ShapRFECV:
         self.n_jobs = n_jobs
         self.report_df = pd.DataFrame([])
         self.verbose = verbose
-        self.fitted = False
-
-
-    def _check_if_fitted(self):
-        """
-        Checks if object has been fitted. If not, NotFittedError is raised.
-        """
-        if self.fitted is False:
-            raise(NotFittedError('The object has not been fitted. Please run fit() method first'))
 
 
     def _get_current_features_to_remove(self, shap_importance_df):
@@ -357,6 +348,8 @@ class ShapRFECV:
                 List of feature names of the provided samples. If provided it will be used to overwrite the existing
                 feature names. If not provided the existing feature names are used or default feature names are
                 generated.
+        Returns:
+            (ShapRFECV): Fitted object.
         """
         # Set seed for results reproducibility
         if self.random_state is not None:
@@ -419,6 +412,7 @@ class ShapRFECV:
                       f'Num of features left: {len(remaining_features)}. '
                       f'Removed features at the end of the round: {features_to_remove}')
         self.fitted = True
+        return self
 
 
     def compute(self):

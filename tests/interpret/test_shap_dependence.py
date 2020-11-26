@@ -89,19 +89,19 @@ def expected_feat_importances():
 
 def test_not_fitted(clf):
     plotter = TreeDependencePlotter(clf)
-    assert plotter.isFitted is False
+    assert plotter.fitted is False
 
 
 def test_fit_normal(X_y, clf, expected_shap_vals):
     X, y = X_y
     plotter = TreeDependencePlotter(clf)
 
-    plotter.fit(X, y)
+    shap_vals = plotter.fit_compute(X, y)
 
     assert plotter.X.equals(X)
     assert plotter.y.equals(y)
-    assert np.isclose(plotter.shap_vals_df, expected_shap_vals, atol=1e-06).all()
-    assert plotter.isFitted is True
+    assert np.isclose(shap_vals, expected_shap_vals, atol=1e-06).all()
+    assert plotter.fitted is True
 
 
 @pytest.mark.skipif(os.environ.get("SKIP_LIGHTGBM") == 'true', reason="LightGBM tests disabled")
@@ -114,7 +114,7 @@ def test_fit_complex(complex_data_split, complex_fitted_lightgbm):
 
     pd.testing.assert_frame_equal(plotter.X, X_test)
     pd.testing.assert_series_equal(plotter.y, pd.Series(y_test, index=X_test.index))
-    assert plotter.isFitted is True
+    assert plotter.fitted is True
 
     # Check if plotting doesnt cause errors
     with patch('matplotlib.pyplot.figure') as mock_plt:

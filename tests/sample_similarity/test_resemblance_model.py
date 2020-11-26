@@ -56,6 +56,9 @@ def test_base_class(X1, X2):
     assert len(rm.X.index.unique()) == 8
     assert list(rm.X.index) == list(rm.y.index)
 
+    with pytest.raises(NotImplementedError) as _:
+        rm.plot()
+
 
 def test_shap_resemblance_class(X1, X2):
     clf = DecisionTreeClassifier(max_depth=1, random_state=1)
