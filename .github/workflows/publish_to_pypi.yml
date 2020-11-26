@@ -21,6 +21,7 @@ jobs:
     - name: Make sure unit tests succeed
       run: |
         pip install .
+        pip install -r requirements_test.txt
         pytest
     - name: Build package & publish to PyPi
       env:

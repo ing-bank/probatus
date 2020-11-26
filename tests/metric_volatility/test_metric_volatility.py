@@ -1,5 +1,6 @@
 from probatus.metric_volatility import BaseVolatilityEstimator, TrainTestVolatility, SplitSeedVolatility,\
     BootstrappedVolatility, get_metric, sample_data, check_sampling_input
+from sklearn.tree import DecisionTreeClassifier
 import pytest
 import numpy as np
 import pandas as pd
@@ -7,7 +8,7 @@ from unittest.mock import patch
 import matplotlib.pyplot as plt
 from probatus.stat_tests.distribution_statistics import DistributionStatistics
 from probatus.utils import Scorer, NotFittedError
-import sklearn
+import os
 
 @pytest.fixture(scope='function')
 def X_array():
@@ -31,7 +32,7 @@ def X_df(X_array):
 
 @pytest.fixture(scope='function')
 def y_series(y_list):
-    return pd.DataFrame(y_list)
+    return pd.Series(y_list)
 
 @pytest.fixture(scope='function')
 def iteration_results():
@@ -97,7 +98,7 @@ def test_base_fit(mock_model, X_df, y_series):
     assert vol.fitted is True
 
 
-def test_compute(report, mock_model, iterations_train, iterations_test, iterations_delta):
+def test_compute(report, mock_model):
     vol = BaseVolatilityEstimator(mock_model)
 
     with pytest.raises(NotFittedError):
@@ -184,70 +185,66 @@ def test_fit_compute(mock_model, report, X_df, y_series):
     pd.testing.assert_frame_equal(result, report)
 
 
-def test_fit_train_test_sample_seed(mock_model, X_df, y_series, X_array, y_array, iteration_results):
+def test_fit_train_test_sample_seed(mock_model, X_df, y_series, iteration_results):
     vol = TrainTestVolatility(mock_model, metrics='roc_auc', iterations=3, sample_train_test_split_seed=True)
 
     with patch.object(BaseVolatilityEstimator, 'fit') as mock_base_fit:
         with patch.object(TrainTestVolatility, '_create_report') as mock_create_report:
-            with patch('probatus.metric_volatility.volatility.assure_numpy_array', side_effect=[X_array, y_array]):
-                with patch('probatus.metric_volatility.volatility.get_metric', side_effect=[iteration_results.iloc[[0]], iteration_results.iloc[[1]], iteration_results.iloc[[2]]]):
+            with patch('probatus.metric_volatility.volatility.get_metric', side_effect=[iteration_results.iloc[[0]], iteration_results.iloc[[1]], iteration_results.iloc[[2]]]):
 
-                    vol.fit(X_df, y_series)
+                vol.fit(X_df, y_series)
 
-                    mock_base_fit.assert_called_once()
-                    mock_create_report.assert_called_once()
+                mock_base_fit.assert_called_once()
+                mock_create_report.assert_called_once()
 
     pd.testing.assert_frame_equal(vol.iterations_results, iteration_results.iloc[[0, 1, 2]])
 
 
-def test_get_metric(mock_model, X_df, y_series, X_array, y_array):
+def test_get_metric(mock_model, X_df, y_series):
     split_seed = 1
     test_prc = 0.6
-    with patch('probatus.metric_volatility.metric.assure_numpy_array', side_effect=[X_array, y_array]) \
-            as mock_assure_array:
-        with patch('probatus.metric_volatility.metric.train_test_split',
-                   return_value=(X_array[[0, 1, 2]], X_array[[3, 4]], y_array[[0, 1, 2]], y_array[[3, 4]])) \
-                as mock_split:
-            with patch('probatus.metric_volatility.metric.sample_data',
-                       side_effect=[(X_array[[0, 1, 1]], y_array[[0, 1, 1]]), (X_array[[3, 3]], y_array[[3, 3]])]) \
-                    as mock_sample:
-                with patch.object(Scorer, 'score', side_effect=[0.8, 0.7]):
-                    output = get_metric(X_df, y_series, mock_model, test_size=test_prc, split_seed=split_seed,
-                                        scorers=[Scorer('roc_auc')], train_sampling_type='bootstrap',
-                                        test_sampling_type='bootstrap', train_sampling_fraction=1,
-                                        test_sampling_fraction=1)
-                    mock_assure_array.assert_called()
-                    mock_split.assert_called_once()
-                    mock_sample.assert_called()
-                    mock_model.fit.assert_called()
+    with patch('probatus.metric_volatility.metric.train_test_split',
+               return_value=(X_df.iloc[[0, 1, 2]], X_df.iloc[[3, 4]], y_series.iloc[[0, 1, 2]],
+                             y_series.iloc[[3, 4]])) as mock_split:
+        with patch('probatus.metric_volatility.metric.sample_data',
+                   side_effect=[(X_df.iloc[[0, 1, 1]], y_series.iloc[[0, 1, 1]]),
+                                (X_df.iloc[[3, 3]], y_series.iloc[[3, 3]])]) as mock_sample:
+            with patch.object(Scorer, 'score', side_effect=[0.8, 0.7]):
+                output = get_metric(X_df, y_series, mock_model, test_size=test_prc, split_seed=split_seed,
+                                    scorers=[Scorer('roc_auc')], train_sampling_type='bootstrap',
+                                    test_sampling_type='bootstrap', train_sampling_fraction=1,
+                                    test_sampling_fraction=1)
+                mock_split.assert_called_once()
+                mock_sample.assert_called()
+                mock_model.fit.assert_called()
 
     expected_output = pd.DataFrame([['roc_auc', 0.8, 0.7, 0.1]],
                                    columns=['metric_name', 'train_score', 'test_score', 'delta_score'])
     pd.testing.assert_frame_equal(expected_output, output)
 
 
-def test_sample_data_no_sampling(X_array, y_array):
+def test_sample_data_no_sampling(X_df, y_series):
     with patch('probatus.metric_volatility.utils.check_sampling_input') as mock_sampling_input:
-        X_out, y_out = sample_data(X_array, y_array, sampling_type=None, sampling_fraction=1)
+        X_out, y_out = sample_data(X_df, y_series, sampling_type=None, sampling_fraction=1)
         mock_sampling_input.assert_called_once()
-    np.testing.assert_array_equal(X_out, X_array)
-    np.testing.assert_array_equal(y_out, y_array)
+    pd.testing.assert_frame_equal(X_out, X_df)
+    pd.testing.assert_series_equal(y_out, y_series)
 
 
-def test_sample_data_bootstrap(X_array, y_array):
+def test_sample_data_bootstrap(X_df, y_series):
     with patch('probatus.metric_volatility.utils.check_sampling_input') as mock_sampling_input:
-        X_out, y_out = sample_data(X_array, y_array, sampling_type='bootstrap', sampling_fraction=0.8)
+        X_out, y_out = sample_data(X_df, y_series, sampling_type='bootstrap', sampling_fraction=0.8)
         mock_sampling_input.assert_called_once()
     assert X_out.shape == (4, 2)
     assert y_out.shape == (4, )
 
 
-def test_sample_data_sample(X_array, y_array):
+def test_sample_data_sample(X_df, y_series):
     with patch('probatus.metric_volatility.utils.check_sampling_input') as mock_sampling_input:
-        X_out, y_out = sample_data(X_array, y_array, sampling_type='subsample', sampling_fraction=1)
+        X_out, y_out = sample_data(X_df, y_series, sampling_type='subsample', sampling_fraction=1)
         mock_sampling_input.assert_called_once()
-    np.testing.assert_array_equal(X_out, X_array)
-    np.testing.assert_array_equal(y_out, y_array)
+    pd.testing.assert_frame_equal(X_out, X_df)
+    pd.testing.assert_series_equal(y_out, y_series)
 
 
 def test_check_sampling_input(X_array, y_array):
@@ -261,3 +258,28 @@ def test_check_sampling_input(X_array, y_array):
         check_sampling_input('subsample', 10, 'dataset')
     with pytest.raises(ValueError):
         check_sampling_input('wrong_name', 0.5, 'dataset')
+
+
+def test_fit_compute_full_process(X_df, y_series):
+    clf = DecisionTreeClassifier()
+    vol = TrainTestVolatility(clf, metrics=['roc_auc', 'recall'], iterations=3, sample_train_test_split_seed=False)
+
+    report = vol.fit_compute(X_df, y_series)
+    assert report.shape == (2, 6)
+
+    # Check if plot runs
+    with patch('matplotlib.pyplot.figure') as mock_plt:
+        vol.plot()
+
+
+@pytest.mark.skipif(os.environ.get("SKIP_LIGHTGBM") == 'true', reason="LightGBM tests disabled")
+def test_fit_compute_complex(complex_data, complex_lightgbm):
+    X, y = complex_data
+    vol = TrainTestVolatility(complex_lightgbm, metrics='roc_auc', iterations=3, sample_train_test_split_seed=True)
+
+    report = vol.fit_compute(X, y)
+    assert report.shape == (1, 6)
+
+    # Check if plot runs
+    with patch('matplotlib.pyplot.figure') as mock_plt:
+        vol.plot()

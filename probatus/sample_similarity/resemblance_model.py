@@ -21,7 +21,7 @@
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
-from probatus.utils import assure_numpy_array, get_scorers, warn_if_missing, assure_column_names_consistency, \
+from probatus.utils import preprocess_labels, get_scorers, preprocess_data, \
     BaseFitComputePlotClass
 from probatus.utils.shap_helpers import shap_calc, calculate_shap_importance
 from sklearn.inspection import permutation_importance
@@ -38,7 +38,7 @@ class BaseResemblanceModel(BaseFitComputePlotClass):
     This is a base class and needs to be extended by a fit() method, which implements how data is split, how model is
         trained and evaluated. Further, inheriting classes need to implement how feature importance should be indicated.
     """
-    def __init__(self, model, test_prc=0.25, n_jobs=1, random_state=42):
+    def __init__(self, model, test_prc=0.25, n_jobs=1, verbose=0, random_state=42):
         """
         Initializes the class.
 
@@ -52,6 +52,14 @@ class BaseResemblanceModel(BaseFitComputePlotClass):
             n_jobs (int, optional):
                 Number of parallel executions. If -1 use all available cores. By default 1.
 
+            verbose (int, optional):
+                Controls verbosity of the output:
+
+                - 0 - nether prints nor warnings are shown
+                - 1 - 50 - only most important warnings regarding data properties are shown (excluding SHAP warnings)
+                - 51 - 100 - shows most important warnings, prints of the feature removal process
+                - above 100 - presents all prints and all warnings (including SHAP warnings).
+
             random_state (int, optional):
                 The seed used by the random number generator.
         """
@@ -59,6 +67,7 @@ class BaseResemblanceModel(BaseFitComputePlotClass):
         self.test_prc = test_prc
         self.n_jobs = n_jobs
         self.random_state = random_state
+        self.verbose = verbose
 
         self.metric_name = 'roc_auc'
         self.scorer = get_scorers(self.metric_name)[0]
@@ -102,38 +111,31 @@ class BaseResemblanceModel(BaseFitComputePlotClass):
         np.random.seed(self.random_state)
 
         # Ensure inputs are correct
-        self.X1 = assure_numpy_array(X1)
-        self.X2 = assure_numpy_array(X2)
-
-        # Check if any missing values
-        warn_if_missing(self.X1, 'X1')
-        warn_if_missing(self.X2, 'X2')
-
-        # Ensure the same shapes
-        if self.X1.shape[1] != self.X2.shape[1]:
-            raise(ValueError("Passed variables do not have the same shape. The passed dimensions are {} and {}".
-                             format(self.X1.shape[1], self.X2.shape[1])))
-
-        # Check if column_names are passed correctly
-        self.column_names = assure_column_names_consistency(column_names, X1)
+        self.X1, self.column_names = preprocess_data(X1, X_name='X1', column_names=column_names, verbose=self.verbose)
+        self.X2, _ = preprocess_data(X2, X_name='X2', column_names=column_names, verbose=self.verbose)
 
         # Prepare dataset for modelling
-        self.X = pd.DataFrame(np.concatenate([
+        self.X = pd.DataFrame(pd.concat([
             self.X1,
             self.X2
-        ]), columns = self.column_names).reset_index(drop=True)
+        ], axis=0), columns = self.column_names).reset_index(drop=True)
 
         self.y = pd.Series(np.concatenate([
             np.zeros(self.X1.shape[0]),
             np.ones(self.X2.shape[0]),
         ])).reset_index(drop=True)
 
+        # Assure the type and number of classes for the variable
+        self.X, _ = preprocess_data(self.X, X_name='X', column_names=self.column_names, verbose=self.verbose)
+
+        self.y = preprocess_labels(self.y, y_name='y', index=self.X.index, verbose=self.verbose)
+
         # Reinitialize variables in case of multiple times being fit
         self._init_output_variables()
 
-        self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(self.X, self.y,test_size=self.test_prc,
+        self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(self.X, self.y, test_size=self.test_prc,
                                                                                 random_state=self.random_state,
-                                                                                stratify=self.y)
+                                                                                shuffle=True, stratify=self.y)
         self.model.fit(self.X_train, self.y_train)
 
         self.auc_train = np.round(self.scorer.score(self.model, self.X_train, self.y_train), 3)
@@ -251,7 +253,7 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
     <img src="../img/sample_similarity_permutation_importance.png" width="500" />
     """
 
-    def __init__(self, model, iterations=100, test_prc=0.25, n_jobs=1, random_state=42):
+    def __init__(self, model, iterations=100, test_prc=0.25, n_jobs=1, verbose=0, random_state=42):
         """
         Initializes the class.
 
@@ -268,10 +270,18 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
             n_jobs (int, optional):
                 Number of parallel executions. If -1 use all available cores. By default 1.
 
+            verbose (int, optional):
+                Controls verbosity of the output:
+
+                - 0 - nether prints nor warnings are shown
+                - 1 - 50 - only most important warnings regarding data properties are shown (excluding SHAP warnings)
+                - 51 - 100 - shows most important warnings, prints of the feature removal process
+                - above 100 - presents all prints and all warnings (including SHAP warnings).
+
             random_state (int, optional):
                 The seed used by the random number generator.
         """
-        super().__init__(model=model, test_prc=test_prc, n_jobs=n_jobs, random_state=random_state)
+        super().__init__(model=model, test_prc=test_prc, n_jobs=n_jobs, verbose=verbose, random_state=random_state)
 
         self.iterations = iterations
 
@@ -422,7 +432,8 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
     <img src="../img/sample_similarity_shap_summary.png" width="320" />
     """
 
-    def __init__(self, model, test_prc=0.25, n_jobs=1, random_state=42):
+    def __init__(self, model, test_prc=0.25, n_jobs=1, verbose=0, random_state=42):
+
         """
         Initializes the class.
 
@@ -436,10 +447,18 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
             n_jobs (int, optional):
                 Number of parallel executions. If -1 use all available cores. By default 1.
 
+            verbose (int, optional):
+                Controls verbosity of the output:
+
+                - 0 - nether prints nor warnings are shown
+                - 1 - 50 - only most important warnings regarding data properties are shown (excluding SHAP warnings)
+                - 51 - 100 - shows most important warnings, prints of the feature removal process
+                - above 100 - presents all prints and all warnings (including SHAP warnings).
+
             random_state (int, optional):
                 The seed used by the random number generator.
         """
-        super().__init__(model=model, test_prc=test_prc, n_jobs=n_jobs, random_state=random_state)
+        super().__init__(model=model, test_prc=test_prc, n_jobs=n_jobs, verbose=verbose, random_state=random_state)
 
         self.plot_title = 'SHAP summary plot'
 
@@ -469,7 +488,7 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
         """
         super().fit(X1=X1, X2=X2, column_names=column_names)
 
-        self.shap_values_test = shap_calc(self.model, self.X_test, data=self.X_train)
+        self.shap_values_test = shap_calc(self.model, self.X_test, verbose=self.verbose)
         self.report = calculate_shap_importance(self.shap_values_test, self.column_names)
         return self
 

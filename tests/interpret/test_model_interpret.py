@@ -4,6 +4,8 @@ import numpy as np
 import pandas as pd
 from probatus.interpret import ShapModelInterpreter
 from unittest.mock import patch
+import os
+
 
 @pytest.fixture(scope='function')
 def X_train():
@@ -91,3 +93,33 @@ def test_shap_interpret_fit_compute(fitted_tree, X_train, y_train, X_test, y_tes
     assert (np.mean(np.abs(shap_interpret.shap_values), axis=0) == [0, 0, 0.5]).all()
 
     pd.testing.assert_frame_equal(expected_feature_importance, importance_df)
+
+@pytest.mark.skipif(os.environ.get("SKIP_LIGHTGBM") == 'true', reason="LightGBM tests disabled")
+def test_shap_interpret_complex_data(complex_data_split, complex_fitted_lightgbm):
+    class_names = ['neg', 'pos']
+    X_train, X_test, y_train, y_test = complex_data_split
+
+    shap_interpret = ShapModelInterpreter(complex_fitted_lightgbm, verbose=50)
+    with pytest.warns(None) as record:
+        importance_df = shap_interpret.fit_compute(X_train, X_test, y_train, y_test, class_names=class_names)
+
+    # Check parameters
+    assert shap_interpret.fitted == True
+    shap_interpret._check_if_fitted
+
+    assert shap_interpret.class_names == class_names
+    assert len(record) > 4
+
+    assert importance_df.shape[0] == X_train.shape[1]
+
+    # Check if plots work for such dataset
+    with patch('matplotlib.pyplot.figure') as mock_plt:
+        with patch('shap.plots._waterfall.waterfall_legacy'):
+            ax1 = shap_interpret.plot('importance')
+            ax2 = shap_interpret.plot('summary')
+            ax3 = shap_interpret.plot('dependence', target_columns='f2_missing')
+            ax4 = shap_interpret.plot('sample', samples_index=X_test.index.tolist()[0:2])
+    assert not(isinstance(ax1, list))
+    assert not(isinstance(ax2, list))
+    assert not(isinstance(ax3, list))
+    assert isinstance(ax4, list) and len(ax4) == 2

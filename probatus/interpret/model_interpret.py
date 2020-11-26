@@ -19,8 +19,8 @@
 
 
 from probatus.interpret import TreeDependencePlotter
-from probatus.utils import assure_column_names_consistency, assure_pandas_df, shap_calc, assure_list_of_strings,\
-    calculate_shap_importance, BaseFitComputePlotClass
+from probatus.utils import preprocess_data, preprocess_labels, shap_calc, calculate_shap_importance, \
+    BaseFitComputePlotClass, assure_list_of_strings
 from sklearn.metrics import roc_auc_score
 import numpy as np
 import shap
@@ -70,15 +70,24 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
     """
 
 
-    def __init__(self, clf):
+    def __init__(self, clf, verbose=0):
         """
         Initializes the class.
 
         Args:
             clf (binary classifier):
                 Model fitted on X_train.
+
+            verbose (int, optional):
+                Controls verbosity of the output:
+
+                - 0 - nether prints nor warnings are shown
+                - 1 - 50 - only most important warnings regarding data properties are shown (excluding SHAP warnings)
+                - 51 - 100 - shows most important warnings, prints of the feature removal process
+                - above 100 - presents all prints and all warnings (including SHAP warnings).
         """
         self.clf = clf
+        self.verbose = verbose
 
 
     def fit(self, X_train, X_test, y_train, y_test, column_names=None, class_names=None, approximate=False,
@@ -113,18 +122,16 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
                 keyword arguments passed to [shap.TreeExplainer](https://shap.readthedocs.io/en/latest/generated/shap.TreeExplainer.html).
         """
 
-        self.X_train = assure_pandas_df(X_train)
-        self.X_test = assure_pandas_df(X_test)
-        self.y_train = y_train
-        self.y_test = y_test
+        self.X_train, self.column_names = preprocess_data(X_train, X_name='X_train', column_names=column_names,
+                                                          verbose=self.verbose)
+        self.X_test, _ = preprocess_data(X_test, X_name='X_test', column_names=column_names, verbose=self.verbose)
+        self.y_train = preprocess_labels(y_train, y_name='y_train', index=self.X_train.index, verbose=self.verbose)
+        self.y_test = preprocess_labels(y_test, y_name='y_test', index=self.X_test.index, verbose=self.verbose)
 
         # Set class names
         self.class_names = class_names
         if self.class_names is None:
             self.class_names = ['Negative Class', 'Positive Class']
-
-        # Set column names
-        self.column_names = assure_column_names_consistency(column_names, self.X_train)
 
         # Calculate Metrics
         self.auc_train = roc_auc_score(self.y_train, self.clf.predict_proba(self.X_train)[:, 1])
@@ -135,7 +142,8 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
         )
 
         self.shap_values, self.explainer = shap_calc(self.clf, self.X_test, approximate=approximate,
-                                                     return_explainer=True, data=self.X_train, **shap_kwargs)
+                                                     verbose=self.verbose, return_explainer=True,
+                                                     **shap_kwargs)
 
         # Get expected_value from the explainer
         self.expected_value = self.explainer.expected_value
@@ -144,7 +152,8 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
             self.expected_value = self.expected_value[1]
 
         # Initialize tree dependence plotter
-        self.tdp = TreeDependencePlotter(self.clf).fit(self.X_test, self.y_test, precalc_shap=self.shap_values)
+        self.tdp = TreeDependencePlotter(self.clf, verbose=self.verbose).fit(self.X_test, self.y_test,
+                                                                             precalc_shap=self.shap_values)
 
         self.fitted = True
 

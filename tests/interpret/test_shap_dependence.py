@@ -3,10 +3,10 @@ import pytest
 import numpy as np
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
-
+from unittest.mock import patch
 from probatus.interpret.shap_dependence import TreeDependencePlotter
 from probatus.utils.exceptions import NotFittedError
-
+import os
 
 @pytest.fixture(scope="function")
 def X_y():
@@ -68,6 +68,15 @@ def clf(X_y):
 
 
 @pytest.fixture(scope="function")
+def clf(X_y):
+    X, y = X_y
+
+    model = RandomForestClassifier(random_state=42, n_estimators=10, max_depth=5)
+
+    model.fit(X, y)
+    return model
+
+@pytest.fixture(scope="function")
 def expected_feat_importances():
     return pd.DataFrame(
         {
@@ -93,6 +102,24 @@ def test_fit_normal(X_y, clf, expected_shap_vals):
     assert plotter.y.equals(y)
     assert np.isclose(shap_vals, expected_shap_vals, atol=1e-06).all()
     assert plotter.fitted is True
+
+
+@pytest.mark.skipif(os.environ.get("SKIP_LIGHTGBM") == 'true', reason="LightGBM tests disabled")
+def test_fit_complex(complex_data_split, complex_fitted_lightgbm):
+    X_train, X_test, y_train, y_test = complex_data_split
+
+    plotter = TreeDependencePlotter(complex_fitted_lightgbm)
+
+    plotter.fit(X_test, y_test)
+
+    pd.testing.assert_frame_equal(plotter.X, X_test)
+    pd.testing.assert_series_equal(plotter.y, pd.Series(y_test, index=X_test.index))
+    assert plotter.fitted is True
+
+    # Check if plotting doesnt cause errors
+    with patch('matplotlib.pyplot.figure') as mock_plt:
+        for binning in ["simple", "agglomerative", "quantile"]:
+            _ = plotter.plot(feature='f2_missing', type_binning=binning)
 
 
 def test_get_X_y_shap_with_q_cut_normal(X_y, clf):

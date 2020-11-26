@@ -1,9 +1,8 @@
-from probatus.utils import assure_pandas_df, shap_calc, calculate_shap_importance, assure_pandas_series, \
-    BaseFitComputePlotClass
+from probatus.utils import preprocess_data, shap_calc, calculate_shap_importance, BaseFitComputePlotClass, \
+    preprocess_labels
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
-import warnings
 from sklearn.model_selection import RandomizedSearchCV, GridSearchCV, check_cv
 from sklearn.base import clone, is_classifier
 from sklearn.metrics import check_scoring
@@ -158,60 +157,6 @@ class ShapRFECV(BaseFitComputePlotClass):
         self.n_jobs = n_jobs
         self.report_df = pd.DataFrame([])
         self.verbose = verbose
-
-
-    @staticmethod
-    def _preprocess_data(X, verbose=0):
-        """
-        Does basic preprocessing of the data: Removal of static features, Warns which features have missing variables,
-        and transform object dtype features to category type, such that LightGBM handles them by default.
-
-        Args:
-            X (pd.DataFrame):
-                Provided dataset.
-
-            verbose (int, optional):
-                Controls verbosity of the output:
-
-                - 0 - neither prints nor warnings are shown
-                - 1 - 50 - only most important warnings regarding data properties are shown (excluding SHAP warnings)
-                - 51 - 100 - shows most important warnings, prints of the feature removal process
-                - above 100 - presents all prints and all warnings (including SHAP warnings).
-
-        Returns:
-            (pd.DataFrame):
-                Preprocessed dataset.
-        """
-        # Make sure that X is a pd.DataFrame
-        X = assure_pandas_df(X)
-
-        # Remove static features, those that have only one value for all samples
-        static_features = [i for i in X.columns if len(X[i].unique()) == 1]
-        if len(static_features)>0:
-            if verbose > 0:
-                warnings.warn(f'Removing static features {static_features}.')
-            X = X.drop(columns=static_features)
-
-        # Warn if missing
-        columns_with_missing = [column for column in X.columns if X[column].isnull().values.any()]
-        if len(columns_with_missing) > 0:
-            if verbose > 0:
-                warnings.warn(f'The following variables contain missing values {columns_with_missing}. Make sure to '
-                              f'impute missing or apply a model that handles them automatically.')
-
-        # Transform Categorical variables into category dtype
-        indices_obj_dtype_features = [column[0] for column in enumerate(X.dtypes) if column[1] == 'O']
-        obj_dtype_features = list(X.columns[indices_obj_dtype_features])
-
-        # Set categorical features type to category
-        if len(obj_dtype_features) > 0:
-            if verbose > 0:
-                warnings.warn(f'Changing dtype of {obj_dtype_features} from "object" to "category". Treating it as '
-                              f'categorical variable. Make sure that the model handles categorical variables, or encode'
-                              f' them first.')
-            for obj_dtype_feature in obj_dtype_features:
-                X[obj_dtype_feature] = X[obj_dtype_feature].astype('category')
-        return X
 
 
     def _get_current_features_to_remove(self, shap_importance_df):
@@ -379,17 +324,12 @@ class ShapRFECV(BaseFitComputePlotClass):
         score_train = scorer(clf, X_train, y_train)
         score_val = scorer(clf, X_val, y_val)
 
-        if verbose > 100:
-            suppress_warnings = False
-        else:
-            suppress_warnings = True
-
         # Compute SHAP values
-        shap_values = shap_calc(clf, X_val, suppress_warnings=suppress_warnings)
+        shap_values = shap_calc(clf, X_val, verbose=verbose)
         return shap_values, score_train, score_val
 
 
-    def fit(self, X, y):
+    def fit(self, X, y, column_names=None):
         """
         Fits the object with the provided data. The algorithm starts with the entire dataset, and then sequentially
              eliminates features. If [GridSearchCV](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.GridSearchCV.html)
@@ -404,6 +344,10 @@ class ShapRFECV(BaseFitComputePlotClass):
             y (pd.Series):
                 Binary labels for X.
 
+            column_names (list of str, optional):
+                List of feature names of the provided samples. If provided it will be used to overwrite the existing
+                feature names. If not provided the existing feature names are used or default feature names are
+                generated.
         Returns:
             (ShapRFECV): Fitted object.
         """
@@ -411,11 +355,11 @@ class ShapRFECV(BaseFitComputePlotClass):
         if self.random_state is not None:
             np.random.seed(self.random_state)
 
-        self.X = self._preprocess_data(X, verbose=self.verbose)
-        self.y = assure_pandas_series(y, index=self.X.index)
+        self.X , self.column_names = preprocess_data(X, X_name='X', column_names=column_names, verbose=self.verbose)
+        self.y = preprocess_labels(y, y_name='y', index=self.X.index, verbose=self.verbose)
         self.cv = check_cv(self.cv, self.y, classifier=is_classifier(self.clf))
 
-        remaining_features = current_features_set = self.X.columns.tolist()
+        remaining_features = current_features_set = self.column_names
         round_number = 0
 
         while len(current_features_set) > self.min_features_to_select:
@@ -485,7 +429,7 @@ class ShapRFECV(BaseFitComputePlotClass):
         return self.report_df
 
 
-    def fit_compute(self, X, y):
+    def fit_compute(self, X, y, column_names=None):
         """
         Fits the object with the provided data. The algorithm starts with the entire dataset, and then sequentially
              eliminates features. If [GridSearchCV](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.GridSearchCV.html)
@@ -501,12 +445,17 @@ class ShapRFECV(BaseFitComputePlotClass):
             y (pd.Series):
                 Binary labels for X.
 
+            column_names (list of str, optional):
+                List of feature names of the provided samples. If provided it will be used to overwrite the existing
+                feature names. If not provided the existing feature names are used or default feature names are
+                generated.
+
         Returns:
             (pd.DataFrame):
                 DataFrame containing results of feature elimination from each iteration.
         """
 
-        self.fit(X, y)
+        self.fit(X, y, column_names=column_names)
         return self.compute()
 
 

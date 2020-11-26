@@ -23,25 +23,43 @@ import pandas as pd
 import numpy as np
 import warnings
 
-def shap_calc(model, X, approximate=False, return_explainer=False, suppress_warnings=False, **shap_kwargs):
+def shap_calc(model, X, approximate=False, return_explainer=False, verbose=0, **shap_kwargs):
     """
-    Helper function to calculate the shapley values for a given model.
-    Supported models for the moment are RandomForestClassifiers and XGBClassifiers
-    In case the shapley values have
+    Helper function to calculate the shapley values for a given model. For now, only the tree-based models are
+        supported, because of using TreeExplainer from shap. In the future, we will extend the scope of this function to
+         other types of models.
+
     Args:
-        model: pretrained model (Random Forest of XGBoost at the moment)
-        X (pd.DataFrame or np.ndarray): features set
-        approximate (boolean):, if True uses shap approximations - less accurate, but very fast
-        return_explainer (boolean): if True, returns a a tuple (shap_values, explainer).
-        suppress_warnings (boolean): If True, warnings from SHAP will be suppressed.
+        model (binary model):
+            Trained model (Random Forest of XGBoost at the moment).
+
+        X (pd.DataFrame or np.ndarray):
+            features set.
+
+         approximate (boolean):
+            if True uses shap approximations - less accurate, but very fast.
+
+        return_explainer (boolean):
+            if True, returns a a tuple (shap_values, explainer).
+
+        verbose (int, optional):
+            Controls verbosity of the output:
+
+            - 0 - nether prints nor warnings are shown
+            - 1 - 50 - only most important warnings regarding data properties are shown (excluding SHAP warnings)
+            - 51 - 100 - shows most important warnings, prints of the feature removal process
+            - above 100 - presents all prints and all warnings (including SHAP warnings).
+
         **shap_kwargs: kwargs of the shap.TreeExplainer
 
-    Returns: (np.ndarray or tuple(np.ndarray, shap.TreeExplainer)) shapley_values for the model.
+    Returns:
+        (np.ndarray or tuple(np.ndarray, shap.TreeExplainer)):
+            shapley_values for the model, optionally also returns the explainer.
 
     """
     # Suppress warnings regarding XGboost and Lightgbm models.
     with warnings.catch_warnings():
-        if suppress_warnings:
+        if verbose <= 100:
             warnings.simplefilter("ignore")
 
         explainer = shap.TreeExplainer(model, **shap_kwargs)
@@ -49,7 +67,8 @@ def shap_calc(model, X, approximate=False, return_explainer=False, suppress_warn
         shap_values = explainer.shap_values(X, approximate=approximate)
 
         if isinstance(shap_values, list) and len(shap_values)==2:
-            warnings.warn('Shap values are related to the output probabilities of class 1 for this model, instead of log odds.')
+            warnings.warn('Shap values are related to the output probabilities of class 1 for this model, instead of '
+                          'log odds.')
             shap_values = shap_values[1]
 
     if return_explainer:
@@ -59,16 +78,23 @@ def shap_calc(model, X, approximate=False, return_explainer=False, suppress_warn
 
 def shap_to_df(model, X, precalc_shap=None, **kwargs):
     """
-    Calculates the shap values and return the pandas DataFrame with the columns and the index of the original
+    Calculates the shap values and return the pandas DataFrame with the columns and the index of the original.
 
     Args:
-        model: pretrained model (Random Forest of XGBoost at the moment)
-        X (pd.DataFrame or np.ndarray): features set
-        precalc_shap (np.array): Precalculated SHAP values. If None, they are computed.
+        model (binary model):
+            Pretrained model (Random Forest of XGBoost at the moment).
+
+        X (pd.DataFrame or np.ndarray):
+            Dataset on which the SHAP importance is calculated.
+
+        precalc_shap (np.array):
+            Precalculated SHAP values. If None, they are computed.
+
         **kwargs: for the function shap_calc
 
     Returns:
-
+        (pd.DataFrame):
+            Dataframe with SHAP feature importance per features on X dataset.
     """
     if precalc_shap is not None:
         shap_values = precalc_shap
@@ -89,11 +115,15 @@ def calculate_shap_importance(shap_values, columns):
     Returns the average shapley value for each column of the dataframe, as well as the average absolute shap value.
 
     Args:
-        shap_values (np.array): Shap values.
-        columns (list of str): Feature names.
+        shap_values (np.array):
+            Shap values.
+
+        columns (list of str):
+            Feature names.
 
     Returns:
-        (pd.DataFrame): Mean absolute shap values and Mean shap values of features.
+        (pd.DataFrame):
+            Mean absolute shap values and Mean shap values of features.
 
     """
 

@@ -37,7 +37,7 @@ def sample_data(X, y, sampling_type, sampling_fraction, dataset_name='dataset'):
             return X,y
         else:
             rows_indexes = np.random.choice(array_index, number_of_samples, replace=True)
-    return X[rows_indexes], y[rows_indexes]
+    return X.iloc[rows_indexes], y.iloc[rows_indexes]
 
 
 def check_sampling_input(sampling_type, fraction, dataset_name):
