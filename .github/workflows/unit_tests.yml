@@ -23,7 +23,7 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Static code checking with pyflakes
       run: |
-        export SKIP_LIGHTGBM=startsWith(matrix.os, 'mac')
+        export SKIP_LIGHTGBM=="$(startsWith(matrix.os, 'mac'))"
         pip install pytest 
         pip install pytest-cov
         pip install pyflakes
