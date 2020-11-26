@@ -23,7 +23,7 @@ import pandas as pd
 import numpy as np
 import warnings
 
-def shap_calc(model, X, approximate=False, return_explainer=False, verbose=False, **shap_kwargs):
+def shap_calc(model, X, approximate=False, return_explainer=False, verbose=0, **shap_kwargs):
     """
     Helper function to calculate the shapley values for a given model. Supported models for the moment are
         RandomForestClassifiers and XGBClassifiers.
