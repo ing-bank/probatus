@@ -25,8 +25,9 @@ import warnings
 
 def shap_calc(model, X, approximate=False, return_explainer=False, verbose=0, **shap_kwargs):
     """
-    Helper function to calculate the shapley values for a given model. Supported models for the moment are
-        RandomForestClassifiers and XGBClassifiers.
+    Helper function to calculate the shapley values for a given model. For now, only the tree-based models are
+        supported, because of using TreeExplainer from shap. In the future, we will extend the scope of this function to
+         other types of models.
 
     Args:
         model (binary model):
