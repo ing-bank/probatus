@@ -6,7 +6,7 @@ from sklearn.ensemble import RandomForestClassifier
 from unittest.mock import patch
 from probatus.interpret.shap_dependence import TreeDependencePlotter
 from probatus.utils.exceptions import NotFittedError
-
+import os
 
 @pytest.fixture(scope="function")
 def X_y():
@@ -104,6 +104,7 @@ def test_fit_normal(X_y, clf, expected_shap_vals):
     assert plotter.isFitted is True
 
 
+@pytest.mark.skipif(os.environ.get("SKIP_LIGHTGBM"), reason="LightGBM tests disabled")
 def test_fit_complex(complex_data_split, complex_fitted_lightgbm):
     X_train, X_test, y_train, y_test = complex_data_split
 

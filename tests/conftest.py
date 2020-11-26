@@ -4,7 +4,6 @@ from sklearn.datasets import make_classification
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
-import lightgbm
 
 
 @pytest.fixture(scope='function')
@@ -32,10 +31,16 @@ def complex_data_split(complex_data):
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
     return X_train, X_test, y_train, y_test
 
+@pytest.fixture(scope='function')
+def complex_lightgbm():
+    import lightgbm
+    return lightgbm.LGBMClassifier(max_depth=5, class_weight='balanced')
+
 
 @pytest.fixture(scope='function')
-def complex_fitted_lightgbm(complex_data_split):
+def complex_fitted_lightgbm(complex_data_split, complex_lightgbm):
+
     X_train, _, y_train, _ = complex_data_split
     X_train['f1_categorical'] = X_train['f1_categorical'].astype('category')
 
-    return lightgbm.LGBMClassifier(max_depth=5, num_leaves=5, class_weight='balanced').fit(X_train, y_train)
+    return complex_lightgbm.fit(X_train, y_train)

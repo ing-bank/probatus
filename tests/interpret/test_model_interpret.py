@@ -4,6 +4,8 @@ import numpy as np
 import pandas as pd
 from probatus.interpret import ShapModelInterpreter
 from unittest.mock import patch
+import os
+
 
 @pytest.fixture(scope='function')
 def X_train():
@@ -92,7 +94,7 @@ def test_shap_interpret_fit_compute(fitted_tree, X_train, y_train, X_test, y_tes
 
     pd.testing.assert_frame_equal(expected_feature_importance, importance_df)
 
-
+@pytest.mark.skipif(os.environ.get("SKIP_LIGHTGBM"), reason="LightGBM tests disabled")
 def test_shap_interpret_complex_data(complex_data_split, complex_fitted_lightgbm):
     class_names = ['neg', 'pos']
     X_train, X_test, y_train, y_test = complex_data_split

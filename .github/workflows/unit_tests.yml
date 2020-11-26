@@ -23,12 +23,12 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Static code checking with pyflakes
       run: |
+        export SKIP_LIGHTGBM=startsWith(matrix.os, 'mac')
         pip install pytest 
         pip install pytest-cov
         pip install pyflakes
         pip install mypy
         pip install .
-        pip install --no-binary :all: lightgbm
         pip install -r requirements_test.txt
         pytest --cov=probatus/binning --cov=probatus/metric_volatility --cov=probatus/sample_similarity --cov=probatus/stat_tests --cov=probatus/utils --cov=probatus/interpret/ --ignore==tests/interpret/test_inspector.py --cov-report term-missing
         pyflakes probatus

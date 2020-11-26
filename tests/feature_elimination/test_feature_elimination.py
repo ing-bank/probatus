@@ -5,7 +5,8 @@ import pandas as pd
 from probatus.feature_elimination import ShapRFECV
 from sklearn.model_selection import RandomizedSearchCV
 from sklearn.metrics import get_scorer
-import lightgbm
+import os
+
 
 @pytest.fixture(scope='function')
 def X():
@@ -96,17 +97,16 @@ def test_get_feature_shap_values_per_fold(X, y):
     assert train_score > 0.9
     assert shap_values.shape == (2, 3)
 
-
-def test_complex_dataset(complex_data):
+@pytest.mark.skipif(os.environ.get("SKIP_LIGHTGBM"), reason="LightGBM tests disabled")
+def test_complex_dataset(complex_data, complex_lightgbm):
     X, y = complex_data
 
-    clf = lightgbm.LGBMClassifier(max_depth=5, class_weight='balanced')
 
     param_grid = {
         'n_estimators': [5, 7, 10],
         'num_leaves': [3, 5, 7, 10],
     }
-    search = RandomizedSearchCV(clf, param_grid, n_iter=1)
+    search = RandomizedSearchCV(complex_lightgbm, param_grid, n_iter=1)
 
     shap_elimination = ShapRFECV(
         clf=search, step=1, cv=10, scoring='roc_auc', n_jobs=3, verbose=50)
