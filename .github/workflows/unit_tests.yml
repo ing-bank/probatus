@@ -13,12 +13,16 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
+        build: [1, 2, 3]
         include:
-          - os: macos-latest
+          - build: 1
+            os: macos-latest
             SKIP_LIGHTGBM: True
-          - os: ubuntu-latest
+          - build: 2
+            os: ubuntu-latest
             SKIP_LIGHTGBM: False
-          - os: windows-latest
+          - build: 3
+            os: windows-latest
             SKIP_LIGHTGBM: False
         python-version: [3.6, 3.7, 3.8]
     steps:
@@ -29,7 +33,7 @@ jobs:
         SKIP_LIGHTGBM: ${{ matrix.SKIP_LIGHTGBM }}
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Static code checking with pyflakes of MAC
+    - name: Static code checking with pyflakes
       run: |
         pip install pytest
         pip install pytest-cov
