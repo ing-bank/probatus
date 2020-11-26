@@ -53,7 +53,7 @@ class TreeDependencePlotter:
         Initializes the class
 
         Args:
-            clf (binary classifier):
+            model (binary classifier):
                 Model fitted on X_train.
 
             verbose (int, optional):
