@@ -22,7 +22,7 @@ def complex_data():
                                random_state=0, n_redundant=2, n_clusters_per_class=1)
     X = pd.DataFrame(X, columns=feature_names)
     X['f1_categorical'] = X['f1_categorical'].apply(lambda x: str(np.round(x * 10)))
-    X['f2_missing'] = X['f2_missing'].apply(lambda x: x if np.random.rand() < 0.8 else np.nan)
+    X.loc[0:10, 'f2_missing'] = np.nan
     return X, y
 
 
@@ -31,6 +31,7 @@ def complex_data_split(complex_data):
     X, y = complex_data
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
     return X_train, X_test, y_train, y_test
+
 
 @pytest.fixture(scope='function')
 def complex_fitted_lightgbm(complex_data_split):
