@@ -61,7 +61,7 @@ def iterations_delta():
     return pd.Series([0.1, 0.1, 0.1], name='delta_score')
 
 def test_inits(mock_model):
-    vol1 = SplitSeedVolatility(mock_model, metrics=['accuracy', 'roc_auc'], test_prc=0.3, n_jobs=2,
+    vol1 = SplitSeedVolatility(mock_model, scoring=['accuracy', 'roc_auc'], test_prc=0.3, n_jobs=2,
                               stats_tests_to_apply=['ES', 'KS'], random_state=1, iterations=20)
 
     assert id(vol1.model) == id(mock_model)
@@ -74,7 +74,7 @@ def test_inits(mock_model):
     assert len(vol1.scorers) == 2
     assert vol1.sample_train_test_split_seed is True
 
-    vol2 = BootstrappedVolatility(mock_model, metrics='roc_auc', stats_tests_to_apply='KS', test_sampling_fraction=0.8)
+    vol2 = BootstrappedVolatility(mock_model, scoring='roc_auc', stats_tests_to_apply='KS', test_sampling_fraction=0.8)
 
     assert id(vol2.model) == id(mock_model)
     assert vol2.stats_tests_to_apply == ['KS']
@@ -186,7 +186,7 @@ def test_fit_compute(mock_model, report, X_df, y_series):
 
 
 def test_fit_train_test_sample_seed(mock_model, X_df, y_series, iteration_results):
-    vol = TrainTestVolatility(mock_model, metrics='roc_auc', iterations=3, sample_train_test_split_seed=True)
+    vol = TrainTestVolatility(mock_model, scoring='roc_auc', iterations=3, sample_train_test_split_seed=True)
 
     with patch.object(BaseVolatilityEstimator, 'fit') as mock_base_fit:
         with patch.object(TrainTestVolatility, '_create_report') as mock_create_report:
@@ -262,7 +262,7 @@ def test_check_sampling_input(X_array, y_array):
 
 def test_fit_compute_full_process(X_df, y_series):
     clf = DecisionTreeClassifier()
-    vol = TrainTestVolatility(clf, metrics=['roc_auc', 'recall'], iterations=3, sample_train_test_split_seed=False)
+    vol = TrainTestVolatility(clf, scoring=['roc_auc', 'recall'], iterations=3, sample_train_test_split_seed=False)
 
     report = vol.fit_compute(X_df, y_series)
     assert report.shape == (2, 6)
@@ -275,7 +275,7 @@ def test_fit_compute_full_process(X_df, y_series):
 @pytest.mark.skipif(os.environ.get("SKIP_LIGHTGBM") == 'true', reason="LightGBM tests disabled")
 def test_fit_compute_complex(complex_data, complex_lightgbm):
     X, y = complex_data
-    vol = TrainTestVolatility(complex_lightgbm, metrics='roc_auc', iterations=3, sample_train_test_split_seed=True)
+    vol = TrainTestVolatility(complex_lightgbm, scoring='roc_auc', iterations=3, sample_train_test_split_seed=True)
 
     report = vol.fit_compute(X, y)
     assert report.shape == (1, 6)

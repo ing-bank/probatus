@@ -20,8 +20,7 @@
 
 from probatus.interpret import TreeDependencePlotter
 from probatus.utils import preprocess_data, preprocess_labels, shap_calc, calculate_shap_importance, \
-    BaseFitComputePlotClass, assure_list_of_strings
-from sklearn.metrics import roc_auc_score
+    BaseFitComputePlotClass, assure_list_of_strings, get_single_scorer
 import numpy as np
 import shap
 import matplotlib.pyplot as plt
@@ -70,7 +69,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
     """
 
 
-    def __init__(self, clf, verbose=0):
+    def __init__(self, clf, scoring='roc_auc', verbose=0):
         """
         Initializes the class.
 
@@ -78,15 +77,21 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
             clf (binary classifier):
                 Model fitted on X_train.
 
+            scoring (string or probatus.utils.Scorer, optional):
+                Metric for which the model performance is calculated. It can be either a metric name  aligned with
+                predefined [classification scorers names in sklearn](https://scikit-learn.org/stable/modules/model_evaluation.html).
+                Another option is using probatus.utils.Scorer to define a custom metric.
+
             verbose (int, optional):
                 Controls verbosity of the output:
 
                 - 0 - nether prints nor warnings are shown
-                - 1 - 50 - only most important warnings regarding data properties are shown (excluding SHAP warnings)
-                - 51 - 100 - shows most important warnings, prints of the feature removal process
+                - 1 - 50 - only most important warnings
+                - 51 - 100 - shows other warnings and prints
                 - above 100 - presents all prints and all warnings (including SHAP warnings).
         """
         self.clf = clf
+        self.scorer = get_single_scorer(scoring)
         self.verbose = verbose
 
 
@@ -134,12 +139,11 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
             self.class_names = ['Negative Class', 'Positive Class']
 
         # Calculate Metrics
-        self.auc_train = roc_auc_score(self.y_train, self.clf.predict_proba(self.X_train)[:, 1])
-        self.auc_test = roc_auc_score(self.y_test, self.clf.predict_proba(self.X_test)[:, 1])
-        self.results_text = "Train AUC: {},\nTest AUC: {}.".format(
-            np.round(self.auc_train, 3),
-            np.round(self.auc_test, 3)
-        )
+        self.train_score = self.scorer.score(self.clf, self.X_train, self.y_train)
+        self.test_score = self.scorer.score( self.clf, self.X_test, self.y_test)
+
+        self.results_text = f'Train {self.scorer.metric_name}: {np.round(self.train_score, 3)},\n' \
+                            f'Test {self.scorer.metric_name}: {np.round(self.test_score, 3)}.'
 
         self.shap_values, self.explainer = shap_calc(self.clf, self.X_test, approximate=approximate,
                                                      verbose=self.verbose, return_explainer=True,

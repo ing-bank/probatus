@@ -46,8 +46,8 @@ def shap_calc(model, X, approximate=False, return_explainer=False, verbose=0, **
             Controls verbosity of the output:
 
             - 0 - nether prints nor warnings are shown
-            - 1 - 50 - only most important warnings regarding data properties are shown (excluding SHAP warnings)
-            - 51 - 100 - shows most important warnings, prints of the feature removal process
+            - 1 - 50 - only most important warnings
+            - 51 - 100 - shows other warnings and prints
             - above 100 - presents all prints and all warnings (including SHAP warnings).
 
         **shap_kwargs: kwargs of the shap.TreeExplainer

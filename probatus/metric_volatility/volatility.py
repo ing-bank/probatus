@@ -38,7 +38,7 @@ class BaseVolatilityEstimator(BaseFitComputePlotClass):
     """
 
 
-    def __init__(self, model, metrics='roc_auc', test_prc=0.25, n_jobs=1, stats_tests_to_apply=None, verbose=0,
+    def __init__(self, model, scoring='roc_auc', test_prc=0.25, n_jobs=1, stats_tests_to_apply=None, verbose=0,
                  random_state=42):
         """
         Initializes the class
@@ -47,12 +47,10 @@ class BaseVolatilityEstimator(BaseFitComputePlotClass):
             model (model object):
                 Binary classification model or pipeline.
 
-            metrics (string, list of strings, Scorer or list of Scorers, optional):
+            scoring (string, list of strings, probatus.utils.Scorer or list of probatus.utils.Scorers, optional):
                 Metrics for which the score is calculated. It can be either a name or list of names metric names and
-                needs to be aligned with predefined classification scorers names in sklearn, see the
-                [sklearn documentation](https://scikit-learn.org/stable/modules/model_evaluation.html). In case a custom
-                metric is used, one can create own Scorer (probatus.utils) and provide as a metric. By default 'roc_auc'
-                is measured.
+                needs to be aligned with predefined [classification scorers names in sklearn](https://scikit-learn.org/stable/modules/model_evaluation.html).
+                Another option is using probatus.utils.Scorer to define a custom metric.
 
             test_prc (float, optional):
                 Percentage of input data used as test. By default 0.25.
@@ -73,8 +71,8 @@ class BaseVolatilityEstimator(BaseFitComputePlotClass):
                 Controls verbosity of the output:
 
                 - 0 - nether prints nor warnings are shown
-                - 1 - 50 - only most important warnings regarding data properties are shown (excluding SHAP warnings)
-                - 51 - 100 - shows most important warnings, prints of the feature removal process
+                - 1 - 50 - only most important warnings
+                - 51 - 100 - shows other warnings and prints
                 - above 100 - presents all prints and all warnings (including SHAP warnings).
 
             random_state (int, optional):
@@ -106,7 +104,7 @@ class BaseVolatilityEstimator(BaseFitComputePlotClass):
             for test_name in self.stats_tests_to_apply:
                 self.stats_tests_objects.append(DistributionStatistics(statistical_test=test_name))
 
-        self.scorers = get_scorers(metrics)
+        self.scorers = get_scorers(scoring)
 
     def fit(self, *args, **kwargs):
         """
@@ -314,8 +312,8 @@ class TrainTestVolatility(BaseVolatilityEstimator):
     """
 
 
-    def __init__(self, model, iterations=1000, sample_train_test_split_seed=True, train_sampling_type=None,
-                 test_sampling_type=None, train_sampling_fraction=1, test_sampling_fraction=1, metrics='roc_auc',
+    def __init__(self, model, iterations=1000, scoring='roc_auc', sample_train_test_split_seed=True,
+                 train_sampling_type=None, test_sampling_type=None, train_sampling_fraction=1, test_sampling_fraction=1,
                  test_prc=0.25, n_jobs=1, stats_tests_to_apply=None, verbose=0, random_state=42):
 
         """
@@ -327,6 +325,11 @@ class TrainTestVolatility(BaseVolatilityEstimator):
 
             iterations (int, optional):
                 Number of iterations in seed bootstrapping. By default 1000.
+
+            scoring (string, list of strings, probatus.utils.Scorer or list of probatus.utils.Scorers, optional):
+                Metrics for which the score is calculated. It can be either a name or list of names metric names and
+                needs to be aligned with predefined [classification scorers names in sklearn](https://scikit-learn.org/stable/modules/model_evaluation.html).
+                Another option is using probatus.utils.Scorer to define a custom metric.
 
             sample_train_test_split_seed (bool, optional):
                 Flag indicating whether each train test split should be done
@@ -355,13 +358,6 @@ class TrainTestVolatility(BaseVolatilityEstimator):
             test_sampling_fraction (float, optional):
                 Fraction of test data sampled, if sample_test_type is not None. Default value is 1.
 
-            metrics (string, list of strings, Scorer or list of Scorers, optional):
-                Metrics for which the score is calculated. It can be either a name or list of names metric names and
-                needs to be aligned with predefined classification scorers names in sklearn, see the
-                [sklearn documentation](https://scikit-learn.org/stable/modules/model_evaluation.html). In case a custom
-                metric is used, one can create own Scorer (probatus.utils) and provide as a metric. By default 'roc_auc'
-                is measured.
-
             test_prc (float, optional):
                 Percentage of input data used as test. By default 0.25.
 
@@ -381,14 +377,14 @@ class TrainTestVolatility(BaseVolatilityEstimator):
                 Controls verbosity of the output:
 
                 - 0 - nether prints nor warnings are shown
-                - 1 - 50 - only most important warnings regarding data properties are shown (excluding SHAP warnings)
-                - 51 - 100 - shows most important warnings, prints of the feature removal process
+                - 1 - 50 - only most important warnings
+                - 51 - 100 - shows other warnings and prints
                 - above 100 - presents all prints and all warnings (including SHAP warnings).
 
             random_state (int, optional):
                 The seed used by the random number generator.
         """
-        super().__init__(model=model, metrics=metrics, test_prc=test_prc, n_jobs=n_jobs,
+        super().__init__(model=model, scoring=scoring, test_prc=test_prc, n_jobs=n_jobs,
                          stats_tests_to_apply=stats_tests_to_apply, verbose=verbose, random_state=random_state)
         self.iterations = iterations
         self.train_sampling_type = train_sampling_type
@@ -463,7 +459,7 @@ class SplitSeedVolatility(TrainTestVolatility):
 
     """
 
-    def __init__(self, model, iterations=1000, metrics='roc_auc', test_prc=0.25, n_jobs=1, stats_tests_to_apply=None,
+    def __init__(self, model, iterations=1000, scoring='roc_auc', test_prc=0.25, n_jobs=1, stats_tests_to_apply=None,
                  verbose=0, random_state=42):
         """
         Initializes the class
@@ -475,12 +471,10 @@ class SplitSeedVolatility(TrainTestVolatility):
             iterations (int, optional):
                 Number of iterations in seed bootstrapping. By default 1000.
 
-            metrics (string, list of strings, Scorer or list of Scorers, optional):
+            scoring (string, list of strings, probatus.utils.Scorer or list of probatus.utils.Scorers, optional):
                 Metrics for which the score is calculated. It can be either a name or list of names metric names and
-                needs to be aligned with predefined classification scorers names in sklearn, see the
-                [sklearn documentation](https://scikit-learn.org/stable/modules/model_evaluation.html). In case a custom
-                metric is used, one can create own Scorer (probatus.utils) and provide as a metric. By default 'roc_auc'
-                is measured.
+                needs to be aligned with predefined [classification scorers names in sklearn](https://scikit-learn.org/stable/modules/model_evaluation.html).
+                Another option is using probatus.utils.Scorer to define a custom metric.
 
             test_prc (float, optional):
                 Percentage of input data used as test. By default 0.25.
@@ -501,8 +495,8 @@ class SplitSeedVolatility(TrainTestVolatility):
                 Controls verbosity of the output:
 
                 - 0 - nether prints nor warnings are shown
-                - 1 - 50 - only most important warnings regarding data properties are shown (excluding SHAP warnings)
-                - 51 - 100 - shows most important warnings, prints of the feature removal process
+                - 1 - 50 - only most important warnings
+                - 51 - 100 - shows other warnings and prints
                 - above 100 - presents all prints and all warnings (including SHAP warnings).
 
             random_state (int, optional):
@@ -510,7 +504,7 @@ class SplitSeedVolatility(TrainTestVolatility):
         """
         super().__init__(model=model, sample_train_test_split_seed=True, train_sampling_type=None,
                          test_sampling_type=None, train_sampling_fraction=1,  test_sampling_fraction=1,
-                         iterations=iterations, metrics=metrics, test_prc=test_prc, n_jobs=n_jobs,
+                         iterations=iterations, scoring=scoring, test_prc=test_prc, n_jobs=n_jobs,
                          stats_tests_to_apply=stats_tests_to_apply, verbose=verbose, random_state=random_state)
 
 
@@ -534,7 +528,7 @@ class BootstrappedVolatility(TrainTestVolatility):
     <img src="../img/metric_volatility_bootstrapped.png" width="500" />
     """
 
-    def __init__(self, model, iterations=1000, train_sampling_fraction=1, test_sampling_fraction=1, metrics='roc_auc',
+    def __init__(self, model, iterations=1000, scoring='roc_auc', train_sampling_fraction=1, test_sampling_fraction=1,
                  test_prc=0.25, n_jobs=1, stats_tests_to_apply=None, verbose=0, random_state=42):
         """
         Initializes the class.
@@ -546,18 +540,16 @@ class BootstrappedVolatility(TrainTestVolatility):
             iterations (int, optional):
                 Number of iterations in seed bootstrapping. By default 1000.
 
+            scoring (string, list of strings, probatus.utils.Scorer or list of probatus.utils.Scorers, optional):
+                Metrics for which the score is calculated. It can be either a name or list of names metric names and
+                needs to be aligned with predefined [classification scorers names in sklearn](https://scikit-learn.org/stable/modules/model_evaluation.html).
+                Another option is using probatus.utils.Scorer to define a custom metric.
+
             train_sampling_fraction (float, optional):
                 Fraction of train data sampled, if sample_train_type is not None. Default value is 1.
 
             test_sampling_fraction (float, optional):
                 Fraction of test data sampled, if sample_test_type is not None. Default value is 1.
-
-            metrics (string, list of strings, Scorer or list of Scorers, optional):
-                Metrics for which the score is calculated. It can be either a name or list of names metric names and
-                needs to be aligned with predefined classification scorers names in sklearn, see the
-                [sklearn documentation](https://scikit-learn.org/stable/modules/model_evaluation.html). In case a custom
-                metric is used, one can create own Scorer (probatus.utils) and provide as a metric. By default 'roc_auc'
-                is measured.
 
             test_prc (float, optional):
                 Percentage of input data used as test. By default 0.25.
@@ -578,15 +570,15 @@ class BootstrappedVolatility(TrainTestVolatility):
                 Controls verbosity of the output:
 
                 - 0 - nether prints nor warnings are shown
-                - 1 - 50 - only most important warnings regarding data properties are shown (excluding SHAP warnings)
-                - 51 - 100 - shows most important warnings, prints of the feature removal process
+                - 1 - 50 - only most important warnings
+                - 51 - 100 - shows other warnings and prints
                 - above 100 - presents all prints and all warnings (including SHAP warnings).
 
             random_state (int, optional):
                 The seed used by the random number generator.
         """
         super().__init__(model=model, sample_train_test_split_seed=False, train_sampling_type='bootstrap',
-                         test_sampling_type='bootstrap', iterations=iterations, metrics=metrics,
+                         test_sampling_type='bootstrap', iterations=iterations, scoring=scoring,
                          train_sampling_fraction=train_sampling_fraction, test_sampling_fraction=test_sampling_fraction,
                          test_prc=test_prc, n_jobs=n_jobs, stats_tests_to_apply=stats_tests_to_apply, verbose=verbose,
                          random_state=random_state)
