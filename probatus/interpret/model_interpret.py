@@ -145,21 +145,39 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
         self.results_text = f'Train {self.scorer.metric_name}: {np.round(self.train_score, 3)},\n' \
                             f'Test {self.scorer.metric_name}: {np.round(self.test_score, 3)}.'
 
-        self.shap_values, self.explainer = shap_calc(self.clf, self.X_test, approximate=approximate,
-                                                     verbose=self.verbose, return_explainer=True,
-                                                     **shap_kwargs)
+        self.shap_values_train, self.expected_value_train, self.tdp_train = \
+            self._prep_shap_related_variables(clf=self.clf, X=self.X_train, y=self.y_train, approximate=approximate,
+                                              verbose=self.verbose, **shap_kwargs)
 
-        # Get expected_value from the explainer
-        self.expected_value = self.explainer.expected_value
-        # For sklearn models the expected values consists of two elements (negative_class and positive_class)
-        if isinstance(self.expected_value, list) or isinstance(self.expected_value, np.ndarray):
-            self.expected_value = self.expected_value[1]
-
-        # Initialize tree dependence plotter
-        self.tdp = TreeDependencePlotter(self.clf, verbose=self.verbose).fit(self.X_test, self.y_test,
-                                                                             precalc_shap=self.shap_values)
+        self.shap_values_test, self.expected_value_test, self.tdp_test = \
+            self._prep_shap_related_variables(clf=self.clf, X=self.X_test, y=self.y_test, approximate=approximate,
+                                              verbose=self.verbose, **shap_kwargs)
 
         self.fitted = True
+
+
+    @staticmethod
+    def _prep_shap_related_variables(clf, X, y, approximate=False, verbose=0, **shap_kwargs):
+        """
+        The function prepares the variables related to shap that are used to interpret the model:
+
+
+        Returns:
+            (np.array, int, TreeDependencePlotter):
+                Shap values, expected value of the explainer, and fitted TreeDependencePlotter for a given dataset.
+        """
+        shap_values, explainer = shap_calc(clf, X, approximate=approximate, verbose=verbose, return_explainer=True,
+                                           **shap_kwargs)
+
+        expected_value = explainer.expected_value
+
+        # For sklearn models the expected values consists of two elements (negative_class and positive_class)
+        if isinstance(expected_value, list) or isinstance(expected_value, np.ndarray):
+            expected_value = expected_value[1]
+
+        # Initialize tree dependence plotter
+        tdp = TreeDependencePlotter(clf, verbose=verbose).fit(X, y, precalc_shap=shap_values)
+        return shap_values, expected_value, tdp
 
 
     def compute(self):
@@ -173,7 +191,21 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
         self._check_if_fitted()
 
         # Compute SHAP importance
-        self.importance_df = calculate_shap_importance(self.shap_values, self.column_names)
+        self.importance_df_train = calculate_shap_importance(self.shap_values_train, self.column_names,
+                                                             output_columns_suffix='_train')
+
+        self.importance_df_test = calculate_shap_importance(self.shap_values_test, self.column_names,
+                                                            output_columns_suffix='_test')
+
+        # Concatenate the train and test, sort by test set importance and reorder the columns
+        self.importance_df = pd.concat([self.importance_df_train,  self.importance_df_test], axis=1).\
+            sort_values('mean_abs_shap_value_test', ascending=False)[[
+            'mean_abs_shap_value_test',
+            'mean_abs_shap_value_train',
+            'mean_shap_value_test',
+            'mean_shap_value_train'
+        ]]
+
         return self.importance_df
 
 
@@ -217,7 +249,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
         return self.compute()
 
 
-    def plot(self, plot_type, target_columns=None, samples_index=None, **plot_kwargs):
+    def plot(self, plot_type, target_set = 'test', target_columns=None, samples_index=None, **plot_kwargs):
         """
         Plots the appropriate SHAP plot
 
@@ -229,6 +261,11 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
                 - `'summary'`: SHAP Summary plot
                 - `'dependence'`: Dependence plot for each feature
                 - `'sample'`: Explanation of a given sample in the test data
+
+            target_set (str, optional):
+                The set for which the plot should be generated, either `train` or `test` set. We recommend using test
+                set, because it is not biased by model training. The train set plots are mainly used to compare with the
+                test set plots, whether there are significant differences, which indicate shift in data distribution.
 
             target_columns (None, str or list of str, optional):
                 List of features names, for which the plots should be generated. If None, all features will be plotted.
@@ -242,26 +279,39 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
                 probatus.interpret.TreeDependencePlotter.feature_plot method.
 
         """
+        # Choose correct columns
         if target_columns is None:
             target_columns = self.column_names
 
         target_columns = assure_list_of_strings(target_columns, 'target_columns')
         target_columns_indices = [self.column_names.index(target_column) for target_column in target_columns]
 
-        if plot_type in ['importance', 'summary']:
-            # Get the target features
-            target_X_test = self.X_test[target_columns]
-            target_shap_values = self.shap_values[:, target_columns_indices]
+        # Choose the correct dataset
+        if target_set == 'test':
+            target_X = self.X_test
+            target_shap_values = self.shap_values_test
+            target_tdp = self.tdp_train
+            target_expected_value = self.expected_value_train
+        elif target_set == 'train':
+            target_X = self.X_train
+            target_shap_values = self.shap_values_train
+            target_tdp = self.tdp_test
+            target_expected_value = self.expected_value_test
+        else:
+            raise(ValueError('The target_set parameter can be either "train" or "test".'))
 
+        if plot_type in ['importance', 'summary']:
+            target_X = target_X[target_columns]
+            target_shap_values = target_shap_values[:, target_columns_indices]
             # Set summary plot settings
             if plot_type == 'importance':
                 plot_type = 'bar'
-                plot_title = 'SHAP Feature Importance'
+                plot_title = f'SHAP Feature Importance for {target_set} set'
             else:
                 plot_type = 'dot'
-                plot_title = 'SHAP Summary plot'
+                plot_title = f'SHAP Summary plot for {target_set} set'
 
-            shap.summary_plot(target_shap_values, target_X_test, plot_type=plot_type,
+            shap.summary_plot(target_shap_values, target_X, plot_type=plot_type,
                               class_names=self.class_names, show=False, **plot_kwargs)
             ax = plt.gca()
             ax.set_title(plot_title)
@@ -273,7 +323,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
             ax = []
             for feature_name in target_columns:
                 ax.append(
-                    self.tdp.plot(feature=feature_name, figsize=(10, 7), target_names=self.class_names))
+                    target_tdp.plot(feature=feature_name, figsize=(10, 7), target_names=self.class_names))
                 plt.show()
 
         elif plot_type == 'sample':
@@ -287,14 +337,14 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
 
             ax = []
             for sample_index in samples_index:
-                sample_loc = self.X_test.index.get_loc(sample_index)
+                sample_loc = target_X.index.get_loc(sample_index)
 
-                shap.plots._waterfall.waterfall_legacy(self.expected_value,
-                                                       self.shap_values[sample_loc, :],
-                                                       self.X_test.loc[sample_index],
+                shap.plots._waterfall.waterfall_legacy(target_expected_value,
+                                                       target_shap_values[sample_loc, :],
+                                                       target_X.loc[sample_index],
                                                        show=False, **plot_kwargs)
 
-                plot_title = f'SHAP Sample Explanation for index={sample_index}'
+                plot_title = f'SHAP Sample Explanation of {target_set} sample for index={sample_index}'
                 current_ax = plt.gca()
                 current_ax.set_title(plot_title)
                 ax.append(current_ax)

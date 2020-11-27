@@ -39,8 +39,10 @@ def fitted_tree(X_train, y_train):
 @pytest.fixture(scope='function')
 def expected_feature_importance():
     return pd.DataFrame({
-        'mean_abs_shap_value': [0.5, 0., 0.],
-        'mean_shap_value': [0., 0., 0.]}, index=['col_3', 'col_1', 'col_2'])
+        'mean_abs_shap_value_train': [0.5, 0., 0.],
+        'mean_shap_value_train': [0., 0., 0.],
+        'mean_abs_shap_value_test': [0.5, 0., 0.],
+        'mean_shap_value_test': [0., 0., 0.]}, index=['col_3', 'col_1', 'col_2'])
 
 
 def test_shap_interpret(fitted_tree, X_train, y_train, X_test, y_test, expected_feature_importance):
@@ -58,21 +60,31 @@ def test_shap_interpret(fitted_tree, X_train, y_train, X_test, y_test, expected_
     assert shap_interpret.test_score == pytest.approx(0.833, 0.01)
 
     # Check expected shap values
-    assert (np.mean(np.abs(shap_interpret.shap_values), axis=0) == [0, 0, 0.5]).all()
+    assert (np.mean(np.abs(shap_interpret.shap_values_test), axis=0) == [0, 0, 0.5]).all()
+    assert (np.mean(np.abs(shap_interpret.shap_values_train), axis=0) == [0, 0, 0.5]).all()
 
     importance_df = shap_interpret.compute()
     pd.testing.assert_frame_equal(expected_feature_importance, importance_df)
 
+    # Check if plots work for such dataset
     with patch('matplotlib.pyplot.figure') as mock_plt:
         with patch('shap.plots._waterfall.waterfall_legacy'):
-            ax1 = shap_interpret.plot('importance')
-            ax2 = shap_interpret.plot('summary')
-            ax3 =shap_interpret.plot('dependence', target_columns='col_3')
-            ax4 = shap_interpret.plot('sample', samples_index=[5, 6])
+            ax1 = shap_interpret.plot('importance', target_set='test')
+            ax2 = shap_interpret.plot('summary', target_set='test')
+            ax3 = shap_interpret.plot('dependence', target_columns='col_3', target_set='test')
+            ax4 = shap_interpret.plot('sample', samples_index=X_test.index.tolist()[0:2], target_set='test')
+            ax5 = shap_interpret.plot('importance', target_set='train')
+            ax6 = shap_interpret.plot('summary', target_set='train')
+            ax7 = shap_interpret.plot('dependence', target_columns='col_3', target_set='train')
+            ax8 = shap_interpret.plot('sample', samples_index=X_train.index.tolist()[0:2], target_set='train')
     assert not(isinstance(ax1, list))
     assert not(isinstance(ax2, list))
     assert not(isinstance(ax3, list))
     assert isinstance(ax4, list) and len(ax4) == 2
+    assert not(isinstance(ax5, list))
+    assert not(isinstance(ax6, list))
+    assert not(isinstance(ax7, list))
+    assert isinstance(ax8, list) and len(ax8) == 2
 
 
 def test_shap_interpret_fit_compute(fitted_tree, X_train, y_train, X_test, y_test, expected_feature_importance):
@@ -90,7 +102,8 @@ def test_shap_interpret_fit_compute(fitted_tree, X_train, y_train, X_test, y_tes
     assert shap_interpret.test_score == pytest.approx(0.833, 0.01)
 
     # Check expected shap values
-    assert (np.mean(np.abs(shap_interpret.shap_values), axis=0) == [0, 0, 0.5]).all()
+    assert (np.mean(np.abs(shap_interpret.shap_values_test), axis=0) == [0, 0, 0.5]).all()
+    assert (np.mean(np.abs(shap_interpret.shap_values_train), axis=0) == [0, 0, 0.5]).all()
 
     pd.testing.assert_frame_equal(expected_feature_importance, importance_df)
 
@@ -115,11 +128,19 @@ def test_shap_interpret_complex_data(complex_data_split, complex_fitted_lightgbm
     # Check if plots work for such dataset
     with patch('matplotlib.pyplot.figure') as mock_plt:
         with patch('shap.plots._waterfall.waterfall_legacy'):
-            ax1 = shap_interpret.plot('importance')
-            ax2 = shap_interpret.plot('summary')
-            ax3 = shap_interpret.plot('dependence', target_columns='f2_missing')
-            ax4 = shap_interpret.plot('sample', samples_index=X_test.index.tolist()[0:2])
+            ax1 = shap_interpret.plot('importance', target_set='test')
+            ax2 = shap_interpret.plot('summary', target_set='test')
+            ax3 = shap_interpret.plot('dependence', target_columns='f2_missing', target_set='test')
+            ax4 = shap_interpret.plot('sample', samples_index=X_test.index.tolist()[0:2], target_set='test')
+            ax5 = shap_interpret.plot('importance', target_set='train')
+            ax6 = shap_interpret.plot('summary', target_set='train')
+            ax7 = shap_interpret.plot('dependence', target_columns='f2_missing', target_set='train')
+            ax8 = shap_interpret.plot('sample', samples_index=X_train.index.tolist()[0:2], target_set='train')
     assert not(isinstance(ax1, list))
     assert not(isinstance(ax2, list))
     assert not(isinstance(ax3, list))
     assert isinstance(ax4, list) and len(ax4) == 2
+    assert not(isinstance(ax5, list))
+    assert not(isinstance(ax6, list))
+    assert not(isinstance(ax7, list))
+    assert isinstance(ax8, list) and len(ax8) == 2
