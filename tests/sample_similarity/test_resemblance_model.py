@@ -31,13 +31,13 @@ def test_base_class(X1, X2):
     with pytest.raises(NotFittedError) as _:
         rm._check_if_fitted()
 
-    actual_report, train_auc, test_auc = rm.fit_compute(X1, X2, return_auc=True)
+    actual_report, train_score, test_score = rm.fit_compute(X1, X2, return_scores=True)
 
     # After the fit this should not raise any error
     rm._check_if_fitted()
 
-    assert train_auc == 1
-    assert test_auc == 1
+    assert train_score == 1
+    assert test_score == 1
     assert actual_report is None
 
     # Check data splits if correct
@@ -68,13 +68,13 @@ def test_shap_resemblance_class(X1, X2):
     with pytest.raises(NotFittedError) as _:
         rm._check_if_fitted()
 
-    actual_report, train_auc, test_auc = rm.fit_compute(X1, X2, return_auc=True)
+    actual_report, train_score, test_score = rm.fit_compute(X1, X2, return_scores=True)
 
     # After the fit this should not raise any error
     rm._check_if_fitted()
 
-    assert train_auc == 1
-    assert test_auc == 1
+    assert train_score == 1
+    assert test_score == 1
 
     # Check report shape
     assert actual_report.shape == (3, 2)
@@ -102,13 +102,13 @@ def test_shap_resemblance_class(complex_data, complex_lightgbm):
     X2 = X1.copy()
     X2['f4'] = X2['f4'] + 100
 
-    rm = SHAPImportanceResemblance(complex_lightgbm, test_prc=0.5, n_jobs=1, random_state=42)
+    rm = SHAPImportanceResemblance(complex_lightgbm, scoring='accuracy', test_prc=0.5, n_jobs=1, random_state=42)
 
     # Before fit it should raise an exception
     with pytest.raises(NotFittedError) as _:
         rm._check_if_fitted()
 
-    actual_report, train_auc, test_auc = rm.fit_compute(X1, X2, return_auc=True)
+    actual_report, train_score, test_score = rm.fit_compute(X1, X2, return_scores=True)
 
     # Check if the X and y within the rm have correct types
     assert rm.X['f1_categorical'].dtype.name == 'category'
@@ -118,8 +118,8 @@ def test_shap_resemblance_class(complex_data, complex_lightgbm):
     # After the fit this should not raise any error
     rm._check_if_fitted()
 
-    assert train_auc == 1
-    assert test_auc == 1
+    assert train_score == pytest.approx(1, 0.05)
+    assert test_score == pytest.approx(1, 0.05)
 
     # Check report shape
     assert actual_report.shape == (5, 2)
@@ -146,13 +146,13 @@ def test_permutation_resemblance_class(X1, X2):
     with pytest.raises(NotFittedError) as _:
         rm._check_if_fitted()
 
-    actual_report, train_auc, test_auc = rm.fit_compute(X1, X2, return_auc=True)
+    actual_report, train_score, test_score = rm.fit_compute(X1, X2, return_scores=True)
 
     # After the fit this should not raise any error
     rm._check_if_fitted()
 
-    assert train_auc == 1
-    assert test_auc == 1
+    assert train_score == 1
+    assert test_score == 1
 
     # Check report shape
     assert actual_report.shape == (3, 2)
@@ -177,8 +177,8 @@ def test_base_class_same_data(X1):
     clf = DecisionTreeClassifier(max_depth=1, random_state=1)
     rm = BaseResemblanceModel(clf, test_prc=0.5, n_jobs=1, random_state=42)
 
-    actual_report, train_auc, test_auc = rm.fit_compute(X1, X1, return_auc=True)
+    actual_report, train_score, test_score = rm.fit_compute(X1, X1, return_scores=True)
 
-    assert train_auc == 0.5
-    assert test_auc == 0.5
+    assert train_score == 0.5
+    assert test_score == 0.5
     assert actual_report is None

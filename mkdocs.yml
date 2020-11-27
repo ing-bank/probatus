@@ -16,12 +16,14 @@ nav:
     - Model Metrics Volatility: tutorials/nb_metric_volatility.ipynb
     - Multivariate Sample Similarity: tutorials/nb_sample_similarity.ipynb
     - Univariate Sample Similarity: tutorials/nb_distribution_statistics.ipynb
+    - Custom Scoring Metrics: tutorials/nb_custom_scoring.ipynb
   - API:
     - probatus.feature_elimination: api/feature_elimination.md
     - probatus.interpret: api/model_interpret.md
     - probatus.metric_volatility: api/metric_volatility.md
     - probatus.sample_similarity: api/sample_similarity.md
     - probatus.stat_tests: api/stat_tests.md
+    - probatus.utils: api/utils.md
 
 
 plugins:

@@ -1,12 +1,12 @@
 from probatus.utils import preprocess_data, shap_calc, calculate_shap_importance, BaseFitComputePlotClass, \
-    preprocess_labels
+    preprocess_labels, get_single_scorer
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 from sklearn.model_selection import RandomizedSearchCV, GridSearchCV, check_cv
 from sklearn.base import clone, is_classifier
-from sklearn.metrics import check_scoring
 from joblib import Parallel, delayed
+
 
 class ShapRFECV(BaseFitComputePlotClass):
     """
@@ -81,7 +81,7 @@ class ShapRFECV(BaseFitComputePlotClass):
     <img src="../img/shaprfecv.png" width="500" />
     """
 
-    def __init__(self, clf, step=1, min_features_to_select=1, cv=None, scoring=None, n_jobs=-1, verbose=0,
+    def __init__(self, clf, step=1, min_features_to_select=1, cv=None, scoring='roc_auc', n_jobs=-1, verbose=0,
                  random_state=None):
         """
         This method initializes the class:
@@ -110,9 +110,10 @@ class ShapRFECV(BaseFitComputePlotClass):
                 [cv parameter](https://scikit-learn.org/stable/modules/generated/sklearn.feature_selection.RFECV.html).
                 If None, then cv of 5 is used.
 
-            scoring (string, callable or None, optional):
-                A string (see sklearn [model scoring](https://scikit-learn.org/stable/modules/model_evaluation.html)) or
-                a scorer callable object, function with the signature `scorer(estimator, X, y)`.
+            scoring (string or probatus.utils.Scorer, optional):
+                Metric for which the model performance is calculated. It can be either a metric name  aligned with
+                predefined [classification scorers names in sklearn](https://scikit-learn.org/stable/modules/model_evaluation.html).
+                Another option is using probatus.utils.Scorer to define a custom metric.
 
             n_jobs (int, optional):
                 Number of cores to run in parallel while fitting across folds. None means 1 unless in a
@@ -122,8 +123,8 @@ class ShapRFECV(BaseFitComputePlotClass):
                 Controls verbosity of the output:
 
                 - 0 - nether prints nor warnings are shown
-                - 1 - 50 - only most important warnings regarding data properties are shown (excluding SHAP warnings)
-                - 51 - 100 - shows most important warnings, prints of the feature removal process
+                - 1 - 50 - only most important warnings
+                - 51 - 100 - shows other warnings and prints
                 - above 100 - presents all prints and all warnings (including SHAP warnings).
 
             random_state (int, optional):
@@ -152,7 +153,7 @@ class ShapRFECV(BaseFitComputePlotClass):
                               f"It needs to be a positive integer."))
 
         self.cv = cv
-        self.scorer = check_scoring(self.clf, scoring=scoring)
+        self.scorer = get_single_scorer(scoring)
         self.random_state = random_state
         self.n_jobs = n_jobs
         self.report_df = pd.DataFrame([])
@@ -383,7 +384,7 @@ class ShapRFECV(BaseFitComputePlotClass):
             # Perform CV to estimate feature importance with SHAP
             results_per_fold = Parallel(n_jobs=self.n_jobs)(delayed(self._get_feature_shap_values_per_fold)(
                 X=current_X, y=self.y, clf=current_clf, train_index=train_index, val_index=val_index,
-                scorer=self.scorer, verbose=self.verbose
+                scorer=self.scorer.scorer, verbose=self.verbose
             ) for train_index, val_index in self.cv.split(current_X, self.y))
 
             shap_values = np.vstack([current_result[0] for current_result in results_per_fold])
@@ -510,7 +511,7 @@ class ShapRFECV(BaseFitComputePlotClass):
                          self.report_df['val_metric_mean'] + self.report_df['val_metric_std'], alpha=.3)
 
         plt.xlabel('Number of features')
-        plt.ylabel('Performance')
+        plt.ylabel(f'Performance {self.scorer.metric_name}')
         plt.title('Backwards Feature Elimination using SHAP & CV')
         plt.legend(loc="lower left")
         ax = plt.gca()

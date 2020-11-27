@@ -54,8 +54,8 @@ def test_shap_interpret(fitted_tree, X_train, y_train, X_test, y_test, expected_
     shap_interpret._check_if_fitted
 
     assert shap_interpret.class_names == class_names
-    assert shap_interpret.auc_train == 1
-    assert shap_interpret.auc_test == pytest.approx(0.833, 0.01)
+    assert shap_interpret.train_score == 1
+    assert shap_interpret.test_score == pytest.approx(0.833, 0.01)
 
     # Check expected shap values
     assert (np.mean(np.abs(shap_interpret.shap_values), axis=0) == [0, 0, 0.5]).all()
@@ -86,8 +86,8 @@ def test_shap_interpret_fit_compute(fitted_tree, X_train, y_train, X_test, y_tes
     shap_interpret._check_if_fitted
 
     assert shap_interpret.class_names == class_names
-    assert shap_interpret.auc_train == 1
-    assert shap_interpret.auc_test == pytest.approx(0.833, 0.01)
+    assert shap_interpret.train_score == 1
+    assert shap_interpret.test_score == pytest.approx(0.833, 0.01)
 
     # Check expected shap values
     assert (np.mean(np.abs(shap_interpret.shap_values), axis=0) == [0, 0, 0.5]).all()

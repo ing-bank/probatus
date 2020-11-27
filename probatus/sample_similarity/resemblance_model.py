@@ -21,7 +21,7 @@
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
-from probatus.utils import preprocess_labels, get_scorers, preprocess_data, \
+from probatus.utils import preprocess_labels, get_single_scorer, preprocess_data, \
     BaseFitComputePlotClass
 from probatus.utils.shap_helpers import shap_calc, calculate_shap_importance
 from sklearn.inspection import permutation_importance
@@ -38,13 +38,19 @@ class BaseResemblanceModel(BaseFitComputePlotClass):
     This is a base class and needs to be extended by a fit() method, which implements how data is split, how model is
         trained and evaluated. Further, inheriting classes need to implement how feature importance should be indicated.
     """
-    def __init__(self, model, test_prc=0.25, n_jobs=1, verbose=0, random_state=42):
+    def __init__(self, model, scoring='roc_auc', test_prc=0.25, n_jobs=1, verbose=0, random_state=42):
         """
         Initializes the class.
 
         Args:
             model (model object):
                 Binary classification model or pipeline.
+
+            scoring (string or probatus.utils.Scorer, optional):
+                Metric for which the model performance is calculated. It can be either a metric name  aligned with
+                predefined [classification scorers names in sklearn](https://scikit-learn.org/stable/modules/model_evaluation.html).
+                Another option is using probatus.utils.Scorer to define a custom metric. Recommended option for this
+                class is 'roc_auc'.
 
             test_prc (float, optional):
                 Percentage of data used to test the model. By default 0.25 is set.
@@ -56,8 +62,8 @@ class BaseResemblanceModel(BaseFitComputePlotClass):
                 Controls verbosity of the output:
 
                 - 0 - nether prints nor warnings are shown
-                - 1 - 50 - only most important warnings regarding data properties are shown (excluding SHAP warnings)
-                - 51 - 100 - shows most important warnings, prints of the feature removal process
+                - 1 - 50 - only most important warnings
+                - 51 - 100 - shows other warnings and prints
                 - above 100 - presents all prints and all warnings (including SHAP warnings).
 
             random_state (int, optional):
@@ -68,9 +74,7 @@ class BaseResemblanceModel(BaseFitComputePlotClass):
         self.n_jobs = n_jobs
         self.random_state = random_state
         self.verbose = verbose
-
-        self.metric_name = 'roc_auc'
-        self.scorer = get_scorers(self.metric_name)[0]
+        self.scorer = get_single_scorer(scoring)
 
 
     def _init_output_variables(self):
@@ -81,8 +85,8 @@ class BaseResemblanceModel(BaseFitComputePlotClass):
         self.X_test = None
         self.y_train = None
         self.y_test = None
-        self.auc_train = None
-        self.auc_test = None
+        self.train_score = None
+        self.test_score = None
         self.report = None
 
 
@@ -138,18 +142,20 @@ class BaseResemblanceModel(BaseFitComputePlotClass):
                                                                                 shuffle=True, stratify=self.y)
         self.model.fit(self.X_train, self.y_train)
 
-        self.auc_train = np.round(self.scorer.score(self.model, self.X_train, self.y_train), 3)
-        self.auc_test = np.round(self.scorer.score(self.model, self.X_test, self.y_test), 3)
+        self.train_score = np.round(self.scorer.score(self.model, self.X_train, self.y_train), 3)
+        self.test_score = np.round(self.scorer.score(self.model, self.X_test, self.y_test), 3)
 
 
-        print(f'Finished model training: Train AUC {self.auc_train},'
-              f' Test AUC {self.auc_test}')
+        self.results_text = f'Train {self.scorer.metric_name}: {np.round(self.train_score, 3)},\n' \
+                            f'Test {self.scorer.metric_name}: {np.round(self.test_score, 3)}.'
+        if self.verbose > 50:
+            print(f'Finished model training: \n{self.results_text}')
 
-        if self.auc_train > self.auc_test:
-            warnings.warn('Train AUC > Test AUC, which might indicate an overfit. \n'
-                          'Strong overfit might lead to misleading conclusions when analysing feature importance. '
-                          'Consider retraining with more regularization applied to the model.')
-
+        if self.verbose > 0:
+            if self.auc_train > self.auc_test:
+                warnings.warn(f'Train {self.scorer.metric_name} > Test {self.scorer.metric_name}, which might indicate '
+                              f'an overfit. \n Strong overfit might lead to misleading conclusions when analysing '
+                              f'feature importance. Consider retraining with more regularization applied to the model.')
         self.fitted = True
         return self
 
@@ -166,14 +172,14 @@ class BaseResemblanceModel(BaseFitComputePlotClass):
         return self.X_train, self.X_test, self.y_train, self.y_test
 
 
-    def compute(self, return_auc=False):
+    def compute(self, return_scores=False):
         """
         Checks if fit() method has been run and computes the output variables.
 
         Args:
-            return_auc (bool, optional):
-                Flag indicating whether the method should return a tuple (feature importances, train AUC, test AUC), or
-                feature importances. By default the second option is selected.
+            return_scores (bool, optional):
+                Flag indicating whether the method should return a tuple (feature importances, train score,
+                test score), or feature importances. By default the second option is selected.
 
         Returns:
             (tuple(pd.DataFrame, float, float) or pd.DataFrame):
@@ -182,13 +188,13 @@ class BaseResemblanceModel(BaseFitComputePlotClass):
         """
         self._check_if_fitted()
 
-        if return_auc:
-            return self.report, self.auc_train, self.auc_test
+        if return_scores:
+            return self.report, self.train_score, self.test_score
         else:
             return self.report
 
 
-    def fit_compute(self, X1, X2, column_names=None, return_auc=False, **fit_kwargs):
+    def fit_compute(self, X1, X2, column_names=None, return_scores=False, **fit_kwargs):
         """
         Fits the resemblance model and computes the report regarding feature importance.
 
@@ -204,9 +210,9 @@ class BaseResemblanceModel(BaseFitComputePlotClass):
                 feature names. If not provided the existing feature names are used or default feature names are
                 generated.
 
-            return_auc (bool, optional):
-                Flag indicating whether the method should return a tuple (feature importances, train AUC, test AUC), or
-                only feature importances. By default the second option is selected.
+            return_scores (bool, optional):
+                Flag indicating whether the method should return a tuple (feature importances, train score,
+                test score), or feature importances. By default the second option is selected.
 
             **fit_kwargs:
                 In case any other arguments are accepted by fit() method, they can be passed as keyword arguments
@@ -217,7 +223,7 @@ class BaseResemblanceModel(BaseFitComputePlotClass):
                 feature importances.
         """
         self.fit(X1, X2, column_names=column_names, **fit_kwargs)
-        return self.compute(return_auc=return_auc)
+        return self.compute(return_scores=return_scores)
 
 
     def plot(self):
@@ -253,7 +259,7 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
     <img src="../img/sample_similarity_permutation_importance.png" width="500" />
     """
 
-    def __init__(self, model, iterations=100, test_prc=0.25, n_jobs=1, verbose=0, random_state=42):
+    def __init__(self, model, iterations=100, scoring='roc_auc', test_prc=0.25, n_jobs=1, verbose=0, random_state=42):
         """
         Initializes the class.
 
@@ -263,6 +269,12 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
             iterations (int, optional):
                 Number of iterations performed to calculate permutation importance. By default 100 iterations per
                 feature are done.
+
+            scoring (string or probatus.utils.Scorer, optional):
+                Metric for which the model performance is calculated. It can be either a metric name  aligned with
+                predefined [classification scorers names in sklearn](https://scikit-learn.org/stable/modules/model_evaluation.html).
+                Another option is using probatus.utils.Scorer to define a custom metric. Recommended option for this
+                class is 'roc_auc'.
 
             test_prc (float, optional):
                 Percentage of data used to test the model. By default 0.25 is set.
@@ -274,14 +286,15 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
                 Controls verbosity of the output:
 
                 - 0 - nether prints nor warnings are shown
-                - 1 - 50 - only most important warnings regarding data properties are shown (excluding SHAP warnings)
-                - 51 - 100 - shows most important warnings, prints of the feature removal process
+                - 1 - 50 - only most important warnings
+                - 51 - 100 - shows other warnings and prints
                 - above 100 - presents all prints and all warnings (including SHAP warnings).
 
             random_state (int, optional):
                 The seed used by the random number generator.
         """
-        super().__init__(model=model, test_prc=test_prc, n_jobs=n_jobs, verbose=verbose, random_state=random_state)
+        super().__init__(model=model, scoring=scoring, test_prc=test_prc, n_jobs=n_jobs, verbose=verbose,
+                         random_state=random_state)
 
         self.iterations = iterations
 
@@ -389,11 +402,7 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
         ax.set_ylabel(self.plot_y_label)
         ax.set_title(self.plot_title)
 
-        fig_text = "Train AUC: {},\n" \
-                   "Test AUC: {}.". \
-                       format(self.auc_train, self.auc_test)
-
-        ax.annotate(fig_text, (0,0), (0, -50), fontsize=12, xycoords='axes fraction',
+        ax.annotate(self.results_text, (0,0), (0, -50), fontsize=12, xycoords='axes fraction',
                     textcoords='offset points', va='top')
 
         return ax
@@ -432,7 +441,7 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
     <img src="../img/sample_similarity_shap_summary.png" width="320" />
     """
 
-    def __init__(self, model, test_prc=0.25, n_jobs=1, verbose=0, random_state=42):
+    def __init__(self, model, scoring='roc_auc', test_prc=0.25, n_jobs=1, verbose=0, random_state=42):
 
         """
         Initializes the class.
@@ -440,6 +449,12 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
         Args:
             model (model object):
                 Binary classification model or pipeline.
+
+            scoring (string or probatus.utils.Scorer, optional):
+                Metric for which the model performance is calculated. It can be either a metric name  aligned with
+                predefined [classification scorers names in sklearn](https://scikit-learn.org/stable/modules/model_evaluation.html).
+                Another option is using probatus.utils.Scorer to define a custom metric. Recommended option for this
+                class is 'roc_auc'.
 
             test_prc (float, optional):
                 Percentage of data used to test the model. By default 0.25 is set.
@@ -451,14 +466,15 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
                 Controls verbosity of the output:
 
                 - 0 - nether prints nor warnings are shown
-                - 1 - 50 - only most important warnings regarding data properties are shown (excluding SHAP warnings)
-                - 51 - 100 - shows most important warnings, prints of the feature removal process
+                - 1 - 50 - only most important warnings
+                - 51 - 100 - shows other warnings and prints
                 - above 100 - presents all prints and all warnings (including SHAP warnings).
 
             random_state (int, optional):
                 The seed used by the random number generator.
         """
-        super().__init__(model=model, test_prc=test_prc, n_jobs=n_jobs, verbose=verbose, random_state=random_state)
+        super().__init__(model=model, scoring=scoring, test_prc=test_prc, n_jobs=n_jobs, verbose=verbose,
+                         random_state=random_state)
 
         self.plot_title = 'SHAP summary plot'
 
@@ -517,11 +533,7 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
         ax = plt.gca()
         ax.set_title(self.plot_title)
 
-        fig_text = "Train AUC: {},\n" \
-                   "Test AUC: {}.". \
-                       format(self.auc_train, self.auc_test)
-
-        ax.annotate(fig_text, (0,0), (0, -50), fontsize=12, xycoords='axes fraction',
+        ax.annotate(self.results_text, (0,0), (0, -50), fontsize=12, xycoords='axes fraction',
                     textcoords='offset points', va='top')
         return ax
 
