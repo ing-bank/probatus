@@ -44,7 +44,7 @@ class ShapRFECV(BaseFitComputePlotClass):
     from probatus.feature_elimination import ShapRFECV
     from sklearn.datasets import make_classification
     from sklearn.model_selection import train_test_split
-    import lightgbm
+    from sklearn.ensemble import RandomForestClassifier
     from sklearn.model_selection import RandomizedSearchCV
 
     feature_names = ['f1', 'f2', 'f3', 'f4', 'f5', 'f6', 'f7', 'f8', 'f9', 'f10', 'f11', 'f12', 'f13', 'f14', 'f15', 'f16', 'f17', 'f18', 'f19', 'f20']
@@ -56,11 +56,11 @@ class ShapRFECV(BaseFitComputePlotClass):
 
 
     # Prepare model and parameter search space
-    clf = lightgbm.LGBMClassifier(max_depth=5, class_weight='balanced')
+    clf = RandomForestClassifier(max_depth=5, class_weight='balanced')
 
     param_grid = {
         'n_estimators': [5, 7, 10],
-        'num_leaves': [3, 5, 7, 10],
+        'min_samples_leaf': [3, 5, 7, 10],
     }
     search = RandomizedSearchCV(clf, param_grid)
 
