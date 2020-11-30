@@ -9,4 +9,5 @@ pytest>=5.4.1
 numpy>=1.19.0
 lightgbm>=3.1.0
 jupyter>=1.0.0
+tabulate>=0.8.7
 nbconvert>=6.0.7

@@ -116,8 +116,6 @@ def test_compute(report, mock_model):
 
 
 def test_plot(report, mock_model, iterations_train, iterations_test, iterations_delta):
-    num_figures_before = plt.gcf().number
-
     with patch.object(BaseVolatilityEstimator, 'compute', return_value=report.loc[['roc_auc']]) as mock_compute:
         with patch.object(BaseVolatilityEstimator, '_get_samples_to_plot',
                           return_value=(iterations_train, iterations_test, iterations_delta)) as mock_get_samples:
@@ -128,9 +126,6 @@ def test_plot(report, mock_model, iterations_train, iterations_test, iterations_
             vol.plot(metrics='roc_auc')
             mock_compute.assert_called_with(metrics='roc_auc')
             mock_get_samples.assert_called_with(metric_name='roc_auc')
-
-    num_figures_after = plt.gcf().number
-    assert num_figures_after == num_figures_before + 1
 
 
 def test_get_samples_to_plot(mock_model, iteration_results, iterations_train, iterations_test, iterations_delta):
