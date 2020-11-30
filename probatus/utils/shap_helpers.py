@@ -110,7 +110,7 @@ def shap_to_df(model, X, precalc_shap=None, **kwargs):
         raise NotImplementedError("X must be a dataframe or a 2d array")
 
 
-def calculate_shap_importance(shap_values, columns):
+def calculate_shap_importance(shap_values, columns, output_columns_suffix=''):
     """
     Returns the average shapley value for each column of the dataframe, as well as the average absolute shap value.
 
@@ -120,6 +120,9 @@ def calculate_shap_importance(shap_values, columns):
 
         columns (list of str):
             Feature names.
+
+        output_columns_suffix (str, optional):
+            Suffix to be added at the end of column names in the output.
 
     Returns:
         (pd.DataFrame):
@@ -133,14 +136,16 @@ def calculate_shap_importance(shap_values, columns):
 
     # Prepare importance values in a handy df
     importance_df = pd.DataFrame({
-        'mean_abs_shap_value':shap_abs_mean.tolist(),
-        'mean_shap_value': shap_mean.tolist()},
+        f'mean_abs_shap_value{output_columns_suffix}':shap_abs_mean.tolist(),
+        f'mean_shap_value{output_columns_suffix}': shap_mean.tolist()},
         index=columns)
 
     # Set the correct column types
-    importance_df['mean_abs_shap_value'] = importance_df['mean_abs_shap_value'].astype(float)
-    importance_df['mean_shap_value'] = importance_df['mean_shap_value'].astype(float)
+    importance_df[f'mean_abs_shap_value{output_columns_suffix}'] = \
+        importance_df[f'mean_abs_shap_value{output_columns_suffix}'].astype(float)
+    importance_df[f'mean_shap_value{output_columns_suffix}'] = \
+        importance_df[f'mean_shap_value{output_columns_suffix}'].astype(float)
 
-    importance_df = importance_df.sort_values('mean_abs_shap_value', ascending=False)
+    importance_df = importance_df.sort_values(f'mean_abs_shap_value{output_columns_suffix}', ascending=False)
 
     return importance_df
