@@ -97,6 +97,8 @@ class SimpleBucketer(Bucketer):
 
     Example:
     ```python
+    from probatus.binning import SimpleBucketer
+
     x = [1, 2, 1]
     bins = 3
     myBucketer = SimpleBucketer(bin_count=bins)
@@ -133,6 +135,8 @@ class AgglomerativeBucketer(Bucketer):
 
     Usage:
     ```python
+    from probatus.binning import AgglomerativeBucketer
+
     x = [1, 2, 1]
     bins = 3
     myBucketer = AgglomerativeBucketer(bin_count=bins)
@@ -178,6 +182,8 @@ class QuantileBucketer(Bucketer):
 
     Usage:
     ```python
+    from probatus.binning import QuantileBucketer
+
     x = [1, 2, 1]
     bins = 3
     myBucketer = QuantileBucketer(bin_count=bins)
@@ -232,6 +238,8 @@ class TreeBucketer(Bucketer):
     
     Usage:
     ```python
+    from probatus.binning import TreeBucketer
+
     x = [1, 2, 2, 5 ,3]
     y = [0, 0 ,1 ,1 ,1]
     bins = 3

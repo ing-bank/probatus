@@ -37,6 +37,7 @@ class TreeDependencePlotter(BaseFitComputePlotClass):
     ```python
     from sklearn.datasets import make_classification
     from sklearn.ensemble import RandomForestClassifier
+    from probatus.interpret import TreeDependencePlotter
 
     X, y = make_classification(n_samples=15, n_features=3, n_informative=3, n_redundant=0, random_state=42)
     clf = RandomForestClassifier().fit(X, y)

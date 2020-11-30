@@ -37,13 +37,14 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
     from sklearn.datasets import make_classification
     from sklearn.ensemble import RandomForestClassifier
     from sklearn.model_selection import train_test_split
+    from probatus.interpret import ShapModelInterpreter
     import numpy as np
     import pandas as pd
 
     feature_names = ['f1', 'f2', 'f3', 'f4']
 
     # Prepare two samples
-    X, y = make_classification(n_samples=1000, n_features=4, random_state=0)
+    X, y = make_classification(n_samples=5000, n_features=4, random_state=0)
     X = pd.DataFrame(X, columns=feature_names)
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
@@ -51,15 +52,15 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
     clf = RandomForestClassifier(class_weight='balanced', n_estimators = 100, max_depth=2, random_state=0)
     clf.fit(X_train, y_train)
 
-    # Train ShapModelAnalyser
+    # Train ShapModelInterpreter
     shap_interpreter = ShapModelInterpreter(clf)
     feature_importance = shap_interpreter.fit_compute(X_train, X_test, y_train, y_test)
 
     # Make plots
-    shap_interpreter.plot('importance')
-    shap_interpreter.plot('summary')
-    shap_interpreter.plot('dependence', target_columns=['f1', 'f2'])
-    shap_interpreter.plot('sample', samples_index=[521, 78])
+    ax1 = shap_interpreter.plot('importance')
+    ax2 = shap_interpreter.plot('summary')
+    ax3 = shap_interpreter.plot('dependence', target_columns=['f1', 'f2'])
+    ax4 = shap_interpreter.plot('sample', samples_index=[X_test.index.tolist()[0]])
     ```
 
     <img src="../img/model_interpret_importance.png" width="320" />

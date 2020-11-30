@@ -303,7 +303,7 @@ class TrainTestVolatility(BaseVolatilityEstimator):
     from probatus.metric_volatility import TrainTestVolatility
     X, y = make_classification(n_features=4)
     clf = RandomForestClassifier()
-    volatility = TrainTestVolatility(clf, iterations=500 , test_prc = 0.5)
+    volatility = TrainTestVolatility(clf, iterations=10 , test_prc = 0.5)
     volatility_report = volatility.fit_compute(X, y)
     volatility.plot()
     ```
@@ -451,7 +451,7 @@ class SplitSeedVolatility(TrainTestVolatility):
     from probatus.metric_volatility import SplitSeedVolatility
     X, y = make_classification(n_features=4)
     clf = RandomForestClassifier()
-    volatility = SplitSeedVolatility(clf, iterations=500 , test_prc = 0.5)
+    volatility = SplitSeedVolatility(clf, iterations=10 , test_prc = 0.5)
     volatility_report = volatility.fit_compute(X, y)
     volatility.plot()
     ```
@@ -521,7 +521,7 @@ class BootstrappedVolatility(TrainTestVolatility):
     from probatus.metric_volatility import BootstrappedVolatility
     X, y = make_classification(n_features=4)
     clf = RandomForestClassifier()
-    volatility = BootstrappedVolatility(clf, iterations=500 , test_prc = 0.5)
+    volatility = BootstrappedVolatility(clf, iterations=10 , test_prc = 0.5)
     volatility_report = volatility.fit_compute(X, y)
     volatility.plot()
     ```

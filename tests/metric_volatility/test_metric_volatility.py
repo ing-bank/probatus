@@ -129,7 +129,6 @@ def test_plot(report, mock_model, iterations_train, iterations_test, iterations_
             mock_compute.assert_called_with(metrics='roc_auc')
             mock_get_samples.assert_called_with(metric_name='roc_auc')
 
-
     num_figures_after = plt.gcf().number
     assert num_figures_after == num_figures_before + 1
 
