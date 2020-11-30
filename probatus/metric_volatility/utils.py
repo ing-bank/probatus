@@ -19,7 +19,7 @@
 
 
 import numpy as np
-
+import pandas as pd
 
 def sample_data(X, y, sampling_type, sampling_fraction, dataset_name='dataset'):
     check_sampling_input(sampling_type, sampling_fraction, dataset_name)
@@ -37,7 +37,18 @@ def sample_data(X, y, sampling_type, sampling_fraction, dataset_name='dataset'):
             return X,y
         else:
             rows_indexes = np.random.choice(array_index, number_of_samples, replace=True)
-    return X.iloc[rows_indexes], y.iloc[rows_indexes]
+
+    # Get output correctly based on the type
+    if isinstance(X, pd.DataFrame):
+        output_X = X.iloc[rows_indexes]
+    else:
+        output_X = X[rows_indexes]
+    if isinstance(y, pd.DataFrame):
+        output_y = y.iloc[rows_indexes]
+    else:
+        output_y = y[rows_indexes]
+
+    return output_X, output_y
 
 
 def check_sampling_input(sampling_type, fraction, dataset_name):

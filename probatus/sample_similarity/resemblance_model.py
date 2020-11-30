@@ -249,10 +249,10 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
     from sklearn.datasets import make_classification
     from sklearn.ensemble import RandomForestClassifier
     from probatus.sample_similarity import PermutationImportanceResemblance
-    X1, _ = make_classification(n_samples=1000, n_features=5)
-    X2, _ = make_classification(n_samples=1000, n_features=5, shift=0.5)
+    X1, _ = make_classification(n_samples=100, n_features=5)
+    X2, _ = make_classification(n_samples=100, n_features=5, shift=0.5)
     clf = RandomForestClassifier(max_depth=2)
-    perm = PermutationResemblanceModel(clf)
+    perm = PermutationImportanceResemblance(clf)
     feature_importance = perm.fit_compute(X1, X2)
     perm.plot()
     ```
@@ -429,8 +429,8 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
     from sklearn.datasets import make_classification
     from sklearn.ensemble import RandomForestClassifier
     from probatus.sample_similarity import SHAPImportanceResemblance
-    X1, _ = make_classification(n_samples=1000, n_features=5)
-    X2, _ = make_classification(n_samples=1000, n_features=5, shift=0.5)
+    X1, _ = make_classification(n_samples=100, n_features=5)
+    X2, _ = make_classification(n_samples=100, n_features=5, shift=0.5)
     clf = RandomForestClassifier(max_depth=2)
     rm = SHAPImportanceResemblance(clf)
     feature_importance = rm.fit_compute(X1, X2)
@@ -499,7 +499,7 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
                 generated.
 
         Returns:
-            (PermutationImportanceResemblance):
+            (SHAPImportanceResemblance):
                 Fitted object.
         """
         super().fit(X1=X1, X2=X2, column_names=column_names)

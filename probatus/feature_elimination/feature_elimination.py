@@ -39,30 +39,28 @@ class ShapRFECV(BaseFitComputePlotClass):
 
     Example:
     ```python
+    import numpy as np
+    import pandas as pd
     from probatus.feature_elimination import ShapRFECV
     from sklearn.datasets import make_classification
     from sklearn.model_selection import train_test_split
-    import numpy as np
-    import pandas as pd
-    import lightgbm
+    from sklearn.ensemble import RandomForestClassifier
     from sklearn.model_selection import RandomizedSearchCV
 
-    feature_names = ['f1_categorical', 'f2_missing', 'f3_static', 'f4', 'f5', 'f6', 'f7', 'f8', 'f9', 'f10', 'f11', 'f12', 'f13', 'f14', 'f15', 'f16', 'f17', 'f18', 'f19', 'f20']
+    feature_names = ['f1', 'f2', 'f3', 'f4', 'f5', 'f6', 'f7', 'f8', 'f9', 'f10', 'f11', 'f12', 'f13', 'f14', 'f15', 'f16', 'f17', 'f18', 'f19', 'f20']
 
     # Prepare two samples
-    X, y = make_classification(n_samples=1000, class_sep=0.05, n_informative=6, n_features=20,
+    X, y = make_classification(n_samples=200, class_sep=0.05, n_informative=6, n_features=20,
                                random_state=0, n_redundant=10, n_clusters_per_class=1)
     X = pd.DataFrame(X, columns=feature_names)
-    X['f1_categorical'] = X['f1_categorical'].apply(lambda x: str(np.round(x*10)))
-    X['f2_missing'] = X['f2_missing'].apply(lambda x: x if np.random.rand()<0.8 else np.nan)
-    X['f3_static'] = 0
+
 
     # Prepare model and parameter search space
-    clf = lightgbm.LGBMClassifier(max_depth=5, class_weight='balanced')
+    clf = RandomForestClassifier(max_depth=5, class_weight='balanced')
 
     param_grid = {
         'n_estimators': [5, 7, 10],
-        'num_leaves': [3, 5, 7, 10],
+        'min_samples_leaf': [3, 5, 7, 10],
     }
     search = RandomizedSearchCV(clf, param_grid)
 

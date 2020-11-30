@@ -76,14 +76,16 @@ class Scorer:
     from probatus.utils import Scorer
     from sklearn.metrics import make_scorer
     from sklearn.datasets import make_classification
+    from sklearn.model_selection import train_test_split
     from sklearn.ensemble import RandomForestClassifier
+    import pandas as pd
 
     # Make ROC AUC scorer
     scorer1 = Scorer('roc_auc')
 
     # Make custom scorer with following function:
     def custom_metric(y_true, y_pred):
-        return np.sum(y_true == y_pred)
+          return (y_true == y_pred).sum()
     scorer2 = Scorer('custom_metric', custom_scorer=make_scorer(custom_metric))
 
     # Prepare two samples
