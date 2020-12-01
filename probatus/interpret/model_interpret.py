@@ -185,13 +185,18 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
         return shap_values, expected_value, tdp
 
 
-    def compute(self):
+    def compute(self, return_scores=False):
         """
         Computes the DataFrame, that presents the importance of each feature.
 
+        Args:
+            return_scores (bool, optional):
+                Flag indicating whether the method should return a tuple (feature importances, train score,
+                test score), or feature importances. By default the second option is selected.
         Returns:
-            (pd.DataFrame):
-                Dataframe with SHAP feature importance.
+            (pd.DataFrame or (pd.DataFrame, float, float)):
+                Dataframe with SHAP feature importance, or tuple containing the dataframe, train and test scores of the
+                model.
         """
         self._check_if_fitted()
 
@@ -211,11 +216,14 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
             'mean_shap_value_train'
         ]]
 
-        return self.importance_df
+        if return_scores:
+            return self.importance_df, self.train_score, self.test_score
+        else:
+            return self.importance_df
 
 
     def fit_compute(self,  X_train, X_test, y_train, y_test, column_names=None, class_names=None, approximate=False,
-                    **shap_kwargs):
+                    return_scores=False, **shap_kwargs):
         """
         Fits the object and calculates the shap values for the provided datasets.
 
@@ -242,12 +250,17 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
             approximate (boolean, optional):
                 if True uses shap approximations - less accurate, but very fast.
 
+            return_scores (bool, optional):
+                Flag indicating whether the method should return a tuple (feature importances, train score,
+                test score), or feature importances. By default the second option is selected.
+
             **shap_kwargs: keyword arguments passed to
                 keyword arguments passed to [shap.TreeExplainer](https://shap.readthedocs.io/en/latest/generated/shap.TreeExplainer.html).
 
         Returns:
-            (pd.DataFrame):
-                Dataframe with SHAP feature importance.
+            (pd.DataFrame or (pd.DataFrame, float, float)):
+                Dataframe with SHAP feature importance, or tuple containing the dataframe, train and test scores of the
+                model.
         """
         self.fit(X_train=X_train, X_test=X_test, y_train=y_train, y_test=y_test, column_names=column_names,
                  class_names=class_names, approximate=approximate, **shap_kwargs)

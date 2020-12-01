@@ -63,9 +63,12 @@ def test_shap_interpret(fitted_tree, X_train, y_train, X_test, y_test, expected_
     assert (np.mean(np.abs(shap_interpret.shap_values_test), axis=0) == [0, 0, 0.5]).all()
     assert (np.mean(np.abs(shap_interpret.shap_values_train), axis=0) == [0, 0, 0.5]).all()
 
-    importance_df = shap_interpret.compute()
-    pd.testing.assert_frame_equal(expected_feature_importance, importance_df)
+    importance_df, train_auc, test_auc = shap_interpret.compute(return_scores=True)
 
+    pd.testing.assert_frame_equal(expected_feature_importance, importance_df)
+    assert train_auc == 1
+    assert test_auc == pytest.approx(0.833, 0.01)
+    
     # Check if plots work for such dataset
     with patch('matplotlib.pyplot.figure') as mock_plt:
         with patch('shap.plots._waterfall.waterfall_legacy'):
