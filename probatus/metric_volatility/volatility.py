@@ -38,13 +38,13 @@ class BaseVolatilityEstimator(BaseFitComputePlotClass):
     """
 
 
-    def __init__(self, model, scoring='roc_auc', test_prc=0.25, n_jobs=1, stats_tests_to_apply=None, verbose=0,
+    def __init__(self, clf, scoring='roc_auc', test_prc=0.25, n_jobs=1, stats_tests_to_apply=None, verbose=0,
                  random_state=42):
         """
         Initializes the class
 
         Args:
-            model (model object):
+            clf (model object):
                 Binary classification model or pipeline.
 
             scoring (string, list of strings, probatus.utils.Scorer or list of probatus.utils.Scorers, optional):
@@ -78,7 +78,7 @@ class BaseVolatilityEstimator(BaseFitComputePlotClass):
             random_state (int, optional):
                 The seed used by the random number generator.
         """
-        self.model = model
+        self.clf = clf
         self.n_jobs = n_jobs
         self.random_state = random_state
         self.test_prc = test_prc
@@ -312,7 +312,7 @@ class TrainTestVolatility(BaseVolatilityEstimator):
     """
 
 
-    def __init__(self, model, iterations=1000, scoring='roc_auc', sample_train_test_split_seed=True,
+    def __init__(self, clf, iterations=1000, scoring='roc_auc', sample_train_test_split_seed=True,
                  train_sampling_type=None, test_sampling_type=None, train_sampling_fraction=1, test_sampling_fraction=1,
                  test_prc=0.25, n_jobs=1, stats_tests_to_apply=None, verbose=0, random_state=42):
 
@@ -320,7 +320,7 @@ class TrainTestVolatility(BaseVolatilityEstimator):
         Initializes the class.
 
         Args:
-            model (model object):
+            clf (model object):
                 Binary classification model or pipeline.
 
             iterations (int, optional):
@@ -384,7 +384,7 @@ class TrainTestVolatility(BaseVolatilityEstimator):
             random_state (int, optional):
                 The seed used by the random number generator.
         """
-        super().__init__(model=model, scoring=scoring, test_prc=test_prc, n_jobs=n_jobs,
+        super().__init__(clf=clf, scoring=scoring, test_prc=test_prc, n_jobs=n_jobs,
                          stats_tests_to_apply=stats_tests_to_apply, verbose=verbose, random_state=random_state)
         self.iterations = iterations
         self.train_sampling_type = train_sampling_type
@@ -427,7 +427,7 @@ class TrainTestVolatility(BaseVolatilityEstimator):
             random_seeds = (np.ones(self.iterations) * self.random_state).astype(int)
 
         results_per_iteration = Parallel(n_jobs=self.n_jobs)(delayed(get_metric)(
-            X=self.X, y=self.y, model=self.model, test_size=self.test_prc, split_seed=split_seed,
+            X=self.X, y=self.y, clf=self.clf, test_size=self.test_prc, split_seed=split_seed,
             scorers=self.scorers, train_sampling_type=self.train_sampling_type,
             test_sampling_type=self.test_sampling_type, train_sampling_fraction=self.train_sampling_fraction,
             test_sampling_fraction=self.test_sampling_fraction
@@ -459,13 +459,13 @@ class SplitSeedVolatility(TrainTestVolatility):
 
     """
 
-    def __init__(self, model, iterations=1000, scoring='roc_auc', test_prc=0.25, n_jobs=1, stats_tests_to_apply=None,
+    def __init__(self, clf, iterations=1000, scoring='roc_auc', test_prc=0.25, n_jobs=1, stats_tests_to_apply=None,
                  verbose=0, random_state=42):
         """
         Initializes the class
 
         Args:
-            model (model object):
+            clf (model object):
                 Binary classification model or pipeline.
 
             iterations (int, optional):
@@ -502,7 +502,7 @@ class SplitSeedVolatility(TrainTestVolatility):
             random_state (int, optional):
                 The seed used by the random number generator.
         """
-        super().__init__(model=model, sample_train_test_split_seed=True, train_sampling_type=None,
+        super().__init__(clf=clf, sample_train_test_split_seed=True, train_sampling_type=None,
                          test_sampling_type=None, train_sampling_fraction=1,  test_sampling_fraction=1,
                          iterations=iterations, scoring=scoring, test_prc=test_prc, n_jobs=n_jobs,
                          stats_tests_to_apply=stats_tests_to_apply, verbose=verbose, random_state=random_state)
@@ -528,13 +528,13 @@ class BootstrappedVolatility(TrainTestVolatility):
     <img src="../img/metric_volatility_bootstrapped.png" width="500" />
     """
 
-    def __init__(self, model, iterations=1000, scoring='roc_auc', train_sampling_fraction=1, test_sampling_fraction=1,
+    def __init__(self, clf, iterations=1000, scoring='roc_auc', train_sampling_fraction=1, test_sampling_fraction=1,
                  test_prc=0.25, n_jobs=1, stats_tests_to_apply=None, verbose=0, random_state=42):
         """
         Initializes the class.
 
         Args:
-            model (model object):
+            clf (model object):
                 Binary classification model or pipeline.
 
             iterations (int, optional):
@@ -577,7 +577,7 @@ class BootstrappedVolatility(TrainTestVolatility):
             random_state (int, optional):
                 The seed used by the random number generator.
         """
-        super().__init__(model=model, sample_train_test_split_seed=False, train_sampling_type='bootstrap',
+        super().__init__(clf=clf, sample_train_test_split_seed=False, train_sampling_type='bootstrap',
                          test_sampling_type='bootstrap', iterations=iterations, scoring=scoring,
                          train_sampling_fraction=train_sampling_fraction, test_sampling_fraction=test_sampling_fraction,
                          test_prc=test_prc, n_jobs=n_jobs, stats_tests_to_apply=stats_tests_to_apply, verbose=verbose,

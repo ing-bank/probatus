@@ -25,34 +25,53 @@ from probatus.metric_volatility.utils import sample_data
 from sklearn.model_selection import train_test_split
 
 
-def get_metric(X, y, model, test_size, split_seed, scorers, train_sampling_type=None, test_sampling_type=None,
+def get_metric(X, y, clf, test_size, split_seed, scorers, train_sampling_type=None, test_sampling_type=None,
                train_sampling_fraction=1, test_sampling_fraction=1):
     """
     Draws random train/test sample from the data using random seed and calculates metric of interest.
 
     Args:
-        X: (np.array or pd.DataFrame) with features
-        y: (np.array or pd.Series) with targets
-        test_size: (float) fraction of data used for testing the model
-        split_seed: (int) randomized seed used for splitting data
-        scorers: (list of Scorers) list of Scorer objects used to score the trained model
-        train_sampling_type: (Optional str) string indicating what type of sampling should be applied on train set:
-                - None indicates that no additional sampling is done after splitting data
-                - 'bootstrap' indicates that sampling with replacement will be performed on train data
-                - 'subsample': indicates that sampling without repetition will be performed  on train data
-        test_sampling_type: (Optional str) string indicating what type of sampling should be applied on test set:
-                - None indicates that no additional sampling is done after splitting data
-                - 'bootstrap' indicates that sampling with replacement will be performed on test data
-                - 'subsample': indicates that sampling without repetition will be performed  on test data
-        train_sampling_fraction: (Optional float): fraction of train data sampled, if sample_train_type is not None.
-                Default value is 1
-        test_sampling_fraction: (Optional float): fraction of test data sampled, if sample_test_type is not None.
-                Default value is 1
+        X (np.array or pd.DataFrame):
+            Dataset with features.
+
+        y (np.array or pd.Series):
+            Target of the prediction.
+
+        clf (model object):
+            Binary classification model or pipeline.
+
+        test_size (float):
+            Fraction of data used for testing the model.
+
+        split_seed (int):
+            Randomized seed used for splitting data.
+
+        scorers (list of Scorers):
+            List of Scorer objects used to score the trained model.
+
+        train_sampling_type (str, optional):
+            String indicating what type of sampling should be applied on train set:
+
+                - `None`: indicates that no additional sampling is done after splitting data,
+                - `'bootstrap'`: indicates that sampling with replacement will be performed on train data,
+                - `'subsample'`: indicates that sampling without repetition will be performed  on train data.
+
+        test_sampling_type (str, optional):
+            string indicating what type of sampling should be applied on test set:
+
+                - `None`: indicates that no additional sampling is done after splitting data
+                - `'bootstrap'`: indicates that sampling with replacement will be performed on test data
+                - `'subsample'`: indicates that sampling without repetition will be performed  on test data
+
+        train_sampling_fraction (float, optional):
+            Fraction of train data sampled, if sample_train_type is not None. Default value is 1.
+
+        test_sampling_fraction (float, optional):
+            Fraction of test data sampled, if sample_test_type is not None. Default value is 1.
 
     Returns: 
-        (pd.Dataframe) Dataframe with results for a given model trained. Rows indicate the metric measured and columns
-         ther esults
-
+        (pd.Dataframe):
+            Dataframe with results for a given model trained. Rows indicate the metric measured and columns ther results
     """
 
     if not (isinstance(X, np.ndarray) or isinstance(X, pd.DataFrame)):
@@ -68,14 +87,14 @@ def get_metric(X, y, model, test_size, split_seed, scorers, train_sampling_type=
     X_test, y_test = sample_data(X=X_test, y=y_test, sampling_type=test_sampling_type,
                                  sampling_fraction=test_sampling_fraction, dataset_name='test')
 
-    model = model.fit(X_train, y_train)
+    clf = clf.fit(X_train, y_train)
 
     results_columns = ['metric_name', 'train_score', 'test_score', 'delta_score']
     results = pd.DataFrame([], columns=results_columns)
 
     for scorer in scorers:
-        score_train = scorer.score(model, X_train, y_train)
-        score_test = scorer.score(model, X_test, y_test)
+        score_train = scorer.score(clf, X_train, y_train)
+        score_test = scorer.score(clf, X_test, y_test)
         score_delta = score_train - score_test
 
         results = results.append(pd.DataFrame([[scorer.metric_name, score_train, score_test, score_delta]],

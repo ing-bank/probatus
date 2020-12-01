@@ -64,7 +64,7 @@ def test_inits(mock_model):
     vol1 = SplitSeedVolatility(mock_model, scoring=['accuracy', 'roc_auc'], test_prc=0.3, n_jobs=2,
                               stats_tests_to_apply=['ES', 'KS'], random_state=1, iterations=20)
 
-    assert id(vol1.model) == id(mock_model)
+    assert id(vol1.clf) == id(mock_model)
     assert vol1.test_prc == 0.3
     assert vol1.n_jobs == 2
     assert vol1.stats_tests_to_apply == ['ES', 'KS']
@@ -76,7 +76,7 @@ def test_inits(mock_model):
 
     vol2 = BootstrappedVolatility(mock_model, scoring='roc_auc', stats_tests_to_apply='KS', test_sampling_fraction=0.8)
 
-    assert id(vol2.model) == id(mock_model)
+    assert id(vol2.clf) == id(mock_model)
     assert vol2.stats_tests_to_apply == ['KS']
     assert len(vol2.stats_tests_objects) == 1
     assert len(vol2.scorers) == 1

@@ -48,13 +48,13 @@ class TreeDependencePlotter(BaseFitComputePlotClass):
     ```
     """
 
-    def __init__(self, model, verbose=0):
+    def __init__(self, clf, verbose=0):
         """
         Initializes the class
 
         Args:
-            model (binary classifier):
-                Model fitted on X_train.
+            clf (model object):
+                Binary classification model or pipeline.
 
             verbose (int, optional):
                 Controls verbosity of the output:
@@ -64,13 +64,13 @@ class TreeDependencePlotter(BaseFitComputePlotClass):
                 - 51 - 100 - shows most important warnings, prints of the feature removal process
                 - above 100 - presents all prints and all warnings (including SHAP warnings).
         """
-        self.model = model
+        self.clf = clf
         self.verbose = verbose
         self.target_names = [1, 0]
 
 
     def __repr__(self):
-        return "Shap dependence plotter for {}".format(self.model.__class__.__name__)
+        return "Shap dependence plotter for {}".format(self.clf.__class__.__name__)
 
 
     def fit(self, X, y, column_names=None, precalc_shap=None):
@@ -91,7 +91,7 @@ class TreeDependencePlotter(BaseFitComputePlotClass):
         self.X, self.column_names = preprocess_data(X, X_name='X', column_names=column_names, verbose=self.verbose)
         self.y = preprocess_labels(y, y_name='y', index=self.X.index, verbose=self.verbose)
 
-        self.shap_vals_df = shap_to_df(self.model, self.X, precalc_shap=precalc_shap, verbose=self.verbose)
+        self.shap_vals_df = shap_to_df(self.clf, self.X, precalc_shap=precalc_shap, verbose=self.verbose)
 
         self.fitted = True
         return self
@@ -132,21 +132,36 @@ class TreeDependencePlotter(BaseFitComputePlotClass):
         self.fit(X, y, precalc_shap=precalc_shap)
         return self.compute()
 
+
     def plot(self, feature, figsize=(15, 10), bins=10, type_binning="simple", min_q=0, max_q=1, target_names=None):
         """
         Plots the shap values for data points for a given feature, as well as the target rate and values distribution.
         
         Args:
-            feature (str or int): feature name of the feature to be analyzed.
-            figsize ((float, float)): tuple specifying size (width, height) of resulting figure in inches.
-            bins (int or list[float]): number of bins or boundaries of bins (supplied in list) for target-rate plot.
-            type_binning {'simple', 'agglomerative', 'quantile'}: type of binning to be used in target-rate plot (see :mod:`binning` for more information).
-            min_q (float): optional minimum quantile from which to consider values, used for plotting under outliers.
-            max_q (float): optional maximum quantile until which data points are considered, used for plotting under outliers.
-            target_names (list[str]): optional list of names for target classes to display in plot.
+            feature (str or int):
+                Feature name of the feature to be analyzed.
+
+            figsize ((float, float), optional):
+                Tuple specifying size (width, height) of resulting figure in inches.
+
+            bins (int or list[float]):
+                Number of bins or boundaries of bins (supplied in list) for target-rate plot.
+
+            type_binning ({'simple', 'agglomerative', 'quantile'}):
+                Type of binning to be used in target-rate plot (see :mod:`binning` for more information).
+
+            min_q (float, optional):
+                Optional minimum quantile from which to consider values, used for plotting under outliers.
+
+            max_q (float, optional):
+                Optional maximum quantile until which data points are considered, used for plotting under outliers.
+
+            target_names (list[str], optional):
+                Optional list of names for target classes to display in plot.
             
         Returns
-            matplotlib.pyplot.Figure: Feature plot.
+            (matplotlib.pyplot.Figure):
+                Feature plot.
         """
         self._check_if_fitted()
         if min_q >= max_q:
@@ -176,17 +191,20 @@ class TreeDependencePlotter(BaseFitComputePlotClass):
 
         return fig
 
-    def _dependence_plot(self, feature, ax=None, figsize=(15, 10)):
+    def _dependence_plot(self, feature, ax=None):
         """
         Plots shap values for data points with respect to specified feature.
         
         Args:
-            feature (str or int): feature for which dependence plot is to be created.
-            ax (matplotlib.pyplot.axes): optional axis on which to draw plot.
-            figsize ((float, float)): optional tuple with desired figsize in inches.
-        
+            feature (str or int):
+                Feature for which dependence plot is to be created.
+
+            ax (matplotlib.pyplot.axes, optional):
+                Optional axis on which to draw plot.
+
         Returns:
-            matplotlib.pyplot.axes: axes on which plot is drawn.
+            (matplotlib.pyplot.axes):
+                Axes on which plot is drawn.
         """
         if type(feature) is int:
             feature = self.column_names[feature]
@@ -207,23 +225,27 @@ class TreeDependencePlotter(BaseFitComputePlotClass):
 
         return ax
 
-    def _target_rate_plot(
-        self, feature, bins=10, type_binning="simple", ax=None, figsize=(15, 10)
-    ):
+    def _target_rate_plot(self, feature, bins=10, type_binning="simple", ax=None):
         """ 
         Plots the distributions of the specific features, as well as the target rate as function of the feature.
         
         Args:
-            feature (str or int): feature for which to create target rate plot
-            bins (int or list[float]): number of bins or boundaries of desired bins in list.
-            type_binning ({'simple', 'agglomerative', 'quantile'}): type of binning strategy used to create bins.
-            ax (matplotlib.pyplot.axes): optional axis on which to draw plot.
-            figsize ((float, float)): optional tuple with desired figsize in inches.            
-            
+            feature (str or int):
+                Feature for which to create target rate plot.
+
+            bins (int or list[float]), optional:
+                Number of bins or boundaries of desired bins in list.
+
+            type_binning ({'simple', 'agglomerative', 'quantile'}, optional):
+                Type of binning strategy used to create bins.
+
+            ax (matplotlib.pyplot.axes, optional):
+                Optional axis on which to draw plot.
+
         Returns:
-            bins (list[float]): boundaries of bins used.
-            ax (matplotlib.pyplot.axes): axes on which plot is drawn.
-            target_ratio (float): total ratio of target (positive over negative).
+            (list[float], matplotlib.pyplot.axes, float):
+                Tuple of boundaries of bins used, axis on which plot is drawn, total ratio of target (positive over
+                negative).
         """
         x, y, shap_val = self._get_X_y_shap_with_q_cut(feature=feature)
 

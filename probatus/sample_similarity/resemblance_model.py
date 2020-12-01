@@ -259,12 +259,13 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
     <img src="../img/sample_similarity_permutation_importance.png" width="500" />
     """
 
-    def __init__(self, model, iterations=100, scoring='roc_auc', test_prc=0.25, n_jobs=1, verbose=0, random_state=42):
+    def __init__(self, clf, iterations=100, scoring='roc_auc', test_prc=0.25, n_jobs=1, verbose=0, random_state=42):
         """
         Initializes the class.
 
         Args:
-            model (model object): Binary classification model or pipeline.
+            clf (model object):
+                Binary classification model or pipeline.
 
             iterations (int, optional):
                 Number of iterations performed to calculate permutation importance. By default 100 iterations per
@@ -293,7 +294,7 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
             random_state (int, optional):
                 The seed used by the random number generator.
         """
-        super().__init__(model=model, scoring=scoring, test_prc=test_prc, n_jobs=n_jobs, verbose=verbose,
+        super().__init__(clf=clf, scoring=scoring, test_prc=test_prc, n_jobs=n_jobs, verbose=verbose,
                          random_state=random_state)
 
         self.iterations = iterations
@@ -332,7 +333,7 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
         super().fit(X1=X1, X2=X2, column_names=column_names)
 
 
-        permutation_result = permutation_importance(self.model, self.X_test, self.y_test, scoring=self.scorer.scorer,
+        permutation_result = permutation_importance(self.clf, self.X_test, self.y_test, scoring=self.scorer.scorer,
                                                     n_repeats=self.iterations, n_jobs=self.n_jobs)
 
         # Prepare report
@@ -441,13 +442,13 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
     <img src="../img/sample_similarity_shap_summary.png" width="320" />
     """
 
-    def __init__(self, model, scoring='roc_auc', test_prc=0.25, n_jobs=1, verbose=0, random_state=42):
+    def __init__(self, clf, scoring='roc_auc', test_prc=0.25, n_jobs=1, verbose=0, random_state=42):
 
         """
         Initializes the class.
 
         Args:
-            model (model object):
+            clf (model object):
                 Binary classification model or pipeline.
 
             scoring (string or probatus.utils.Scorer, optional):
@@ -473,7 +474,7 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
             random_state (int, optional):
                 The seed used by the random number generator.
         """
-        super().__init__(model=model, scoring=scoring, test_prc=test_prc, n_jobs=n_jobs, verbose=verbose,
+        super().__init__(clf=clf, scoring=scoring, test_prc=test_prc, n_jobs=n_jobs, verbose=verbose,
                          random_state=random_state)
 
         self.plot_title = 'SHAP summary plot'
@@ -504,7 +505,7 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
         """
         super().fit(X1=X1, X2=X2, column_names=column_names)
 
-        self.shap_values_test = shap_calc(self.model, self.X_test, verbose=self.verbose)
+        self.shap_values_test = shap_calc(self.clf, self.X_test, verbose=self.verbose)
         self.report = calculate_shap_importance(self.shap_values_test, self.column_names)
         return self
 
