@@ -148,17 +148,20 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
 
         self.shap_values_train, self.expected_value_train, self.tdp_train = \
             self._prep_shap_related_variables(clf=self.clf, X=self.X_train, y=self.y_train, approximate=approximate,
+                                              column_names=self.column_names, class_names=self.class_names,
                                               verbose=self.verbose, **shap_kwargs)
 
         self.shap_values_test, self.expected_value_test, self.tdp_test = \
             self._prep_shap_related_variables(clf=self.clf, X=self.X_test, y=self.y_test, approximate=approximate,
+                                              column_names=self.column_names, class_names=self.class_names,
                                               verbose=self.verbose, **shap_kwargs)
 
         self.fitted = True
 
 
     @staticmethod
-    def _prep_shap_related_variables(clf, X, y, approximate=False, verbose=0, **shap_kwargs):
+    def _prep_shap_related_variables(clf, X, y, approximate=False, verbose=0, column_names=None, class_names=None,
+                                     **shap_kwargs):
         """
         The function prepares the variables related to shap that are used to interpret the model:
 
@@ -177,7 +180,8 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
             expected_value = expected_value[1]
 
         # Initialize tree dependence plotter
-        tdp = TreeDependencePlotter(clf, verbose=verbose).fit(X, y, precalc_shap=shap_values)
+        tdp = TreeDependencePlotter(clf, verbose=verbose).fit(X, y, column_names=column_names, class_names=class_names,
+                                                              precalc_shap=shap_values)
         return shap_values, expected_value, tdp
 
 
@@ -324,7 +328,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
             ax = []
             for feature_name in target_columns:
                 ax.append(
-                    target_tdp.plot(feature=feature_name, figsize=(10, 7), target_names=self.class_names))
+                    target_tdp.plot(feature=feature_name, figsize=(10, 7)))
                 plt.show()
 
         elif plot_type == 'sample':

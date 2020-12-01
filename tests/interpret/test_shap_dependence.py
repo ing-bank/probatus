@@ -171,10 +171,10 @@ def test_plot_normal(X_y, clf):
         fig = plotter.plot(feature=0, type_binning=binning)
 
 
-def test_plot_target_names(X_y, clf):
-    plotter = TreeDependencePlotter(clf).fit(X_y[0], X_y[1])
-    fig = plotter.plot(feature=0, target_names=["a", "b"])
-    assert plotter.target_names == ["a", "b"]
+def test_plot_class_names(X_y, clf):
+    plotter = TreeDependencePlotter(clf).fit(X_y[0], X_y[1], class_names=["a", "b"])
+    fig = plotter.plot(feature=0)
+    assert plotter.class_names == ["a", "b"]
 
 
 def test_plot_input(X_y, clf):

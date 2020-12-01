@@ -66,14 +66,13 @@ class TreeDependencePlotter(BaseFitComputePlotClass):
         """
         self.clf = clf
         self.verbose = verbose
-        self.target_names = [1, 0]
 
 
     def __repr__(self):
         return "Shap dependence plotter for {}".format(self.clf.__class__.__name__)
 
 
-    def fit(self, X, y, column_names=None, precalc_shap=None):
+    def fit(self, X, y, column_names=None, class_names=None, precalc_shap=None):
         """
         Fits the plotter to the model and data by computing the shap values. If the shap_values are passed, they do not
             need to be computed
@@ -83,11 +82,23 @@ class TreeDependencePlotter(BaseFitComputePlotClass):
                 input variables.
 
             y (pd.Series):
-                target variable
+                target variable.
+
+            column_names (None, or list of str, optional):
+                List of feature names for the dataset. If None, then column names from the X_train dataframe are used.
+
+            class_names (None, or list of str, optional):
+                List of class names e.g. ['neg', 'pos']. If none, the default ['Negative Class', 'Positive Class'] are
+                used.
 
             precalc_shap (Optional, None or np.array):
                 Precalculated shap values, If provided they don't need to be computed.
         """
+        # Set class names
+        self.class_names = class_names
+        if self.class_names is None:
+            self.class_names = ['Negative Class', 'Positive Class']
+
         self.X, self.column_names = preprocess_data(X, X_name='X', column_names=column_names, verbose=self.verbose)
         self.y = preprocess_labels(y, y_name='y', index=self.X.index, verbose=self.verbose)
 
@@ -109,7 +120,7 @@ class TreeDependencePlotter(BaseFitComputePlotClass):
         return self.shap_vals_df
 
 
-    def fit_compute(self, X, y, precalc_shap=None):
+    def fit_compute(self, X, y, column_names=None, class_names=None, precalc_shap=None):
         """
         Fits the plotter to the model and data by computing the shap values.
             If the shap_values are passed, they do not need to be computed
@@ -121,6 +132,13 @@ class TreeDependencePlotter(BaseFitComputePlotClass):
             y (pd.Series):
                 Binary labels for X.
 
+            column_names (None, or list of str, optional):
+                List of feature names for the dataset. If None, then column names from the X_train dataframe are used.
+
+            class_names (None, or list of str, optional):
+                List of class names e.g. ['neg', 'pos']. If none, the default ['Negative Class', 'Positive Class'] are
+                used.
+
             precalc_shap (Optional, None or np.array):
                 Precalculated shap values, If provided they don't need to be computed.
 
@@ -129,11 +147,11 @@ class TreeDependencePlotter(BaseFitComputePlotClass):
                 SHAP Values for X.
         """
 
-        self.fit(X, y, precalc_shap=precalc_shap)
+        self.fit(X, y, column_names=column_names, class_names=class_names, precalc_shap=precalc_shap)
         return self.compute()
 
 
-    def plot(self, feature, figsize=(15, 10), bins=10, type_binning="simple", min_q=0, max_q=1, target_names=None):
+    def plot(self, feature, figsize=(15, 10), bins=10, type_binning="simple", min_q=0, max_q=1):
         """
         Plots the shap values for data points for a given feature, as well as the target rate and values distribution.
         
@@ -155,9 +173,6 @@ class TreeDependencePlotter(BaseFitComputePlotClass):
 
             max_q (float, optional):
                 Optional maximum quantile until which data points are considered, used for plotting under outliers.
-
-            target_names (list[str], optional):
-                Optional list of names for target classes to display in plot.
             
         Returns
             (matplotlib.pyplot.Figure):
@@ -172,9 +187,6 @@ class TreeDependencePlotter(BaseFitComputePlotClass):
             raise ValueError(
                 "Select one of the following binning methods: 'simple', 'agglomerative', 'quantile'"
             )
-
-        if target_names is not None:
-            self.target_names = target_names
 
         self.min_q, self.max_q = min_q, max_q
 
@@ -212,11 +224,11 @@ class TreeDependencePlotter(BaseFitComputePlotClass):
         X, y, shap_val = self._get_X_y_shap_with_q_cut(feature=feature)
 
         ax.scatter(
-            X[y == 0], shap_val[y == 0], label=self.target_names[0], color="lightblue"
+            X[y == 0], shap_val[y == 0], label=self.class_names[0], color="lightblue"
         )
 
         ax.scatter(
-            X[y == 1], shap_val[y == 1], label=self.target_names[1], color="darkred"
+            X[y == 1], shap_val[y == 1], label=self.class_names[1], color="darkred"
         )
 
         ax.set_ylabel("Shap value")

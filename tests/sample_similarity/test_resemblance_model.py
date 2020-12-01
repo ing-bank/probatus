@@ -108,7 +108,7 @@ def test_shap_resemblance_class(complex_data, complex_lightgbm):
     with pytest.raises(NotFittedError) as _:
         rm._check_if_fitted()
 
-    actual_report, train_score, test_score = rm.fit_compute(X1, X2, return_scores=True)
+    actual_report, train_score, test_score = rm.fit_compute(X1, X2, return_scores=True, class_names=['a', 'b'])
 
     # Check if the X and y within the rm have correct types
     assert rm.X['f1_categorical'].dtype.name == 'category'

@@ -92,7 +92,7 @@ class BaseResemblanceModel(BaseFitComputePlotClass):
         self.report = None
 
 
-    def fit(self, X1, X2, column_names=None):
+    def fit(self, X1, X2, column_names=None, class_names=None):
         """
         Base fit functionality that should be executed before each fit.
 
@@ -108,6 +108,10 @@ class BaseResemblanceModel(BaseFitComputePlotClass):
                 feature names. If not provided the existing feature names are used or default feature names are
                 generated.
 
+            class_names (None, or list of str, optional):
+                List of class names assigned, in this case provided samples e.g. ['sample1', 'sample2']. If none, the
+                default ['First Sample', 'Second Sample'] are used.
+
         Returns:
             (BaseResemblanceModel):
                 Fitted object
@@ -115,6 +119,11 @@ class BaseResemblanceModel(BaseFitComputePlotClass):
         # Set seed for results reproducibility
         if self.random_state is not None:
             np.random.seed(self.random_state)
+
+        # Set class names
+        self.class_names = class_names
+        if self.class_names is None:
+            self.class_names = ['First Sample', 'Second Sample']
 
         # Ensure inputs are correct
         self.X1, self.column_names = preprocess_data(X1, X_name='X1', column_names=column_names, verbose=self.verbose)
@@ -196,7 +205,7 @@ class BaseResemblanceModel(BaseFitComputePlotClass):
             return self.report
 
 
-    def fit_compute(self, X1, X2, column_names=None, return_scores=False, **fit_kwargs):
+    def fit_compute(self, X1, X2, column_names=None, class_names=None, return_scores=False, **fit_kwargs):
         """
         Fits the resemblance model and computes the report regarding feature importance.
 
@@ -212,6 +221,11 @@ class BaseResemblanceModel(BaseFitComputePlotClass):
                 feature names. If not provided the existing feature names are used or default feature names are
                 generated.
 
+            class_names (None, or list of str, optional):
+                List of class names assigned, in this case provided samples e.g. ['sample1', 'sample2']. If none, the
+                default ['First Sample', 'Second Sample'] are used.
+
+
             return_scores (bool, optional):
                 Flag indicating whether the method should return a tuple (feature importances, train score,
                 test score), or feature importances. By default the second option is selected.
@@ -224,7 +238,7 @@ class BaseResemblanceModel(BaseFitComputePlotClass):
                 Depending on value of return_tuple either returns a tuple (feature importances, train AUC, test AUC), or
                 feature importances.
         """
-        self.fit(X1, X2, column_names=column_names, **fit_kwargs)
+        self.fit(X1, X2, column_names=column_names, class_names=class_names, **fit_kwargs)
         return self.compute(return_scores=return_scores)
 
 
@@ -311,7 +325,7 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
         self.plot_title = 'Permutation Feature Importance of Resemblance Model'
 
 
-    def fit(self, X1, X2, column_names=None):
+    def fit(self, X1, X2, column_names=None, class_names=None):
         """
         This function assigns to labels to each sample, 0 to first sample, 1 to the second. Then, It randomly selects a
             portion of data to train on. The resulting model tries to distinguish which sample does a given test row
@@ -330,12 +344,15 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
                 feature names. If not provided the existing feature names are used or default feature names are
                 generated.
 
+            class_names (None, or list of str, optional):
+                List of class names assigned, in this case provided samples e.g. ['sample1', 'sample2']. If none, the
+                default ['First Sample', 'Second Sample'] are used.
+
         Returns:
             (PermutationImportanceResemblance):
                 Fitted object.
         """
-        super().fit(X1=X1, X2=X2, column_names=column_names)
-
+        super().fit(X1=X1, X2=X2, column_names=column_names, class_names=class_names)
 
         permutation_result = permutation_importance(self.clf, self.X_test, self.y_test, scoring=self.scorer.scorer,
                                                     n_repeats=self.iterations, n_jobs=self.n_jobs)
@@ -486,7 +503,7 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
         self.plot_title = 'SHAP summary plot'
 
 
-    def fit(self, X1, X2, column_names=None):
+    def fit(self, X1, X2, column_names=None, class_names=None):
         """
         This function assigns to labels to each sample, 0 to first sample, 1 to the second. Then, It randomly selects a
             portion of data to train on. The resulting model tries to distinguish which sample does a given test row
@@ -505,11 +522,15 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
                 feature names. If not provided the existing feature names are used or default feature names are
                 generated.
 
+            class_names (None, or list of str, optional):
+                List of class names assigned, in this case provided samples e.g. ['sample1', 'sample2']. If none, the
+                default ['First Sample', 'Second Sample'] are used.
+
         Returns:
             (SHAPImportanceResemblance):
                 Fitted object.
         """
-        super().fit(X1=X1, X2=X2, column_names=column_names)
+        super().fit(X1=X1, X2=X2, column_names=column_names, class_names=class_names)
 
         self.shap_values_test = shap_calc(self.clf, self.X_test, verbose=self.verbose)
         self.report = calculate_shap_importance(self.shap_values_test, self.column_names)
@@ -536,7 +557,7 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
         self._check_if_fitted()
 
         shap.summary_plot(self.shap_values_test, self.X_test, plot_type=plot_type,
-                          class_names=['First Sample', 'Second Sample'], show=False, **summary_plot_kwargs)
+                          class_names=self.class_names, show=False, **summary_plot_kwargs)
         ax = plt.gca()
         ax.set_title(self.plot_title)
 
