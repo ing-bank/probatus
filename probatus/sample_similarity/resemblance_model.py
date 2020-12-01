@@ -38,7 +38,7 @@ class BaseResemblanceModel(BaseFitComputePlotClass):
     This is a base class and needs to be extended by a fit() method, which implements how data is split, how model is
         trained and evaluated. Further, inheriting classes need to implement how feature importance should be indicated.
     """
-    def __init__(self, clf, scoring='roc_auc', test_prc=0.25, n_jobs=1, verbose=0, random_state=42):
+    def __init__(self, clf, scoring='roc_auc', test_prc=0.25, n_jobs=1, verbose=0, random_state=None):
         """
         Initializes the class.
 
@@ -67,7 +67,9 @@ class BaseResemblanceModel(BaseFitComputePlotClass):
                 - above 100 - presents all prints and all warnings (including SHAP warnings).
 
             random_state (int, optional):
-                The seed used by the random number generator.
+                Random state set at each round of feature elimination. If it is None, the results will not be
+                reproducible and in random search at each iteration a different hyperparameters might be tested. For
+                reproducible results set it to integer.
         """
         self.clf = clf
         self.test_prc = test_prc
@@ -110,9 +112,9 @@ class BaseResemblanceModel(BaseFitComputePlotClass):
             (BaseResemblanceModel):
                 Fitted object
         """
-
         # Set seed for results reproducibility
-        np.random.seed(self.random_state)
+        if self.random_state is not None:
+            np.random.seed(self.random_state)
 
         # Ensure inputs are correct
         self.X1, self.column_names = preprocess_data(X1, X_name='X1', column_names=column_names, verbose=self.verbose)
@@ -259,7 +261,7 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
     <img src="../img/sample_similarity_permutation_importance.png" width="500" />
     """
 
-    def __init__(self, clf, iterations=100, scoring='roc_auc', test_prc=0.25, n_jobs=1, verbose=0, random_state=42):
+    def __init__(self, clf, iterations=100, scoring='roc_auc', test_prc=0.25, n_jobs=1, verbose=0, random_state=None):
         """
         Initializes the class.
 
@@ -292,7 +294,9 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
                 - above 100 - presents all prints and all warnings (including SHAP warnings).
 
             random_state (int, optional):
-                The seed used by the random number generator.
+                Random state set at each round of feature elimination. If it is None, the results will not be
+                reproducible and in random search at each iteration a different hyperparameters might be tested. For
+                reproducible results set it to integer.
         """
         super().__init__(clf=clf, scoring=scoring, test_prc=test_prc, n_jobs=n_jobs, verbose=verbose,
                          random_state=random_state)
@@ -442,7 +446,7 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
     <img src="../img/sample_similarity_shap_summary.png" width="320" />
     """
 
-    def __init__(self, clf, scoring='roc_auc', test_prc=0.25, n_jobs=1, verbose=0, random_state=42):
+    def __init__(self, clf, scoring='roc_auc', test_prc=0.25, n_jobs=1, verbose=0, random_state=None):
 
         """
         Initializes the class.
@@ -472,7 +476,9 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
                 - above 100 - presents all prints and all warnings (including SHAP warnings).
 
             random_state (int, optional):
-                The seed used by the random number generator.
+                Random state set at each round of feature elimination. If it is None, the results will not be
+                reproducible and in random search at each iteration a different hyperparameters might be tested. For
+                reproducible results set it to integer.
         """
         super().__init__(clf=clf, scoring=scoring, test_prc=test_prc, n_jobs=n_jobs, verbose=verbose,
                          random_state=random_state)

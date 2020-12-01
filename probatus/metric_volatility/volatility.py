@@ -39,7 +39,7 @@ class BaseVolatilityEstimator(BaseFitComputePlotClass):
 
 
     def __init__(self, clf, scoring='roc_auc', test_prc=0.25, n_jobs=1, stats_tests_to_apply=None, verbose=0,
-                 random_state=42):
+                 random_state=None):
         """
         Initializes the class
 
@@ -76,7 +76,9 @@ class BaseVolatilityEstimator(BaseFitComputePlotClass):
                 - above 100 - presents all prints and all warnings (including SHAP warnings).
 
             random_state (int, optional):
-                The seed used by the random number generator.
+                Random state set at each round of feature elimination. If it is None, the results will not be
+                reproducible and in random search at each iteration a different hyperparameters might be tested. For
+                reproducible results set it to integer.
         """
         self.clf = clf
         self.n_jobs = n_jobs
@@ -116,7 +118,8 @@ class BaseVolatilityEstimator(BaseFitComputePlotClass):
         """
 
         # Set seed for results reproducibility
-        np.random.seed(self.random_state)
+        if self.random_state is not None:
+            np.random.seed(self.random_state)
 
         # Initialize the report and results
         self.iterations_results = None
@@ -314,7 +317,7 @@ class TrainTestVolatility(BaseVolatilityEstimator):
 
     def __init__(self, clf, iterations=1000, scoring='roc_auc', sample_train_test_split_seed=True,
                  train_sampling_type=None, test_sampling_type=None, train_sampling_fraction=1, test_sampling_fraction=1,
-                 test_prc=0.25, n_jobs=1, stats_tests_to_apply=None, verbose=0, random_state=42):
+                 test_prc=0.25, n_jobs=1, stats_tests_to_apply=None, verbose=0, random_state=None):
 
         """
         Initializes the class.
@@ -382,7 +385,9 @@ class TrainTestVolatility(BaseVolatilityEstimator):
                 - above 100 - presents all prints and all warnings (including SHAP warnings).
 
             random_state (int, optional):
-                The seed used by the random number generator.
+                Random state set at each round of feature elimination. If it is None, the results will not be
+                reproducible and in random search at each iteration a different hyperparameters might be tested. For
+                reproducible results set it to integer.
         """
         super().__init__(clf=clf, scoring=scoring, test_prc=test_prc, n_jobs=n_jobs,
                          stats_tests_to_apply=stats_tests_to_apply, verbose=verbose, random_state=random_state)
@@ -424,7 +429,9 @@ class TrainTestVolatility(BaseVolatilityEstimator):
         if self.sample_train_test_split_seed:
             random_seeds = np.random.random_integers(0, 999999, self.iterations)
         else:
-            random_seeds = (np.ones(self.iterations) * self.random_state).astype(int)
+            random_seeds = (np.ones(self.iterations)).astype(int)
+            if self.random_state:
+                random_seeds = random_seeds * self.random_state
 
         results_per_iteration = Parallel(n_jobs=self.n_jobs)(delayed(get_metric)(
             X=self.X, y=self.y, clf=self.clf, test_size=self.test_prc, split_seed=split_seed,
@@ -460,7 +467,7 @@ class SplitSeedVolatility(TrainTestVolatility):
     """
 
     def __init__(self, clf, iterations=1000, scoring='roc_auc', test_prc=0.25, n_jobs=1, stats_tests_to_apply=None,
-                 verbose=0, random_state=42):
+                 verbose=0, random_state=None):
         """
         Initializes the class
 
@@ -500,7 +507,9 @@ class SplitSeedVolatility(TrainTestVolatility):
                 - above 100 - presents all prints and all warnings (including SHAP warnings).
 
             random_state (int, optional):
-                The seed used by the random number generator.
+                Random state set at each round of feature elimination. If it is None, the results will not be
+                reproducible and in random search at each iteration a different hyperparameters might be tested. For
+                reproducible results set it to integer.
         """
         super().__init__(clf=clf, sample_train_test_split_seed=True, train_sampling_type=None,
                          test_sampling_type=None, train_sampling_fraction=1,  test_sampling_fraction=1,
@@ -529,7 +538,7 @@ class BootstrappedVolatility(TrainTestVolatility):
     """
 
     def __init__(self, clf, iterations=1000, scoring='roc_auc', train_sampling_fraction=1, test_sampling_fraction=1,
-                 test_prc=0.25, n_jobs=1, stats_tests_to_apply=None, verbose=0, random_state=42):
+                 test_prc=0.25, n_jobs=1, stats_tests_to_apply=None, verbose=0, random_state=None):
         """
         Initializes the class.
 
@@ -575,7 +584,9 @@ class BootstrappedVolatility(TrainTestVolatility):
                 - above 100 - presents all prints and all warnings (including SHAP warnings).
 
             random_state (int, optional):
-                The seed used by the random number generator.
+                Random state set at each round of feature elimination. If it is None, the results will not be
+                reproducible and in random search at each iteration a different hyperparameters might be tested. For
+                reproducible results set it to integer.
         """
         super().__init__(clf=clf, sample_train_test_split_seed=False, train_sampling_type='bootstrap',
                          test_sampling_type='bootstrap', iterations=iterations, scoring=scoring,
