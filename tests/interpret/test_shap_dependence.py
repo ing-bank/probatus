@@ -7,6 +7,12 @@ from unittest.mock import patch
 from probatus.interpret.shap_dependence import TreeDependencePlotter
 from probatus.utils.exceptions import NotFittedError
 import os
+import matplotlib.pyplot as plt
+import matplotlib
+
+# Turn off interactive mode in plots
+plt.ioff()
+matplotlib.use('Agg')
 
 @pytest.fixture(scope="function")
 def X_y():

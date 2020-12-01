@@ -151,7 +151,7 @@ class TreeDependencePlotter(BaseFitComputePlotClass):
         return self.compute()
 
 
-    def plot(self, feature, figsize=(15, 10), bins=10, type_binning="simple", min_q=0, max_q=1):
+    def plot(self, feature, figsize=(15, 10), bins=10, type_binning="simple", show=True, min_q=0, max_q=1):
         """
         Plots the shap values for data points for a given feature, as well as the target rate and values distribution.
         
@@ -168,6 +168,9 @@ class TreeDependencePlotter(BaseFitComputePlotClass):
             type_binning ({'simple', 'agglomerative', 'quantile'}):
                 Type of binning to be used in target-rate plot (see :mod:`binning` for more information).
 
+            show (bool, optional):
+                If True, the plots are showed to the user, otherwise they are not shown.
+
             min_q (float, optional):
                 Optional minimum quantile from which to consider values, used for plotting under outliers.
 
@@ -175,8 +178,8 @@ class TreeDependencePlotter(BaseFitComputePlotClass):
                 Optional maximum quantile until which data points are considered, used for plotting under outliers.
             
         Returns
-            (matplotlib.pyplot.Figure):
-                Feature plot.
+            (list(matplotlib.axes)):
+                List of axes that include the plots.
         """
         self._check_if_fitted()
         if min_q >= max_q:
@@ -201,7 +204,12 @@ class TreeDependencePlotter(BaseFitComputePlotClass):
 
         ax2.set_xlim(ax1.get_xlim())
 
-        return fig
+        if show:
+            plt.show()
+        else:
+            plt.close()
+
+        return [ax1, ax2]
 
     def _dependence_plot(self, feature, ax=None):
         """

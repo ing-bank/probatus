@@ -153,7 +153,7 @@ class BaseVolatilityEstimator(BaseFitComputePlotClass):
                 metrics = [metrics]
             return self.report.loc[metrics]
 
-    def plot(self, metrics=None, bins=10, height_per_subplot=5, width_per_subplot=5):
+    def plot(self, metrics=None, bins=10, show=True, height_per_subplot=5, width_per_subplot=5):
         """
         Plots distribution of the metric
 
@@ -164,11 +164,18 @@ class BaseVolatilityEstimator(BaseFitComputePlotClass):
             bins (int, optional):
                 Number of bins into which histogram is built.
 
+            show (bool, optional):
+                If True, the plots are showed to the user, otherwise they are not shown.
+
             height_per_subplot (int, optional):
                 Height of each subplot. Default is 5.
 
             width_per_subplot (int, optional):
                 Width of each subplot. Default is 5.
+
+        Returns
+            (list(matplotlib.axes)):
+                Axes that include the plot.
         """
 
         target_report = self.compute(metrics=metrics)
@@ -197,6 +204,13 @@ class BaseVolatilityEstimator(BaseFitComputePlotClass):
 
             for ax in axs.flat:
                 ax.set(xlabel='{} score'.format(metric), ylabel='Results count')
+
+            if show:
+                plt.show()
+            else:
+                plt.close()
+
+            return axs
 
     def _get_samples_to_plot(self, metric_name):
         """

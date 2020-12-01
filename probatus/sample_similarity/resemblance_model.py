@@ -385,7 +385,7 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
 
         return self
 
-    def plot(self, ax=None, top_n=None):
+    def plot(self, ax=None, top_n=None, show=True, **plot_kwargs):
         """
         Plots the resulting AUC of the model as well as the feature importances.
 
@@ -395,6 +395,12 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
 
             top_n (int, optional):
                 Number of the most important features to be plotted. By default are features are included into the plot.
+
+            show (bool, optional):
+                If True, the plots are showed to the user, otherwise they are not shown.
+
+            **plot_kwargs:
+                Keyword arguments passed to the matplotlib.plotly.subplots method.
 
         Returns:
             (matplotlib.axes):
@@ -410,9 +416,7 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
             sorted_features = sorted_features[-top_n:]
 
         if ax is None:
-            height_per_subplot = len(sorted_features) / 2. + 1
-            width_per_subplot = 10
-            fig, ax = plt.subplots(figsize=(width_per_subplot, height_per_subplot))
+            fig, ax = plt.subplots(**plot_kwargs)
 
         for position, feature in enumerate(sorted_features):
             ax.boxplot(self.iterations_results[self.iterations_results['feature']==feature]['importance'],
@@ -426,6 +430,11 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
 
         ax.annotate(self.results_text, (0,0), (0, -50), fontsize=12, xycoords='axes fraction',
                     textcoords='offset points', va='top')
+
+        if show:
+            plt.show()
+        else:
+            plt.close()
 
         return ax
 
@@ -537,13 +546,16 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
         return self
 
 
-    def plot(self, plot_type='bar', **summary_plot_kwargs):
+    def plot(self, plot_type='bar', show=True, **summary_plot_kwargs):
         """
         Plots the resulting AUC of the model as well as the feature importances.
 
         Args:
             plot_type (str, optional): Type of plot, used to compute shap.summary_plot. By default 'bar', available ones
                 are  "dot", "bar", "violin",
+
+            show (bool, optional):
+                If True, the plots are showed to the user, otherwise they are not shown.
 
             **summary_plot_kwargs:
                 kwargs passed to the shap.summary_plot.
@@ -563,6 +575,12 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
 
         ax.annotate(self.results_text, (0,0), (0, -50), fontsize=12, xycoords='axes fraction',
                     textcoords='offset points', va='top')
+
+        if show:
+            plt.show()
+        else:
+            plt.close()
+
         return ax
 
 

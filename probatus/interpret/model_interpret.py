@@ -267,7 +267,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
         return self.compute()
 
 
-    def plot(self, plot_type, target_set = 'test', target_columns=None, samples_index=None, **plot_kwargs):
+    def plot(self, plot_type, target_set = 'test', target_columns=None, samples_index=None, show=True, **plot_kwargs):
         """
         Plots the appropriate SHAP plot
 
@@ -290,6 +290,9 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
 
             samples_index (None, int, list or pd.Index, optional):
                 Index of samples to be explained if the `plot_type=sample`.
+
+            show (bool, optional):
+                If True, the plots are showed to the user, otherwise they are not shown.
 
             **plot_kwargs:
                 Keyword arguments passed to the plot method. For 'importance' and 'summary' plot_type, the kwargs are
@@ -336,13 +339,15 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
 
             ax.annotate(self.results_text, (0, 0), (0, -50), fontsize=12, xycoords='axes fraction',
                         textcoords='offset points', va='top')
-            plt.show()
+            if show:
+                plt.show()
+            else:
+                plt.close()
         elif plot_type == 'dependence':
             ax = []
             for feature_name in target_columns:
                 ax.append(
-                    target_tdp.plot(feature=feature_name, figsize=(10, 7)))
-                plt.show()
+                    target_tdp.plot(feature=feature_name, figsize=(10, 7), show=show))
 
         elif plot_type == 'sample':
             # Ensure the correct samples_index type
@@ -366,7 +371,10 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
                 current_ax = plt.gca()
                 current_ax.set_title(plot_title)
                 ax.append(current_ax)
-                plt.show()
+                if show:
+                    plt.show()
+                else:
+                    plt.close()
         else:
             raise ValueError("Wrong plot type, select from 'importance', 'summary', or 'dependence'")
 

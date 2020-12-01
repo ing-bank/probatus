@@ -5,10 +5,15 @@ import pytest
 import numpy as np
 import pandas as pd
 from unittest.mock import patch
-import matplotlib.pyplot as plt
 from probatus.stat_tests.distribution_statistics import DistributionStatistics
 from probatus.utils import Scorer, NotFittedError
 import os
+import matplotlib.pyplot as plt
+import matplotlib
+
+# Turn off interactive mode in plots
+plt.ioff()
+matplotlib.use('Agg')
 
 @pytest.fixture(scope='function')
 def X_array():
@@ -277,4 +282,4 @@ def test_fit_compute_complex(complex_data, complex_lightgbm):
 
     # Check if plot runs
     with patch('matplotlib.pyplot.figure') as mock_plt:
-        vol.plot()
+        vol.plot(show=False)
