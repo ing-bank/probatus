@@ -71,7 +71,7 @@ class BaseVolatilityEstimator(BaseFitComputePlotClass):
                 Controls verbosity of the output:
 
                 - 0 - nether prints nor warnings are shown
-                - 1 - 50 - only most important warnings
+                - 1 - 50 - only most important warnings and indication of progress in fitting the object.
                 - 51 - 100 - shows other warnings and prints
                 - above 100 - presents all prints and all warnings (including SHAP warnings).
 
@@ -101,8 +101,9 @@ class BaseVolatilityEstimator(BaseFitComputePlotClass):
 
         self.stats_tests_objects = []
         if len(self.stats_tests_to_apply) > 0:
-            warnings.warn("Computing statistics for distributions is an experimental feature. While using it, keep in "
-                          "mind that the samples of metrics might be correlated.")
+            if self.verbose>0:
+                warnings.warn("Computing statistics for distributions is an experimental feature. While using it, keep "
+                              "in mind that the samples of metrics might be correlated.")
             for test_name in self.stats_tests_to_apply:
                 self.stats_tests_objects.append(DistributionStatistics(statistical_test=test_name))
 
@@ -433,12 +434,15 @@ class TrainTestVolatility(BaseVolatilityEstimator):
             if self.random_state:
                 random_seeds = random_seeds * self.random_state
 
+        if self.verbose > 0:
+            random_seeds = tqdm(random_seeds)
+
         results_per_iteration = Parallel(n_jobs=self.n_jobs)(delayed(get_metric)(
             X=self.X, y=self.y, clf=self.clf, test_size=self.test_prc, split_seed=split_seed,
             scorers=self.scorers, train_sampling_type=self.train_sampling_type,
             test_sampling_type=self.test_sampling_type, train_sampling_fraction=self.train_sampling_fraction,
             test_sampling_fraction=self.test_sampling_fraction
-        ) for split_seed in tqdm(random_seeds))
+        ) for split_seed in random_seeds)
 
         self.iterations_results = pd.concat(results_per_iteration, ignore_index=True)
 

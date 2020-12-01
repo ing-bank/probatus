@@ -270,7 +270,7 @@ def test_fit_compute_full_process(X_df, y_series):
 def test_fit_compute_complex(complex_data, complex_lightgbm):
     X, y = complex_data
     vol = TrainTestVolatility(complex_lightgbm, scoring='roc_auc', iterations=3, sample_train_test_split_seed=True,
-                              random_state=42)
+                              verbose=150, random_state=42)
 
     report = vol.fit_compute(X, y)
     assert report.shape == (1, 6)
