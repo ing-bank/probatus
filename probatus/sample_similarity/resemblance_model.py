@@ -38,12 +38,12 @@ class BaseResemblanceModel(BaseFitComputePlotClass):
     This is a base class and needs to be extended by a fit() method, which implements how data is split, how model is
         trained and evaluated. Further, inheriting classes need to implement how feature importance should be indicated.
     """
-    def __init__(self, model, scoring='roc_auc', test_prc=0.25, n_jobs=1, verbose=0, random_state=42):
+    def __init__(self, clf, scoring='roc_auc', test_prc=0.25, n_jobs=1, verbose=0, random_state=42):
         """
         Initializes the class.
 
         Args:
-            model (model object):
+            clf (model object):
                 Binary classification model or pipeline.
 
             scoring (string or probatus.utils.Scorer, optional):
@@ -69,7 +69,7 @@ class BaseResemblanceModel(BaseFitComputePlotClass):
             random_state (int, optional):
                 The seed used by the random number generator.
         """
-        self.model = model
+        self.clf = clf
         self.test_prc = test_prc
         self.n_jobs = n_jobs
         self.random_state = random_state
@@ -140,10 +140,10 @@ class BaseResemblanceModel(BaseFitComputePlotClass):
         self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(self.X, self.y, test_size=self.test_prc,
                                                                                 random_state=self.random_state,
                                                                                 shuffle=True, stratify=self.y)
-        self.model.fit(self.X_train, self.y_train)
+        self.clf.fit(self.X_train, self.y_train)
 
-        self.train_score = np.round(self.scorer.score(self.model, self.X_train, self.y_train), 3)
-        self.test_score = np.round(self.scorer.score(self.model, self.X_test, self.y_test), 3)
+        self.train_score = np.round(self.scorer.score(self.clf, self.X_train, self.y_train), 3)
+        self.test_score = np.round(self.scorer.score(self.clf, self.X_test, self.y_test), 3)
 
 
         self.results_text = f'Train {self.scorer.metric_name}: {np.round(self.train_score, 3)},\n' \
