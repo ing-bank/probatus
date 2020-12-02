@@ -193,7 +193,7 @@ class TreeDependencePlotter(BaseFitComputePlotClass):
 
         self.min_q, self.max_q = min_q, max_q
 
-        fig = plt.figure(1, figsize=figsize)
+        _ = plt.figure(1, figsize=figsize)
         ax1 = plt.subplot2grid((3, 1), (0, 0), rowspan=2)
         ax2 = plt.subplot2grid((3, 1), (2, 0))
 
