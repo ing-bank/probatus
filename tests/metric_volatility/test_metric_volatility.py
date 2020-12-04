@@ -261,7 +261,8 @@ def test_check_sampling_input(X_array, y_array):
 
 def test_fit_compute_full_process(X_df, y_series):
     clf = DecisionTreeClassifier()
-    vol = TrainTestVolatility(clf, scoring=['roc_auc', 'recall'], iterations=3, sample_train_test_split_seed=False)
+    vol = TrainTestVolatility(clf, scoring=['roc_auc', 'recall'], iterations=3, sample_train_test_split_seed=False,
+                              random_state=42)
 
     report = vol.fit_compute(X_df, y_series)
     assert report.shape == (2, 6)

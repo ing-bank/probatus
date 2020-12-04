@@ -25,6 +25,7 @@ import numpy as np
 import shap
 import matplotlib.pyplot as plt
 import pandas as pd
+from typing import Union, Tuple
 
 
 class ShapModelInterpreter(BaseFitComputePlotClass):
@@ -185,16 +186,18 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
         return shap_values, expected_value, tdp
 
 
-    def compute(self, return_scores=False):
+    def compute(self, return_scores=False) -> Union[pd.DataFrame, Tuple[pd.DataFrame, float, float]]:
         """
         Computes the DataFrame, that presents the importance of each feature.
 
         Args:
             return_scores (bool, optional):
-                Flag indicating whether the method should return a tuple (feature importances, train score,
-                test score), or feature importances. By default the second option is selected.
+                Flag indicating whether the method should return the train and test score of the model, together with
+                the model interpretation report. If true, the output of this method is a tuple of DataFrame, float,
+                float.
+
         Returns:
-            (pd.DataFrame or (pd.DataFrame, float, float)):
+            (pd.DataFrame or tuple(pd.DataFrame, float, float)):
                 Dataframe with SHAP feature importance, or tuple containing the dataframe, train and test scores of the
                 model.
         """
@@ -223,7 +226,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
 
 
     def fit_compute(self,  X_train, X_test, y_train, y_test, column_names=None, class_names=None, approximate=False,
-                    return_scores=False, **shap_kwargs):
+                    return_scores=False, **shap_kwargs) -> Union[pd.DataFrame, Tuple[pd.DataFrame, float, float]]:
         """
         Fits the object and calculates the shap values for the provided datasets.
 
@@ -251,14 +254,15 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
                 if True uses shap approximations - less accurate, but very fast.
 
             return_scores (bool, optional):
-                Flag indicating whether the method should return a tuple (feature importances, train score,
-                test score), or feature importances. By default the second option is selected.
+                Flag indicating whether the method should return the train and test score of the model, together with
+                the model interpretation report. If true, the output of this method is a tuple of DataFrame, float,
+                float.
 
             **shap_kwargs: keyword arguments passed to
                 keyword arguments passed to [shap.TreeExplainer](https://shap.readthedocs.io/en/latest/generated/shap.TreeExplainer.html).
 
         Returns:
-            (pd.DataFrame or (pd.DataFrame, float, float)):
+            (pd.DataFrame or tuple(pd.DataFrame, float, float)):
                 Dataframe with SHAP feature importance, or tuple containing the dataframe, train and test scores of the
                 model.
         """
@@ -292,13 +296,17 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
                 Index of samples to be explained if the `plot_type=sample`.
 
             show (bool, optional):
-                If True, the plots are showed to the user, otherwise they are not shown.
+                If True, the plots are showed to the user, otherwise they are not shown. Not showing plot can be useful,
+                when you want to edit the returned axis, before showing it.
 
             **plot_kwargs:
                 Keyword arguments passed to the plot method. For 'importance' and 'summary' plot_type, the kwargs are
                 passed to shap.summary_plot, for 'dependence' plot_type, they are passed to
                 probatus.interpret.TreeDependencePlotter.feature_plot method.
 
+        Returns:
+            (matplotlib.axes or list(matplotlib.axes)):
+                An Axes with the plot, or list of axes when multiple plots are returned.
         """
         # Choose correct columns
         if target_columns is None:

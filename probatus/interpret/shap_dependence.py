@@ -169,7 +169,8 @@ class TreeDependencePlotter(BaseFitComputePlotClass):
                 Type of binning to be used in target-rate plot (see :mod:`binning` for more information).
 
             show (bool, optional):
-                If True, the plots are showed to the user, otherwise they are not shown.
+                If True, the plots are showed to the user, otherwise they are not shown. Not showing plot can be useful,
+                when you want to edit the returned axis, before showing it.
 
             min_q (float, optional):
                 Optional minimum quantile from which to consider values, used for plotting under outliers.

@@ -165,7 +165,8 @@ class BaseVolatilityEstimator(BaseFitComputePlotClass):
                 Number of bins into which histogram is built.
 
             show (bool, optional):
-                If True, the plots are showed to the user, otherwise they are not shown.
+                If True, the plots are showed to the user, otherwise they are not shown. Not showing plot can be useful,
+                when you want to edit the returned axis, before showing it.
 
             height_per_subplot (int, optional):
                 Height of each subplot. Default is 5.

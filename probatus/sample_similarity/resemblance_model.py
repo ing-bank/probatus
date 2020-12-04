@@ -397,7 +397,8 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
                 Number of the most important features to be plotted. By default are features are included into the plot.
 
             show (bool, optional):
-                If True, the plots are showed to the user, otherwise they are not shown.
+                If True, the plots are showed to the user, otherwise they are not shown. Not showing plot can be useful,
+                when you want to edit the returned axis, before showing it.
 
             **plot_kwargs:
                 Keyword arguments passed to the matplotlib.plotly.subplots method.
@@ -555,7 +556,8 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
                 are  "dot", "bar", "violin",
 
             show (bool, optional):
-                If True, the plots are showed to the user, otherwise they are not shown.
+                If True, the plots are showed to the user, otherwise they are not shown. Not showing plot can be useful,
+                when you want to edit the returned axis, before showing it.
 
             **summary_plot_kwargs:
                 kwargs passed to the shap.summary_plot.
