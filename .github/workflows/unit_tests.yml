@@ -35,6 +35,7 @@ jobs:
       env:
         SKIP_LIGHTGBM: ${{ matrix.SKIP_LIGHTGBM }}
       run: |
+        pip install --upgrade setuptools pip
         pip install pytest
         pip install pytest-cov
         pip install pyflakes

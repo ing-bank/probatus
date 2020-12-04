@@ -38,12 +38,12 @@ class BaseResemblanceModel(BaseFitComputePlotClass):
     This is a base class and needs to be extended by a fit() method, which implements how data is split, how model is
         trained and evaluated. Further, inheriting classes need to implement how feature importance should be indicated.
     """
-    def __init__(self, model, scoring='roc_auc', test_prc=0.25, n_jobs=1, verbose=0, random_state=42):
+    def __init__(self, clf, scoring='roc_auc', test_prc=0.25, n_jobs=1, verbose=0, random_state=None):
         """
         Initializes the class.
 
         Args:
-            model (model object):
+            clf (model object):
                 Binary classification model or pipeline.
 
             scoring (string or probatus.utils.Scorer, optional):
@@ -67,9 +67,11 @@ class BaseResemblanceModel(BaseFitComputePlotClass):
                 - above 100 - presents all prints and all warnings (including SHAP warnings).
 
             random_state (int, optional):
-                The seed used by the random number generator.
+                Random state set at each round of feature elimination. If it is None, the results will not be
+                reproducible and in random search at each iteration a different hyperparameters might be tested. For
+                reproducible results set it to integer.
         """
-        self.model = model
+        self.clf = clf
         self.test_prc = test_prc
         self.n_jobs = n_jobs
         self.random_state = random_state
@@ -90,7 +92,7 @@ class BaseResemblanceModel(BaseFitComputePlotClass):
         self.report = None
 
 
-    def fit(self, X1, X2, column_names=None):
+    def fit(self, X1, X2, column_names=None, class_names=None):
         """
         Base fit functionality that should be executed before each fit.
 
@@ -106,13 +108,22 @@ class BaseResemblanceModel(BaseFitComputePlotClass):
                 feature names. If not provided the existing feature names are used or default feature names are
                 generated.
 
+            class_names (None, or list of str, optional):
+                List of class names assigned, in this case provided samples e.g. ['sample1', 'sample2']. If none, the
+                default ['First Sample', 'Second Sample'] are used.
+
         Returns:
             (BaseResemblanceModel):
                 Fitted object
         """
-
         # Set seed for results reproducibility
-        np.random.seed(self.random_state)
+        if self.random_state is not None:
+            np.random.seed(self.random_state)
+
+        # Set class names
+        self.class_names = class_names
+        if self.class_names is None:
+            self.class_names = ['First Sample', 'Second Sample']
 
         # Ensure inputs are correct
         self.X1, self.column_names = preprocess_data(X1, X_name='X1', column_names=column_names, verbose=self.verbose)
@@ -140,10 +151,10 @@ class BaseResemblanceModel(BaseFitComputePlotClass):
         self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(self.X, self.y, test_size=self.test_prc,
                                                                                 random_state=self.random_state,
                                                                                 shuffle=True, stratify=self.y)
-        self.model.fit(self.X_train, self.y_train)
+        self.clf.fit(self.X_train, self.y_train)
 
-        self.train_score = np.round(self.scorer.score(self.model, self.X_train, self.y_train), 3)
-        self.test_score = np.round(self.scorer.score(self.model, self.X_test, self.y_test), 3)
+        self.train_score = np.round(self.scorer.score(self.clf, self.X_train, self.y_train), 3)
+        self.test_score = np.round(self.scorer.score(self.clf, self.X_test, self.y_test), 3)
 
 
         self.results_text = f'Train {self.scorer.metric_name}: {np.round(self.train_score, 3)},\n' \
@@ -194,7 +205,7 @@ class BaseResemblanceModel(BaseFitComputePlotClass):
             return self.report
 
 
-    def fit_compute(self, X1, X2, column_names=None, return_scores=False, **fit_kwargs):
+    def fit_compute(self, X1, X2, column_names=None, class_names=None, return_scores=False, **fit_kwargs):
         """
         Fits the resemblance model and computes the report regarding feature importance.
 
@@ -210,6 +221,11 @@ class BaseResemblanceModel(BaseFitComputePlotClass):
                 feature names. If not provided the existing feature names are used or default feature names are
                 generated.
 
+            class_names (None, or list of str, optional):
+                List of class names assigned, in this case provided samples e.g. ['sample1', 'sample2']. If none, the
+                default ['First Sample', 'Second Sample'] are used.
+
+
             return_scores (bool, optional):
                 Flag indicating whether the method should return a tuple (feature importances, train score,
                 test score), or feature importances. By default the second option is selected.
@@ -222,7 +238,7 @@ class BaseResemblanceModel(BaseFitComputePlotClass):
                 Depending on value of return_tuple either returns a tuple (feature importances, train AUC, test AUC), or
                 feature importances.
         """
-        self.fit(X1, X2, column_names=column_names, **fit_kwargs)
+        self.fit(X1, X2, column_names=column_names, class_names=class_names, **fit_kwargs)
         return self.compute(return_scores=return_scores)
 
 
@@ -259,12 +275,13 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
     <img src="../img/sample_similarity_permutation_importance.png" width="500" />
     """
 
-    def __init__(self, model, iterations=100, scoring='roc_auc', test_prc=0.25, n_jobs=1, verbose=0, random_state=42):
+    def __init__(self, clf, iterations=100, scoring='roc_auc', test_prc=0.25, n_jobs=1, verbose=0, random_state=None):
         """
         Initializes the class.
 
         Args:
-            model (model object): Binary classification model or pipeline.
+            clf (model object):
+                Binary classification model or pipeline.
 
             iterations (int, optional):
                 Number of iterations performed to calculate permutation importance. By default 100 iterations per
@@ -291,9 +308,11 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
                 - above 100 - presents all prints and all warnings (including SHAP warnings).
 
             random_state (int, optional):
-                The seed used by the random number generator.
+                Random state set at each round of feature elimination. If it is None, the results will not be
+                reproducible and in random search at each iteration a different hyperparameters might be tested. For
+                reproducible results set it to integer.
         """
-        super().__init__(model=model, scoring=scoring, test_prc=test_prc, n_jobs=n_jobs, verbose=verbose,
+        super().__init__(clf=clf, scoring=scoring, test_prc=test_prc, n_jobs=n_jobs, verbose=verbose,
                          random_state=random_state)
 
         self.iterations = iterations
@@ -306,7 +325,7 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
         self.plot_title = 'Permutation Feature Importance of Resemblance Model'
 
 
-    def fit(self, X1, X2, column_names=None):
+    def fit(self, X1, X2, column_names=None, class_names=None):
         """
         This function assigns to labels to each sample, 0 to first sample, 1 to the second. Then, It randomly selects a
             portion of data to train on. The resulting model tries to distinguish which sample does a given test row
@@ -325,14 +344,17 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
                 feature names. If not provided the existing feature names are used or default feature names are
                 generated.
 
+            class_names (None, or list of str, optional):
+                List of class names assigned, in this case provided samples e.g. ['sample1', 'sample2']. If none, the
+                default ['First Sample', 'Second Sample'] are used.
+
         Returns:
             (PermutationImportanceResemblance):
                 Fitted object.
         """
-        super().fit(X1=X1, X2=X2, column_names=column_names)
+        super().fit(X1=X1, X2=X2, column_names=column_names, class_names=class_names)
 
-
-        permutation_result = permutation_importance(self.model, self.X_test, self.y_test, scoring=self.scorer.scorer,
+        permutation_result = permutation_importance(self.clf, self.X_test, self.y_test, scoring=self.scorer.scorer,
                                                     n_repeats=self.iterations, n_jobs=self.n_jobs)
 
         # Prepare report
@@ -363,7 +385,7 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
 
         return self
 
-    def plot(self, ax=None, top_n=None):
+    def plot(self, ax=None, top_n=None, show=True, **plot_kwargs):
         """
         Plots the resulting AUC of the model as well as the feature importances.
 
@@ -373,6 +395,13 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
 
             top_n (int, optional):
                 Number of the most important features to be plotted. By default are features are included into the plot.
+
+            show (bool, optional):
+                If True, the plots are showed to the user, otherwise they are not shown. Not showing plot can be useful,
+                when you want to edit the returned axis, before showing it.
+
+            **plot_kwargs:
+                Keyword arguments passed to the matplotlib.plotly.subplots method.
 
         Returns:
             (matplotlib.axes):
@@ -388,9 +417,7 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
             sorted_features = sorted_features[-top_n:]
 
         if ax is None:
-            height_per_subplot = len(sorted_features) / 2. + 1
-            width_per_subplot = 10
-            fig, ax = plt.subplots(figsize=(width_per_subplot, height_per_subplot))
+            fig, ax = plt.subplots(**plot_kwargs)
 
         for position, feature in enumerate(sorted_features):
             ax.boxplot(self.iterations_results[self.iterations_results['feature']==feature]['importance'],
@@ -404,6 +431,11 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
 
         ax.annotate(self.results_text, (0,0), (0, -50), fontsize=12, xycoords='axes fraction',
                     textcoords='offset points', va='top')
+
+        if show:
+            plt.show()
+        else:
+            plt.close()
 
         return ax
 
@@ -441,13 +473,13 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
     <img src="../img/sample_similarity_shap_summary.png" width="320" />
     """
 
-    def __init__(self, model, scoring='roc_auc', test_prc=0.25, n_jobs=1, verbose=0, random_state=42):
+    def __init__(self, clf, scoring='roc_auc', test_prc=0.25, n_jobs=1, verbose=0, random_state=None):
 
         """
         Initializes the class.
 
         Args:
-            model (model object):
+            clf (model object):
                 Binary classification model or pipeline.
 
             scoring (string or probatus.utils.Scorer, optional):
@@ -471,15 +503,17 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
                 - above 100 - presents all prints and all warnings (including SHAP warnings).
 
             random_state (int, optional):
-                The seed used by the random number generator.
+                Random state set at each round of feature elimination. If it is None, the results will not be
+                reproducible and in random search at each iteration a different hyperparameters might be tested. For
+                reproducible results set it to integer.
         """
-        super().__init__(model=model, scoring=scoring, test_prc=test_prc, n_jobs=n_jobs, verbose=verbose,
+        super().__init__(clf=clf, scoring=scoring, test_prc=test_prc, n_jobs=n_jobs, verbose=verbose,
                          random_state=random_state)
 
         self.plot_title = 'SHAP summary plot'
 
 
-    def fit(self, X1, X2, column_names=None):
+    def fit(self, X1, X2, column_names=None, class_names=None):
         """
         This function assigns to labels to each sample, 0 to first sample, 1 to the second. Then, It randomly selects a
             portion of data to train on. The resulting model tries to distinguish which sample does a given test row
@@ -498,24 +532,32 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
                 feature names. If not provided the existing feature names are used or default feature names are
                 generated.
 
+            class_names (None, or list of str, optional):
+                List of class names assigned, in this case provided samples e.g. ['sample1', 'sample2']. If none, the
+                default ['First Sample', 'Second Sample'] are used.
+
         Returns:
             (SHAPImportanceResemblance):
                 Fitted object.
         """
-        super().fit(X1=X1, X2=X2, column_names=column_names)
+        super().fit(X1=X1, X2=X2, column_names=column_names, class_names=class_names)
 
-        self.shap_values_test = shap_calc(self.model, self.X_test, verbose=self.verbose)
+        self.shap_values_test = shap_calc(self.clf, self.X_test, verbose=self.verbose)
         self.report = calculate_shap_importance(self.shap_values_test, self.column_names)
         return self
 
 
-    def plot(self, plot_type='bar', **summary_plot_kwargs):
+    def plot(self, plot_type='bar', show=True, **summary_plot_kwargs):
         """
         Plots the resulting AUC of the model as well as the feature importances.
 
         Args:
             plot_type (str, optional): Type of plot, used to compute shap.summary_plot. By default 'bar', available ones
                 are  "dot", "bar", "violin",
+
+            show (bool, optional):
+                If True, the plots are showed to the user, otherwise they are not shown. Not showing plot can be useful,
+                when you want to edit the returned axis, before showing it.
 
             **summary_plot_kwargs:
                 kwargs passed to the shap.summary_plot.
@@ -529,12 +571,18 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
         self._check_if_fitted()
 
         shap.summary_plot(self.shap_values_test, self.X_test, plot_type=plot_type,
-                          class_names=['First Sample', 'Second Sample'], show=False, **summary_plot_kwargs)
+                          class_names=self.class_names, show=False, **summary_plot_kwargs)
         ax = plt.gca()
         ax.set_title(self.plot_title)
 
         ax.annotate(self.results_text, (0,0), (0, -50), fontsize=12, xycoords='axes fraction',
                     textcoords='offset points', va='top')
+
+        if show:
+            plt.show()
+        else:
+            plt.close()
+
         return ax
 
 

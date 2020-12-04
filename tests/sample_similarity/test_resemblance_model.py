@@ -4,10 +4,15 @@ from probatus.utils import NotFittedError
 import pytest
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 from sklearn.tree import DecisionTreeClassifier
 import os
 from pandas.api.types import is_numeric_dtype
+import matplotlib.pyplot as plt
+import matplotlib
+
+# Turn off interactive mode in plots
+plt.ioff()
+matplotlib.use('Agg')
 
 @pytest.fixture(scope='function')
 def X1():
@@ -108,7 +113,7 @@ def test_shap_resemblance_class(complex_data, complex_lightgbm):
     with pytest.raises(NotFittedError) as _:
         rm._check_if_fitted()
 
-    actual_report, train_score, test_score = rm.fit_compute(X1, X2, return_scores=True)
+    actual_report, train_score, test_score = rm.fit_compute(X1, X2, return_scores=True, class_names=['a', 'b'])
 
     # Check if the X and y within the rm have correct types
     assert rm.X['f1_categorical'].dtype.name == 'category'
@@ -134,8 +139,8 @@ def test_shap_resemblance_class(complex_data, complex_lightgbm):
     assert actual_shap_values_test.shape == (X1.shape[0], X1.shape[1])
 
     # Run plots
-    rm.plot(plot_type='bar')
-    rm.plot(plot_type='dot')
+    rm.plot(plot_type='bar', show=True)
+    rm.plot(plot_type='dot', show=False)
 
 
 def test_permutation_resemblance_class(X1, X2):
@@ -166,11 +171,11 @@ def test_permutation_resemblance_class(X1, X2):
     assert actual_report.loc['col_3']['mean_importance'] == 0
     assert actual_report.loc['col_3']['std_importance'] == 0
 
-    rm.plot()
+    rm.plot(figsize=(10, 10))
     # Check plot size
     fig = plt.gcf()
     size = fig.get_size_inches()
-    assert size[0] == 10 and size[1] == 2.5
+    assert size[0] == 10 and size[1] == 10
 
 
 def test_base_class_same_data(X1):

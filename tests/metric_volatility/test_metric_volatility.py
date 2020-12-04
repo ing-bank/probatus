@@ -5,10 +5,15 @@ import pytest
 import numpy as np
 import pandas as pd
 from unittest.mock import patch
-import matplotlib.pyplot as plt
 from probatus.stat_tests.distribution_statistics import DistributionStatistics
 from probatus.utils import Scorer, NotFittedError
 import os
+import matplotlib.pyplot as plt
+import matplotlib
+
+# Turn off interactive mode in plots
+plt.ioff()
+matplotlib.use('Agg')
 
 @pytest.fixture(scope='function')
 def X_array():
@@ -64,7 +69,7 @@ def test_inits(mock_model):
     vol1 = SplitSeedVolatility(mock_model, scoring=['accuracy', 'roc_auc'], test_prc=0.3, n_jobs=2,
                               stats_tests_to_apply=['ES', 'KS'], random_state=1, iterations=20)
 
-    assert id(vol1.model) == id(mock_model)
+    assert id(vol1.clf) == id(mock_model)
     assert vol1.test_prc == 0.3
     assert vol1.n_jobs == 2
     assert vol1.stats_tests_to_apply == ['ES', 'KS']
@@ -76,7 +81,7 @@ def test_inits(mock_model):
 
     vol2 = BootstrappedVolatility(mock_model, scoring='roc_auc', stats_tests_to_apply='KS', test_sampling_fraction=0.8)
 
-    assert id(vol2.model) == id(mock_model)
+    assert id(vol2.clf) == id(mock_model)
     assert vol2.stats_tests_to_apply == ['KS']
     assert len(vol2.stats_tests_objects) == 1
     assert len(vol2.scorers) == 1
@@ -256,7 +261,8 @@ def test_check_sampling_input(X_array, y_array):
 
 def test_fit_compute_full_process(X_df, y_series):
     clf = DecisionTreeClassifier()
-    vol = TrainTestVolatility(clf, scoring=['roc_auc', 'recall'], iterations=3, sample_train_test_split_seed=False)
+    vol = TrainTestVolatility(clf, scoring=['roc_auc', 'recall'], iterations=3, sample_train_test_split_seed=False,
+                              random_state=42)
 
     report = vol.fit_compute(X_df, y_series)
     assert report.shape == (2, 6)
@@ -269,11 +275,12 @@ def test_fit_compute_full_process(X_df, y_series):
 @pytest.mark.skipif(os.environ.get("SKIP_LIGHTGBM") == 'true', reason="LightGBM tests disabled")
 def test_fit_compute_complex(complex_data, complex_lightgbm):
     X, y = complex_data
-    vol = TrainTestVolatility(complex_lightgbm, scoring='roc_auc', iterations=3, sample_train_test_split_seed=True)
+    vol = TrainTestVolatility(complex_lightgbm, scoring='roc_auc', iterations=3, sample_train_test_split_seed=True,
+                              verbose=150, random_state=42)
 
     report = vol.fit_compute(X, y)
     assert report.shape == (1, 6)
 
     # Check if plot runs
     with patch('matplotlib.pyplot.figure') as mock_plt:
-        vol.plot()
+        vol.plot(show=False)

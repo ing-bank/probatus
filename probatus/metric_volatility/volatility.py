@@ -38,13 +38,13 @@ class BaseVolatilityEstimator(BaseFitComputePlotClass):
     """
 
 
-    def __init__(self, model, scoring='roc_auc', test_prc=0.25, n_jobs=1, stats_tests_to_apply=None, verbose=0,
-                 random_state=42):
+    def __init__(self, clf, scoring='roc_auc', test_prc=0.25, n_jobs=1, stats_tests_to_apply=None, verbose=0,
+                 random_state=None):
         """
         Initializes the class
 
         Args:
-            model (model object):
+            clf (model object):
                 Binary classification model or pipeline.
 
             scoring (string, list of strings, probatus.utils.Scorer or list of probatus.utils.Scorers, optional):
@@ -71,14 +71,16 @@ class BaseVolatilityEstimator(BaseFitComputePlotClass):
                 Controls verbosity of the output:
 
                 - 0 - nether prints nor warnings are shown
-                - 1 - 50 - only most important warnings
+                - 1 - 50 - only most important warnings and indication of progress in fitting the object.
                 - 51 - 100 - shows other warnings and prints
                 - above 100 - presents all prints and all warnings (including SHAP warnings).
 
             random_state (int, optional):
-                The seed used by the random number generator.
+                Random state set at each round of feature elimination. If it is None, the results will not be
+                reproducible and in random search at each iteration a different hyperparameters might be tested. For
+                reproducible results set it to integer.
         """
-        self.model = model
+        self.clf = clf
         self.n_jobs = n_jobs
         self.random_state = random_state
         self.test_prc = test_prc
@@ -99,8 +101,9 @@ class BaseVolatilityEstimator(BaseFitComputePlotClass):
 
         self.stats_tests_objects = []
         if len(self.stats_tests_to_apply) > 0:
-            warnings.warn("Computing statistics for distributions is an experimental feature. While using it, keep in "
-                          "mind that the samples of metrics might be correlated.")
+            if self.verbose>0:
+                warnings.warn("Computing statistics for distributions is an experimental feature. While using it, keep "
+                              "in mind that the samples of metrics might be correlated.")
             for test_name in self.stats_tests_to_apply:
                 self.stats_tests_objects.append(DistributionStatistics(statistical_test=test_name))
 
@@ -116,7 +119,8 @@ class BaseVolatilityEstimator(BaseFitComputePlotClass):
         """
 
         # Set seed for results reproducibility
-        np.random.seed(self.random_state)
+        if self.random_state is not None:
+            np.random.seed(self.random_state)
 
         # Initialize the report and results
         self.iterations_results = None
@@ -149,7 +153,7 @@ class BaseVolatilityEstimator(BaseFitComputePlotClass):
                 metrics = [metrics]
             return self.report.loc[metrics]
 
-    def plot(self, metrics=None, bins=10, height_per_subplot=5, width_per_subplot=5):
+    def plot(self, metrics=None, bins=10, show=True, height_per_subplot=5, width_per_subplot=5):
         """
         Plots distribution of the metric
 
@@ -160,11 +164,19 @@ class BaseVolatilityEstimator(BaseFitComputePlotClass):
             bins (int, optional):
                 Number of bins into which histogram is built.
 
+            show (bool, optional):
+                If True, the plots are showed to the user, otherwise they are not shown. Not showing plot can be useful,
+                when you want to edit the returned axis, before showing it.
+
             height_per_subplot (int, optional):
                 Height of each subplot. Default is 5.
 
             width_per_subplot (int, optional):
                 Width of each subplot. Default is 5.
+
+        Returns
+            (list(matplotlib.axes)):
+                Axes that include the plot.
         """
 
         target_report = self.compute(metrics=metrics)
@@ -193,6 +205,13 @@ class BaseVolatilityEstimator(BaseFitComputePlotClass):
 
             for ax in axs.flat:
                 ax.set(xlabel='{} score'.format(metric), ylabel='Results count')
+
+            if show:
+                plt.show()
+            else:
+                plt.close()
+
+            return axs
 
     def _get_samples_to_plot(self, metric_name):
         """
@@ -312,15 +331,15 @@ class TrainTestVolatility(BaseVolatilityEstimator):
     """
 
 
-    def __init__(self, model, iterations=1000, scoring='roc_auc', sample_train_test_split_seed=True,
+    def __init__(self, clf, iterations=1000, scoring='roc_auc', sample_train_test_split_seed=True,
                  train_sampling_type=None, test_sampling_type=None, train_sampling_fraction=1, test_sampling_fraction=1,
-                 test_prc=0.25, n_jobs=1, stats_tests_to_apply=None, verbose=0, random_state=42):
+                 test_prc=0.25, n_jobs=1, stats_tests_to_apply=None, verbose=0, random_state=None):
 
         """
         Initializes the class.
 
         Args:
-            model (model object):
+            clf (model object):
                 Binary classification model or pipeline.
 
             iterations (int, optional):
@@ -382,9 +401,11 @@ class TrainTestVolatility(BaseVolatilityEstimator):
                 - above 100 - presents all prints and all warnings (including SHAP warnings).
 
             random_state (int, optional):
-                The seed used by the random number generator.
+                Random state set at each round of feature elimination. If it is None, the results will not be
+                reproducible and in random search at each iteration a different hyperparameters might be tested. For
+                reproducible results set it to integer.
         """
-        super().__init__(model=model, scoring=scoring, test_prc=test_prc, n_jobs=n_jobs,
+        super().__init__(clf=clf, scoring=scoring, test_prc=test_prc, n_jobs=n_jobs,
                          stats_tests_to_apply=stats_tests_to_apply, verbose=verbose, random_state=random_state)
         self.iterations = iterations
         self.train_sampling_type = train_sampling_type
@@ -424,14 +445,19 @@ class TrainTestVolatility(BaseVolatilityEstimator):
         if self.sample_train_test_split_seed:
             random_seeds = np.random.random_integers(0, 999999, self.iterations)
         else:
-            random_seeds = (np.ones(self.iterations) * self.random_state).astype(int)
+            random_seeds = (np.ones(self.iterations)).astype(int)
+            if self.random_state:
+                random_seeds = random_seeds * self.random_state
+
+        if self.verbose > 0:
+            random_seeds = tqdm(random_seeds)
 
         results_per_iteration = Parallel(n_jobs=self.n_jobs)(delayed(get_metric)(
-            X=self.X, y=self.y, model=self.model, test_size=self.test_prc, split_seed=split_seed,
+            X=self.X, y=self.y, clf=self.clf, test_size=self.test_prc, split_seed=split_seed,
             scorers=self.scorers, train_sampling_type=self.train_sampling_type,
             test_sampling_type=self.test_sampling_type, train_sampling_fraction=self.train_sampling_fraction,
             test_sampling_fraction=self.test_sampling_fraction
-        ) for split_seed in tqdm(random_seeds))
+        ) for split_seed in random_seeds)
 
         self.iterations_results = pd.concat(results_per_iteration, ignore_index=True)
 
@@ -459,13 +485,13 @@ class SplitSeedVolatility(TrainTestVolatility):
 
     """
 
-    def __init__(self, model, iterations=1000, scoring='roc_auc', test_prc=0.25, n_jobs=1, stats_tests_to_apply=None,
-                 verbose=0, random_state=42):
+    def __init__(self, clf, iterations=1000, scoring='roc_auc', test_prc=0.25, n_jobs=1, stats_tests_to_apply=None,
+                 verbose=0, random_state=None):
         """
         Initializes the class
 
         Args:
-            model (model object):
+            clf (model object):
                 Binary classification model or pipeline.
 
             iterations (int, optional):
@@ -500,9 +526,11 @@ class SplitSeedVolatility(TrainTestVolatility):
                 - above 100 - presents all prints and all warnings (including SHAP warnings).
 
             random_state (int, optional):
-                The seed used by the random number generator.
+                Random state set at each round of feature elimination. If it is None, the results will not be
+                reproducible and in random search at each iteration a different hyperparameters might be tested. For
+                reproducible results set it to integer.
         """
-        super().__init__(model=model, sample_train_test_split_seed=True, train_sampling_type=None,
+        super().__init__(clf=clf, sample_train_test_split_seed=True, train_sampling_type=None,
                          test_sampling_type=None, train_sampling_fraction=1,  test_sampling_fraction=1,
                          iterations=iterations, scoring=scoring, test_prc=test_prc, n_jobs=n_jobs,
                          stats_tests_to_apply=stats_tests_to_apply, verbose=verbose, random_state=random_state)
@@ -528,13 +556,13 @@ class BootstrappedVolatility(TrainTestVolatility):
     <img src="../img/metric_volatility_bootstrapped.png" width="500" />
     """
 
-    def __init__(self, model, iterations=1000, scoring='roc_auc', train_sampling_fraction=1, test_sampling_fraction=1,
-                 test_prc=0.25, n_jobs=1, stats_tests_to_apply=None, verbose=0, random_state=42):
+    def __init__(self, clf, iterations=1000, scoring='roc_auc', train_sampling_fraction=1, test_sampling_fraction=1,
+                 test_prc=0.25, n_jobs=1, stats_tests_to_apply=None, verbose=0, random_state=None):
         """
         Initializes the class.
 
         Args:
-            model (model object):
+            clf (model object):
                 Binary classification model or pipeline.
 
             iterations (int, optional):
@@ -575,9 +603,11 @@ class BootstrappedVolatility(TrainTestVolatility):
                 - above 100 - presents all prints and all warnings (including SHAP warnings).
 
             random_state (int, optional):
-                The seed used by the random number generator.
+                Random state set at each round of feature elimination. If it is None, the results will not be
+                reproducible and in random search at each iteration a different hyperparameters might be tested. For
+                reproducible results set it to integer.
         """
-        super().__init__(model=model, sample_train_test_split_seed=False, train_sampling_type='bootstrap',
+        super().__init__(clf=clf, sample_train_test_split_seed=False, train_sampling_type='bootstrap',
                          test_sampling_type='bootstrap', iterations=iterations, scoring=scoring,
                          train_sampling_fraction=train_sampling_fraction, test_sampling_fraction=test_sampling_fraction,
                          test_prc=test_prc, n_jobs=n_jobs, stats_tests_to_apply=stats_tests_to_apply, verbose=verbose,
