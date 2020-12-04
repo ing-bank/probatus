@@ -25,7 +25,6 @@ import numpy as np
 import shap
 import matplotlib.pyplot as plt
 import pandas as pd
-from typing import Union, Tuple
 
 
 class ShapModelInterpreter(BaseFitComputePlotClass):
@@ -186,7 +185,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
         return shap_values, expected_value, tdp
 
 
-    def compute(self, return_scores=False) -> Union[pd.DataFrame, Tuple[pd.DataFrame, float, float]]:
+    def compute(self, return_scores=False):
         """
         Computes the DataFrame, that presents the importance of each feature.
 
@@ -226,7 +225,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
 
 
     def fit_compute(self,  X_train, X_test, y_train, y_test, column_names=None, class_names=None, approximate=False,
-                    return_scores=False, **shap_kwargs) -> Union[pd.DataFrame, Tuple[pd.DataFrame, float, float]]:
+                    return_scores=False, **shap_kwargs):
         """
         Fits the object and calculates the shap values for the provided datasets.
 
