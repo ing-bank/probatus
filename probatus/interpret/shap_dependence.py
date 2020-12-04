@@ -94,13 +94,14 @@ class TreeDependencePlotter(BaseFitComputePlotClass):
             precalc_shap (Optional, None or np.array):
                 Precalculated shap values, If provided they don't need to be computed.
         """
+
+        self.X, self.column_names = preprocess_data(X, X_name='X', column_names=column_names, verbose=self.verbose)
+        self.y = preprocess_labels(y, y_name='y', index=self.X.index, verbose=self.verbose)
+
         # Set class names
         self.class_names = class_names
         if self.class_names is None:
             self.class_names = ['Negative Class', 'Positive Class']
-
-        self.X, self.column_names = preprocess_data(X, X_name='X', column_names=column_names, verbose=self.verbose)
-        self.y = preprocess_labels(y, y_name='y', index=self.X.index, verbose=self.verbose)
 
         self.shap_vals_df = shap_to_df(self.clf, self.X, precalc_shap=precalc_shap, verbose=self.verbose)
 
