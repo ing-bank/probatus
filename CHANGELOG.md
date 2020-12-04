@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.1] - 2020-12-04
+
+Various improvements to the consistency and usability of the package
+- Unit test docstring and notebooks #41 
+- Unified scoring metric within probatus #27 
+- Improve docstrings consistency documentation #25 
+- Implemented unified interface #24 
+- Added images to API docs documentation #23
+- Added verbose parameter to ShapRFECV #21
+- Make API more consistent #19 
+    - Set model parameter name to clf across probatus
+    - Set default random_state to None
+    - Ensure that verbose is used consistently in probatus
+    - Unify parameter class_names for classes in which it is relevant
+    - Add return scores parameter to compute wherever applicable
+- Add sample row functionality to utils #17
+- Make an experiment comparing sklearn.RFECV with ShapRFECV #16
+- ShapModelInterpreter calculate train set feature importance #13
+
 ## [1.5.0] - 2020-11-18
 - Improve SHAP RFECV API and documentation
 
