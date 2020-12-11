@@ -17,14 +17,15 @@ def sample_row(
     random_state: int = 42,
     max_field_len: int = 50,
 ) -> pd.DataFrame:
-    """Samples a pandas dataframe.
+    """Sample a row from pandas dataframe.
 
     Extracts the column name, datatype, minimum and maximum values for each
-    column in the supplied dataframe. Can generate a sample for use in
-    technical model documentation.
+    column in the supplied dataframe. The orientation is row-based (as opposed to `df.sample(1)`), which allows
+    for better printing when a dataset contains many features. This function is usefull when providing a
+    sample row in technical model documentation.
 
     Example:
-    
+
     ```python
     from probatus.utils import sample_row
     from sklearn.datasets import load_iris
@@ -33,6 +34,15 @@ def sample_row(
     sample = sample_row(iris, filter_rows_with_na=False, random_state=12)
     print(sample.to_markdown())
     ```
+
+    ??? info "Example output"
+
+        | column            | dtype   |   sample |   range_low |   range_high |
+        |:------------------|:--------|---------:|------------:|-------------:|
+        | sepal length (cm) | float64 |      5   |         4.3 |          7.9 |
+        | sepal width (cm)  | float64 |      3.5 |         2   |          4.4 |
+        | petal length (cm) | float64 |      1.3 |         1   |          6.9 |
+        | petal width (cm)  | float64 |      0.3 |         0.1 |          2.5 |
 
     Args:
         X (DataFrame): Pandas DataFrame to be sampled
