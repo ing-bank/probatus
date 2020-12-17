@@ -56,7 +56,7 @@ def sample_row(
             which any text is truncated
 
     Returns:
-        sampled_df: A Pandas DataFrame containing the sampled row
+        (pd.DataFrame): A Pandas DataFrame containing the sampled row
     """
     # Input validation
     assert type(X) == pd.DataFrame, "X should be pandas DataFrame"
