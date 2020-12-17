@@ -1,5 +1,7 @@
 # Utility Functions
 
-This module contains various functionalities, that can be used across probatus package.
+This module contains various smaller functionalities, that can be used across the `probatus` package.
 
 ::: probatus.utils.scoring
+
+::: probatus.utils.sampling
