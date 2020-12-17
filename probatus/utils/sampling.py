@@ -45,11 +45,14 @@ def sample_row(
         | petal width (cm)  | float64 |      0.3 |         0.1 |          2.5 |
 
     Args:
-        X (DataFrame): Pandas DataFrame to be sampled
-        filter_rows_with_na (bool): if true, rows with na values are not
-            considered for sampling
-        random_state (int): Optional random state to ensure reproducability
-        max_field_len (int): Maximum number of characters for fields, beyond
+        X (DataFrame):
+            Pandas DataFrame to be sampled
+        filter_rows_with_na (bool):
+            if true, rows with na values are not considered for sampling
+        random_state (int):
+            Optional random state to ensure reproducability
+        max_field_len (int):
+            Maximum number of characters for fields, beyond
             which any text is truncated
 
     Returns:
