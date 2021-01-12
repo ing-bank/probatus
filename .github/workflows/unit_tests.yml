@@ -1,4 +1,4 @@
-name: Unit tests
+name: Development
 on:
   # Trigger the workflow on push or pull request,
   # but only for the master branch
@@ -42,6 +42,14 @@ jobs:
         pip install mypy
         pip install .
         pip install -r tests/requirements_test.txt
-        pytest --cov=probatus/binning --cov=probatus/metric_volatility --cov=probatus/sample_similarity --cov=probatus/stat_tests --cov=probatus/utils --cov=probatus/interpret/ --ignore==tests/interpret/test_inspector.py --cov-report term-missing
+        pytest --cov=probatus/binning --cov=probatus/metric_volatility --cov=probatus/sample_similarity --cov=probatus/stat_tests --cov=probatus/utils --cov=probatus/interpret/ --ignore==tests/interpret/test_inspector.py --cov-report=xml
         pyflakes probatus
         mypy probatus --ignore-missing-imports
+    - name: Upload coverage to Codecov
+      if: github.ref == 'refs/heads/main'
+      uses: codecov/codecov-action@v1
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        file: ./coverage.xml
+        flags: unittests
+        fail_ci_if_error: false
