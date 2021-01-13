@@ -30,3 +30,7 @@ jobs:
       run: |
         python setup.py sdist bdist_wheel
         twine upload dist/*
+    - name: Deploy mkdocs site
+      run: | 
+        pip install mkdocs-material mknotebooks mkdocstrings
+        mkdocs gh-deploy --force
