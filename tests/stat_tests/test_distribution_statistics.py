@@ -8,6 +8,7 @@ from probatus.stat_tests import ks, psi, DistributionStatistics, AutoDist
 
 
 def test_distribution_statistics_base():
+    '''DistributionStatistics'''
     with pytest.raises(NotImplementedError):
         assert DistributionStatistics('doesnotexist', 'SimpleBucketer', bin_count=10)
     with pytest.raises(NotImplementedError):
@@ -17,6 +18,7 @@ def test_distribution_statistics_base():
 
 
 def test_distribution_statistics_psi():
+    '''DistributionStatistics psi'''
     d1 = np.histogram(np.random.normal(size=1000), 10)[0]
     d2 = np.histogram(np.random.weibull(1, size=1000) - 1, 10)[0]
     myTest = DistributionStatistics('psi', 'SimpleBucketer', bin_count=10)
@@ -27,6 +29,7 @@ def test_distribution_statistics_psi():
 
 
 def test_distribution_statistics_tuple_output():
+    '''DistributionStatistics Tuple Output'''
     d1 = np.histogram(np.random.normal(size=1000), 10)[0]
     d2 = np.histogram(np.random.weibull(1, size=1000) - 1, 10)[0]
     myTest = DistributionStatistics('ks', 'SimpleBucketer', bin_count=10)
@@ -37,6 +40,7 @@ def test_distribution_statistics_tuple_output():
 
 
 def test_distribution_statistics_ks_no_binning():
+    '''DistributionStatistics ks no binning'''
     d1 = np.histogram(np.random.normal(size=1000), 10)[0]
     d2 = np.histogram(np.random.weibull(1, size=1000) - 1, 10)[0]
     myTest = DistributionStatistics('ks', binning_strategy=None)
@@ -47,6 +51,7 @@ def test_distribution_statistics_ks_no_binning():
 
 
 def test_distribution_statistics_attributes_psi():
+    '''DistributionStatistics attributes psi'''
     a = np.random.normal(size=1000)
     b = np.random.normal(size=1000)
     d1 = np.histogram(a, 10)[0]
@@ -58,6 +63,7 @@ def test_distribution_statistics_attributes_psi():
 
 
 def test_distribution_statistics_attributes_ks():
+    '''DistributionStatistics attributes ks'''
     d1 = np.histogram(np.random.normal(size=1000), 10)[0]
     d2 = np.histogram(np.random.normal(size=1000), 10)[0]
     myTest = DistributionStatistics('ks', binning_strategy=None)
@@ -67,6 +73,7 @@ def test_distribution_statistics_attributes_ks():
 
 
 def test_distribution_statistics_autodist_base():
+    '''DistributionStatiistics autodist base'''
     nr_features = 2
     size = 1000
     np.random.seed(0)
@@ -94,6 +101,7 @@ def test_distribution_statistics_autodist_base():
 
 
 def test_distribution_statistics_autodist_column_names_error():
+    '''DistributionStatistics autodist column names error'''
     df1 = pd.DataFrame({'feat_0': [1, 2, 3, 4, 5], 'feat_1': [5, 6, 7, 8, 9]})
     df2 = df1
     features = df1.columns.values.tolist() + ['missing_feature']
@@ -111,6 +119,7 @@ def test_distribution_statistics_autodist_column_names_error():
 
 
 def test_distribution_statistics_autodist_return_failed_tests():
+    '''DistributionStatistics autodist return failed tests'''
     df1 = pd.DataFrame({'feat_0': [1, 2, 3, 4, 5], 'feat_1': [5, 6, 7, 8, 9]})
     df2 = df1
     features = df1.columns.values.tolist()
@@ -121,6 +130,7 @@ def test_distribution_statistics_autodist_return_failed_tests():
     assert not res.isin(['an error occurred']).any().any()
     
 def test_distribution_statistics_autodist_default():
+    '''DistributionStatistics autodist default'''
     df1 = pd.DataFrame({'feat_0': [1, 2, 3, 4, 5], 'feat_1': [5, 6, 7, 8, 9]})
     df2 = df1
     features = df1.columns.values.tolist()
@@ -136,6 +146,7 @@ def test_distribution_statistics_autodist_default():
     assert res.shape == (len(df1.columns), 1 + 2 * len(DistributionStatistics.statistical_test_dict))
 
 def test_distribution_statistics_autodist_init():
+    '''DistributionStatistics autodist init'''
     myAutoDist = AutoDist(statistical_tests='all', binning_strategies='all')
     assert isinstance(myAutoDist.statistical_tests, list)
     myAutoDist = AutoDist(statistical_tests='ks', binning_strategies='all')

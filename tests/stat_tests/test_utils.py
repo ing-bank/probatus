@@ -3,6 +3,7 @@ import numpy as np
 from probatus.stat_tests import ks, es
 
 def test_verbosity_true_(capsys):
+    '''verbosity true for ks and es'''
     d1 = np.random.normal(size=1000)
     d2 = d1
     ks(d1, d2, verbose=True)
@@ -13,6 +14,7 @@ def test_verbosity_true_(capsys):
     assert captured.out == "\nES: pvalue = 1.0\n\nES: Null hypothesis cannot be rejected. Distributions not statistically different.\n"
     
 def test_verbosity_false(capsys):
+    '''verbosity false for ks'''
     d1 = np.random.normal(size=1000)
     d2 = d1
     ks(d1, d2, verbose=False)
