@@ -98,10 +98,14 @@ class ShapRFECV(BaseFitComputePlotClass):
                 iteration. It is recommended to use float, since it is faster for a large number of features, and slows
                 down and becomes more precise towards less features. Note: the last round may remove fewer features in
                 order to reach min_features_to_select.
+                If columns_to_keep parameter is specified in the fit method, step is the number of features to remove after 
+                keeping those columns.
 
             min_features_to_select (int, optional):
                 Minimum number of features to be kept. This is a stopping criterion of the feature elimination. By
-                default the process stops when one feature is left.
+                default the process stops when one feature is left. If columns_to_keep is specified in the fit method, 
+                it is the number of features to keep after keeping those columns. E.g if the number of columns to keep is
+                3 and min_features_to_select is 2. The stopping criteria for feature elimination will be 5 features.
 
             cv (int, cross-validation generator or an iterable, optional):
                 Determines the cross-validation splitting strategy. Compatible with sklearn
@@ -148,7 +152,7 @@ class ShapRFECV(BaseFitComputePlotClass):
             self.min_features_to_select=min_features_to_select
         else:
             raise (ValueError(f"The current value of min_features_to_select = {min_features_to_select} is not allowed. "
-                              f"It needs to be a positive integer."))
+                              f"It needs to be a greater than or equal to 0."))
 
         self.cv = cv
         self.scorer = get_single_scorer(scoring)
@@ -158,7 +162,7 @@ class ShapRFECV(BaseFitComputePlotClass):
         self.verbose = verbose
 
 
-    def _get_current_features_to_remove(self, shap_importance_df):
+    def _get_current_features_to_remove(self, shap_importance_df,columns_to_keep = None):
         """
         Implements the logic used to determine which features to remove. If step is a positive integer,
             at each round step lowest SHAP importance features are selected. If it is a float, such percentage
@@ -173,6 +177,15 @@ class ShapRFECV(BaseFitComputePlotClass):
             (list):
                 List of features to be removed at a given round.
         """
+
+        #Bounding the variable.
+        num_features_to_remove = 0
+
+        #If columns_to_keep is not None, exclude those columns and
+        #calculate features to remove.
+        if columns_to_keep is not None:
+            mask = shap_importance_df.index.isin(columns_to_keep)
+            shap_importance_df = shap_importance_df[~mask]
 
         # If the step is an int remove n features.
         if isinstance(self.step, int):
@@ -197,7 +210,6 @@ class ShapRFECV(BaseFitComputePlotClass):
         if num_features_to_remove == 0:
             return []
         else:
-
             return shap_importance_df.iloc[-num_features_to_remove:].index.tolist()
 
 
@@ -328,7 +340,7 @@ class ShapRFECV(BaseFitComputePlotClass):
         return shap_values, score_train, score_val
 
 
-    def fit(self, X, y, column_names=None):
+    def fit(self, X, y, columns_to_keep=None,column_names=None):
         """
         Fits the object with the provided data. The algorithm starts with the entire dataset, and then sequentially
              eliminates features. If [GridSearchCV](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.GridSearchCV.html)
@@ -343,6 +355,10 @@ class ShapRFECV(BaseFitComputePlotClass):
             y (pd.Series):
                 Binary labels for X.
 
+            columns_to_keep(list of str,optional):
+                List of columns to keep. If given, these columns will not be eliminated by the feature elimination proces.
+                However, these feature will used for the calculation of the SHAP values.
+
             column_names (list of str, optional):
                 List of feature names of the provided samples. If provided it will be used to overwrite the existing
                 feature names. If not provided the existing feature names are used or default feature names are
@@ -354,6 +370,11 @@ class ShapRFECV(BaseFitComputePlotClass):
         if self.random_state is not None:
             np.random.seed(self.random_state)
 
+        if columns_to_keep is None:
+            columns_to_keep = []
+        
+
+
         self.X , self.column_names = preprocess_data(X, X_name='X', column_names=column_names, verbose=self.verbose)
         self.y = preprocess_labels(y, y_name='y', index=self.X.index, verbose=self.verbose)
         self.cv = check_cv(self.cv, self.y, classifier=is_classifier(self.clf))
@@ -361,7 +382,11 @@ class ShapRFECV(BaseFitComputePlotClass):
         remaining_features = current_features_set = self.column_names
         round_number = 0
 
-        while len(current_features_set) > self.min_features_to_select:
+        if (self.min_features_to_select+len(columns_to_keep)) > len(self.column_names):
+            raise ValueError(f'Minimum features to select is greater than number of features.'
+        f'Lower the value for min_features_to_select or number of columns in columns_to_keep')
+
+        while len(current_features_set) > (self.min_features_to_select+len(columns_to_keep)):
             round_number += 1
 
             # Get current dataset info
@@ -389,11 +414,14 @@ class ShapRFECV(BaseFitComputePlotClass):
             scores_train = [current_result[1] for current_result in results_per_fold]
             scores_val = [current_result[2] for current_result in results_per_fold]
 
+            #Calculate the shap features with remaining features and features to keep.
+            remaining_features = list(set(current_features_set) | set(columns_to_keep))
             shap_importance_df = calculate_shap_importance(shap_values, remaining_features)
 
             # Get features to remove
-            features_to_remove = self._get_current_features_to_remove(shap_importance_df)
+            features_to_remove = self._get_current_features_to_remove(shap_importance_df,columns_to_keep=columns_to_keep)
             remaining_features = list(set(current_features_set) - set(features_to_remove))
+            
 
             # Report results
             self._report_current_results(round_number=round_number, current_features_set=current_features_set,
@@ -408,7 +436,7 @@ class ShapRFECV(BaseFitComputePlotClass):
                       f'+/- {self.report_df.loc[round_number]["train_metric_std"]}, CV Validation '
                       f'{self.report_df.loc[round_number]["val_metric_mean"]} '
                       f'+/- {self.report_df.loc[round_number]["val_metric_std"]}. \n'
-                      f'Num of features left: {len(remaining_features)}. '
+                      f'Features left: {len(remaining_features)}. '
                       f'Removed features at the end of the round: {features_to_remove}')
         self.fitted = True
         return self
@@ -428,7 +456,7 @@ class ShapRFECV(BaseFitComputePlotClass):
         return self.report_df
 
 
-    def fit_compute(self, X, y, column_names=None):
+    def fit_compute(self, X, y, columns_to_keep=None, column_names=None):
         """
         Fits the object with the provided data. The algorithm starts with the entire dataset, and then sequentially
              eliminates features. If [GridSearchCV](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.GridSearchCV.html)
@@ -444,6 +472,9 @@ class ShapRFECV(BaseFitComputePlotClass):
             y (pd.Series):
                 Binary labels for X.
 
+            columns_to_keep(list of str,optional):
+                List of columns to keep. If given, these columns will not be eliminated.
+
             column_names (list of str, optional):
                 List of feature names of the provided samples. If provided it will be used to overwrite the existing
                 feature names. If not provided the existing feature names are used or default feature names are
@@ -454,7 +485,7 @@ class ShapRFECV(BaseFitComputePlotClass):
                 DataFrame containing results of feature elimination from each iteration.
         """
 
-        self.fit(X, y, column_names=column_names)
+        self.fit(X, y, columns_to_keep=columns_to_keep,column_names=column_names)
         return self.compute()
 
 
