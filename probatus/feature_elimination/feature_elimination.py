@@ -383,8 +383,8 @@ class ShapRFECV(BaseFitComputePlotClass):
         round_number = 0
 
         if (self.min_features_to_select+len(columns_to_keep)) > len(self.column_names):
-            raise ValueError(f'Minimum features to select is greater than number of features.'
-        f'Lower the value for min_features_to_select or number of columns in columns_to_keep')
+            raise ValueError('Minimum features to select is greater than number of features.'
+        'Lower the value for min_features_to_select or number of columns in columns_to_keep')
 
         while len(current_features_set) > (self.min_features_to_select+len(columns_to_keep)):
             round_number += 1
