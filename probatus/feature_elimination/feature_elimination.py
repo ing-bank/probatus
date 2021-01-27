@@ -356,7 +356,7 @@ class ShapRFECV(BaseFitComputePlotClass):
                 Binary labels for X.
 
             columns_to_keep(list of str,optional):
-                List of columns to keep. If given, these columns will not be eliminated by the feature elimination proces.
+                List of column names to keep. If given, these columns will not be eliminated by the feature elimination process.
                 However, these feature will used for the calculation of the SHAP values.
 
             column_names (list of str, optional):
@@ -436,7 +436,7 @@ class ShapRFECV(BaseFitComputePlotClass):
                       f'+/- {self.report_df.loc[round_number]["train_metric_std"]}, CV Validation '
                       f'{self.report_df.loc[round_number]["val_metric_mean"]} '
                       f'+/- {self.report_df.loc[round_number]["val_metric_std"]}. \n'
-                      f'Features left: {len(remaining_features)}. '
+                      f'Features left: {remaining_features}. '
                       f'Removed features at the end of the round: {features_to_remove}')
         self.fitted = True
         return self
