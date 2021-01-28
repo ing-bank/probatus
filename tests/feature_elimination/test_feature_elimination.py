@@ -46,7 +46,7 @@ def test_shap_rfe_randomized_search(X, y, capsys):
 
     # Check if there is any prints
     out, _ = capsys.readouterr()
-    assert len(out) > 0
+    assert len(out) == 0
 
 
 def test_shap_rfe(X, y, capsys):
