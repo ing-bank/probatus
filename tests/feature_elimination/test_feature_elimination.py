@@ -88,8 +88,8 @@ def test_shap_rfe_cols_to_keep(X, y, capsys):
     report = shap_elimination.compute()
 
     assert report.shape[0] == 3
-    reduced_feature_set = set(shap_elimination.get_reduced_features_set(num_features=2))
-    assert reduced_feature_set == set(['col_3','col_2'])
+    reduced_feature_set = set(shap_elimination.get_reduced_features_set(num_features=1))
+    assert reduced_feature_set == set(['col_2'])
 
     # Ensure that number of warnings was 0
     assert len(record) == 0
@@ -114,8 +114,8 @@ def test_shap_rfe_randomized_search_cols_to_keep(X, y, capsys):
     shap_elimination._check_if_fitted()
 
     assert report.shape[0] == 3
-    reduced_feature_set = set(shap_elimination.get_reduced_features_set(num_features=2))
-    assert reduced_feature_set == set(['col_3','col_2'])
+    reduced_feature_set = set(shap_elimination.get_reduced_features_set(num_features=1))
+    assert reduced_feature_set == set(['col_2'])
 
     ax1 = shap_elimination.plot(show=False)
 
