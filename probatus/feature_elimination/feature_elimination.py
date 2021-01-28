@@ -103,9 +103,8 @@ class ShapRFECV(BaseFitComputePlotClass):
 
             min_features_to_select (int, optional):
                 Minimum number of features to be kept. This is a stopping criterion of the feature elimination. By
-                default the process stops when one feature is left. If columns_to_keep is specified in the fit method, 
-                it is the number of features to keep after keeping those columns. E.g if the number of columns to keep is
-                3 and min_features_to_select is 2. The stopping criteria for feature elimination will be 5 features.
+                default the process stops when one feature is left. If columns_to_keep is specified in the fit method,
+                it overides this parameter to the length of columns_to_keep.
 
             cv (int, cross-validation generator or an iterable, optional):
                 Determines the cross-validation splitting strategy. Compatible with sklearn
@@ -148,7 +147,7 @@ class ShapRFECV(BaseFitComputePlotClass):
             raise (ValueError(f"The current value of step = {step} is not allowed. "
                               f"It needs to be a positive integer or positive float."))
 
-        if isinstance(min_features_to_select, int) and min_features_to_select>=0:
+        if isinstance(min_features_to_select, int) and min_features_to_select>0:
             self.min_features_to_select=min_features_to_select
         else:
             raise (ValueError(f"The current value of min_features_to_select = {min_features_to_select} is not allowed. "
@@ -373,10 +372,10 @@ class ShapRFECV(BaseFitComputePlotClass):
         # If to columns_to_keep is not provided, then initialise it by an empty string.
         # If provided check if all the elements in columns_to_keep are of type string.
         if columns_to_keep is None:
-            columns_to_keep = []
+            len_columns_to_keep = 0
         else :
             if all(isinstance(x,str) for x in columns_to_keep):
-                pass
+                len_columns_to_keep = len(columns_to_keep)
             else :
                 raise(ValueError('The current values of columns_to_keep are not allowed.All the elements should be strings.'))
         
@@ -387,6 +386,14 @@ class ShapRFECV(BaseFitComputePlotClass):
             else :
                 raise(ValueError('The column names in parameter columns_to_keep and column_names are not macthing.'))
 
+        #Check that the total number of columns to select is less than total number of columns in the data.
+        #only when both parameters are provided.
+        if column_names is not None and columns_to_keep is not None :
+            if (self.min_features_to_select+len_columns_to_keep) > len(self.column_names):
+                raise ValueError('Minimum features to select is greater than number of features.'
+            'Lower the value for min_features_to_select or number of columns in columns_to_keep')
+
+
         self.X , self.column_names = preprocess_data(X, X_name='X', column_names=column_names, verbose=self.verbose)
         self.y = preprocess_labels(y, y_name='y', index=self.X.index, verbose=self.verbose)
         self.cv = check_cv(self.cv, self.y, classifier=is_classifier(self.clf))
@@ -394,17 +401,27 @@ class ShapRFECV(BaseFitComputePlotClass):
         remaining_features = current_features_set = self.column_names
         round_number = 0
 
-        #Check that the total number of columns to select is less than total number of columns in the data.
-        if (self.min_features_to_select+len(columns_to_keep)) > len(self.column_names):
-            raise ValueError('Minimum features to select is greater than number of features.'
-        'Lower the value for min_features_to_select or number of columns in columns_to_keep')
+        #Setting up the min_features_to_select parameter.
+        if columns_to_keep is None:
+            pass
+        else:
+            self.min_features_to_select = 0
+            #This ensures that, if columns_to_keep is provided ,the last features remaining are only the columns_to_keep.
+            if self.verbose > 50:
+                print(f'Minimum features to select : {len_columns_to_keep}')
+           
+        #Stop when stopping criteria is met.    
+        stopping_criteria = self.min_features_to_select+len_columns_to_keep
 
-        while len(current_features_set) > (self.min_features_to_select+len(columns_to_keep)):
+        while len(current_features_set) > stopping_criteria:
             round_number += 1
 
             # Get current dataset info
             current_features_set = remaining_features
-            remaining_removeable_features = list(set(current_features_set) | set(columns_to_keep))
+            if columns_to_keep is None :
+                remaining_removeable_features = list(set(current_features_set))
+            else :
+                remaining_removeable_features = list(set(current_features_set) | set(columns_to_keep))
             current_X = self.X[remaining_removeable_features]
 
             # Set seed for results reproducibility
