@@ -148,7 +148,7 @@ class ShapRFECV(BaseFitComputePlotClass):
             raise (ValueError(f"The current value of step = {step} is not allowed. "
                               f"It needs to be a positive integer or positive float."))
 
-        if isinstance(min_features_to_select, int) and min_features_to_select>0:
+        if isinstance(min_features_to_select, int) and min_features_to_select>=0:
             self.min_features_to_select=min_features_to_select
         else:
             raise (ValueError(f"The current value of min_features_to_select = {min_features_to_select} is not allowed. "
@@ -340,7 +340,7 @@ class ShapRFECV(BaseFitComputePlotClass):
         return shap_values, score_train, score_val
 
 
-    def fit(self, X, y, columns_to_keep=None,column_names=None):
+    def fit(self, X, y,columns_to_keep=None,column_names=None):
         """
         Fits the object with the provided data. The algorithm starts with the entire dataset, and then sequentially
              eliminates features. If [GridSearchCV](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.GridSearchCV.html)
@@ -370,10 +370,22 @@ class ShapRFECV(BaseFitComputePlotClass):
         if self.random_state is not None:
             np.random.seed(self.random_state)
 
+        # If to columns_to_keep is not provided, then initialise it by an empty string.
+        # If provided check if all the elements in columns_to_keep are of type string.
         if columns_to_keep is None:
             columns_to_keep = []
+        else :
+            if all(isinstance(x,str) for x in columns_to_keep):
+                pass
+            else :
+                raise(ValueError('The current values of columns_to_keep are not allowed.All the elements should be strings.'))
         
-
+        # If the column_names parameters is provided, check if the elements in both columns_to_keep & column_names are matching.
+        if column_names is not None and columns_to_keep is not None :
+            if all(x in column_names for x in columns_to_keep):
+                pass
+            else :
+                raise(ValueError('The column names in parameter columns_to_keep and column_names are not macthing.'))
 
         self.X , self.column_names = preprocess_data(X, X_name='X', column_names=column_names, verbose=self.verbose)
         self.y = preprocess_labels(y, y_name='y', index=self.X.index, verbose=self.verbose)
@@ -382,6 +394,7 @@ class ShapRFECV(BaseFitComputePlotClass):
         remaining_features = current_features_set = self.column_names
         round_number = 0
 
+        #Check that the total number of columns to select is less than total number of columns in the data.
         if (self.min_features_to_select+len(columns_to_keep)) > len(self.column_names):
             raise ValueError('Minimum features to select is greater than number of features.'
         'Lower the value for min_features_to_select or number of columns in columns_to_keep')
@@ -391,7 +404,8 @@ class ShapRFECV(BaseFitComputePlotClass):
 
             # Get current dataset info
             current_features_set = remaining_features
-            current_X = self.X[current_features_set]
+            remaining_removeable_features = list(set(current_features_set) | set(columns_to_keep))
+            current_X = self.X[remaining_removeable_features]
 
             # Set seed for results reproducibility
             if self.random_state is not None:
@@ -415,8 +429,8 @@ class ShapRFECV(BaseFitComputePlotClass):
             scores_val = [current_result[2] for current_result in results_per_fold]
 
             #Calculate the shap features with remaining features and features to keep.
-            remaining_features = list(set(current_features_set) | set(columns_to_keep))
-            shap_importance_df = calculate_shap_importance(shap_values, remaining_features)
+            # remaining_removeable_features = list(set(current_features_set) | set(columns_to_keep))
+            shap_importance_df = calculate_shap_importance(shap_values, remaining_removeable_features)
 
             # Get features to remove
             features_to_remove = self._get_current_features_to_remove(shap_importance_df,columns_to_keep=columns_to_keep)
