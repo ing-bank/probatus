@@ -79,17 +79,17 @@ def test_shap_rfe_cols_to_keep(X, y, capsys):
     """
     clf = DecisionTreeClassifier(max_depth=1,random_state=1)
     with pytest.warns(None) as record:
-        shap_elimination = ShapRFECV(clf, random_state=1, step=1, cv=2, scoring='roc_auc', n_jobs=4,min_features_to_select=1)
-        shap_elimination = shap_elimination.fit(X, y,columns_to_keep=['col_2'])
+        shap_elimination = ShapRFECV(clf, random_state=1, step=2, cv=2, scoring='roc_auc', n_jobs=4,min_features_to_select=1)
+        shap_elimination = shap_elimination.fit(X, y,columns_to_keep=['col_2','col_3'])
 
     assert shap_elimination.fitted == True
     shap_elimination._check_if_fitted()
 
     report = shap_elimination.compute()
 
-    assert report.shape[0] == 3
-    reduced_feature_set = set(shap_elimination.get_reduced_features_set(num_features=1))
-    assert reduced_feature_set == set(['col_2'])
+    assert report.shape[0] == 2
+    reduced_feature_set = set(shap_elimination.get_reduced_features_set(num_features=2))
+    assert reduced_feature_set == set(['col_2','col_3'])
 
     # Ensure that number of warnings was 0
     assert len(record) == 0
@@ -108,14 +108,14 @@ def test_shap_rfe_randomized_search_cols_to_keep(X, y, capsys):
     with pytest.warns(None) as record:
 
         shap_elimination = ShapRFECV(search, step=0.8, cv=2, scoring='roc_auc', n_jobs=4,random_state=1)
-        report = shap_elimination.fit_compute(X, y,columns_to_keep=['col_2'])
+        report = shap_elimination.fit_compute(X, y,columns_to_keep=['col_2','col_3'])
 
     assert shap_elimination.fitted == True
     shap_elimination._check_if_fitted()
 
-    assert report.shape[0] == 3
-    reduced_feature_set = set(shap_elimination.get_reduced_features_set(num_features=1))
-    assert reduced_feature_set == set(['col_2'])
+    assert report.shape[0] == 2
+    reduced_feature_set = set(shap_elimination.get_reduced_features_set(num_features=2))
+    assert reduced_feature_set == set(['col_2','col_3'])
 
     ax1 = shap_elimination.plot(show=False)
 

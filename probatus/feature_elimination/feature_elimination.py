@@ -6,7 +6,7 @@ import pandas as pd
 from sklearn.model_selection import RandomizedSearchCV, GridSearchCV, check_cv
 from sklearn.base import clone, is_classifier
 from joblib import Parallel, delayed
-
+import warnings
 
 class ShapRFECV(BaseFitComputePlotClass):
     """
@@ -104,7 +104,7 @@ class ShapRFECV(BaseFitComputePlotClass):
             min_features_to_select (int, optional):
                 Minimum number of features to be kept. This is a stopping criterion of the feature elimination. By
                 default the process stops when one feature is left. If columns_to_keep is specified in the fit method,
-                it overides this parameter to the length of columns_to_keep.
+                it may overide this parameter to the maximum between length of columns_to_keep the two.
 
             cv (int, cross-validation generator or an iterable, optional):
                 Determines the cross-validation splitting strategy. Compatible with sklearn
@@ -379,9 +379,9 @@ class ShapRFECV(BaseFitComputePlotClass):
             else :
                 raise(ValueError('The current values of columns_to_keep are not allowed.All the elements should be strings.'))
         
-        # If the column_names parameters is provided, check if the elements in both columns_to_keep & column_names are matching.
-        if column_names is not None and columns_to_keep is not None :
-            if all(x in column_names for x in columns_to_keep):
+        # If the columns_to_keep parameter is provided, check if they match the column names in the X.
+        if column_names is not None :
+            if all(x in column_names for x in list(X.columns)):
                 pass
             else :
                 raise(ValueError('The column names in parameter columns_to_keep and column_names are not macthing.'))
@@ -401,17 +401,17 @@ class ShapRFECV(BaseFitComputePlotClass):
         remaining_features = current_features_set = self.column_names
         round_number = 0
 
+        #Stop when stopping criteria is met.    
+        stopping_criteria = np.max([self.min_features_to_select,len_columns_to_keep])
+        
         #Setting up the min_features_to_select parameter.
         if columns_to_keep is None:
             pass
         else:
             self.min_features_to_select = 0
             #This ensures that, if columns_to_keep is provided ,the last features remaining are only the columns_to_keep.
-            if self.verbose > 50:
-                print(f'Minimum features to select : {len_columns_to_keep}')
-           
-        #Stop when stopping criteria is met.    
-        stopping_criteria = self.min_features_to_select+len_columns_to_keep
+            if self.verbose > 50 :
+                warnings.warn(f'Minimum features to select : {stopping_criteria}')
 
         while len(current_features_set) > stopping_criteria:
             round_number += 1
