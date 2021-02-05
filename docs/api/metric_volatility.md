@@ -8,7 +8,7 @@ The following features are implemented:
 
   - **SplitSeedVolatility** - Estimates volatility of metrics based on splitting the data into train and test sets multiple times randomly, each time with different seed.
 
-  - **BootstrappedVolatility** - stimates volatility of metrics based on splitting the data into train and test with static seed, and bootstrapping train and test set.
+  - **BootstrappedVolatility** - Estimates volatility of metrics based on splitting the data into train and test with static seed, and bootstrapping train and test set.
 
 
 ::: probatus.metric_volatility.volatility
