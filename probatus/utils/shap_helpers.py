@@ -62,7 +62,7 @@ def shap_calc(model, X, approximate=False, return_explainer=False, verbose=0, **
         if verbose <= 100:
             warnings.simplefilter("ignore")
 
-        explainer = shap.TreeExplainer(model, **shap_kwargs)
+        explainer = shap.Explainer(model, **shap_kwargs)
         # Calculate Shap values
         shap_values = explainer.shap_values(X, approximate=approximate)
 
