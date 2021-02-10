@@ -1,4 +1,6 @@
 from sklearn.tree import DecisionTreeClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.svm import SVC
 import pytest
 import numpy as np
 import pandas as pd
@@ -53,6 +55,52 @@ def test_shap_rfe_randomized_search(X, y, capsys):
 def test_shap_rfe(X, y, capsys):
 
     clf = DecisionTreeClassifier(max_depth=1,random_state=1)
+    with pytest.warns(None) as record:
+        shap_elimination = ShapRFECV(clf, random_state=1, step=1, cv=2, scoring='roc_auc', n_jobs=4)
+        shap_elimination = shap_elimination.fit(X, y)
+
+    assert shap_elimination.fitted == True
+    shap_elimination._check_if_fitted()
+
+    report = shap_elimination.compute()
+
+    assert report.shape[0] == 3
+    assert shap_elimination.get_reduced_features_set(1) == ['col_3']
+
+    ax1 = shap_elimination.plot(show=False)
+
+    # Ensure that number of warnings was 0
+    assert len(record) == 0
+    # Check if there is any prints
+    out, _ = capsys.readouterr()
+    assert len(out) == 0
+
+def test_shap_rfe_linear_model(X, y, capsys):
+    
+    clf = LogisticRegression(C=1,random_state=1)
+    with pytest.warns(None) as record:
+        shap_elimination = ShapRFECV(clf, random_state=1, step=1, cv=2, scoring='roc_auc', n_jobs=4)
+        shap_elimination = shap_elimination.fit(X, y)
+
+    assert shap_elimination.fitted == True
+    shap_elimination._check_if_fitted()
+
+    report = shap_elimination.compute()
+
+    assert report.shape[0] == 3
+    assert shap_elimination.get_reduced_features_set(1) == ['col_3']
+
+    ax1 = shap_elimination.plot(show=False)
+
+    # Ensure that number of warnings was 0
+    assert len(record) == 0
+    # Check if there is any prints
+    out, _ = capsys.readouterr()
+    assert len(out) == 0
+
+def test_shap_rfe_svm(X, y, capsys):
+    
+    clf = SVC(kernel='linear',C=1)
     with pytest.warns(None) as record:
         shap_elimination = ShapRFECV(clf, random_state=1, step=1, cv=2, scoring='roc_auc', n_jobs=4)
         shap_elimination = shap_elimination.fit(X, y)
@@ -153,8 +201,8 @@ def test_get_feature_shap_values_per_fold(X, y):
 
 @pytest.mark.skipif(os.environ.get("SKIP_LIGHTGBM") == 'true', reason="LightGBM tests disabled")
 def test_complex_dataset(complex_data, complex_lightgbm):
+    
     X, y = complex_data
-
 
     param_grid = {
         'n_estimators': [5, 7, 10],
