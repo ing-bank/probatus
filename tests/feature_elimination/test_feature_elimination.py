@@ -100,7 +100,7 @@ def test_shap_rfe_linear_model(X, y, capsys):
 
 def test_shap_rfe_svm(X, y, capsys):
     
-    clf = SVC(kernel='linear',C=1)
+    clf = SVC(C=1,kernel='linear',probability=True)
     with pytest.warns(None) as record:
         shap_elimination = ShapRFECV(clf, random_state=1, step=1, cv=2, scoring='roc_auc', n_jobs=4)
         shap_elimination = shap_elimination.fit(X, y)

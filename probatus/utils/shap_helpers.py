@@ -60,16 +60,15 @@ def shap_calc(model, X, approximate=False, return_explainer=False, verbose=0, **
         if verbose <= 100:
             warnings.simplefilter("ignore")
 
-        try :
-            # Create the background data.This is required for non tree based models.
-            # Incase the masking data cannot be created, let the underlying SHAP library handle it.
-            # A single datapoint can passed as mask (https://github.com/slundberg/shap/issues/955#issuecomment-569837201)
-            mask = X.median().values.reshape((1,X.shape[1]))
-        except ValueError:
-            warnings.warn("Unable to create mask, using masker=None")
-            mask = None
-            pass
         
+        # Create the background data.This is required for non tree based models.
+        # A single datapoint can passed as mask (https://github.com/slundberg/shap/issues/955#issuecomment-569837201)
+        if X.shape[1]<100 :
+            sample_size = int(np.ceil(X.shape[1]*0.1))
+        else :
+            sample_size =  100
+    
+        mask = shap.utils.sample(X,sample_size)
         explainer = shap.Explainer(model,masker=mask,**shap_kwargs)
         # Calculate Shap values.
         shap_values = explainer.shap_values(X)

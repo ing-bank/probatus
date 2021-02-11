@@ -41,8 +41,8 @@ def expected_feature_importance():
     return pd.DataFrame({
         'mean_abs_shap_value_test': [0.5, 0., 0.],
         'mean_abs_shap_value_train': [0.5, 0., 0.],
-        'mean_shap_value_test': [0.5, 0., 0.],
-        'mean_shap_value_train': [0.5, 0., 0.]}, index=['col_3', 'col_1', 'col_2'])
+        'mean_shap_value_test': [-0.5, 0., 0.],
+        'mean_shap_value_train': [-0.5, 0., 0.]}, index=['col_3', 'col_1', 'col_2'])
 
 
 def test_shap_interpret(fitted_tree, X_train, y_train, X_test, y_test, expected_feature_importance):
