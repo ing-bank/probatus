@@ -1,6 +1,7 @@
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC
+from sklearn.neighbors import KNeighborsClassifier
 import pytest
 import numpy as np
 import pandas as pd
@@ -120,6 +121,7 @@ def test_shap_rfe_svm(X, y, capsys):
     # Check if there is any prints
     out, _ = capsys.readouterr()
     assert len(out) == 0
+
 
 def test_shap_rfe_cols_to_keep(X, y, capsys):
     """

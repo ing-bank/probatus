@@ -23,7 +23,7 @@ import pandas as pd
 import numpy as np
 import warnings
 
-def shap_calc(model, X, approximate=False, return_explainer=False, verbose=0, **shap_kwargs):
+def shap_calc(model, X, approximate=False, return_explainer=False, verbose=0, sample_size = 100, **shap_kwargs):
     """
     Helper function to calculate the shapley values for a given model.
 
@@ -60,15 +60,15 @@ def shap_calc(model, X, approximate=False, return_explainer=False, verbose=0, **
         if verbose <= 100:
             warnings.simplefilter("ignore")
 
-        
-        # Create the background data.This is required for non tree based models.
+        # Create the background data,required for non tree based models.
         # A single datapoint can passed as mask (https://github.com/slundberg/shap/issues/955#issuecomment-569837201)
-        if X.shape[1]<100 :
-            sample_size = int(np.ceil(X.shape[1]*0.1))
+        
+        if X.shape[1]< sample_size :
+            sample_size = int(np.ceil(X.shape[1]*0.2))
         else :
-            sample_size =  100
-    
+           pass
         mask = shap.utils.sample(X,sample_size)
+
         explainer = shap.Explainer(model,masker=mask,**shap_kwargs)
         # Calculate Shap values.
         shap_values = explainer.shap_values(X)
