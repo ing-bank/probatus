@@ -23,15 +23,13 @@ import pandas as pd
 import numpy as np
 import warnings
 
-def shap_calc(model, X, approximate=False, return_explainer=False, verbose=0, **shap_kwargs):
+def shap_calc(model, X, approximate=False, return_explainer=False, verbose=0, sample_size = 100, **shap_kwargs):
     """
-    Helper function to calculate the shapley values for a given model. For now, only the tree-based models are
-        supported, because of using TreeExplainer from shap. In the future, we will extend the scope of this function to
-         other types of models.
+    Helper function to calculate the shapley values for a given model.
 
     Args:
         model (binary model):
-            Trained model (Random Forest of XGBoost at the moment).
+            Trained model.
 
         X (pd.DataFrame or np.ndarray):
             features set.
@@ -50,10 +48,10 @@ def shap_calc(model, X, approximate=False, return_explainer=False, verbose=0, **
             - 51 - 100 - shows other warnings and prints
             - above 100 - presents all prints and all warnings (including SHAP warnings).
 
-        **shap_kwargs: kwargs of the shap.TreeExplainer
+        **shap_kwargs: kwargs of the shap.Explainer
 
     Returns:
-        (np.ndarray or tuple(np.ndarray, shap.TreeExplainer)):
+        (np.ndarray or tuple(np.ndarray, shap.Explainer)):
             shapley_values for the model, optionally also returns the explainer.
 
     """
@@ -62,9 +60,18 @@ def shap_calc(model, X, approximate=False, return_explainer=False, verbose=0, **
         if verbose <= 100:
             warnings.simplefilter("ignore")
 
-        explainer = shap.TreeExplainer(model, **shap_kwargs)
-        # Calculate Shap values
-        shap_values = explainer.shap_values(X, approximate=approximate)
+        # Create the background data,required for non tree based models.
+        # A single datapoint can passed as mask (https://github.com/slundberg/shap/issues/955#issuecomment-569837201)
+        
+        if X.shape[1]< sample_size :
+            sample_size = int(np.ceil(X.shape[1]*0.2))
+        else :
+           pass
+        mask = shap.utils.sample(X,sample_size)
+
+        explainer = shap.Explainer(model,masker=mask,**shap_kwargs)
+        # Calculate Shap values.
+        shap_values = explainer.shap_values(X)
 
         if isinstance(shap_values, list) and len(shap_values)==2:
             warnings.warn('Shap values are related to the output probabilities of class 1 for this model, instead of '

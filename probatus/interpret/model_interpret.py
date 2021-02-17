@@ -125,7 +125,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
                 if True uses shap approximations - less accurate, but very fast.
 
             **shap_kwargs:
-                keyword arguments passed to [shap.TreeExplainer](https://shap.readthedocs.io/en/latest/generated/shap.TreeExplainer.html).
+                keyword arguments passed to [shap.Explainer](https://shap.readthedocs.io/en/latest/generated/shap.Explainer.html#shap.Explainer).
         """
 
         self.X_train, self.column_names = preprocess_data(X_train, X_name='X_train', column_names=column_names,
@@ -258,7 +258,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
                 float.
 
             **shap_kwargs: keyword arguments passed to
-                keyword arguments passed to [shap.TreeExplainer](https://shap.readthedocs.io/en/latest/generated/shap.TreeExplainer.html).
+                keyword arguments passed to [shap.Explainer](https://shap.readthedocs.io/en/latest/generated/shap.Explainer.html#shap.Explainer).
 
         Returns:
             (pd.DataFrame or tuple(pd.DataFrame, float, float)):

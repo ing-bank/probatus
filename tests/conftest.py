@@ -20,7 +20,7 @@ def complex_data():
     X, y = make_classification(n_samples=50, class_sep=0.05, n_informative=2, n_features=5,
                                random_state=0, n_redundant=2, n_clusters_per_class=1)
     X = pd.DataFrame(X, columns=feature_names)
-    X['f1_categorical'] = X['f1_categorical'].apply(lambda x: str(np.round(x * 10)))
+    X['f1_categorical'] = X['f1_categorical'].astype('category')
     X.loc[0:10, 'f2_missing'] = np.nan
     return X, y
 

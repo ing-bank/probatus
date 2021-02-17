@@ -12,7 +12,7 @@ nav:
     - Index: index.md
   - Tutorials:
     - ShapRFECV - Recursive Feature Elimination using SHAP importance: tutorials/nb_shap_feature_elimination.ipynb
-    - Tree-based Model Interpretation with SHAP: tutorials/nb_shap_model_interpreter.ipynb
+    - Tree-based & Linear Model Interpretation with SHAP: tutorials/nb_shap_model_interpreter.ipynb
     - Model Metrics Volatility: tutorials/nb_metric_volatility.ipynb
     - Multivariate Sample Similarity: tutorials/nb_sample_similarity.ipynb
     - Univariate Sample Similarity: tutorials/nb_distribution_statistics.ipynb

@@ -98,18 +98,6 @@ def test_not_fitted(clf):
     assert plotter.fitted is False
 
 
-def test_fit_normal(X_y, clf, expected_shap_vals):
-    X, y = X_y
-    plotter = TreeDependencePlotter(clf)
-
-    shap_vals = plotter.fit_compute(X, y)
-
-    assert plotter.X.equals(X)
-    assert plotter.y.equals(y)
-    assert np.isclose(shap_vals, expected_shap_vals, atol=1e-06).all()
-    assert plotter.fitted is True
-
-
 @pytest.mark.skipif(os.environ.get("SKIP_LIGHTGBM") == 'true', reason="LightGBM tests disabled")
 def test_fit_complex(complex_data_split, complex_fitted_lightgbm):
     X_train, X_test, y_train, y_test = complex_data_split
