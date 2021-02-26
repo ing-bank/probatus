@@ -23,7 +23,13 @@ dev_dep = [
     "flake8-docstrings>=1.4.0",
     "pytest>=6.0.0",
     "pytest-cov>=2.10.0",
-    "pyflakes"
+    "pyflakes",
+    "seaborn>=0.9.0",
+    "joblib>=0.13.2",
+    "lightgbm>=3.1.0",
+    "jupyter>=1.0.0",
+    "tabulate>=0.8.7",
+    "nbconvert>=6.0.7",
 ]
 
 docs_dep = [
