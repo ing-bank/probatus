@@ -20,26 +20,14 @@
 
 ## Installation
 
-In order to install probatus you need to use Python 3.6 or higher.
-
-You can install probatus using pip:
-
 ```bash
 pip install probatus
 ```
 
-Alternatively you can fork/clone and run:
-
-```bash
-git clone https://gitlab.com/ing_rpaa/probatus.git
-cd probatus
-pip install .
-```
-
 ## Documentation
 
-Documentation available at [ing-bank.github.io/probatus/](https://ing-bank.github.io/probatus/).
+Documentation at [ing-bank.github.io/probatus/](https://ing-bank.github.io/probatus/).
 
-## Contribution
+## Contributing
 
 To learn more about making a contribution to probatus, please see [`CONTRIBUTING.md`](CONTRIBUTING.md).
