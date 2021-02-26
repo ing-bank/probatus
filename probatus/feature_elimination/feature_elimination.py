@@ -7,7 +7,6 @@ from sklearn.model_selection import RandomizedSearchCV, GridSearchCV, check_cv
 from sklearn.base import clone, is_classifier
 from joblib import Parallel, delayed
 import warnings
-from typing import Optional, List
 
 class ShapRFECV(BaseFitComputePlotClass):
     """
@@ -340,7 +339,7 @@ class ShapRFECV(BaseFitComputePlotClass):
         return shap_values, score_train, score_val
 
 
-    def fit(self, X, y,columns_to_keep: Optional[List[str]] = None,column_names: Optional[List[str]]=None):
+    def fit(self, X, y,columns_to_keep=None,column_names=None):
         """
         Fits the object with the provided data. The algorithm starts with the entire dataset, and then sequentially
              eliminates features. If [GridSearchCV](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.GridSearchCV.html)
@@ -488,7 +487,7 @@ class ShapRFECV(BaseFitComputePlotClass):
         return self.report_df
 
 
-    def fit_compute(self, X, y, columns_to_keep:  Optional[List[str]] = None, column_names:  Optional[List[str]] =None):
+    def fit_compute(self, X, y, columns_to_keep=None, column_names=None):
         """
         Fits the object with the provided data. The algorithm starts with the entire dataset, and then sequentially
              eliminates features. If [GridSearchCV](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.GridSearchCV.html)
