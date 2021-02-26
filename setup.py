@@ -9,7 +9,7 @@ def read(fname):
 setuptools.setup(
     name="probatus",
     version="1.5.1",
-    description="Tools for machine learning model validation",
+    description="Validation of binary classifiers and data used to develop them",
     long_description=read("README.md"),
     long_description_content_type="text/markdown",
     author="ING Bank N.V.",
@@ -18,7 +18,14 @@ setuptools.setup(
     packages=setuptools.find_packages(exclude=['tests']),
     python_requires=">=3.6",
     classifiers=[
+        "Intended Audience :: Developers",
+        "Intended Audience :: Science/Research",
         "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
+        "Topic :: Scientific/Engineering",
+        "Topic :: Scientific/Engineering :: Artificial Intelligence",
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
