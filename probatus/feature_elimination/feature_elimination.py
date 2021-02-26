@@ -7,6 +7,7 @@ from sklearn.model_selection import RandomizedSearchCV, GridSearchCV, check_cv
 from sklearn.base import clone, is_classifier
 from joblib import Parallel, delayed
 import warnings
+from typing import Optional, List
 
 class ShapRFECV(BaseFitComputePlotClass):
     """
@@ -339,7 +340,7 @@ class ShapRFECV(BaseFitComputePlotClass):
         return shap_values, score_train, score_val
 
 
-    def fit(self, X, y,columns_to_keep=None,column_names=None):
+    def fit(self, X, y,columns_to_keep: Optional[List[str]] = None,column_names: Optional[List[str]]=None):
         """
         Fits the object with the provided data. The algorithm starts with the entire dataset, and then sequentially
              eliminates features. If [GridSearchCV](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.GridSearchCV.html)
@@ -354,7 +355,7 @@ class ShapRFECV(BaseFitComputePlotClass):
             y (pd.Series):
                 Binary labels for X.
 
-            columns_to_keep(list of str,optional):
+            columns_to_keep (list of str, optional):
                 List of column names to keep. If given, these columns will not be eliminated by the feature elimination process.
                 However, these feature will used for the calculation of the SHAP values.
 
@@ -487,7 +488,7 @@ class ShapRFECV(BaseFitComputePlotClass):
         return self.report_df
 
 
-    def fit_compute(self, X, y, columns_to_keep=None, column_names=None):
+    def fit_compute(self, X, y, columns_to_keep:  Optional[List[str]] = None, column_names:  Optional[List[str]] =None):
         """
         Fits the object with the provided data. The algorithm starts with the entire dataset, and then sequentially
              eliminates features. If [GridSearchCV](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.GridSearchCV.html)
@@ -503,7 +504,7 @@ class ShapRFECV(BaseFitComputePlotClass):
             y (pd.Series):
                 Binary labels for X.
 
-            columns_to_keep(list of str,optional):
+            columns_to_keep (list of str, optional):
                 List of columns to keep. If given, these columns will not be eliminated.
 
             column_names (list of str, optional):
