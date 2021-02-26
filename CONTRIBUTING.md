@@ -47,16 +47,19 @@ https://github.com/jonschlinkert/markdown-toc
 ## Code development
 
 ### Project workflow
-For each new version of Probatus we loosely follow the steps:
+
+For each new version of `probatus` we loosely follow the steps:
+
 * Set up a next release milestone, with the release date
 * Plan issues that are picked up in a given milestone, and assign contributors
-* Deploy new version of Probatus
+* Deploy new version of `probatus`
 
-Milestones are created by the Maintainer, in collaboration with contributors, based on contributors availability and priority of the backlog.
+Milestones are created by the maintainer, in collaboration with contributors, based on contributors availability and priority of the backlog.
 
 ### Developing new functionality
 
-For new functionality that can be developed in Probatus, we follow the workflow:
+For new functionality that can be developed in `probatus`, we follow the workflow:
+
 1. Make an issue on the board, clearly describe the idea and discuss it in the comments with other contributors.
 2. Plan development of the feature, as part of one or multiple releases.
 3. Implement the feature: feature code, unit tests and documentation (including notebook in `docs/` with tutorial on how to use the feature). Each of these can be implemented as a separate Merge Request.
@@ -64,7 +67,8 @@ For new functionality that can be developed in Probatus, we follow the workflow:
 
 ### Ad-hoc development
 
-For any other work picked up in the project, e.g. refactoring code, fixing bugs, refining docs we loosely follow this workflow:  
+For any other work picked up in the project, e.g. refactoring code, fixing bugs, refining docs we loosely follow this workflow: 
+
 1. Make an issue on the board, clearly describe the idea and discuss it in the comments with other contributors.
 2. Assign a contributor, and implement the change using Merge Request functionality.
 3. Maintainer deploys new version of Probatus and expose it and new docs to the users.
@@ -74,20 +78,24 @@ For any other work picked up in the project, e.g. refactoring code, fixing bugs,
 We are always glad if new contributors want to spend time improving the package, do not hesitate to reach out to us.
 
 For new contributors, a good starting point would be the following:
-* Make an issues, describing and discussing ideas for improvements
+
+* Make an issue, describing and discussing ideas for improvements
 * Look over issues that do not have an assignee, and assign yourself. Best to start with simple ones, e.g. improving docs, improving code style etc. This way you can get to know the package better.
-* Create a Merge Request to master, that implements the issue that you are assigned to. Start with something small :)
+* Create a Pull Request to master, that implements the issue that you are assigned to. Start with something small :)
 
 ## Technical Standards
+
+To get started with a local development environment, install `probatus` as an editable package:
+
+```shell
+pip install -e ".[all]"
+```
 
 ### Python
 
 * Use Python 3.6 or higher depends on availability in your dev/prod environment.
-* Use environments (conda). To create one, run `conda env create -f requirements.yml`.
-* Keep track of dependencies in `requirements.yml` and run `conda install --file requirements.yml` to install them. Remember to notify your colleagues of the change in requirements since they'll need to conda install them.
 * Line length is 120
 * Follow [PEP8](http://pep8.org/) as closely as possible (except line length)
-* Use ```__name__ == '__main__'```, otherwise Sphinx will execute your script upon building.
 * Use the [google docstring format](https://sphinxcontrib-napoleon.readthedocs.io/en/latest/)
 
 ```python
@@ -108,6 +116,7 @@ def func(arg1, arg2):
 ```
 
 ### Code structure
+
 * Model validation modules assume that trained models passed for validation are developed in scikit-learn framework (have predict_proba and other standard functions), or follows scikit-learn API e.g. XGBoost.
 * Every python file used for model validation, needs to be in `/probatus/`
 * Class structure for a given module should have a base class, and specific functionality classes that inherit from base. If a given module implements only single way of computing the output, the base class is not required. 
@@ -129,13 +138,14 @@ other functions. This make the code more readable, and easier to test.
 
 
 ### Probatus API
+
 Classes follow the probatus API structure:
 * Each class implements fit(), compute() and fit_compute() methods. Fit is used to fit object with provided data (unless no fit is required), and compute calculates the output e.g. DataFrame with report for the user. Lastly, fit_compute applies one after the other.
 * If applicable, plot() method presents user with the appropriate graphs.
 * For compute(), and plot(), check if the object is fitted first.
     
-    
 ### Unit tests
+
 Unit tests follow the following convention:
 * Use pytest framework
 * Structure tests in `tests/` folder the same way as `probatus/` modules. Each test file and function should start its name with `test_`.
@@ -177,6 +187,7 @@ We develop the docs in the following way:
 ## Code Reviews
 
 Code reviews are very important: 
+
 - improve knowledge of both reviewer and reviewee
 - improve consistency of code, easier to work on in the future
 - shorter development time as you catch bugs earlier
@@ -244,10 +255,6 @@ Example message:
 Create feature X
 This is a longer description of what the commit contains. See #123
 ```
-
-## Issue tracking
-
-Issue tracking is recommended even for solo projects. In this project we use Gitlab issue board for issue tracking.
 
 
 ## Versioning and Deployment
