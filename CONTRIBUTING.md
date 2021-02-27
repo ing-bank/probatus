@@ -58,6 +58,6 @@ other functions. This make the code more readable, and easier to test.
 
 Documentation is a very crucial part of the project, because it ensures usability of the package. We develop the docs in the following way:
 
-* `docs/` folder contains all the relevant documentation
-* We use `mkdocs serve` to view the documentation locally.
+* We use [mkdocs](https://www.mkdocs.org/) with [mkdocs-material](https://squidfunk.github.io/mkdocs-material/) theme. The `docs/` folder contains all the relevant documentation.
+* We use `mkdocs serve` to view the documentation locally. Use it to test the documentation everytime you make any changes.
 * Maintainers can deploy the docs using `mkdocs gh-deploy`. The documentation is deployed to `https://ing-bank.github.io/probatus/`.
