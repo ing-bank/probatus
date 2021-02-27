@@ -354,7 +354,7 @@ class ShapRFECV(BaseFitComputePlotClass):
             y (pd.Series):
                 Binary labels for X.
 
-            columns_to_keep(list of str,optional):
+            columns_to_keep (list of str, optional):
                 List of column names to keep. If given, these columns will not be eliminated by the feature elimination process.
                 However, these feature will used for the calculation of the SHAP values.
 
@@ -503,7 +503,7 @@ class ShapRFECV(BaseFitComputePlotClass):
             y (pd.Series):
                 Binary labels for X.
 
-            columns_to_keep(list of str,optional):
+            columns_to_keep (list of str, optional):
                 List of columns to keep. If given, these columns will not be eliminated.
 
             column_names (list of str, optional):

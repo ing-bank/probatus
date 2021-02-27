@@ -23,8 +23,6 @@ cd probatus
 pip install .
 ```
 
-For packages required for development, please refer to [requirements.txt](https://github.com/ing-bank/probatus/blob/main/requirements.txt).
-
 ## Licence
 
 Probatus is created under MIT License, see more in [LICENCE file](https://github.com/ing-bank/probatus/blob/main/LICENCE).
