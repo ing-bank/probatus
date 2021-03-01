@@ -23,7 +23,16 @@ import pandas as pd
 import numpy as np
 import warnings
 
-def shap_calc(model, X, approximate=False, return_explainer=False, verbose=0, sample_size = 100, **shap_kwargs):
+
+def shap_calc(
+    model,
+    X,
+    approximate=False,
+    return_explainer=False,
+    verbose=0,
+    sample_size=100,
+    **shap_kwargs,
+):
     """
     Helper function to calculate the shapley values for a given model.
 
@@ -62,20 +71,22 @@ def shap_calc(model, X, approximate=False, return_explainer=False, verbose=0, sa
 
         # Create the background data,required for non tree based models.
         # A single datapoint can passed as mask (https://github.com/slundberg/shap/issues/955#issuecomment-569837201)
-        
-        if X.shape[1]< sample_size :
-            sample_size = int(np.ceil(X.shape[1]*0.2))
-        else :
-           pass
-        mask = shap.utils.sample(X,sample_size)
 
-        explainer = shap.Explainer(model,masker=mask,**shap_kwargs)
+        if X.shape[1] < sample_size:
+            sample_size = int(np.ceil(X.shape[1] * 0.2))
+        else:
+            pass
+        mask = shap.utils.sample(X, sample_size)
+
+        explainer = shap.Explainer(model, masker=mask, **shap_kwargs)
         # Calculate Shap values.
         shap_values = explainer.shap_values(X)
 
-        if isinstance(shap_values, list) and len(shap_values)==2:
-            warnings.warn('Shap values are related to the output probabilities of class 1 for this model, instead of '
-                          'log odds.')
+        if isinstance(shap_values, list) and len(shap_values) == 2:
+            warnings.warn(
+                "Shap values are related to the output probabilities of class 1 for this model, instead of "
+                "log odds."
+            )
             shap_values = shap_values[1]
 
     if return_explainer:
@@ -111,13 +122,15 @@ def shap_to_df(model, X, precalc_shap=None, **kwargs):
         return pd.DataFrame(shap_values, columns=X.columns, index=X.index)
 
     elif isinstance(X, np.ndarray) and len(X.shape) == 2:
-        return pd.DataFrame(shap_values, columns=[f"col_{ix}" for ix in range(X.shape[1])])
+        return pd.DataFrame(
+            shap_values, columns=[f"col_{ix}" for ix in range(X.shape[1])]
+        )
 
     else:
         raise NotImplementedError("X must be a dataframe or a 2d array")
 
 
-def calculate_shap_importance(shap_values, columns, output_columns_suffix=''):
+def calculate_shap_importance(shap_values, columns, output_columns_suffix=""):
     """
     Returns the average shapley value for each column of the dataframe, as well as the average absolute shap value.
 
@@ -142,17 +155,24 @@ def calculate_shap_importance(shap_values, columns, output_columns_suffix=''):
     shap_mean = np.mean(shap_values, axis=0)
 
     # Prepare importance values in a handy df
-    importance_df = pd.DataFrame({
-        f'mean_abs_shap_value{output_columns_suffix}':shap_abs_mean.tolist(),
-        f'mean_shap_value{output_columns_suffix}': shap_mean.tolist()},
-        index=columns)
+    importance_df = pd.DataFrame(
+        {
+            f"mean_abs_shap_value{output_columns_suffix}": shap_abs_mean.tolist(),
+            f"mean_shap_value{output_columns_suffix}": shap_mean.tolist(),
+        },
+        index=columns,
+    )
 
     # Set the correct column types
-    importance_df[f'mean_abs_shap_value{output_columns_suffix}'] = \
-        importance_df[f'mean_abs_shap_value{output_columns_suffix}'].astype(float)
-    importance_df[f'mean_shap_value{output_columns_suffix}'] = \
-        importance_df[f'mean_shap_value{output_columns_suffix}'].astype(float)
+    importance_df[f"mean_abs_shap_value{output_columns_suffix}"] = importance_df[
+        f"mean_abs_shap_value{output_columns_suffix}"
+    ].astype(float)
+    importance_df[f"mean_shap_value{output_columns_suffix}"] = importance_df[
+        f"mean_shap_value{output_columns_suffix}"
+    ].astype(float)
 
-    importance_df = importance_df.sort_values(f'mean_abs_shap_value{output_columns_suffix}', ascending=False)
+    importance_df = importance_df.sort_values(
+        f"mean_abs_shap_value{output_columns_suffix}", ascending=False
+    )
 
     return importance_df

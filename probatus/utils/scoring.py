@@ -63,7 +63,11 @@ def get_single_scorer(scoring):
     elif isinstance(scoring, Scorer):
         return scoring
     else:
-        raise (ValueError('The scoring should contain either strings or probatus.utils.Scorer class'))
+        raise (
+            ValueError(
+                "The scoring should contain either strings or probatus.utils.Scorer class"
+            )
+        )
 
 
 class Scorer:

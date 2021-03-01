@@ -19,20 +19,51 @@
 
 from .exceptions import NotFittedError, DimensionalityError, UnsupportedModelError
 from .scoring import Scorer, get_scorers, get_single_scorer
-from .arrayfuncs import assure_numpy_array, assure_pandas_df, check_1d, check_numeric_dtypes, \
-    assure_pandas_series, preprocess_data, preprocess_labels
+from .arrayfuncs import (
+    assure_numpy_array,
+    assure_pandas_df,
+    check_1d,
+    check_numeric_dtypes,
+    assure_pandas_series,
+    preprocess_data,
+    preprocess_labels,
+)
 from .shap_helpers import shap_calc, shap_to_df, calculate_shap_importance
 from .warnings import ApproximationWarning
-from ._utils import class_name_from_object, assure_list_of_strings, assure_list_values_allowed
+from ._utils import (
+    class_name_from_object,
+    assure_list_of_strings,
+    assure_list_values_allowed,
+)
 from .sampling import sample_row
 from .tree import TreePathFinder
 from .plots import plot_distributions_of_feature
 from .interface import BaseFitComputeClass, BaseFitComputePlotClass
 
-__all__ = ['NotFittedError', 'DimensionalityError', 'UnsupportedModelError', 'Scorer', 'assure_numpy_array',
-           'assure_pandas_df', 'check_1d', 'ApproximationWarning', 'class_name_from_object', 'get_scorers',
-           'assure_list_of_strings', 'assure_list_values_allowed','TreePathFinder', 'check_numeric_dtypes',
-           'plot_distributions_of_feature', 'shap_calc', 'shap_to_df', 'calculate_shap_importance',
-           'assure_pandas_series', 'sample_row', 'preprocess_data', 'preprocess_labels', 'BaseFitComputeClass',
-           'BaseFitComputePlotClass', 'get_single_scorer']
-
+__all__ = [
+    "NotFittedError",
+    "DimensionalityError",
+    "UnsupportedModelError",
+    "Scorer",
+    "assure_numpy_array",
+    "assure_pandas_df",
+    "check_1d",
+    "ApproximationWarning",
+    "class_name_from_object",
+    "get_scorers",
+    "assure_list_of_strings",
+    "assure_list_values_allowed",
+    "TreePathFinder",
+    "check_numeric_dtypes",
+    "plot_distributions_of_feature",
+    "shap_calc",
+    "shap_to_df",
+    "calculate_shap_importance",
+    "assure_pandas_series",
+    "sample_row",
+    "preprocess_data",
+    "preprocess_labels",
+    "BaseFitComputeClass",
+    "BaseFitComputePlotClass",
+    "get_single_scorer",
+]
