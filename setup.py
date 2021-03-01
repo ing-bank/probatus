@@ -41,6 +41,7 @@ docs_dep = [
     "mkdocs-awesome-pages-plugin>=2.4.0",
     "mkdocs-minify-plugin>=0.3.0",
     "mknotebooks>=0.6.2",
+    "mkdocstrings>=0.13.6",
     "mkdocs-print-site-plugin>=0.8.2",
     "mkdocs-markdownextradata-plugin>=0.1.9",
 ]
