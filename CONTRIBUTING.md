@@ -32,6 +32,12 @@ Unit testing:
 pytest
 ```
 
+We use [pre-commit](https://pre-commit.com/) hooks to ensure code styling. Install with:
+
+```shell
+pre-commit install
+```
+
 ## Standards
 
 - Python 3.6+
