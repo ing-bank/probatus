@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.0] - 2021-03-01
+Improvements in this release:
+- Added features list to README #53
+- Added docs for sample row functionality #54
+- Added 'open in colab' badges to tutorial notebooks #56
+- Deploy documentation on release #47
+- Added columns_to_keep for shap feature elimination #63
+- Updated docs for usage of columns to keep functionality in SHAPRFECV #66
+- Added shap support for linear models #69
+- Installed probatus in colab notebooks #80
+- Minor infrastructure tweaks #81
+
 ## [1.5.1] - 2020-12-04
 
 Various improvements to the consistency and usability of the package
