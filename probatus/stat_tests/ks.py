@@ -22,6 +22,7 @@ from scipy import stats
 from ..utils import assure_numpy_array
 from probatus.stat_tests.utils import verbose_p_vals
 
+
 @verbose_p_vals
 def ks(d1, d2, verbose=False):
     """

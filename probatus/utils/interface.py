@@ -30,7 +30,11 @@ class BaseFitComputeClass(ABC):
         Checks if object has been fitted. If not, NotFittedError is raised.
         """
         if self.fitted is False:
-            raise(NotFittedError('The object has not been fitted. Please run fit() method first'))
+            raise (
+                NotFittedError(
+                    "The object has not been fitted. Please run fit() method first"
+                )
+            )
 
     @abstractmethod
     def fit(self, *args, **kwargs):
@@ -46,7 +50,6 @@ class BaseFitComputeClass(ABC):
 
 
 class BaseFitComputePlotClass(BaseFitComputeClass):
-
     @abstractmethod
     def plot(self, *args, **kwargs):
         pass

@@ -21,8 +21,15 @@
 import matplotlib.pyplot as plt
 from matplotlib.pyplot import figure
 
-def plot_distributions_of_feature(feature_distributions, feature_name=None, sample_names=None, plot_bw_method=0.05,
-                                  plot_perc_outliers_removed=0.01, plot_figsize=(15, 6)):
+
+def plot_distributions_of_feature(
+    feature_distributions,
+    feature_name=None,
+    sample_names=None,
+    plot_bw_method=0.05,
+    plot_perc_outliers_removed=0.01,
+    plot_figsize=(15, 6),
+):
     """
     This function plots multiple distributions of the same feature. It is e.g. useful to compare
     distribution between train and test.
@@ -50,28 +57,33 @@ def plot_distributions_of_feature(feature_distributions, feature_name=None, samp
         feature_name = feature_distributions[0].name
 
     if sample_names is None:
-        sample_names = [f'sample_{i}' for i in range(len(feature_distributions))]
+        sample_names = [f"sample_{i}" for i in range(len(feature_distributions))]
 
-    if feature_distributions[0].dtype.name == 'category':
+    if feature_distributions[0].dtype.name == "category":
         data_dict = {}
 
         for feature_distribution_index in range(len(feature_distributions)):
-            data_dict[sample_names[feature_distribution_index]] = \
-                feature_distributions[feature_distribution_index].value_counts(normalize=True)
+            data_dict[sample_names[feature_distribution_index]] = feature_distributions[
+                feature_distribution_index
+            ].value_counts(normalize=True)
 
-        plt.ylabel('Relative frequencies of values in feature.')
+        plt.ylabel("Relative frequencies of values in feature.")
     else:
         for feature_distribution_index in range(len(feature_distributions)):
             current_feature = feature_distributions[feature_distribution_index]
 
             # Remove outliers in each feature
-            current_feature = current_feature[current_feature.between(current_feature.quantile(0 + plot_perc_outliers_removed),
-                                                                      current_feature.quantile(1 - plot_perc_outliers_removed))]
+            current_feature = current_feature[
+                current_feature.between(
+                    current_feature.quantile(0 + plot_perc_outliers_removed),
+                    current_feature.quantile(1 - plot_perc_outliers_removed),
+                )
+            ]
 
             # Plot density plot
             current_feature.plot.density(bw_method=plot_bw_method)
 
-    plt.title(f'Distribution of {feature_name}')
-    plt.xlabel('Feature Distribution')
-    plt.legend(sample_names, loc='upper right')
+    plt.title(f"Distribution of {feature_name}")
+    plt.xlabel("Feature Distribution")
+    plt.legend(sample_names, loc="upper right")
     plt.show()

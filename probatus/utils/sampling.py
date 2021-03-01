@@ -29,7 +29,7 @@ def sample_row(
     ```python
     from probatus.utils import sample_row
     from sklearn.datasets import load_iris
-    
+
     iris = load_iris(as_frame=True).get('data')
     sample = sample_row(iris, filter_rows_with_na=False, random_state=12)
     print(sample.to_markdown())

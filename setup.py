@@ -30,6 +30,7 @@ dev_dep = [
     "jupyter>=1.0.0",
     "tabulate>=0.8.7",
     "nbconvert>=6.0.7",
+    "pre-commit>=2.7.1",
 ]
 
 docs_dep = [
