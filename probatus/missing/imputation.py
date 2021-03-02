@@ -19,7 +19,11 @@
 
 from probatus.utils import BaseFitComputeClass,BaseFitComputePlotClass
 from  sklearn.model_selection import cross_val_score
-from  sklearn.pipeline import make_pipeline
+from  sklearn.pipeline import make_pipeline,Pipeline
+from  sklearn.impute import SimpleImputer
+from  sklearn.compose import ColumnTransformer
+from  sklearn.preprocessing import OneHotEncoder
+
 import numpy as np 
 class CompareImputationStrategies(BaseFitComputeClass):
     """
@@ -61,7 +65,7 @@ class CompareImputationStrategies(BaseFitComputeClass):
         self.verbose = verbose
         self.results = {}
         
-    def fit(self, X, y,column_names=None,class_names=None):
+    def fit(self, X, y,column_names=None,class_names=None,categorical_columns='auto'):
         """
         Calculates score
         
@@ -78,20 +82,60 @@ class CompareImputationStrategies(BaseFitComputeClass):
             class_names (None, or list of str, optional):
                 List of class names e.g. ['neg', 'pos']. If none, the default ['Negative Class', 'Positive Class'] are
                 used.
+            
+            categorical_features ((None, or list of str, optional):deafault=auto
+                List of categorical features to consider.
+                The imputation strategy for categorical is different
+                that compared to numerical features.
         """
+        #Identify categorical features if not explicitly specified.
+        if 'auto' in categorical_columns:
+            X_cat = X.select_dtypes(include=['category','object'])
+            categorical_columns = X_cat.columns.to_list()
+            for column in categorical_columns:
+                X[column] = X[column].astype('category')
+        else :
+            #Check if the passed columns are in the dataframe.
+            X_cat = X[categorical_columns]
+        
+        X_num = X.drop(columns = categorical_columns,inplace=False)
+        numeric_columns = X_num.columns.to_list()
+
+
         #Add the No imputation to strategy.
         self.strategies['No Imputation'] = None 
-        
+
         for strategy in self.strategies:
 
-            if 'No Imputation' in strategy :
+            if 'No Imputation' in strategy:
                 imputation_results = self._get_no_imputer_scores(X,y)
                 self.results[strategy] = imputation_results
+                
             else :
-                imputation_results = self.get_scores_for_imputer(
-                    imputer = self.strategies[strategy],
-                    X=X,
-                    y=y)
+
+                numeric_transformer = Pipeline(steps=[
+                    ('imputer', self.strategies[strategy])])
+
+                categorical_transformer = Pipeline(steps=[
+                    ('imp_cat',SimpleImputer(strategy='most_frequent',add_indicator=True)),
+                    ('ohe_cat',OneHotEncoder(handle_unknown='ignore')),
+                ])
+
+                preprocessor = ColumnTransformer(
+                    transformers=[
+                        ('num', numeric_transformer, numeric_columns),
+                        ('cat', categorical_transformer, categorical_columns)])
+
+                clf = Pipeline(steps=[('preprocessor', preprocessor),
+                                    ('classifier', self.clf)])
+                
+                imputation_results = cross_val_score(
+                clf,
+                X,
+                y,
+                scoring=self.scoring,
+                cv=self.cv)
+
                 self.results[strategy] = imputation_results
 
         
@@ -117,7 +161,7 @@ class CompareImputationStrategies(BaseFitComputeClass):
 
     def _get_no_imputer_scores(self,X,y):
         """
-        Calculate the results without any imputation.
+        Calculate the results without any imputation strategy.
         Args :
             X(pd.DataFrame) : Dataframe for X
             y(pd.Series) : Target 
@@ -131,25 +175,4 @@ class CompareImputationStrategies(BaseFitComputeClass):
     
         return no_imputer_scores
 
-    def get_scores_for_imputer(self,imputer,X,y):
-        """
-        Calculate the results with an imputer.
-        args :
-            imputer(sklearn.imputer) : The imputer object to use for imputation.
-            X(pd.DataFrame) : Dataframe for X
-            y(pd.Series) : Target 
-        returns :
-            impute_scores : 
-
-        """
-        
-        estimator = make_pipeline(imputer,self.clf)
-
-        impute_scores = cross_val_score(
-            estimator,
-            X,
-            y,
-            scoring=self.scoring,
-            cv=self.cv)
-
-        return impute_scores
+   
