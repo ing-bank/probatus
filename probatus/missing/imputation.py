@@ -23,6 +23,7 @@ from  sklearn.pipeline import make_pipeline,Pipeline
 from  sklearn.impute import SimpleImputer
 from  sklearn.compose import ColumnTransformer
 from  sklearn.preprocessing import OneHotEncoder
+import matplotlib.pyplot as plt
 
 import numpy as np 
 class CompareImputationStrategies(BaseFitComputeClass):
@@ -101,14 +102,32 @@ class CompareImputationStrategies(BaseFitComputeClass):
         X_num = X.drop(columns = categorical_columns,inplace=False)
         numeric_columns = X_num.columns.to_list()
 
-
         #Add the No imputation to strategy.
         self.strategies['No Imputation'] = None 
 
         for strategy in self.strategies:
 
             if 'No Imputation' in strategy:
-                imputation_results = self._get_no_imputer_scores(X,y)
+                
+                categorical_transformer = Pipeline(steps=[
+                    ('ohe_cat',OneHotEncoder(handle_unknown='ignore')),
+                ])
+
+                preprocessor = ColumnTransformer(
+                    transformers=[
+                        ('cat', categorical_transformer, categorical_columns)],
+                        remainder='passthrough')
+
+                self.clf = Pipeline(steps=[('preprocessor', preprocessor),
+                                    ('classifier', self.clf)])
+
+                imputation_results = cross_val_score(
+                self.clf,
+                X,
+                y,
+                scoring=self.scoring,
+                cv=self.cv)
+
                 self.results[strategy] = imputation_results
                 
             else :
@@ -124,7 +143,8 @@ class CompareImputationStrategies(BaseFitComputeClass):
                 preprocessor = ColumnTransformer(
                     transformers=[
                         ('num', numeric_transformer, numeric_columns),
-                        ('cat', categorical_transformer, categorical_columns)])
+                        ('cat', categorical_transformer, categorical_columns)],
+                        remainder='passthrough')
 
                 clf = Pipeline(steps=[('preprocessor', preprocessor),
                                     ('classifier', self.clf)])
@@ -155,9 +175,7 @@ class CompareImputationStrategies(BaseFitComputeClass):
         """
         Show the results.
         """
-
-        for k,v in self.results.items():
-            print(f'{k}: {np.mean(v)} +/- {np.std(v)}')
+        self._plot_results()
 
     def _get_no_imputer_scores(self,X,y):
         """
@@ -174,5 +192,34 @@ class CompareImputationStrategies(BaseFitComputeClass):
             cv=self.cv)
     
         return no_imputer_scores
+
+    def _plot_results(self):
+        """
+        Plot the results.
+        """
+
+        imp_methods = []
+        performance = []
+        std_error = []
+        cmap=[]
+    
+        for k,v in self.results.items():
+            imp_methods.append(k)
+            performance.append(np.round(np.mean(v),4))
+            std_error.append(np.round(np.std(v),4))
+            cmap.append(np.random.rand(3,))
+            
+
+        y_pos = np.arange(len(imp_methods))    
+
+        plt.barh(y_pos, performance, xerr=std_error,align='center',color=cmap)
+        for index, value in enumerate(performance):
+            plt.text(value, index, str(value))
+        plt.yticks(y_pos, imp_methods)
+        plt.xlabel('Metric')
+        plt.title('Imputation Techniques')
+
+        plt.show()
+    
 
    

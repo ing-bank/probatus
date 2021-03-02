@@ -5,25 +5,35 @@ import pandas as pd
 from sklearn.datasets import make_classification
 import lightgbm as lgb 
 import xgboost as xgb 
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
 from sklearn.experimental import enable_iterative_imputer  
 from sklearn.impute import KNNImputer,SimpleImputer,IterativeImputer
 from feature_engine.imputation import RandomSampleImputer
 from sklearn.preprocessing import KBinsDiscretizer
 import string
+import fire
 
-def test_imputation():
+def test_imputation(choice=1):
    X,y = get_data(n_samples=1000,n_numerical=10,n_category=5)
    X_missing = generate_MCAR(X,missing=0.2)
    #Initialize the classifier
-   clf = lgb.LGBMClassifier()
+   print(f'Using choice {choice}')
+   if choice == 1:
+       clf = RandomForestClassifier()
+   if choice == 2  :
+       clf = xgb.XGBClassifier()
+   if choice == 3 :
+       clf = lgb.LGBMClassifier()
+   if choice == 4 :
+       clf = LogisticRegression()
+
    #Create strategies for imputation.
    strategies = {
        'KNN' : KNNImputer(n_neighbors=3),
        'Simple Median Imputer' : SimpleImputer(strategy='median',add_indicator=True),
-       'Simple Mean Imputer' : SimpleImputer(strategy='mean',add_indicator=True),
        'Iterative Imputer'  : IterativeImputer(add_indicator=True,n_nearest_features=5,
-       sample_posterior=True),
-       'Random Imputer': RandomSampleImputer()
+       sample_posterior=True)
 
    }
    cmp = CompareImputationStrategies(clf=clf,strategies=strategies,cv=10)
@@ -33,11 +43,10 @@ def test_imputation():
 
 def get_data(n_samples,n_numerical,n_category):
         """
-        Returns a dataframe with numerical and categorical features
+        Returns a dataframe with numerical and categorical features.
         """
         no_vars = n_numerical + n_category
-        # Create single dataset to avoid random effects
-        # Only works for all informative features
+       
         X,y = make_classification(
             n_samples=n_samples, 
             n_features=no_vars, 
@@ -56,4 +65,4 @@ def get_data(n_samples,n_numerical,n_category):
         return X,y
 
 if __name__ == '__main__':
-    test_imputation()
+    fire.Fire(test_imputation)
