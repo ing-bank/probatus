@@ -1,6 +1,6 @@
 #Code to test the imputation strategies.
 from probatus.missing.imputation import CompareImputationStrategies
-import lightgbm as lgb 
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.experimental import enable_iterative_imputer  
 from sklearn.impute import KNNImputer,SimpleImputer,IterativeImputer
@@ -45,7 +45,7 @@ def test_imputation_linear(X,y,capsys):
    assert len(out) == 0
 
 @pytest.mark.skipif(os.environ.get("SKIP_LIGHTGBM") == 'true', reason="LightGBM tests disabled")
-def test_imputation_boosting(X,y,capsys):
+def test_imputation_bagging(X,y,capsys):
 
    #Create strategies for imputation.
    strategies = {
@@ -56,14 +56,14 @@ def test_imputation_boosting(X,y,capsys):
        'KNN' : KNNImputer(n_neighbors=3),
    }
    #Initialize the classifier
-   clf = lgb.LGBMClassifier()
-   cmp = CompareImputationStrategies(clf=clf,strategies=strategies,cv=3,model_na_support=True)
+   clf = RandomForestClassifier()
+   cmp = CompareImputationStrategies(clf=clf,strategies=strategies,cv=3,model_na_support=False)
    report = cmp.fit_compute(X,y)
    cmp.plot(show=False)
    
    assert cmp.fitted == True
    cmp._check_if_fitted()
-   assert report.shape[0]==5
+   assert report.shape[0]==4
 
    # Check if there is any prints
    out, _ = capsys.readouterr()
