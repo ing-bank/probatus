@@ -30,13 +30,34 @@ import pandas as pd
 class CompareImputationStrategies(BaseFitComputePlotClass):
     """
     Comparison of various imputation stragegies that can be used for imputation 
-    of missing values. 
-    The aim of this class is to present the user the model performance is
-    based on the choosen metric and imputation strategy.
-    For models like XGBoost & LighGBM which have capabilities to handle misisng values, any
-    data transformation is not required.
-    However in the case of RandomForestClassifier,LogisticRegression 
-    the data must be transformed before passing for comparision.
+    of missing values. The aim of this class is to present the model performance based on imputation
+    strategies and choosen model.
+    For models like XGBoost & LighGBM which have capabilities to handle misisng values by default
+    the model performance with no imputation will be shown as well.
+    Usage E.g.
+    ```python
+
+    from probatus.missing.imputation import CompareImputationStrategies
+    strategies = {
+       'Simple Median Imputer' : SimpleImputer(strategy='median',add_indicator=True),
+       'Simple Mean Imputer' : SimpleImputer(strategy='mean',add_indicator=True),
+       'Iterative Imputer'  : IterativeImputer(add_indicator=True,n_nearest_features=5,
+       sample_posterior=True),
+       'KNN' : KNNImputer(n_neighbors=3)
+    
+    clf = lgb.LGBMClassifier()
+    cmp = CompareImputationStrategies(
+        clf=clf,
+        strategies=strategies,
+        cv=5,
+        model_na_support=True)
+
+    cmp.fit_compute(X_missing,y)
+    cmp.plot()
+
+   }
+
+    ```
 
     """
     def __init__(self,clf,strategies,scoring='roc_auc',cv=5,model_na_support=True,verbose=0):
@@ -61,6 +82,7 @@ class CompareImputationStrategies(BaseFitComputePlotClass):
                 'Iterative Imputer'  : IterativeImputer(add_indicator=True,n_nearest_features=5,
                 sample_posterior=True)}
                 This allows you to have fine grained control over the imputation method.
+            
             model_na_support(boolean): default True
                 If the classifier supports missing values by default e.g. LightGBM,XGBoost etc. If True an default 
                 comparison will be added without any imputation. If False only the provided strategies will be used.
@@ -80,7 +102,7 @@ class CompareImputationStrategies(BaseFitComputePlotClass):
         self.cv = cv
         self.verbose = verbose
         self.fitted = False
-        self.results_df = None
+        self.report = None
 
     def __repr__(self):
         return "Imputation comparision for {}".format(self.clf.__class__.__name__)
@@ -196,8 +218,8 @@ class CompareImputationStrategies(BaseFitComputePlotClass):
             results.append(temp_results)
 
 
-        self.results_df = pd.DataFrame(results)
-        self.results_df.sort_values(by='score',inplace=True)
+        self.report = pd.DataFrame(results)
+        self.report.sort_values(by='score',inplace=True)
         self.fitted = True
         return self
         
@@ -208,7 +230,7 @@ class CompareImputationStrategies(BaseFitComputePlotClass):
         """
         self._check_if_fitted()
         if return_scores :
-            return self.results_df
+            return self.report
 
     def fit_compute(self, X, y,column_names=None,class_names=None,categorical_columns='auto'):
         """
@@ -247,9 +269,9 @@ class CompareImputationStrategies(BaseFitComputePlotClass):
         """
         Plot the results for imputation.
         """
-        imp_methods = list(self.results_df['strategy'])
-        performance = list(self.results_df['score'])
-        std_error = list(self.results_df['std'])
+        imp_methods = list(self.report['strategy'])
+        performance = list(self.report['score'])
+        std_error = list(self.report['std'])
         y_pos = [i for i, _ in enumerate(imp_methods)]  
         x_spacing = 0.01
         y_spacing = 2*x_spacing

@@ -1,94 +1,70 @@
 #Code to test the imputation strategies.
 from probatus.missing.imputation import CompareImputationStrategies
-from tests.utils.test_missing import generate_MCAR,generate_MNAR
-import pandas as pd 
-from sklearn.datasets import make_classification
 import lightgbm as lgb 
-import xgboost as xgb 
-from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.experimental import enable_iterative_imputer  
 from sklearn.impute import KNNImputer,SimpleImputer,IterativeImputer
 from feature_engine.imputation import RandomSampleImputer
-from sklearn.preprocessing import KBinsDiscretizer
-import string
-import fire
+import pandas as pd
+import numpy as np
+import pytest
 
-def test_imputation(choice=3):
-   X,y = get_data(n_samples=1000,n_numerical=10,n_category=5)
-   X_missing = generate_MCAR(X,missing=0.2)
 
+@pytest.fixture(scope='function')
+def X():
+    return pd.DataFrame({'col_1': [1, np.nan, 1, 1, np.nan, 1, 1, 0],
+                         'col_2': [0, 0, 0, np.nan, 0, 0, 0, 1],
+                         'col_3': [1, 0, np.nan, 0, 1, np.nan, 1, 0], 
+                         'col_4': ['A', 'B', 'A', np.nan, 'B', np.nan, 'A', 'A']}, index=[1, 2, 3, 4, 5, 6, 7, 8])
+
+@pytest.fixture(scope='function')
+def y():
+    return pd.Series([1, 0, 1, 0, 1, 0, 1, 0], index=[1, 2, 3, 4, 5, 6, 7, 8])
+
+def test_imputation_boosting(X,y,capsys):
+
+   #Create strategies for imputation.
    strategies = {
        'Simple Median Imputer' : SimpleImputer(strategy='median',add_indicator=True),
        'Simple Mean Imputer' : SimpleImputer(strategy='mean',add_indicator=True),
        'Iterative Imputer'  : IterativeImputer(add_indicator=True,n_nearest_features=5,
        sample_posterior=True),
        'KNN' : KNNImputer(n_neighbors=3),
-       'Random Imputer': RandomSampleImputer()
-
    }
-
    #Initialize the classifier
-   print(f'Using choice {choice}')
-   if choice == 1:
-       clf = RandomForestClassifier()
-       cmp = CompareImputationStrategies(
-           clf=clf,
-           strategies=strategies,
-           cv=5,
-           model_na_support=False)
-   if choice == 2  :
-       clf = xgb.XGBClassifier()
-       cmp = CompareImputationStrategies(
-           clf=clf,
-           strategies=strategies,
-           cv=5,
-           model_na_support=True)
-   if choice == 3 :
-       clf = lgb.LGBMClassifier()
-       cmp = CompareImputationStrategies(
-           clf=clf,
-           strategies=strategies,
-           cv=5,
-           model_na_support=True)
-   if choice == 4 :
-       clf = LogisticRegression()
-       cmp = CompareImputationStrategies(
-           clf=clf,
-           strategies=strategies,
-           cv=5,
-           model_na_support=False)
+   clf = lgb.LGBMClassifier()
+   cmp = CompareImputationStrategies(clf=clf,strategies=strategies,cv=3,model_na_support=True)
+   report = cmp.fit_compute(X,y)
+   cmp.plot(show=False)
+   
+   assert cmp.fitted == True
+   cmp._check_if_fitted()
+   assert report.shape[0]==5
 
+   # Check if there is any prints
+   out, _ = capsys.readouterr()
+   assert len(out) == 0
+
+def test_imputation_linear(X,y,capsys):
+    
    #Create strategies for imputation.
+   strategies = {
+       'Simple Median Imputer' : SimpleImputer(strategy='median',add_indicator=True),
+       'Simple Mean Imputer' : SimpleImputer(strategy='mean',add_indicator=True),
+       'Iterative Imputer'  : IterativeImputer(add_indicator=True,n_nearest_features=5,
+       sample_posterior=True),
+       'KNN' : KNNImputer(n_neighbors=3),
+   }
+   #Initialize the classifier
+   clf = LogisticRegression()
+   cmp = CompareImputationStrategies(clf=clf,strategies=strategies,cv=3,model_na_support=False)
+   report = cmp.fit_compute(X,y)
+   cmp.plot(show=False)
    
-  
-   cmp.fit_compute(X_missing,y)
-   cmp.plot()
-   
+   assert cmp.fitted == True
+   cmp._check_if_fitted()
+   assert report.shape[0]==4
 
-
-def get_data(n_samples,n_numerical,n_category):
-        """
-        Returns a dataframe with numerical and categorical features.
-        """
-        no_vars = n_numerical + n_category
-       
-        X,y = make_classification(
-            n_samples=n_samples, 
-            n_features=no_vars, 
-            random_state=123,class_sep=0.3)
-
-        binner = KBinsDiscretizer(n_bins=5, encode='ordinal', strategy="quantile", )
-        X[:,n_numerical:] = binner.fit_transform(X[:,n_numerical:])
-
-        #Add column names.
-        X = pd.DataFrame(X, columns=["f_"+str(i) for i in range(0,no_vars)])
-
-        # Efficiently map values to another value with .map(dict)
-        X.iloc[:,n_numerical:] = X.iloc[:,n_numerical:].apply(
-            lambda x: x.map({i:letter for i,letter in enumerate(string.ascii_uppercase)}))
-        
-        return X,y
-
-if __name__ == '__main__':
-    fire.Fire(test_imputation)
+   # Check if there is any prints
+   out, _ = capsys.readouterr()
+   assert len(out) == 0
