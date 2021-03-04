@@ -1,7 +1,5 @@
 import pandas as pd
 import numpy as np
-import logging
-import pytest
 from sklearn.preprocessing import KBinsDiscretizer
 from sklearn.datasets import make_classification 
 import string 
