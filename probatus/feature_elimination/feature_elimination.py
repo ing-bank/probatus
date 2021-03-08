@@ -3,7 +3,8 @@ from probatus.utils import preprocess_data, shap_calc, calculate_shap_importance
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
-from sklearn.model_selection import RandomizedSearchCV, GridSearchCV, check_cv
+from sklearn.model_selection._search import BaseSearchCV
+from sklearn.model_selection import check_cv
 from sklearn.base import clone, is_classifier
 from joblib import Parallel, delayed
 import warnings
@@ -135,7 +136,7 @@ class ShapRFECV(BaseFitComputePlotClass):
         """
         self.clf = clf
 
-        if isinstance(self.clf, RandomizedSearchCV) or isinstance(self.clf, GridSearchCV):
+        if isinstance(self.clf, BaseSearchCV):
             self.search_clf = True
         else:
             self.search_clf=False
