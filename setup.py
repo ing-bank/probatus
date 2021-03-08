@@ -54,7 +54,7 @@ setuptools.setup(
     long_description=read("README.md"),
     long_description_content_type="text/markdown",
     author="ING Bank N.V.",
-    author_email="ml_risk_and_pricing_aa@ing.com",
+    author_email="mateusz.garbacz@ing.com",
     license="MIT License",
     packages=setuptools.find_packages(exclude=['tests']),
     python_requires=">=3.6",
