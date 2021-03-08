@@ -1,6 +1,5 @@
 <img src="https://github.com/ing-bank/probatus/raw/main/docs/img/logo_large.png" width="120" align="right">
 
-[![pytest](https://github.com/ing-bank/probatus/workflows/Release/badge.svg)](https://github.com/ing-bank/probatus/actions?query=workflow%3A%22Release%22)
 [![pytest](https://github.com/ing-bank/probatus/workflows/Development/badge.svg)](https://github.com/ing-bank/probatus/actions?query=workflow%3A%22Development%22)
 [![codecov](https://codecov.io/gh/ing-bank/probatus/branch/main/graph/badge.svg?token=OFE2YWHLFK)](https://codecov.io/gh/ing-bank/probatus)
 [![PyPi Version](https://img.shields.io/pypi/pyversions/probatus)](#)

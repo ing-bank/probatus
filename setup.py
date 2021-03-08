@@ -30,6 +30,7 @@ dev_dep = [
     "jupyter>=1.0.0",
     "tabulate>=0.8.7",
     "nbconvert>=6.0.7",
+    "pre-commit>=2.7.1",
 ]
 
 docs_dep = [
@@ -41,6 +42,7 @@ docs_dep = [
     "mkdocs-awesome-pages-plugin>=2.4.0",
     "mkdocs-minify-plugin>=0.3.0",
     "mknotebooks>=0.6.2",
+    "mkdocstrings>=0.13.6",
     "mkdocs-print-site-plugin>=0.8.2",
     "mkdocs-markdownextradata-plugin>=0.1.9",
 ]
@@ -52,7 +54,7 @@ setuptools.setup(
     long_description=read("README.md"),
     long_description_content_type="text/markdown",
     author="ING Bank N.V.",
-    author_email="ml_risk_and_pricing_aa@ing.com",
+    author_email="mateusz.garbacz@ing.com",
     license="MIT License",
     packages=setuptools.find_packages(exclude=['tests']),
     python_requires=">=3.6",

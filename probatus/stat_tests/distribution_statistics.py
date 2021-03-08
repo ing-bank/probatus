@@ -147,7 +147,6 @@ class DistributionStatistics(object):
                 if binner is not None:
                     self.binner = binner(bin_count=self.bin_count)
 
-
     def __repr__(self):
         repr_ = "DistributionStatistics object\n\tstatistical_test: {}".format(
             self.statistical_test
@@ -165,7 +164,6 @@ class DistributionStatistics(object):
         if hasattr(self, "p_value"):
             repr_ += "\n\tp-value: {}".format(self.p_value)
         return repr_
-
 
     def compute(self, d1, d2, verbose=False):
         """
@@ -231,7 +229,9 @@ class AutoDist(object):
     <img src="../img/autodist.png" width="700" />
     """
 
-    def __init__(self, statistical_tests="all", binning_strategies="default", bin_count=10):
+    def __init__(
+        self, statistical_tests="all", binning_strategies="default", bin_count=10
+    ):
         """
         Initializes the class.
 
@@ -299,7 +299,14 @@ class AutoDist(object):
         repr_ += "\n\tbin_count: {}".format(self.bin_count)
         return repr_
 
-    def compute(self, df1, df2, column_names=None, return_failed_tests=True, suppress_warnings=False):
+    def compute(
+        self,
+        df1,
+        df2,
+        column_names=None,
+        return_failed_tests=True,
+        suppress_warnings=False,
+    ):
         """
         Fit the AutoDist object to data; i.e. apply the statistical tests and binning strategies.
 
@@ -395,17 +402,17 @@ class AutoDist(object):
             ]
         ]
         self._result["bin_count"] = self._result["bin_count"].astype(int)
-        self._result.loc[
-            self._result["binning_strategy"].isnull(), "bin_count"
-        ] = 0
+        self._result.loc[self._result["binning_strategy"].isnull(), "bin_count"] = 0
         self._result.loc[
             self._result["binning_strategy"].isnull(), "binning_strategy"
         ] = "no_bucketing"
 
         # Remove duplicates that appear if multiple bin numbers are passed, and binning strategy None
 
-        self._result = self._result.\
-            drop_duplicates(subset=['column', 'statistical_test', 'binning_strategy', 'bin_count'], keep='first')
+        self._result = self._result.drop_duplicates(
+            subset=["column", "statistical_test", "binning_strategy", "bin_count"],
+            keep="first",
+        )
 
         # create pivot table as final output
         self.result = pd.pivot_table(

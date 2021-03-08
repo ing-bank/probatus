@@ -22,10 +22,10 @@ from collections import defaultdict
 import numpy as np
 from tqdm import tqdm
 import warnings
-from .warnings import  NotIntendedUseWarning
+from .warnings import NotIntendedUseWarning
 
 
-class TreePathFinder():
+class TreePathFinder:
     """
     Class to calculate the boundaries of a decision tree.
     It retrieves the structure from the decision tree
@@ -43,7 +43,6 @@ class TreePathFinder():
         self.decision_path = self.find_decision_to_leaves()
         self.bin_boundaries = self.find_bin_boundaries()
 
-
     def _find_leaves(self):
         # The tree structure can be traversed to compute various properties such
         # as the depth of each node and whether or not it is a leaf.
@@ -59,7 +58,7 @@ class TreePathFinder():
             node_depth[node_id] = parent_depth + 1
 
             # If we have a test node
-            if (children_left[node_id] != children_right[node_id]):
+            if children_left[node_id] != children_right[node_id]:
                 stack.append((children_left[node_id], parent_depth + 1))
                 stack.append((children_right[node_id], parent_depth + 1))
             else:
@@ -78,19 +77,18 @@ class TreePathFinder():
             raise ValueError(f"leaf with id {leaf_id} not found in tree")
         elif is_inleft:
             parent = in_left[0]
-            operator = '<='
+            operator = "<="
         elif is_inright:
             parent = in_right[0]
-            operator = '>'
+            operator = ">"
         else:
             parent = 0
-            operator = 'None'
+            operator = "None"
 
         threshold = self.threshold[parent]
         feature = self.feature[parent]
 
         return parent, threshold, operator, feature
-
 
     def find_decision_to_leaves(self):
 
@@ -114,35 +112,39 @@ class TreePathFinder():
         for leaf_id in self.decision_path.keys():
             one_leaf_decisions = self.decision_path[leaf_id]
 
-            if '<=' not in [oper[2] for oper in one_leaf_decisions]:
+            if "<=" not in [oper[2] for oper in one_leaf_decisions]:
                 max_val = np.inf
             else:
-                max_val = min([oper[1] for oper in one_leaf_decisions if oper[2] == '<='])
+                max_val = min(
+                    [oper[1] for oper in one_leaf_decisions if oper[2] == "<="]
+                )
 
-            if '>' not in [oper[2] for oper in one_leaf_decisions]:
+            if ">" not in [oper[2] for oper in one_leaf_decisions]:
                 min_val = -np.inf
             else:
-                min_val = max([oper[1] for oper in one_leaf_decisions if oper[2] == '>'])
-
+                min_val = max(
+                    [oper[1] for oper in one_leaf_decisions if oper[2] == ">"]
+                )
 
             out_dict[leaf_id] = {
-                'min': min_val,
-                'max': max_val,
+                "min": min_val,
+                "max": max_val,
             }
 
         return out_dict
-
 
     def get_boundaries(self):
 
         # check how many features are there. There is always a unique negative value in the array of features
         # that corresponds to the index of the leaves.
         # Hence the total number of features in the tree is the length of the array -1
-        n_features = len(np.unique(self.feature))-1
+        n_features = len(np.unique(self.feature)) - 1
 
-        if n_features>1:
-            warning = f"This functionality is intended for trees fitted on 1 feature. The current tree is fitted " \
+        if n_features > 1:
+            warning = (
+                f"This functionality is intended for trees fitted on 1 feature. The current tree is fitted "
                 f"with {n_features} features"
+            )
             warnings.warn(NotIntendedUseWarning(warning))
 
         return self.bin_boundaries
