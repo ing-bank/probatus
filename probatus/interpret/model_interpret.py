@@ -460,7 +460,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
             ax = []
             for feature_name in target_columns:
                 ax.append(
-                    target_tdp.plot(feature=feature_name, figsize=(10, 7), show=show)
+                    target_tdp.plot(feature=feature_name, figsize=(10, 7), show=show, **plot_kwargs)
                 )
 
         elif plot_type == "sample":
