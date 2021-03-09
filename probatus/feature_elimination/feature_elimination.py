@@ -14,8 +14,10 @@ class ShapRFECV(BaseFitComputePlotClass):
     This class performs Backwards Recursive Feature Elimination, using SHAP feature importance. At each round, for a
         given feature set, starting from all available features, the following steps are applied:
 
-    1. (Optional) Tune the hyperparameters of the model using [GridSearchCV](https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.LassoCV.html)
-        or [RandomizedSearchCV](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.RandomizedSearchCV.html?highlight=randomized#sklearn.model_selection.RandomizedSearchCV),
+    1. (Optional) Tune the hyperparameters of the model using sklearn compatible search CV e.g.
+        [GridSearchCV](https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.LassoCV.html),
+        [RandomizedSearchCV](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.RandomizedSearchCV.html?highlight=randomized#sklearn.model_selection.RandomizedSearchCV), or
+        [BayesSearchCV](https://scikit-optimize.github.io/stable/modules/generated/skopt.BayesSearchCV.html),
     2. Apply Cross-validation (CV) to estimate the SHAP feature importance on the provided dataset. In each CV
         iteration, the model is fitted on the train folds, and applied on the validation fold to estimate
         SHAP feature importance.
@@ -26,12 +28,13 @@ class ShapRFECV(BaseFitComputePlotClass):
 
     The functionality is similar to [RFECV](https://scikit-learn.org/stable/modules/generated/sklearn.feature_selection.RFECV.html).
         The main difference is removing the lowest importance features based on SHAP features importance. It also
-        supports the use of [GridSearchCV](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.GridSearchCV.html)
-        and [RandomizedSearchCV](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.RandomizedSearchCV.html)
-        passed as the `clf`, thanks to which` you can perform hyperparameter optimization at each step of the search.
-        hyperparameters of the model at each round, to tune the model for each features set. Lastly, it supports
-        categorical features (object and category dtype) and missing values in the data, as long as the model supports
-        them.
+        supports the use of sklearn compatible search CV for hyperparameter optimization e.g.
+        [GridSearchCV](https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.LassoCV.html),
+        [RandomizedSearchCV](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.RandomizedSearchCV.html?highlight=randomized#sklearn.model_selection.RandomizedSearchCV), or
+        [BayesSearchCV](https://scikit-optimize.github.io/stable/modules/generated/skopt.BayesSearchCV.html), which
+        needs to be passed as the `clf`. Thanks to this you can perform hyperparameter optimization at each step of
+        the feature elimination. Lastly, it supports categorical features (object and category dtype) and missing values
+        in the data, as long as the model supports them.
 
     We recommend using [LGBMClassifier](https://lightgbm.readthedocs.io/en/latest/pythonapi/lightgbm.LGBMClassifier.html),
         because by default it handles missing values and categorical features. In case of other models, make sure to
@@ -78,6 +81,7 @@ class ShapRFECV(BaseFitComputePlotClass):
     final_features_set = shap_elimination.get_reduced_features_set(num_features=3)
     ```
     <img src="../img/shaprfecv.png" width="500" />
+
     """
 
     def __init__(self, clf, step=1, min_features_to_select=1, cv=None, scoring='roc_auc', n_jobs=-1, verbose=0,
@@ -86,15 +90,14 @@ class ShapRFECV(BaseFitComputePlotClass):
         This method initializes the class:
 
         Args:
-            clf (binary classifier, GridSearchCV or RandomizedSearchCV):
+            clf (binary classifier, sklearn compatible search CV e.g. GridSearchCV, RandomizedSearchCV or BayesSearchCV):
                 A model that will be optimized and trained at each round of features elimination. The recommended model
                 is [LGBMClassifier](https://lightgbm.readthedocs.io/en/latest/pythonapi/lightgbm.LGBMClassifier.html),
                 because it by default handles the missing values and categorical variables. This parameter also supports
                 any hyperparameter search schema that is consistent with the sklearn API e.g.
                 [GridSearchCV](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.GridSearchCV.html),
                 [RandomizedSearchCV](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.RandomizedSearchCV.html)
-                and [BayesSearchCV](https://scikit-optimize.github.io/stable/modules/generated/skopt.BayesSearchCV.html#skopt.BayesSearchCV).
-.
+                or [BayesSearchCV](https://scikit-optimize.github.io/stable/modules/generated/skopt.BayesSearchCV.html#skopt.BayesSearchCV).
 
             step (int or float, optional):
                 Number of lowest importance features removed each round. If it is an int, then each round such number of
@@ -102,7 +105,7 @@ class ShapRFECV(BaseFitComputePlotClass):
                 iteration. It is recommended to use float, since it is faster for a large number of features, and slows
                 down and becomes more precise towards less features. Note: the last round may remove fewer features in
                 order to reach min_features_to_select.
-                If columns_to_keep parameter is specified in the fit method, step is the number of features to remove after 
+                If columns_to_keep parameter is specified in the fit method, step is the number of features to remove after
                 keeping those columns.
 
             min_features_to_select (int, optional):
@@ -346,9 +349,11 @@ class ShapRFECV(BaseFitComputePlotClass):
     def fit(self, X, y,columns_to_keep=None,column_names=None):
         """
         Fits the object with the provided data. The algorithm starts with the entire dataset, and then sequentially
-             eliminates features. If [GridSearchCV](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.GridSearchCV.html)
-             or [RandomizedSearchCV](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.RandomizedSearchCV.html)
-             object assigned as clf, the hyperparameter optimization is applied first. Then, the SHAP feature importance
+             eliminates features. If sklearn compatible search CV is passed as clf e.g.
+             [GridSearchCV](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.GridSearchCV.html),
+             [RandomizedSearchCV](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.RandomizedSearchCV.html)
+             or [BayesSearchCV](https://scikit-optimize.github.io/stable/modules/generated/skopt.BayesSearchCV.html),
+             the hyperparameter optimization is applied at each step of the elimination. Then, the SHAP feature importance
              is calculated using Cross-Validation, and `step` lowest importance features are removed.
 
         Args:
@@ -494,9 +499,11 @@ class ShapRFECV(BaseFitComputePlotClass):
     def fit_compute(self, X, y, columns_to_keep=None, column_names=None):
         """
         Fits the object with the provided data. The algorithm starts with the entire dataset, and then sequentially
-             eliminates features. If [GridSearchCV](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.GridSearchCV.html)
-             or [RandomizedSearchCV](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.RandomizedSearchCV.html)
-             object assigned as clf, the hyperparameter optimization is applied first. Then, the SHAP feature importance
+             eliminates features. If sklearn compatible search CV is passed as clf e.g.
+             [GridSearchCV](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.GridSearchCV.html),
+             [RandomizedSearchCV](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.RandomizedSearchCV.html)
+             or [BayesSearchCV](https://scikit-optimize.github.io/stable/modules/generated/skopt.BayesSearchCV.html),
+             the hyperparameter optimization is applied at each step of the elimination. Then, the SHAP feature importance
              is calculated using Cross-Validation, and `step` lowest importance features are removed. At the end, the
              report containing results from each iteration is computed and returned to the user.
 
