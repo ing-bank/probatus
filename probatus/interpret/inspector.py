@@ -27,7 +27,7 @@ from sklearn.cluster import KMeans
 from probatus.utils import shap_helpers
 
 
-def return_confusion_metric(y_true, y_score, normalize = False):
+def return_confusion_metric(y_true, y_score, normalize=False):
     """
     Computes a confusion metric as absolute difference between the y_true and y_score.
     If normalize eis set to tru, it will normalize y_score to the maximum value in the array
@@ -41,9 +41,10 @@ def return_confusion_metric(y_true, y_score, normalize = False):
     """
 
     if normalize:
-        y_score = y_score/y_score.max()
+        y_score = y_score / y_score.max()
 
     return np.abs(y_true - y_score)
+
 
 class BaseInspector(BaseFitComputeClass):
     def __init__(self, algotype, **kwargs):
@@ -51,15 +52,19 @@ class BaseInspector(BaseFitComputeClass):
         # TODO fix compilatiopn issue on  for hdbscan
         # if algotype =='dbscan':
         #     self.clusterer = hdbscan.HDBSCAN(prediction_data=True,**kwargs)
-        if algotype =='kmeans':
+        if algotype == "kmeans":
             self.clusterer = KMeans(**kwargs)
         else:
-            raise UnsupportedModelError("The algorithm {} is not supported".format(algotype))
+            raise UnsupportedModelError(
+                "The algorithm {} is not supported".format(algotype)
+            )
 
     def __repr__(self):
-        repr_ = "{},\n\t{}".format(self.__class__.__name__,self.algotype)
+        repr_ = "{},\n\t{}".format(self.__class__.__name__, self.algotype)
         if self.fitted:
-            repr_ += "\n\tTotal clusters {}".format(np.unique(self.clusterer.labels_).shape[0])
+            repr_ += "\n\tTotal clusters {}".format(
+                np.unique(self.clusterer.labels_).shape[0]
+            )
         return repr_
 
     def fit_clusters(self, X):
@@ -76,30 +81,34 @@ class BaseInspector(BaseFitComputeClass):
 
         return self
 
-    def predict_clusters(self,X):
+    def predict_clusters(self, X):
         if not self.fitted:
             raise NotFittedError("Inspector not fitter. Run .fit()")
 
         labels = None
-        if self.algotype == 'kmeans':
-            labels =  self.clusterer.predict(X)
-        if self.algotype == 'dbscan':
-            raise NotImplementedError("Implementation not finished (note the hdbscan package is not imported yet!)")
-            #labels, strengths = hdbscan.approximate_predict(self.clusterer, X)
+        if self.algotype == "kmeans":
+            labels = self.clusterer.predict(X)
+        if self.algotype == "dbscan":
+            raise NotImplementedError(
+                "Implementation not finished (note the hdbscan package is not imported yet!)"
+            )
+            # labels, strengths = hdbscan.approximate_predict(self.clusterer, X)
 
         return labels
 
     @staticmethod
     def assert_is_dataframe(df):
 
-        if isinstance(df,pd.DataFrame):
+        if isinstance(df, pd.DataFrame):
             return df
 
-        elif isinstance(df,np.ndarray) and len(df.shape)==2:
+        elif isinstance(df, np.ndarray) and len(df.shape) == 2:
             return pd.DataFrame(df)
 
         else:
-            raise NotImplementedError("Sorry, X needs to be a pd.DataFrame for for a 2 dimensional numpy array")
+            raise NotImplementedError(
+                "Sorry, X needs to be a pd.DataFrame for for a 2 dimensional numpy array"
+            )
 
     @staticmethod
     def assert_is_series(series, index=None):
@@ -108,11 +117,16 @@ class BaseInspector(BaseFitComputeClass):
             return series
         elif isinstance(series, pd.DataFrame) and series.shape[1] == 1:
             return pd.Series(series.values.ravel(), index=series.index)
-        elif isinstance(series, np.ndarray) and len(series.shape) == 1 and index is not None:
+        elif (
+            isinstance(series, np.ndarray)
+            and len(series.shape) == 1
+            and index is not None
+        ):
             return pd.Series(series, index=index)
         else:
             raise TypeError(
-                "The object should be a pd.Series, a dataframe with one collumn or a 1 dimensional numpy array")
+                "The object should be a pd.Series, a dataframe with one collumn or a 1 dimensional numpy array"
+            )
 
 
 class InspectorShap(BaseInspector):
@@ -140,9 +154,15 @@ class InspectorShap(BaseInspector):
 
     """
 
-
-    def __init__(self, model, algotype='kmeans', confusion_metric = 'proba',
-                 normalize_probability=False,cluster_probability = False, **kwargs):
+    def __init__(
+        self,
+        model,
+        algotype="kmeans",
+        confusion_metric="proba",
+        normalize_probability=False,
+        cluster_probability=False,
+        **kwargs
+    ):
 
         super().__init__(algotype, **kwargs)
         self.model = model
@@ -160,14 +180,20 @@ class InspectorShap(BaseInspector):
         self.clusters = None
         self.init_eval_set_report_variables()
 
-        if confusion_metric not in ['proba']:
-            #TODO implement the target method
-            raise NotImplementedError("confusion metric {} not supported. See docstrings".format(confusion_metric))
+        if confusion_metric not in ["proba"]:
+            # TODO implement the target method
+            raise NotImplementedError(
+                "confusion metric {} not supported. See docstrings".format(
+                    confusion_metric
+                )
+            )
 
     def __repr__(self):
         repr_ = "{},\n\t{}".format(self.__class__.__name__, self.algotype)
         if self.fitted:
-            repr_ += "\n\tTotal clusters {}".format(np.unique(self.clusterer.labels_).shape[0])
+            repr_ += "\n\tTotal clusters {}".format(
+                np.unique(self.clusterer.labels_).shape[0]
+            )
         return repr_
 
     def init_eval_set_report_variables(self):
@@ -175,7 +201,6 @@ class InspectorShap(BaseInspector):
         self.clusters_list = list()
         self.ys = list()
         self.predicted_probas = list()
-
 
     def compute_probabilities(self, X):
         """
@@ -187,7 +212,7 @@ class InspectorShap(BaseInspector):
 
         """
 
-        return self.model.predict_proba(X)[:,1]
+        return self.model.predict_proba(X)[:, 1]
 
     def fit_clusters(self, X):
         """
@@ -200,11 +225,11 @@ class InspectorShap(BaseInspector):
         X = copy.deepcopy(X)
 
         if self.cluster_probabilities:
-            X['probs'] = self.predicted_proba
+            X["probs"] = self.predicted_proba
 
         return super().fit_clusters(X)
 
-    def predict_clusters(self,X):
+    def predict_clusters(self, X):
         """
         Predicts the clusters of the dataset X
         Args:
@@ -216,11 +241,11 @@ class InspectorShap(BaseInspector):
         X = copy.deepcopy(X)
 
         if self.cluster_probabilities:
-            X['probs'] = self.predicted_proba
+            X["probs"] = self.predicted_proba
 
         return super().predict_clusters(X)
 
-    def fit(self, X, y=None, eval_set = None, sample_names=None, **shap_kwargs):
+    def fit(self, X, y=None, eval_set=None, sample_names=None, **shap_kwargs):
         """
         Fits and orchestrates the cluster calculations
         Args:
@@ -238,11 +263,16 @@ class InspectorShap(BaseInspector):
         self.set_names = sample_names
         if sample_names is not None:
             # Make sure that the amount of eval sets matches the set names
-            assert len(eval_set) == len(sample_names), "set_names must be the same length as eval_set"
+            assert len(eval_set) == len(
+                sample_names
+            ), "set_names must be the same length as eval_set"
 
-        self.y, self.predicted_proba, self.X_shap, self.clusters = self.perform_fit_calc(X=X, y=y,
-                                                                                         fit_clusters=True,
-                                                                                         **shap_kwargs)
+        (
+            self.y,
+            self.predicted_proba,
+            self.X_shap,
+            self.clusters,
+        ) = self.perform_fit_calc(X=X, y=y, fit_clusters=True, **shap_kwargs)
         if eval_set is not None:
             assert isinstance(eval_set, list), "eval_set needs to be a list"
 
@@ -251,8 +281,9 @@ class InspectorShap(BaseInspector):
             self.init_eval_set_report_variables()
 
             for X_, y_ in eval_set:
-                y_, predicted_proba_, X_shap_, clusters_ = self.perform_fit_calc(X=X_, y=y_, fit_clusters=False,
-                                                                                 **shap_kwargs)
+                y_, predicted_proba_, X_shap_, clusters_ = self.perform_fit_calc(
+                    X=X_, y=y_, fit_clusters=False, **shap_kwargs
+                )
 
                 self.X_shaps.append(X_shap_)
                 self.ys.append(y_)
@@ -272,16 +303,20 @@ class InspectorShap(BaseInspector):
         """
 
         X = self.assert_is_dataframe(X)
-        y = self.assert_is_series(y, index = X.index)
+        y = self.assert_is_series(y, index=X.index)
 
         # Compute probabilities for the input X using model
-        predicted_proba = pd.Series(self.compute_probabilities(X), index = y.index,name = 'pred_proba')
+        predicted_proba = pd.Series(
+            self.compute_probabilities(X), index=y.index, name="pred_proba"
+        )
 
         # Compute SHAP values and cluster them
         X_shap = shap_helpers.shap_to_df(self.model, X, **shap_kwargs)
         if fit_clusters:
             self.fit_clusters(X_shap)
-        clusters = pd.Series(self.predict_clusters(X_shap), index=y.index, name='cluster_id')
+        clusters = pd.Series(
+            self.predict_clusters(X_shap), index=y.index, name="cluster_id"
+        )
         return y, predicted_proba, X_shap, clusters
 
     def _compute_report(self):
@@ -290,21 +325,25 @@ class InspectorShap(BaseInspector):
 
         """
 
-        self.summary_df = self.create_summary_df(self.clusters, self.y, self.predicted_proba, normalize=self.normalize_proba)
+        self.summary_df = self.create_summary_df(
+            self.clusters, self.y, self.predicted_proba, normalize=self.normalize_proba
+        )
         self.agg_summary_df = self.aggregate_summary_df(self.summary_df)
 
         if self.hasmultiple_dfs:
 
             self.summary_dfs = [
-                self.create_summary_df(clust, y, pred_proba, normalize=self.normalize_proba)
-                for  clust, y, pred_proba in zip(self.clusters_list, self.ys, self.predicted_probas)
+                self.create_summary_df(
+                    clust, y, pred_proba, normalize=self.normalize_proba
+                )
+                for clust, y, pred_proba in zip(
+                    self.clusters_list, self.ys, self.predicted_probas
+                )
             ]
 
             self.agg_summary_dfs = [
-                self.aggregate_summary_df(df)
-                for df in self.summary_dfs
+                self.aggregate_summary_df(df) for df in self.summary_dfs
             ]
-
 
     def compute(self):
         """
@@ -335,18 +374,30 @@ class InspectorShap(BaseInspector):
 
             for ix, agg_summary_df in enumerate(self.agg_summary_dfs):
                 if self.set_names is None:
-                    sample_suffix = "sample_{}".format(ix+1)
-                else: sample_suffix = self.set_names[ix]
+                    sample_suffix = "sample_{}".format(ix + 1)
+                else:
+                    sample_suffix = self.set_names[ix]
 
-                out = pd.merge(out, agg_summary_df, how="left", on='cluster_id',
-                               suffixes = ('','_{}'.format(sample_suffix)))
+                out = pd.merge(
+                    out,
+                    agg_summary_df,
+                    how="left",
+                    on="cluster_id",
+                    suffixes=("", "_{}".format(sample_suffix)),
+                )
 
         self.cluster_report = out
         return self.cluster_report
 
-
-    def slice_cluster(self, cluster_id,  summary_df=None, X_shap=None, y=None, predicted_proba=None,
-                      complementary = False):
+    def slice_cluster(
+        self,
+        cluster_id,
+        summary_df=None,
+        X_shap=None,
+        y=None,
+        predicted_proba=None,
+        complementary=False,
+    ):
         """
         Slices the input dataframes by the cluster.
 
@@ -386,7 +437,6 @@ class InspectorShap(BaseInspector):
         else:
             return X_shap[~mask], y[~mask], predicted_proba[~mask]
 
-
     def slice_cluster_eval_set(self, cluster_id, complementary=False):
         """
         Slices the input dataframes passed in the eval_set in the inspect function by the cluster id.
@@ -402,15 +452,25 @@ class InspectorShap(BaseInspector):
         """
 
         if not self.hasmultiple_dfs:
-            raise NotFittedError("You did not fit the eval set. Please add an eval set when calling inspect()")
+            raise NotFittedError(
+                "You did not fit the eval set. Please add an eval set when calling inspect()"
+            )
 
         output = []
         for X_shap, y, predicted_proba, summary_df in zip(
-                self.X_shaps, self.ys, self.predicted_probas, self.summary_dfs):
-            output.append(self.slice_cluster(cluster_id=cluster_id, summary_df=summary_df, X_shap=X_shap, y=y,
-                                             predicted_proba=predicted_proba, complementary=complementary))
+            self.X_shaps, self.ys, self.predicted_probas, self.summary_dfs
+        ):
+            output.append(
+                self.slice_cluster(
+                    cluster_id=cluster_id,
+                    summary_df=summary_df,
+                    X_shap=X_shap,
+                    y=y,
+                    predicted_proba=predicted_proba,
+                    complementary=complementary,
+                )
+            )
         return output
-
 
     @staticmethod
     def get_cluster_mask(df, cluster_id):
@@ -427,11 +487,11 @@ class InspectorShap(BaseInspector):
         if not isinstance(cluster_id, list):
             cluster_id = [cluster_id]
 
-        mask = df['cluster_id'].isin(cluster_id)
+        mask = df["cluster_id"].isin(cluster_id)
         return mask
 
     @staticmethod
-    def create_summary_df(cluster,y, probas, normalize=False):
+    def create_summary_df(cluster, y, probas, normalize=False):
         """
         Creates a summary by concatenating the cluster series, the targets, the probabilities and the measured confusion
         Args:
@@ -444,14 +504,11 @@ class InspectorShap(BaseInspector):
 
         """
 
-        confusion = return_confusion_metric(y, probas, normalize = normalize).rename("confusion")
+        confusion = return_confusion_metric(y, probas, normalize=normalize).rename(
+            "confusion"
+        )
 
-        summary = [
-            cluster,
-            y.rename("target"),
-            probas,
-            confusion
-        ]
+        summary = [cluster, y.rename("target"), probas, confusion]
 
         return pd.concat(summary, axis=1)
 
@@ -465,13 +522,19 @@ class InspectorShap(BaseInspector):
         Returns: pd.Dataframe with aggregation results
         """
 
-        out = df.groupby("cluster_id").agg(
-            total_label_1=pd.NamedAgg(column='target', aggfunc="sum"),
-            total_entries=pd.NamedAgg(column='target', aggfunc="count"),
-            label_1_rate=pd.NamedAgg(column='target', aggfunc="mean"),
-            average_confusion=pd.NamedAgg(column='confusion', aggfunc="mean"),
-            average_pred_proba=pd.NamedAgg(column='pred_proba', aggfunc="mean"),
-        ).reset_index().rename(columns={"index": "cluster_id"}).sort_values(by='cluster_id')
+        out = (
+            df.groupby("cluster_id")
+            .agg(
+                total_label_1=pd.NamedAgg(column="target", aggfunc="sum"),
+                total_entries=pd.NamedAgg(column="target", aggfunc="count"),
+                label_1_rate=pd.NamedAgg(column="target", aggfunc="mean"),
+                average_confusion=pd.NamedAgg(column="confusion", aggfunc="mean"),
+                average_pred_proba=pd.NamedAgg(column="pred_proba", aggfunc="mean"),
+            )
+            .reset_index()
+            .rename(columns={"index": "cluster_id"})
+            .sort_values(by="cluster_id")
+        )
 
         return out
 

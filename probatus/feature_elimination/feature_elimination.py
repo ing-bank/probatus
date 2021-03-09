@@ -1,5 +1,11 @@
-from probatus.utils import preprocess_data, shap_calc, calculate_shap_importance, BaseFitComputePlotClass, \
-    preprocess_labels, get_single_scorer
+from probatus.utils import (
+    preprocess_data,
+    shap_calc,
+    calculate_shap_importance,
+    BaseFitComputePlotClass,
+    preprocess_labels,
+    get_single_scorer,
+)
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -8,6 +14,7 @@ from sklearn.model_selection import check_cv
 from sklearn.base import clone, is_classifier
 from joblib import Parallel, delayed
 import warnings
+
 
 class ShapRFECV(BaseFitComputePlotClass):
     """
@@ -84,8 +91,17 @@ class ShapRFECV(BaseFitComputePlotClass):
 
     """
 
-    def __init__(self, clf, step=1, min_features_to_select=1, cv=None, scoring='roc_auc', n_jobs=-1, verbose=0,
-                 random_state=None):
+    def __init__(
+        self,
+        clf,
+        step=1,
+        min_features_to_select=1,
+        cv=None,
+        scoring="roc_auc",
+        n_jobs=-1,
+        verbose=0,
+        random_state=None,
+    ):
         """
         This method initializes the class:
 
@@ -145,20 +161,27 @@ class ShapRFECV(BaseFitComputePlotClass):
         if isinstance(self.clf, BaseSearchCV):
             self.search_clf = True
         else:
-            self.search_clf=False
+            self.search_clf = False
 
-        if (isinstance(step, int) or isinstance(step, float)) and \
-                step > 0:
+        if (isinstance(step, int) or isinstance(step, float)) and step > 0:
             self.step = step
         else:
-            raise (ValueError(f"The current value of step = {step} is not allowed. "
-                              f"It needs to be a positive integer or positive float."))
+            raise (
+                ValueError(
+                    f"The current value of step = {step} is not allowed. "
+                    f"It needs to be a positive integer or positive float."
+                )
+            )
 
-        if isinstance(min_features_to_select, int) and min_features_to_select>0:
-            self.min_features_to_select=min_features_to_select
+        if isinstance(min_features_to_select, int) and min_features_to_select > 0:
+            self.min_features_to_select = min_features_to_select
         else:
-            raise (ValueError(f"The current value of min_features_to_select = {min_features_to_select} is not allowed. "
-                              f"It needs to be a greater than or equal to 0."))
+            raise (
+                ValueError(
+                    f"The current value of min_features_to_select = {min_features_to_select} is not allowed. "
+                    f"It needs to be a greater than or equal to 0."
+                )
+            )
 
         self.cv = cv
         self.scorer = get_single_scorer(scoring)
@@ -167,8 +190,7 @@ class ShapRFECV(BaseFitComputePlotClass):
         self.report_df = pd.DataFrame([])
         self.verbose = verbose
 
-
-    def _get_current_features_to_remove(self, shap_importance_df,columns_to_keep = None):
+    def _get_current_features_to_remove(self, shap_importance_df, columns_to_keep=None):
         """
         Implements the logic used to determine which features to remove. If step is a positive integer,
             at each round step lowest SHAP importance features are selected. If it is a float, such percentage
@@ -184,11 +206,11 @@ class ShapRFECV(BaseFitComputePlotClass):
                 List of features to be removed at a given round.
         """
 
-        #Bounding the variable.
+        # Bounding the variable.
         num_features_to_remove = 0
 
-        #If columns_to_keep is not None, exclude those columns and
-        #calculate features to remove.
+        # If columns_to_keep is not None, exclude those columns and
+        # calculate features to remove.
         if columns_to_keep is not None:
             mask = shap_importance_df.index.isin(columns_to_keep)
             shap_importance_df = shap_importance_df[~mask]
@@ -198,7 +220,7 @@ class ShapRFECV(BaseFitComputePlotClass):
             num_features_to_remove = self._calculate_number_of_features_to_remove(
                 current_num_of_features=shap_importance_df.shape[0],
                 num_features_to_remove=self.step,
-                min_num_features_to_keep=self.min_features_to_select
+                min_num_features_to_keep=self.min_features_to_select,
             )
         # If the step is a float remove n * number features that are left, rounded down
         elif isinstance(self.step, float):
@@ -210,7 +232,7 @@ class ShapRFECV(BaseFitComputePlotClass):
             num_features_to_remove = self._calculate_number_of_features_to_remove(
                 current_num_of_features=shap_importance_df.shape[0],
                 num_features_to_remove=current_step,
-                min_num_features_to_keep=self.min_features_to_select
+                min_num_features_to_keep=self.min_features_to_select,
             )
 
         if num_features_to_remove == 0:
@@ -218,10 +240,10 @@ class ShapRFECV(BaseFitComputePlotClass):
         else:
             return shap_importance_df.iloc[-num_features_to_remove:].index.tolist()
 
-
     @staticmethod
-    def _calculate_number_of_features_to_remove(current_num_of_features, num_features_to_remove,
-                                                min_num_features_to_keep):
+    def _calculate_number_of_features_to_remove(
+        current_num_of_features, num_features_to_remove, min_num_features_to_keep
+    ):
         """
         Calculates the number of features to be removed, and makes sure that after removal at least
             min_num_features_to_keep are kept
@@ -248,9 +270,16 @@ class ShapRFECV(BaseFitComputePlotClass):
             num_to_remove = current_num_of_features - min_num_features_to_keep
         return num_to_remove
 
-
-    def _report_current_results(self, round_number, current_features_set, features_to_remove, train_metric_mean,
-                                train_metric_std, val_metric_mean, val_metric_std):
+    def _report_current_results(
+        self,
+        round_number,
+        current_features_set,
+        features_to_remove,
+        train_metric_mean,
+        train_metric_std,
+        val_metric_mean,
+        val_metric_std,
+    ):
         """
         This function adds the results from a current iteration to the report.
 
@@ -278,24 +307,25 @@ class ShapRFECV(BaseFitComputePlotClass):
         """
 
         current_results = {
-            'num_features': len(current_features_set),
-            'features_set': None,
-            'eliminated_features':  None,
-            'train_metric_mean': train_metric_mean,
-            'train_metric_std': train_metric_std,
-            'val_metric_mean': val_metric_mean,
-            'val_metric_std': val_metric_std,
+            "num_features": len(current_features_set),
+            "features_set": None,
+            "eliminated_features": None,
+            "train_metric_mean": train_metric_mean,
+            "train_metric_std": train_metric_std,
+            "val_metric_mean": val_metric_mean,
+            "val_metric_std": val_metric_std,
         }
 
         current_row = pd.DataFrame(current_results, index=[round_number])
-        current_row['features_set'] = [current_features_set]
-        current_row['eliminated_features'] = [features_to_remove]
+        current_row["features_set"] = [current_features_set]
+        current_row["eliminated_features"] = [features_to_remove]
 
         self.report_df = pd.concat([self.report_df, current_row], axis=0)
 
-
     @staticmethod
-    def _get_feature_shap_values_per_fold(X, y, clf, train_index, val_index, scorer, verbose=0):
+    def _get_feature_shap_values_per_fold(
+        X, y, clf, train_index, val_index, scorer, verbose=0
+    ):
         """
         This function calculates the shap values on validation set, and Train and Val score.
 
@@ -345,8 +375,7 @@ class ShapRFECV(BaseFitComputePlotClass):
         shap_values = shap_calc(clf, X_val, verbose=verbose)
         return shap_values, score_train, score_val
 
-
-    def fit(self, X, y,columns_to_keep=None,column_names=None):
+    def fit(self, X, y, columns_to_keep=None, column_names=None):
         """
         Fits the object with the provided data. The algorithm starts with the entire dataset, and then sequentially
              eliminates features. If sklearn compatible search CV is passed as clf e.g.
@@ -382,55 +411,72 @@ class ShapRFECV(BaseFitComputePlotClass):
         # If provided check if all the elements in columns_to_keep are of type string.
         if columns_to_keep is None:
             len_columns_to_keep = 0
-        else :
-            if all(isinstance(x,str) for x in columns_to_keep):
+        else:
+            if all(isinstance(x, str) for x in columns_to_keep):
                 len_columns_to_keep = len(columns_to_keep)
-            else :
-                raise(ValueError('The current values of columns_to_keep are not allowed.All the elements should be strings.'))
-        
+            else:
+                raise (
+                    ValueError(
+                        "The current values of columns_to_keep are not allowed.All the elements should be strings."
+                    )
+                )
+
         # If the columns_to_keep parameter is provided, check if they match the column names in the X.
-        if column_names is not None :
+        if column_names is not None:
             if all(x in column_names for x in list(X.columns)):
                 pass
-            else :
-                raise(ValueError('The column names in parameter columns_to_keep and column_names are not macthing.'))
+            else:
+                raise (
+                    ValueError(
+                        "The column names in parameter columns_to_keep and column_names are not macthing."
+                    )
+                )
 
-        #Check that the total number of columns to select is less than total number of columns in the data.
-        #only when both parameters are provided.
-        if column_names is not None and columns_to_keep is not None :
-            if (self.min_features_to_select+len_columns_to_keep) > len(self.column_names):
-                raise ValueError('Minimum features to select is greater than number of features.'
-            'Lower the value for min_features_to_select or number of columns in columns_to_keep')
+        # Check that the total number of columns to select is less than total number of columns in the data.
+        # only when both parameters are provided.
+        if column_names is not None and columns_to_keep is not None:
+            if (self.min_features_to_select + len_columns_to_keep) > len(
+                self.column_names
+            ):
+                raise ValueError(
+                    "Minimum features to select is greater than number of features."
+                    "Lower the value for min_features_to_select or number of columns in columns_to_keep"
+                )
 
-
-        self.X , self.column_names = preprocess_data(X, X_name='X', column_names=column_names, verbose=self.verbose)
-        self.y = preprocess_labels(y, y_name='y', index=self.X.index, verbose=self.verbose)
+        self.X, self.column_names = preprocess_data(
+            X, X_name="X", column_names=column_names, verbose=self.verbose
+        )
+        self.y = preprocess_labels(
+            y, y_name="y", index=self.X.index, verbose=self.verbose
+        )
         self.cv = check_cv(self.cv, self.y, classifier=is_classifier(self.clf))
 
         remaining_features = current_features_set = self.column_names
         round_number = 0
 
-        #Stop when stopping criteria is met.    
-        stopping_criteria = np.max([self.min_features_to_select,len_columns_to_keep])
-        
-        #Setting up the min_features_to_select parameter.
+        # Stop when stopping criteria is met.
+        stopping_criteria = np.max([self.min_features_to_select, len_columns_to_keep])
+
+        # Setting up the min_features_to_select parameter.
         if columns_to_keep is None:
             pass
         else:
             self.min_features_to_select = 0
-            #This ensures that, if columns_to_keep is provided ,the last features remaining are only the columns_to_keep.
-            if self.verbose > 50 :
-                warnings.warn(f'Minimum features to select : {stopping_criteria}')
+            # This ensures that, if columns_to_keep is provided ,the last features remaining are only the columns_to_keep.
+            if self.verbose > 50:
+                warnings.warn(f"Minimum features to select : {stopping_criteria}")
 
         while len(current_features_set) > stopping_criteria:
             round_number += 1
 
             # Get current dataset info
             current_features_set = remaining_features
-            if columns_to_keep is None :
+            if columns_to_keep is None:
                 remaining_removeable_features = list(set(current_features_set))
-            else :
-                remaining_removeable_features = list(set(current_features_set) | set(columns_to_keep))
+            else:
+                remaining_removeable_features = list(
+                    set(current_features_set) | set(columns_to_keep)
+                )
             current_X = self.X[remaining_removeable_features]
 
             # Set seed for results reproducibility
@@ -440,47 +486,68 @@ class ShapRFECV(BaseFitComputePlotClass):
             # Optimize parameters
             if self.search_clf:
                 current_search_clf = clone(self.clf).fit(current_X, self.y)
-                current_clf = current_search_clf.estimator.set_params(**current_search_clf.best_params_)
+                current_clf = current_search_clf.estimator.set_params(
+                    **current_search_clf.best_params_
+                )
             else:
                 current_clf = clone(self.clf)
 
             # Perform CV to estimate feature importance with SHAP
-            results_per_fold = Parallel(n_jobs=self.n_jobs)(delayed(self._get_feature_shap_values_per_fold)(
-                X=current_X, y=self.y, clf=current_clf, train_index=train_index, val_index=val_index,
-                scorer=self.scorer.scorer, verbose=self.verbose
-            ) for train_index, val_index in self.cv.split(current_X, self.y))
+            results_per_fold = Parallel(n_jobs=self.n_jobs)(
+                delayed(self._get_feature_shap_values_per_fold)(
+                    X=current_X,
+                    y=self.y,
+                    clf=current_clf,
+                    train_index=train_index,
+                    val_index=val_index,
+                    scorer=self.scorer.scorer,
+                    verbose=self.verbose,
+                )
+                for train_index, val_index in self.cv.split(current_X, self.y)
+            )
 
-            shap_values = np.vstack([current_result[0] for current_result in results_per_fold])
+            shap_values = np.vstack(
+                [current_result[0] for current_result in results_per_fold]
+            )
             scores_train = [current_result[1] for current_result in results_per_fold]
             scores_val = [current_result[2] for current_result in results_per_fold]
 
-            #Calculate the shap features with remaining features and features to keep.
-           
-            shap_importance_df = calculate_shap_importance(shap_values, remaining_removeable_features)
+            # Calculate the shap features with remaining features and features to keep.
+
+            shap_importance_df = calculate_shap_importance(
+                shap_values, remaining_removeable_features
+            )
 
             # Get features to remove
-            features_to_remove = self._get_current_features_to_remove(shap_importance_df,columns_to_keep=columns_to_keep)
-            remaining_features = list(set(current_features_set) - set(features_to_remove))
-            
+            features_to_remove = self._get_current_features_to_remove(
+                shap_importance_df, columns_to_keep=columns_to_keep
+            )
+            remaining_features = list(
+                set(current_features_set) - set(features_to_remove)
+            )
 
             # Report results
-            self._report_current_results(round_number=round_number, current_features_set=current_features_set,
-                                         features_to_remove=features_to_remove,
-                                         train_metric_mean = np.round(np.mean(scores_train), 3),
-                                         train_metric_std = np.round(np.std(scores_train), 3),
-                                         val_metric_mean = np.round(np.mean(scores_val), 3),
-                                         val_metric_std = np.round(np.std(scores_val), 3))
+            self._report_current_results(
+                round_number=round_number,
+                current_features_set=current_features_set,
+                features_to_remove=features_to_remove,
+                train_metric_mean=np.round(np.mean(scores_train), 3),
+                train_metric_std=np.round(np.std(scores_train), 3),
+                val_metric_mean=np.round(np.mean(scores_val), 3),
+                val_metric_std=np.round(np.std(scores_val), 3),
+            )
             if self.verbose > 50:
-                print(f'Round: {round_number}, Current number of features: {len(current_features_set)}, '
-                      f'Current performance: Train {self.report_df.loc[round_number]["train_metric_mean"]} '
-                      f'+/- {self.report_df.loc[round_number]["train_metric_std"]}, CV Validation '
-                      f'{self.report_df.loc[round_number]["val_metric_mean"]} '
-                      f'+/- {self.report_df.loc[round_number]["val_metric_std"]}. \n'
-                      f'Features left: {remaining_features}. '
-                      f'Removed features at the end of the round: {features_to_remove}')
+                print(
+                    f"Round: {round_number}, Current number of features: {len(current_features_set)}, "
+                    f'Current performance: Train {self.report_df.loc[round_number]["train_metric_mean"]} '
+                    f'+/- {self.report_df.loc[round_number]["train_metric_std"]}, CV Validation '
+                    f'{self.report_df.loc[round_number]["val_metric_mean"]} '
+                    f'+/- {self.report_df.loc[round_number]["val_metric_std"]}. \n'
+                    f"Features left: {remaining_features}. "
+                    f"Removed features at the end of the round: {features_to_remove}"
+                )
         self.fitted = True
         return self
-
 
     def compute(self):
         """
@@ -494,7 +561,6 @@ class ShapRFECV(BaseFitComputePlotClass):
         self._check_if_fitted()
 
         return self.report_df
-
 
     def fit_compute(self, X, y, columns_to_keep=None, column_names=None):
         """
@@ -527,9 +593,8 @@ class ShapRFECV(BaseFitComputePlotClass):
                 DataFrame containing results of feature elimination from each iteration.
         """
 
-        self.fit(X, y, columns_to_keep=columns_to_keep,column_names=column_names)
+        self.fit(X, y, columns_to_keep=columns_to_keep, column_names=column_names)
         return self.compute()
-
 
     def get_reduced_features_set(self, num_features):
         """
@@ -546,11 +611,16 @@ class ShapRFECV(BaseFitComputePlotClass):
         self._check_if_fitted()
 
         if num_features not in self.report_df.num_features.tolist():
-            raise(ValueError(f'The provided number of features has not been achieved at any stage of the process. '
-                             f'You can select one of the following: {self.report_df.num_features.tolist()}'))
+            raise (
+                ValueError(
+                    f"The provided number of features has not been achieved at any stage of the process. "
+                    f"You can select one of the following: {self.report_df.num_features.tolist()}"
+                )
+            )
         else:
-            return self.report_df[self.report_df.num_features == num_features]['features_set'].values[0]
-
+            return self.report_df[self.report_df.num_features == num_features][
+                "features_set"
+            ].values[0]
 
     def plot(self, show=True, **figure_kwargs):
         """
@@ -568,23 +638,37 @@ class ShapRFECV(BaseFitComputePlotClass):
             (plt.axis):
                 Axis containing the performance plot.
         """
-        x_ticks = list(reversed(self.report_df['num_features'].tolist()))
+        x_ticks = list(reversed(self.report_df["num_features"].tolist()))
 
         plt.figure(**figure_kwargs)
 
-        plt.plot(self.report_df['num_features'], self.report_df['train_metric_mean'], label='Train Score')
-        plt.fill_between(pd.to_numeric(self.report_df.num_features, errors='coerce'),
-                         self.report_df['train_metric_mean'] - self.report_df['train_metric_std'],
-                         self.report_df['train_metric_mean'] + self.report_df['train_metric_std'], alpha=.3)
+        plt.plot(
+            self.report_df["num_features"],
+            self.report_df["train_metric_mean"],
+            label="Train Score",
+        )
+        plt.fill_between(
+            pd.to_numeric(self.report_df.num_features, errors="coerce"),
+            self.report_df["train_metric_mean"] - self.report_df["train_metric_std"],
+            self.report_df["train_metric_mean"] + self.report_df["train_metric_std"],
+            alpha=0.3,
+        )
 
-        plt.plot(self.report_df['num_features'], self.report_df['val_metric_mean'], label='Validation Score')
-        plt.fill_between(pd.to_numeric(self.report_df.num_features, errors='coerce'),
-                         self.report_df['val_metric_mean'] - self.report_df['val_metric_std'],
-                         self.report_df['val_metric_mean'] + self.report_df['val_metric_std'], alpha=.3)
+        plt.plot(
+            self.report_df["num_features"],
+            self.report_df["val_metric_mean"],
+            label="Validation Score",
+        )
+        plt.fill_between(
+            pd.to_numeric(self.report_df.num_features, errors="coerce"),
+            self.report_df["val_metric_mean"] - self.report_df["val_metric_std"],
+            self.report_df["val_metric_mean"] + self.report_df["val_metric_std"],
+            alpha=0.3,
+        )
 
-        plt.xlabel('Number of features')
-        plt.ylabel(f'Performance {self.scorer.metric_name}')
-        plt.title('Backwards Feature Elimination using SHAP & CV')
+        plt.xlabel("Number of features")
+        plt.ylabel(f"Performance {self.scorer.metric_name}")
+        plt.title("Backwards Feature Elimination using SHAP & CV")
         plt.legend(loc="lower left")
         ax = plt.gca()
         ax.invert_xaxis()
@@ -594,4 +678,3 @@ class ShapRFECV(BaseFitComputePlotClass):
         else:
             plt.close()
         return ax
-

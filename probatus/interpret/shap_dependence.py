@@ -23,13 +23,18 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from probatus.binning import SimpleBucketer, AgglomerativeBucketer, QuantileBucketer
-from probatus.utils import BaseFitComputePlotClass, shap_to_df, preprocess_data, preprocess_labels
+from probatus.utils import (
+    BaseFitComputePlotClass,
+    shap_to_df,
+    preprocess_data,
+    preprocess_labels,
+)
 
 
 class TreeDependencePlotter(BaseFitComputePlotClass):
     """
-    Plotter used to plot shap dependence and target rates. 
-    
+    Plotter used to plot shap dependence and target rates.
+
     Args:
         model: classifier for which interpretation is done.
 
@@ -67,16 +72,14 @@ class TreeDependencePlotter(BaseFitComputePlotClass):
         self.clf = clf
         self.verbose = verbose
 
-
     def __repr__(self):
         return "Shap dependence plotter for {}".format(self.clf.__class__.__name__)
-
 
     def fit(self, X, y, column_names=None, class_names=None, precalc_shap=None):
         """
         Fits the plotter to the model and data by computing the shap values. If the shap_values are passed, they do not
             need to be computed
-        
+
         Args:
             X (pd.DataFrame):
                 input variables.
@@ -95,19 +98,24 @@ class TreeDependencePlotter(BaseFitComputePlotClass):
                 Precalculated shap values, If provided they don't need to be computed.
         """
 
-        self.X, self.column_names = preprocess_data(X, X_name='X', column_names=column_names, verbose=self.verbose)
-        self.y = preprocess_labels(y, y_name='y', index=self.X.index, verbose=self.verbose)
+        self.X, self.column_names = preprocess_data(
+            X, X_name="X", column_names=column_names, verbose=self.verbose
+        )
+        self.y = preprocess_labels(
+            y, y_name="y", index=self.X.index, verbose=self.verbose
+        )
 
         # Set class names
         self.class_names = class_names
         if self.class_names is None:
-            self.class_names = ['Negative Class', 'Positive Class']
+            self.class_names = ["Negative Class", "Positive Class"]
 
-        self.shap_vals_df = shap_to_df(self.clf, self.X, precalc_shap=precalc_shap, verbose=self.verbose)
+        self.shap_vals_df = shap_to_df(
+            self.clf, self.X, precalc_shap=precalc_shap, verbose=self.verbose
+        )
 
         self.fitted = True
         return self
-
 
     def compute(self):
         """
@@ -119,7 +127,6 @@ class TreeDependencePlotter(BaseFitComputePlotClass):
         """
         self._check_if_fitted()
         return self.shap_vals_df
-
 
     def fit_compute(self, X, y, column_names=None, class_names=None, precalc_shap=None):
         """
@@ -148,14 +155,28 @@ class TreeDependencePlotter(BaseFitComputePlotClass):
                 SHAP Values for X.
         """
 
-        self.fit(X, y, column_names=column_names, class_names=class_names, precalc_shap=precalc_shap)
+        self.fit(
+            X,
+            y,
+            column_names=column_names,
+            class_names=class_names,
+            precalc_shap=precalc_shap,
+        )
         return self.compute()
 
-
-    def plot(self, feature, figsize=(15, 10), bins=10, type_binning="simple", show=True, min_q=0, max_q=1):
+    def plot(
+        self,
+        feature,
+        figsize=(15, 10),
+        bins=10,
+        type_binning="simple",
+        show=True,
+        min_q=0,
+        max_q=1,
+    ):
         """
         Plots the shap values for data points for a given feature, as well as the target rate and values distribution.
-        
+
         Args:
             feature (str or int):
                 Feature name of the feature to be analyzed.
@@ -178,7 +199,7 @@ class TreeDependencePlotter(BaseFitComputePlotClass):
 
             max_q (float, optional):
                 Optional maximum quantile until which data points are considered, used for plotting under outliers.
-            
+
         Returns
             (list(matplotlib.axes)):
                 List of axes that include the plots.
@@ -216,7 +237,7 @@ class TreeDependencePlotter(BaseFitComputePlotClass):
     def _dependence_plot(self, feature, ax=None):
         """
         Plots shap values for data points with respect to specified feature.
-        
+
         Args:
             feature (str or int):
                 Feature for which dependence plot is to be created.
@@ -248,9 +269,9 @@ class TreeDependencePlotter(BaseFitComputePlotClass):
         return ax
 
     def _target_rate_plot(self, feature, bins=10, type_binning="simple", ax=None):
-        """ 
+        """
         Plots the distributions of the specific features, as well as the target rate as function of the feature.
-        
+
         Args:
             feature (str or int):
                 Feature for which to create target rate plot.
@@ -302,17 +323,17 @@ class TreeDependencePlotter(BaseFitComputePlotClass):
         ax2.plot(x_vals, target_ratio, color="red")
         ax2.set_ylabel("Target rate", color="red", fontsize=12)
         ax2.set_xlim(x.min(), x.max())
-        ax.set_xlabel(f'{feature} feature values')
+        ax.set_xlabel(f"{feature} feature values")
 
         return bins, ax, target_ratio
 
     def _get_X_y_shap_with_q_cut(self, feature):
         """
         Extracts all X, y pairs and shap values that fall within defined quantiles of the feature
-        
+
         Args:
             feature (str): feature to return values for
-        
+
         Returns:
             x (pd.Series): selected datapoints
             y (pd.Series): target values of selected datapoints
