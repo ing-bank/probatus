@@ -9,6 +9,7 @@ use_directory_urls: false
 
 nav:
   - Home: index.md
+  - Vision: vision.md
   - Tutorials:
     - ShapRFECV - Recursive Feature Elimination using SHAP importance: tutorials/nb_shap_feature_elimination.ipynb
     - Tree-based & Linear Model Interpretation with SHAP: tutorials/nb_shap_model_interpreter.ipynb
