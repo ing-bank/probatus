@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
 from unittest.mock import patch
-from probatus.interpret.shap_dependence import TreeDependencePlotter
+from probatus.interpret.shap_dependence import DependencePlotter
 from probatus.utils.exceptions import NotFittedError
 import os
 import matplotlib.pyplot as plt
@@ -94,7 +94,7 @@ def expected_feat_importances():
 
 
 def test_not_fitted(clf):
-    plotter = TreeDependencePlotter(clf)
+    plotter = DependencePlotter(clf)
     assert plotter.fitted is False
 
 
@@ -102,7 +102,7 @@ def test_not_fitted(clf):
 def test_fit_complex(complex_data_split, complex_fitted_lightgbm):
     X_train, X_test, y_train, y_test = complex_data_split
 
-    plotter = TreeDependencePlotter(complex_fitted_lightgbm)
+    plotter = DependencePlotter(complex_fitted_lightgbm)
 
     plotter.fit(X_test, y_test)
 
@@ -119,7 +119,7 @@ def test_fit_complex(complex_data_split, complex_fitted_lightgbm):
 def test_get_X_y_shap_with_q_cut_normal(X_y, clf):
     X, y = X_y
 
-    plotter = TreeDependencePlotter(clf).fit(X, y)
+    plotter = DependencePlotter(clf).fit(X, y)
     plotter.min_q, plotter.max_q = 0, 1
 
     X_cut, y_cut, shap_val = plotter._get_X_y_shap_with_q_cut(0)
@@ -148,31 +148,31 @@ def test_get_X_y_shap_with_q_cut_normal(X_y, clf):
 
 
 def test_get_X_y_shap_with_q_cut_unfitted(clf):
-    plotter = TreeDependencePlotter(clf)
+    plotter = DependencePlotter(clf)
     with pytest.raises(NotFittedError):
         plotter._get_X_y_shap_with_q_cut(0)
 
 
 def test_get_X_y_shap_with_q_cut_input(X_y, clf):
-    plotter = TreeDependencePlotter(clf).fit(X_y[0], X_y[1])
+    plotter = DependencePlotter(clf).fit(X_y[0], X_y[1])
     with pytest.raises(ValueError):
         plotter._get_X_y_shap_with_q_cut("not a feature")
 
 
 def test_plot_normal(X_y, clf):
-    plotter = TreeDependencePlotter(clf).fit(X_y[0], X_y[1])
+    plotter = DependencePlotter(clf).fit(X_y[0], X_y[1])
     for binning in ["simple", "agglomerative", "quantile"]:
         fig = plotter.plot(feature=0, type_binning=binning)
 
 
 def test_plot_class_names(X_y, clf):
-    plotter = TreeDependencePlotter(clf).fit(X_y[0], X_y[1], class_names=["a", "b"])
+    plotter = DependencePlotter(clf).fit(X_y[0], X_y[1], class_names=["a", "b"])
     fig = plotter.plot(feature=0)
     assert plotter.class_names == ["a", "b"]
 
 
 def test_plot_input(X_y, clf):
-    plotter = TreeDependencePlotter(clf).fit(X_y[0], X_y[1])
+    plotter = DependencePlotter(clf).fit(X_y[0], X_y[1])
     with pytest.raises(ValueError):
         plotter.plot(feature="not a feature")
     with pytest.raises(ValueError):
@@ -182,5 +182,5 @@ def test_plot_input(X_y, clf):
 
 
 def test__repr__(clf):
-    plotter = TreeDependencePlotter(clf)
+    plotter = DependencePlotter(clf)
     assert str(plotter) == "Shap dependence plotter for RandomForestClassifier"
