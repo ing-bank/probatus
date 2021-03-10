@@ -27,7 +27,7 @@ import matplotlib.pyplot as plt
 import numpy as np 
 import pandas as pd 
 
-class CompareImputationStrategies(BaseFitComputePlotClass):
+class ImputationSelector(BaseFitComputePlotClass):
     """
     Comparison of various imputation stragegies that can be used for imputation 
     of missing values. 
@@ -69,7 +69,7 @@ class CompareImputationStrategies(BaseFitComputePlotClass):
     ```
 
     """
-    def __init__(self,clf,strategies,scoring='roc_auc',cv=None,model_na_support=True,n_jobs=-1,verbose=0,
+    def __init__(self,clf,strategies,scoring='roc_auc',cv=5,model_na_support=True,n_jobs=-1,verbose=0,
                 random_state=None):
         """
         Initialise the class.
@@ -119,12 +119,8 @@ class CompareImputationStrategies(BaseFitComputePlotClass):
         self.model_na_support = model_na_support
         self.scorer = get_single_scorer(scoring)
         self.strategies = strategies
-        if cv is None:
-            self.cv = 5
-        else :
-            self.cv = cv
+        self.cv = 5
         self.verbose = verbose
-
         self.n_jobs = n_jobs
         
         if random_state is None:
