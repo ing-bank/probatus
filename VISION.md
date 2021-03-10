@@ -6,6 +6,8 @@ This page describes the main principles that drive the development of `probatus`
 
 `probatus` has started as a side project of Data Scientists at ING Bank. 
 It consists of tools that help in analysing binary classification models and the data used to develop them.
+This includes the analysis steps that one may perform at any step of building the model, from data exploration, through 
+interpreting the model, to indicating the stability of the results. 
 We have decided to open-source it, in order to share the tools and enable collaboration with the Data Science community.
 
 Our main goals are:
@@ -25,10 +27,5 @@ The main principles that drive development of `probatus` are the following
 
 ## The Roadmap
 
-The list below presents the vision in terms of the future new tools that we would like to build:
-
-- Missing values imputation selection [#73](https://github.com/ing-bank/probatus/issues/73)
-- Correlated features elimination routine [#9](https://github.com/ing-bank/probatus/issues/9)
-- Data shift detection [#72](https://github.com/ing-bank/probatus/issues/72)
-
+The following [issue](https://github.com/ing-bank/probatus/issues/93) keeps track of the features coming to probatus.
 We are open to new ideas, so if you can think of a feature that fits the vision, make an [issue](https://github.com/ing-bank/probatus/issues) and help us further develop this package.
