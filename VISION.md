@@ -5,13 +5,14 @@ This page describes the main principles that drive the development of `probatus`
 ## The Purpose
 
 `probatus` has started as a side project of Data Scientists at ING Bank. 
-It consists of tools that help in analysing binary classification models and the data used to develop them.
-This includes the analysis steps that one may perform at any step of building the model, from data exploration, through 
-interpreting the model, to indicating the stability of the results. 
-We have decided to open-source it, in order to share the tools and enable collaboration with the Data Science community.
+Later, we have decided to open-source it, in order to share the tools and enable collaboration with the Data Science community.
+
+We mainly focus on analysing the following aspects of building classification models:
+- Model input: the quality of the dataset and how to prepare it for modelling,
+- Model performance: the quality of the model and stability of the results. 
+- Model interpretation: understanding the model decision making,
 
 Our main goals are:
-
 - Continue maintaining the tools that we have built, and make sure that they are well documented and tested
 - Continuously extend functionality available in the package
 - Build a community of users, which use the package in day-to-day work and learn from each other, while contributing to probatus
