@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.2] - 2021-03-10
+Improvements in this release:
+- Bugfix, allow passing kwargs to dependence plot in ShapModelInterpreter #90
+
 ## [1.6.1] - 2021-03-09
 Improvements in this release:
 - Added ShapRFECV support for all sklearn compatible search CVs. #76 #49
