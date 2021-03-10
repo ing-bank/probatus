@@ -18,7 +18,7 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
-from probatus.interpret import TreeDependencePlotter
+from probatus.interpret import DependencePlotter
 from probatus.utils import (
     preprocess_data,
     preprocess_labels,
@@ -217,7 +217,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
 
 
         Returns:
-            (np.array, int, TreeDependencePlotter):
+            (np.array, int, DependencePlotter):
                 Shap values, expected value of the explainer, and fitted TreeDependencePlotter for a given dataset.
         """
         shap_values, explainer = shap_calc(
@@ -236,7 +236,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
             expected_value = expected_value[1]
 
         # Initialize tree dependence plotter
-        tdp = TreeDependencePlotter(clf, verbose=verbose).fit(
+        tdp = DependencePlotter(clf, verbose=verbose).fit(
             X,
             y,
             column_names=column_names,
@@ -390,7 +390,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
             **plot_kwargs:
                 Keyword arguments passed to the plot method. For 'importance' and 'summary' plot_type, the kwargs are
                 passed to shap.summary_plot, for 'dependence' plot_type, they are passed to
-                probatus.interpret.TreeDependencePlotter.feature_plot method.
+                probatus.interpret.DependencePlotter.plot method.
 
         Returns:
             (matplotlib.axes or list(matplotlib.axes)):

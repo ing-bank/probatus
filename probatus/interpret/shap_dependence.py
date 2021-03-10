@@ -31,9 +31,10 @@ from probatus.utils import (
 )
 
 
-class TreeDependencePlotter(BaseFitComputePlotClass):
+class DependencePlotter(BaseFitComputePlotClass):
     """
-    Plotter used to plot shap dependence and target rates.
+    Plotter used to plot SHAP dependence plot together with the target rates. Currently it supports tree-based and
+    linear models.
 
     Args:
         model: classifier for which interpretation is done.
@@ -42,15 +43,17 @@ class TreeDependencePlotter(BaseFitComputePlotClass):
     ```python
     from sklearn.datasets import make_classification
     from sklearn.ensemble import RandomForestClassifier
-    from probatus.interpret import TreeDependencePlotter
+    from probatus.interpret import DependencePlotter
 
     X, y = make_classification(n_samples=15, n_features=3, n_informative=3, n_redundant=0, random_state=42)
     clf = RandomForestClassifier().fit(X, y)
-    bdp = TreeDependencePlotter(clf)
+    bdp = DependencePlotter(clf)
     shap_values = bdp.fit_compute(X, y)
 
     bdp.plot(feature=2, type_binning='simple')
     ```
+
+    <img src="../img/model_interpret_dep.png"/>
     """
 
     def __init__(self, clf, verbose=0):

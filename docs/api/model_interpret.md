@@ -4,3 +4,4 @@ The aim of this module is providing tools for model interpretation using [SHAP](
 The class below is a convenience wrapper, that implements multiple plots for tree-based & linear models.
 
 ::: probatus.interpret.model_interpret
+::: probatus.interpret.shap_dependence
