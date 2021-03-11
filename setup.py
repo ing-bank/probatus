@@ -13,11 +13,14 @@ base_packages = [
     "scikit-learn>=0.24.0",
     "pandas>=1.1",
     "matplotlib>=3.3.4",
-    "scipy>=1.6.1",
     "joblib>=1.0.1",
     "tqdm>=4.59.0",
     "shap>=0.39.0",
     "numpy>=1.20.1",
+]
+
+extra_dep = [
+    "scipy>=1.6.1",
 ]
 
 dev_dep = [
@@ -77,7 +80,8 @@ setuptools.setup(
     ],
     install_requires=base_packages,
     extras_require={
-        "all": base_packages + dev_dep + docs_dep,
+        "extras": base_packages + extra_dep,
+        "all": base_packages + extra_dep + dev_dep + docs_dep,
     },
     url="https://github.com/ing-bank/probatus",
     zip_safe=False,
