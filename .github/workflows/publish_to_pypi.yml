@@ -18,10 +18,9 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -U setuptools wheel twine
-        pip install pytest
+        pip install ".[all]"
     - name: Make sure unit tests succeed
       run: |
-        pip install ".[all]"
         pytest
     - name: Build package & publish to PyPi
       env:
