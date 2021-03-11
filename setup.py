@@ -1,18 +1,23 @@
 import setuptools
 import os
 
+
 def read(fname):
+    """
+    Read contents of file as a string.
+    """
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
 
+
 base_packages = [
-    "scikit-learn>=0.22.2",
-    "pandas>=1.0.0",
-    "matplotlib>=3.1.1",
-    "scipy>=1.4.0",
-    "joblib>=0.13.2",
-    "tqdm>=4.41.0",
-    "shap>=0.38.1",
-    "numpy>=1.19.0"
+    "scikit-learn>=0.24.0",
+    "pandas>=1.2.3",
+    "matplotlib>=3.3.4",
+    "scipy>=1.6.1",
+    "joblib>=1.0.1",
+    "tqdm>=4.59.0",
+    "shap>=0.39.0",
+    "numpy>=1.20.1",
 ]
 
 dev_dep = [
@@ -56,7 +61,7 @@ setuptools.setup(
     author="ING Bank N.V.",
     author_email="mateusz.garbacz@ing.com",
     license="MIT License",
-    packages=setuptools.find_packages(exclude=['tests']),
+    packages=setuptools.find_packages(exclude=["tests"]),
     python_requires=">=3.6",
     classifiers=[
         "Intended Audience :: Developers",
