@@ -9,6 +9,9 @@ use_directory_urls: false
 
 nav:
   - Home: index.md
+  - Discussion:
+      - Vision: discussion/vision.md
+      - Contributing: discussion/contributing.md
   - Tutorials:
     - ShapRFECV - Recursive Feature Elimination using SHAP importance: tutorials/nb_shap_feature_elimination.ipynb
     - Tree-based & Linear Model Interpretation with SHAP: tutorials/nb_shap_model_interpreter.ipynb
@@ -23,7 +26,6 @@ nav:
     - probatus.sample_similarity: api/sample_similarity.md
     - probatus.stat_tests: api/stat_tests.md
     - probatus.utils: api/utils.md
-  - contributing.md
 
 
 plugins:
