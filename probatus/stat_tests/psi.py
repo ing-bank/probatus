@@ -21,14 +21,20 @@
 import warnings
 
 import numpy as np
-import scipy.stats as stats
+
+from probatus.utils import NotInstalledError
+
+try:
+    from scipy import stats
+except ModuleNotFoundError:
+    stats = NotInstalledError("scipy", "extras")
 
 from ..utils import assure_numpy_array
 
 
 def psi(d1, d2, verbose=False):
     """
-    Calculates the Population Stability Index
+    Calculates the Population Stability Index.
 
     A simple statistical test that quantifies the similarity of two distributions. Commonly used in the banking / risk
     modeling industry. Only works on categorical data or bucketed numerical data. Distributions must be binned/bucketed
@@ -83,9 +89,7 @@ def psi(d1, d2, verbose=False):
                 )
 
     # Calculate the PSI value
-    psi_value = np.sum(
-        (actual_ratio - expected_ratio) * np.log(actual_ratio / expected_ratio)
-    )
+    psi_value = np.sum((actual_ratio - expected_ratio) * np.log(actual_ratio / expected_ratio))
 
     # Print the evaluation of statistical hypotheses
     if verbose:
@@ -102,9 +106,7 @@ def psi(d1, d2, verbose=False):
         # Calculate the critical values and
         alpha = [0.95, 0.99, 0.999]
         z_alpha = stats.norm.ppf(alpha)
-        psi_critvals = ((1 / n) + (1 / m)) * (b - 1) + z_alpha * (
-            (1 / n) + (1 / m)
-        ) * np.sqrt(2 * (b - 1))
+        psi_critvals = ((1 / n) + (1 / m)) * (b - 1) + z_alpha * ((1 / n) + (1 / m)) * np.sqrt(2 * (b - 1))
         print("\nPSI: Critical values defined according to Yurdakul (2018):")
         if psi_value > psi_critvals[2]:
             print("99.9% confident distributions have changed.")
