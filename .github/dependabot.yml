@@ -1,9 +1,0 @@
-version: 2
-updates:
-  # Enable version updates for pip
-  - package-ecosystem: "pip"
-    # Look in the `root` directory
-    directory: "/"
-    # Check the pypi registry for updates every day (weekdays)
-    schedule:
-      interval: "daily"
