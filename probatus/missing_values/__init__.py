@@ -20,4 +20,4 @@
 
 from .imputation import ImputationSelector
 
-__all__ = ['ImputationSelector']
+__all__ = ["ImputationSelector"]
