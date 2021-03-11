@@ -29,7 +29,7 @@ import pandas as pd
 
 class ImputationSelector(BaseFitComputePlotClass):
     """
-    Comparison of various imputation stragegies that can be used for imputation 
+    Comparison of various imputation strategies that can be used for imputation 
     of missing values. 
     The aim of this class is to present the model performance based on imputation
     strategies and choosen model.
@@ -42,18 +42,33 @@ class ImputationSelector(BaseFitComputePlotClass):
     ```python
 
     #Import the class
-    from probatus.missing.imputation import CompareImputationStrategies
+    
+    import pandas as pd
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from probatus.missing_values.imputation import ImputationSelector
+    from probatus.utils.missing_helpers import generate_MCAR,get_data
+    import pandas as pd 
+    import lightgbm as lgb 
+    from sklearn.linear_model import LogisticRegression
+    from sklearn.experimental import enable_iterative_imputer  
+    from sklearn.impute import KNNImputer,SimpleImputer,IterativeImputer
+
+    #Create data.
+    X,y = get_data(n_samples=1000,n_numerical=10,n_category=5)
+    X_missing = generate_MCAR(X,missing=0.2)
+
     #Create the strategies.
     strategies = {
        'Simple Median Imputer' : SimpleImputer(strategy='median',add_indicator=True),
        'Simple Mean Imputer' : SimpleImputer(strategy='mean',add_indicator=True),
        'Iterative Imputer'  : IterativeImputer(add_indicator=True,n_nearest_features=5,
        sample_posterior=True),
-       'KNN' : KNNImputer(n_neighbors=3)
+       'KNN' : KNNImputer(n_neighbors=3)}
     #Create a classifier.
     clf = lgb.LGBMClassifier()
     #Create the comparision of the imputation strategies.
-    cmp = CompareImputationStrategies(
+    cmp = ImputationSelector(
         clf=clf,
         strategies=strategies,
         cv=5,
@@ -63,10 +78,8 @@ class ImputationSelector(BaseFitComputePlotClass):
     #Plot the results.
     cmp.plot()
 
-    <img src="../img/imputation_comparision.png" width="500" />
-   }
-
     ```
+    <img src="../img/imputation_comparision.png" width="500" />
 
     """
     def __init__(self,clf,strategies,scoring='roc_auc',cv=5,model_na_support=True,n_jobs=-1,verbose=0,
@@ -119,7 +132,7 @@ class ImputationSelector(BaseFitComputePlotClass):
         self.model_na_support = model_na_support
         self.scorer = get_single_scorer(scoring)
         self.strategies = strategies
-        self.cv = 5
+        self.cv = cv
         self.verbose = verbose
         self.n_jobs = n_jobs
         
@@ -129,7 +142,7 @@ class ImputationSelector(BaseFitComputePlotClass):
             self.random_state = random_state
 
         self.fitted = False
-        self.report = pd.DataFrame([])
+        self.report = pd.DataFrame(columns=['strategy','score','std'])
 
     def __repr__(self):
         return "Imputation comparision for {}".format(self.clf.__class__.__name__)
@@ -163,16 +176,11 @@ class ImputationSelector(BaseFitComputePlotClass):
         self.y = preprocess_labels(y, index=self.X.index, verbose=self.verbose)
                                                          
 
-        #Identify categorical features if not explicitly specified.
-        if 'auto' in categorical_columns:
-            X_cat = X.select_dtypes(include=['category','object'])
-            categorical_columns = X_cat.columns.to_list()
-            for column in categorical_columns:
-                X[column] = X[column].astype('category')
-        else :
-            #Check if the passed columns are in the dataframe.
-            assert categorical_columns in X.columns,"All categorical columns not in the dataframe."
-            X_cat = X[categorical_columns]
+        #Identify categorical features.
+        
+        X_cat = X.select_dtypes(include=['category','object'])
+        categorical_columns = X_cat.columns.to_list()
+        
         #Identify the numeric columns.Numeric columns are all columns expect the categorical
         # columns
         X_num = X.drop(columns = categorical_columns,inplace=False)
@@ -236,7 +244,7 @@ class ImputationSelector(BaseFitComputePlotClass):
                 )
 
             temp_results = {
-                    'strategy' : 'Model Imputation',
+                    'strategy' : 'No Imputation',
                     'score': np.round(np.mean(imputation_results),3),
                     'std':np.round(np.std(imputation_results),3),
                 }
