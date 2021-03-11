@@ -11,7 +11,7 @@ def read(fname):
 
 base_packages = [
     "scikit-learn>=0.24.0",
-    "pandas>=1.2.2",
+    "pandas>=1.1",
     "matplotlib>=3.3.4",
     "scipy>=1.6.1",
     "joblib>=1.0.1",
