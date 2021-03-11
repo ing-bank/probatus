@@ -35,7 +35,7 @@ jobs:
       env:
         SKIP_LIGHTGBM: ${{ matrix.SKIP_LIGHTGBM }}
       run: |
-        pip3 --upgrade setuptools pip
+        pip3 install --upgrade setuptools pip
         pip3 install ".[all]"
     - name: Run unit tests and linters
       env:

@@ -17,7 +17,7 @@ jobs:
     - name: Install dependencies
       run: |
         python3 -m pip install --upgrade pip
-        pip3 -U setuptools wheel twine
+        pip3 install -U setuptools wheel twine
         pip3 install ".[all]"
     - name: Make sure unit tests succeed
       run: |
