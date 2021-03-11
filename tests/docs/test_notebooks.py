@@ -14,6 +14,7 @@ NOTEBOOKS_PATH = './docs/tutorials/'
 
 NOTEBOOKS_TO_TEST_LGBM = [
     'nb_shap_feature_elimination',
+    'nb_imputation_comparision'
 ]
 
 NOTEBOOKS_TO_TEST = [
@@ -22,8 +23,7 @@ NOTEBOOKS_TO_TEST = [
     'nb_distribution_statistics',
     'nb_metric_volatility',
     'nb_sample_similarity',
-    'nb_shap_model_interpreter',
-    'nb_imputation_comparision'
+    'nb_shap_model_interpreter'
 ]
 
 

@@ -7,6 +7,8 @@ from sklearn.impute import KNNImputer,SimpleImputer,IterativeImputer
 import pandas as pd
 import numpy as np
 import pytest
+import os
+import lightgbm as lgb
 
 @pytest.fixture(scope='function')
 def X():
@@ -57,6 +59,31 @@ def test_imputation_bagging(X,y,strategies,capsys):
    assert cmp.fitted == True
    cmp._check_if_fitted()
    assert report.shape[0]==4
+
+   # Check if there is any prints
+   out, _ = capsys.readouterr()
+   assert len(out) == 0
+
+@pytest.mark.skipif(os.environ.get("SKIP_LIGHTGBM") == 'true', reason="LightGBM tests disabled")
+def test_imputation_boosting(X,y,capsys):
+    
+   #Create strategies for imputation.
+   strategies = {
+       'Simple Median Imputer' : SimpleImputer(strategy='median',add_indicator=True),
+       'Simple Mean Imputer' : SimpleImputer(strategy='mean',add_indicator=True),
+       'Iterative Imputer'  : IterativeImputer(add_indicator=True,n_nearest_features=5,
+       sample_posterior=True),
+       'KNN' : KNNImputer(n_neighbors=3),
+   }
+   #Initialize the classifier
+   clf = lgb.LGBMClassifier()
+   cmp = ImputationSelector(clf=clf,strategies=strategies,cv=3,model_na_support=True)
+   report = cmp.fit_compute(X,y)
+   cmp.plot(show=False)
+   
+   assert cmp.fitted == True
+   cmp._check_if_fitted()
+   assert report.shape[0]==5
 
    # Check if there is any prints
    out, _ = capsys.readouterr()
