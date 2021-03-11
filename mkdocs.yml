@@ -16,6 +16,8 @@ nav:
     - Multivariate Sample Similarity: tutorials/nb_sample_similarity.ipynb
     - Univariate Sample Similarity: tutorials/nb_distribution_statistics.ipynb
     - Custom Scoring Metrics: tutorials/nb_custom_scoring.ipynb
+  - HowTo:
+    - Reproducibility of the results: howto/reproducibility.ipynb
   - API:
     - probatus.feature_elimination: api/feature_elimination.md
     - probatus.interpret: api/model_interpret.md

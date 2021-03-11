@@ -10,28 +10,24 @@ plots_disable = "import matplotlib \n" \
                 "plt.ioff() \n" \
                 "matplotlib.use('Agg') \n" \
 
-NOTEBOOKS_PATH = './docs/tutorials/'
 
 NOTEBOOKS_TO_TEST_LGBM = [
-    'nb_shap_feature_elimination',
+    './docs/tutorials/nb_shap_feature_elimination',
 ]
 
 NOTEBOOKS_TO_TEST = [
-    'nb_binning',
-    'nb_custom_scoring',
-    'nb_distribution_statistics',
-    'nb_metric_volatility',
-    'nb_sample_similarity',
-    'nb_shap_model_interpreter'
+    './docs/tutorials/nb_binning',
+    './docs/tutorials/nb_custom_scoring',
+    './docs/tutorials/nb_distribution_statistics',
+    './docs/tutorials/nb_metric_volatility',
+    './docs/tutorials/nb_sample_similarity',
+    './docs/tutorials/nb_shap_model_interpreter'
+    './docs/howto/reproducibility'
 ]
 
 
-def get_notebook_path(notebook_name):
-    return os.path.join(NOTEBOOKS_PATH, notebook_name + '.ipynb')
-
-
 def execute_notebook_test(notebook_name):
-    notebook_path = get_notebook_path(notebook_name)
+    notebook_path = notebook_name + '.ipynb'
     code_to_execute = os.popen(f"jupyter nbconvert --to script --execute --stdout {notebook_path}").read()
     _ = os.popen(f"python3 -c {plots_disable + code_to_execute}").read()
 
