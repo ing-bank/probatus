@@ -10,17 +10,17 @@ def read(fname):
 
 
 base_packages = [
-    "scikit-learn>=0.24.0",
-    "pandas>=1.1",
-    "matplotlib>=3.3.4",
-    "joblib>=1.0.1",
-    "tqdm>=4.59.0",
-    "shap>=0.39.0",
-    "numpy>=1.20.1",
+    "scikit-learn==0.24.0",
+    "pandas==1.2.1",
+    "matplotlib==3.3.4",
+    "joblib==1.0.1",
+    "tqdm==4.59.0",
+    "shap==0.39.0",
+    "numpy==1.20.1",
 ]
 
 extra_dep = [
-    "scipy>=1.6.1",
+    "scipy==1.6.1",
 ]
 
 dev_dep = [
