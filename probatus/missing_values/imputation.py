@@ -54,7 +54,6 @@ class ImputationSelector(BaseFitComputePlotClass):
     import matplotlib.pyplot as plt
     from probatus.missing_values.imputation import ImputationSelector
     from probatus.utils.missing_helpers import generate_MCAR
-    import lightgbm as lgb
     from sklearn.linear_model import LogisticRegression
     from sklearn.experimental import enable_iterative_imputer
     from sklearn.impute import KNNImputer,SimpleImputer,IterativeImputer
@@ -74,13 +73,13 @@ class ImputationSelector(BaseFitComputePlotClass):
        sample_posterior=True),
        'KNN' : KNNImputer(n_neighbors=3)}
     #Create a classifier.
-    clf = lgb.LGBMClassifier()
+    clf = LogisticRegression()
     #Create the comparision of the imputation strategies.
     cmp = ImputationSelector(
         clf=clf,
         strategies=strategies,
         cv=5,
-        model_na_support=True)
+        model_na_support=False)
 
     cmp.fit_compute(X_missing,y)
     #Plot the results.
