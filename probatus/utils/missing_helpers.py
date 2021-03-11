@@ -1,8 +1,4 @@
-import pandas as pd
 import numpy as np
-from sklearn.preprocessing import KBinsDiscretizer
-from sklearn.datasets import make_classification 
-import string 
 
 def generate_MCAR(df,missing):
     """
