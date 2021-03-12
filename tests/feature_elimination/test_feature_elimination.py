@@ -140,9 +140,7 @@ def test_shap_rfe_cols_to_keep(X, y, capsys):
     """
     clf = DecisionTreeClassifier(max_depth=1, random_state=1)
     with pytest.warns(None) as record:
-        shap_elimination = ShapRFECV(
-            clf, random_state=1, step=2, cv=2, scoring="roc_auc", n_jobs=4, min_features_to_select=1
-        )
+        shap_elimination = ShapRFECV(clf, random_state=1, step=2, cv=2, scoring="roc_auc", n_jobs=4, min_features_to_select=1)
         shap_elimination = shap_elimination.fit(X, y, columns_to_keep=["col_2", "col_3"])
 
     assert shap_elimination.fitted

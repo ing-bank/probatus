@@ -12,10 +12,14 @@ import matplotlib
 
 # Turn off interactive mode in plots
 plt.ioff()
-matplotlib.use('Agg')
+matplotlib.use("Agg")
+
 
 @pytest.fixture(scope="function")
 def X_y():
+    """
+    Fixture.
+    """
     return (
         pd.DataFrame(
             [
@@ -42,6 +46,9 @@ def X_y():
 
 @pytest.fixture(scope="function")
 def expected_shap_vals():
+    """
+    Fixture.
+    """
     return pd.DataFrame(
         [
             [0.176667, 0.005833, 0.284167],
@@ -65,6 +72,9 @@ def expected_shap_vals():
 
 @pytest.fixture(scope="function")
 def clf(X_y):
+    """
+    Fixture.
+    """
     X, y = X_y
 
     model = RandomForestClassifier(random_state=42, n_estimators=10, max_depth=5)
@@ -72,18 +82,12 @@ def clf(X_y):
     model.fit(X, y)
     return model
 
-
-@pytest.fixture(scope="function")
-def clf(X_y):
-    X, y = X_y
-
-    model = RandomForestClassifier(random_state=42, n_estimators=10, max_depth=5)
-
-    model.fit(X, y)
-    return model
 
 @pytest.fixture(scope="function")
 def expected_feat_importances():
+    """
+    Test.
+    """
     return pd.DataFrame(
         {
             "Feature Name": {0: 2, 1: 1, 2: 0},
@@ -94,12 +98,18 @@ def expected_feat_importances():
 
 
 def test_not_fitted(clf):
+    """
+    Test.
+    """
     plotter = DependencePlotter(clf)
     assert plotter.fitted is False
 
 
-@pytest.mark.skipif(os.environ.get("SKIP_LIGHTGBM") == 'true', reason="LightGBM tests disabled")
+@pytest.mark.skipif(os.environ.get("SKIP_LIGHTGBM") == "true", reason="LightGBM tests disabled")
 def test_fit_complex(complex_data_split, complex_fitted_lightgbm):
+    """
+    Test.
+    """
     X_train, X_test, y_train, y_test = complex_data_split
 
     plotter = DependencePlotter(complex_fitted_lightgbm)
@@ -111,12 +121,15 @@ def test_fit_complex(complex_data_split, complex_fitted_lightgbm):
     assert plotter.fitted is True
 
     # Check if plotting doesnt cause errors
-    with patch('matplotlib.pyplot.figure') as mock_plt:
+    with patch("matplotlib.pyplot.figure") as _:
         for binning in ["simple", "agglomerative", "quantile"]:
-            _ = plotter.plot(feature='f2_missing', type_binning=binning)
+            _ = plotter.plot(feature="f2_missing", type_binning=binning)
 
 
 def test_get_X_y_shap_with_q_cut_normal(X_y, clf):
+    """
+    Test.
+    """
     X, y = X_y
 
     plotter = DependencePlotter(clf).fit(X, y)
@@ -148,30 +161,45 @@ def test_get_X_y_shap_with_q_cut_normal(X_y, clf):
 
 
 def test_get_X_y_shap_with_q_cut_unfitted(clf):
+    """
+    Test.
+    """
     plotter = DependencePlotter(clf)
     with pytest.raises(NotFittedError):
         plotter._get_X_y_shap_with_q_cut(0)
 
 
 def test_get_X_y_shap_with_q_cut_input(X_y, clf):
+    """
+    Test.
+    """
     plotter = DependencePlotter(clf).fit(X_y[0], X_y[1])
     with pytest.raises(ValueError):
         plotter._get_X_y_shap_with_q_cut("not a feature")
 
 
 def test_plot_normal(X_y, clf):
+    """
+    Test.
+    """
     plotter = DependencePlotter(clf).fit(X_y[0], X_y[1])
     for binning in ["simple", "agglomerative", "quantile"]:
-        fig = plotter.plot(feature=0, type_binning=binning)
+        _ = plotter.plot(feature=0, type_binning=binning)
 
 
 def test_plot_class_names(X_y, clf):
+    """
+    Test.
+    """
     plotter = DependencePlotter(clf).fit(X_y[0], X_y[1], class_names=["a", "b"])
-    fig = plotter.plot(feature=0)
+    _ = plotter.plot(feature=0)
     assert plotter.class_names == ["a", "b"]
 
 
 def test_plot_input(X_y, clf):
+    """
+    Test.
+    """
     plotter = DependencePlotter(clf).fit(X_y[0], X_y[1])
     with pytest.raises(ValueError):
         plotter.plot(feature="not a feature")
@@ -182,5 +210,8 @@ def test_plot_input(X_y, clf):
 
 
 def test__repr__(clf):
+    """
+    Test string representation.
+    """
     plotter = DependencePlotter(clf)
     assert str(plotter) == "Shap dependence plotter for RandomForestClassifier"

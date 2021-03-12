@@ -84,8 +84,7 @@ def shap_calc(
 
         if isinstance(shap_values, list) and len(shap_values) == 2:
             warnings.warn(
-                "Shap values are related to the output probabilities of class 1 for this model, instead of "
-                "log odds."
+                "Shap values are related to the output probabilities of class 1 for this model, instead of " "log odds."
             )
             shap_values = shap_values[1]
 
@@ -122,9 +121,7 @@ def shap_to_df(model, X, precalc_shap=None, **kwargs):
         return pd.DataFrame(shap_values, columns=X.columns, index=X.index)
 
     elif isinstance(X, np.ndarray) and len(X.shape) == 2:
-        return pd.DataFrame(
-            shap_values, columns=[f"col_{ix}" for ix in range(X.shape[1])]
-        )
+        return pd.DataFrame(shap_values, columns=[f"col_{ix}" for ix in range(X.shape[1])])
 
     else:
         raise NotImplementedError("X must be a dataframe or a 2d array")
@@ -149,7 +146,6 @@ def calculate_shap_importance(shap_values, columns, output_columns_suffix=""):
             Mean absolute shap values and Mean shap values of features.
 
     """
-
     # Find average shap importance for neg and pos class
     shap_abs_mean = np.mean(np.abs(shap_values), axis=0)
     shap_mean = np.mean(shap_values, axis=0)
@@ -167,12 +163,10 @@ def calculate_shap_importance(shap_values, columns, output_columns_suffix=""):
     importance_df[f"mean_abs_shap_value{output_columns_suffix}"] = importance_df[
         f"mean_abs_shap_value{output_columns_suffix}"
     ].astype(float)
-    importance_df[f"mean_shap_value{output_columns_suffix}"] = importance_df[
-        f"mean_shap_value{output_columns_suffix}"
-    ].astype(float)
-
-    importance_df = importance_df.sort_values(
-        f"mean_abs_shap_value{output_columns_suffix}", ascending=False
+    importance_df[f"mean_shap_value{output_columns_suffix}"] = importance_df[f"mean_shap_value{output_columns_suffix}"].astype(
+        float
     )
+
+    importance_df = importance_df.sort_values(f"mean_abs_shap_value{output_columns_suffix}", ascending=False)
 
     return importance_df

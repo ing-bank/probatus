@@ -39,8 +39,10 @@ import warnings
 
 class BaseVolatilityEstimator(BaseFitComputePlotClass):
     """
-    Base object for estimating volatility estimation. This class is a base class, therefore cannot be used on its
-        own. Implements common API that can be used by all subclasses.
+    Base object for estimating volatility estimation.
+
+    This class is a base class, therefore cannot be used on its
+    own. Implements common API that can be used by all subclasses.
     """
 
     def __init__(
@@ -54,7 +56,7 @@ class BaseVolatilityEstimator(BaseFitComputePlotClass):
         random_state=None,
     ):
         """
-        Initializes the class
+        Initializes the class.
 
         Args:
             clf (model object):
@@ -62,7 +64,8 @@ class BaseVolatilityEstimator(BaseFitComputePlotClass):
 
             scoring (string, list of strings, probatus.utils.Scorer or list of probatus.utils.Scorers, optional):
                 Metrics for which the score is calculated. It can be either a name or list of names metric names and
-                needs to be aligned with predefined [classification scorers names in sklearn](https://scikit-learn.org/stable/modules/model_evaluation.html).
+                needs to be aligned with predefined classification scorers names in sklearn
+                 ([link](https://scikit-learn.org/stable/modules/model_evaluation.html)).
                 Another option is using probatus.utils.Scorer to define a custom metric.
 
             test_prc (float, optional):
@@ -100,16 +103,12 @@ class BaseVolatilityEstimator(BaseFitComputePlotClass):
         self.iterations_results = None
         self.report = None
         self.verbose = verbose
-        self.allowed_stats_tests = list(
-            DistributionStatistics.statistical_test_dict.keys()
-        )
+        self.allowed_stats_tests = list(DistributionStatistics.statistical_test_dict.keys())
 
         # TODO set reasonable default value for the parameter, to choose the statistical test for the user for different
         #  ways to compute volatility
         if stats_tests_to_apply is not None:
-            self.stats_tests_to_apply = assure_list_of_strings(
-                stats_tests_to_apply, "stats_tests_to_apply"
-            )
+            self.stats_tests_to_apply = assure_list_of_strings(stats_tests_to_apply, "stats_tests_to_apply")
             assure_list_values_allowed(
                 variable=self.stats_tests_to_apply,
                 variable_name="stats_tests_to_apply",
@@ -126,9 +125,7 @@ class BaseVolatilityEstimator(BaseFitComputePlotClass):
                     "in mind that the samples of metrics might be correlated."
                 )
             for test_name in self.stats_tests_to_apply:
-                self.stats_tests_objects.append(
-                    DistributionStatistics(statistical_test=test_name)
-                )
+                self.stats_tests_objects.append(DistributionStatistics(statistical_test=test_name))
 
         self.scorers = get_scorers(scoring)
 
@@ -140,7 +137,6 @@ class BaseVolatilityEstimator(BaseFitComputePlotClass):
             (BaseVolatilityEstimator):
                 Fitted object.
         """
-
         # Set seed for results reproducibility
         if self.random_state is not None:
             np.random.seed(self.random_state)
@@ -163,7 +159,6 @@ class BaseVolatilityEstimator(BaseFitComputePlotClass):
             (pandas.Dataframe):
                 Report that contains the evaluation mean and std on train and test sets for each metric.
         """
-
         self._check_if_fitted()
         if self.report is None:
             raise (
@@ -189,7 +184,7 @@ class BaseVolatilityEstimator(BaseFitComputePlotClass):
         width_per_subplot=5,
     ):
         """
-        Plots distribution of the metric
+        Plots distribution of the metric.
 
         Args:
             metrics (str or list of strings, optional):
@@ -232,18 +227,12 @@ class BaseVolatilityEstimator(BaseFitComputePlotClass):
             for metric, row in target_report.iterrows():
                 train, test, delta = self._get_samples_to_plot(metric_name=metric)
 
-                axs[axis_index].hist(
-                    train, alpha=0.5, label="Train {}".format(metric), bins=bins
-                )
-                axs[axis_index].hist(
-                    test, alpha=0.5, label="Test {}".format(metric), bins=bins
-                )
+                axs[axis_index].hist(train, alpha=0.5, label="Train {}".format(metric), bins=bins)
+                axs[axis_index].hist(test, alpha=0.5, label="Test {}".format(metric), bins=bins)
                 axs[axis_index].set_title("Distributions {}".format(metric))
                 axs[axis_index].legend(loc="upper right")
 
-                axs[axis_index + 1].hist(
-                    delta, alpha=0.5, label="Delta {}".format(metric), bins=bins
-                )
+                axs[axis_index + 1].hist(delta, alpha=0.5, label="Delta {}".format(metric), bins=bins)
                 axs[axis_index + 1].set_title("Distributions delta {}".format(metric))
                 axs[axis_index + 1].legend(loc="upper right")
 
@@ -267,10 +256,7 @@ class BaseVolatilityEstimator(BaseFitComputePlotClass):
             metric_name (str):
                 Name of metric for which the data should be selected.
         """
-
-        current_metric_results = self.iterations_results[
-            self.iterations_results["metric_name"] == metric_name
-        ]
+        current_metric_results = self.iterations_results[self.iterations_results["metric_name"] == metric_name]
         train = current_metric_results["train_score"]
         test = current_metric_results["test_score"]
         delta = current_metric_results["delta_score"]
@@ -279,21 +265,18 @@ class BaseVolatilityEstimator(BaseFitComputePlotClass):
 
     def _create_report(self):
         """
+        Create a report.
+
         Based on the results for each metric for different sampling, mean and std of distributions of all metrics and
         store them as report.
         """
-
         unique_metrics = self.iterations_results["metric_name"].unique()
 
         # Get columns which will be filled
         stats_tests_columns = []
         for stats_tests_object in self.stats_tests_objects:
-            stats_tests_columns.append(
-                "{} statistic".format(stats_tests_object.statistical_test_name)
-            )
-            stats_tests_columns.append(
-                "{} p-value".format(stats_tests_object.statistical_test_name)
-            )
+            stats_tests_columns.append("{} statistic".format(stats_tests_object.statistical_test_name))
+            stats_tests_columns.append("{} p-value".format(stats_tests_object.statistical_test_name))
         stats_columns = [
             "train_mean",
             "train_std",
@@ -307,16 +290,10 @@ class BaseVolatilityEstimator(BaseFitComputePlotClass):
         self.report = pd.DataFrame([], columns=report_columns)
 
         for metric in unique_metrics:
-            metric_iterations_results = self.iterations_results[
-                self.iterations_results["metric_name"] == metric
-            ]
+            metric_iterations_results = self.iterations_results[self.iterations_results["metric_name"] == metric]
             metrics = self._compute_mean_std_from_runs(metric_iterations_results)
-            stats_tests_values = self._compute_stats_tests_values(
-                metric_iterations_results
-            )
-            metric_row = pd.DataFrame(
-                [metrics + stats_tests_values], columns=report_columns, index=[metric]
-            )
+            stats_tests_values = self._compute_stats_tests_values(metric_iterations_results)
+            metric_row = pd.DataFrame([metrics + stats_tests_values], columns=report_columns, index=[metric])
             self.report = self.report.append(metric_row)
 
     def _compute_mean_std_from_runs(self, metric_iterations_results):
@@ -369,6 +346,8 @@ class BaseVolatilityEstimator(BaseFitComputePlotClass):
 
     def fit_compute(self, *args, **kwargs):
         """
+        Fit compute.
+
         Runs trains and evaluates a number of models on train and test sets extracted using different random seeds.
             Reports the statistics of the selected metric.
 
@@ -378,18 +357,20 @@ class BaseVolatilityEstimator(BaseFitComputePlotClass):
             (pandas.Dataframe):
                 Report that contains the evaluation mean and std on train and test sets for each metric.
         """
-
         self.fit(*args, **kwargs)
         return self.compute()
 
 
 class TrainTestVolatility(BaseVolatilityEstimator):
     """
-    Estimation of volatility of metrics. The estimation is done by splitting the data into train and test multiple times
+    Estimation of volatility of metrics.
+
+    The estimation is done by splitting the data into train and test multiple times
         and training and scoring a model based on these metrics. The class allows for choosing whether at each iteration
         the train test split should be the same or different, whether and how the train and test sets should be sampled.
 
     Examples:
+
     ```python
     from sklearn.datasets import make_classification
     from sklearn.ensemble import RandomForestClassifier
@@ -420,7 +401,6 @@ class TrainTestVolatility(BaseVolatilityEstimator):
         verbose=0,
         random_state=None,
     ):
-
         """
         Initializes the class.
 
@@ -433,7 +413,8 @@ class TrainTestVolatility(BaseVolatilityEstimator):
 
             scoring (string, list of strings, probatus.utils.Scorer or list of probatus.utils.Scorers, optional):
                 Metrics for which the score is calculated. It can be either a name or list of names metric names and
-                needs to be aligned with predefined [classification scorers names in sklearn](https://scikit-learn.org/stable/modules/model_evaluation.html).
+                needs to be aligned with predefined classification scorers names in sklearn
+                ([link](https://scikit-learn.org/stable/modules/model_evaluation.html)).
                 Another option is using probatus.utils.Scorer to define a custom metric.
 
             sample_train_test_split_seed (bool, optional):
@@ -512,6 +493,8 @@ class TrainTestVolatility(BaseVolatilityEstimator):
 
     def fit(self, X, y, column_names=None):
         """
+        Fit.
+
         Bootstraps a number of random seeds, then splits the data based on the sampled seeds and estimates performance
             of the model based on the split data.
 
@@ -526,18 +509,15 @@ class TrainTestVolatility(BaseVolatilityEstimator):
                 List of feature names of the provided samples. If provided it will be used to overwrite the existing
                 feature names. If not provided the existing feature names are used or default feature names are
                 generated.
+
         Returns:
             (TrainTestVolatility):
                 Fitted object.
         """
         super().fit()
 
-        self.X, self.column_names = preprocess_data(
-            X, X_name="X", column_names=column_names, verbose=self.verbose
-        )
-        self.y = preprocess_labels(
-            y, y_name="y", index=self.X.index, verbose=self.verbose
-        )
+        self.X, self.column_names = preprocess_data(X, X_name="X", column_names=column_names, verbose=self.verbose)
+        self.y = preprocess_labels(y, y_name="y", index=self.X.index, verbose=self.verbose)
 
         if self.sample_train_test_split_seed:
             random_seeds = np.random.random_integers(0, 999999, self.iterations)
@@ -573,7 +553,9 @@ class TrainTestVolatility(BaseVolatilityEstimator):
 
 class SplitSeedVolatility(TrainTestVolatility):
     """
-    Estimation of volatility of metrics depending on the seed used to split the data. At every iteration it splits the
+    Estimation of volatility of metrics depending on the seed used to split the data.
+
+    At every iteration it splits the
         data into train and test set using a different stratified split and volatility of the metrics is calculated.
 
     Examples:
@@ -603,7 +585,7 @@ class SplitSeedVolatility(TrainTestVolatility):
         random_state=None,
     ):
         """
-        Initializes the class
+        Initializes the class.
 
         Args:
             clf (model object):
@@ -614,7 +596,8 @@ class SplitSeedVolatility(TrainTestVolatility):
 
             scoring (string, list of strings, probatus.utils.Scorer or list of probatus.utils.Scorers, optional):
                 Metrics for which the score is calculated. It can be either a name or list of names metric names and
-                needs to be aligned with predefined [classification scorers names in sklearn](https://scikit-learn.org/stable/modules/model_evaluation.html).
+                needs to be aligned with predefined classification scorers names in sklearn
+                ([link](https://scikit-learn.org/stable/modules/model_evaluation.html)).
                 Another option is using probatus.utils.Scorer to define a custom metric.
 
             test_prc (float, optional):
@@ -664,7 +647,9 @@ class SplitSeedVolatility(TrainTestVolatility):
 
 class BootstrappedVolatility(TrainTestVolatility):
     """
-    Estimation of volatility of metrics by bootstrapping both train and test set. By default at every iteration the
+    Estimation of volatility of metrics by bootstrapping both train and test set.
+
+    By default at every iteration the
         train test split is the same. The test shows volatility of metric with regards to sampling different rows from
         static train and test sets.
 
@@ -707,7 +692,8 @@ class BootstrappedVolatility(TrainTestVolatility):
 
             scoring (string, list of strings, probatus.utils.Scorer or list of probatus.utils.Scorers, optional):
                 Metrics for which the score is calculated. It can be either a name or list of names metric names and
-                needs to be aligned with predefined [classification scorers names in sklearn](https://scikit-learn.org/stable/modules/model_evaluation.html).
+                needs to be aligned with predefined classification scorers names in sklearn
+                ([link](https://scikit-learn.org/stable/modules/model_evaluation.html)).
                 Another option is using probatus.utils.Scorer to define a custom metric.
 
             train_sampling_fraction (float, optional):

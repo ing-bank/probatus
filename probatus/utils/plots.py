@@ -31,7 +31,9 @@ def plot_distributions_of_feature(
     plot_figsize=(15, 6),
 ):
     """
-    This function plots multiple distributions of the same feature. It is e.g. useful to compare
+    This function plots multiple distributions of the same feature.
+
+    It is e.g. useful to compare
     distribution between train and test.
 
     For categorical feature the plot bar is plotted, and for numeric the density plot.
@@ -63,9 +65,9 @@ def plot_distributions_of_feature(
         data_dict = {}
 
         for feature_distribution_index in range(len(feature_distributions)):
-            data_dict[sample_names[feature_distribution_index]] = feature_distributions[
-                feature_distribution_index
-            ].value_counts(normalize=True)
+            data_dict[sample_names[feature_distribution_index]] = feature_distributions[feature_distribution_index].value_counts(
+                normalize=True
+            )
 
         plt.ylabel("Relative frequencies of values in feature.")
     else:

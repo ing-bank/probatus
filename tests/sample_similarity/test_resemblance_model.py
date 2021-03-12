@@ -13,24 +13,30 @@ import matplotlib
 
 # Turn off interactive mode in plots
 plt.ioff()
-matplotlib.use('Agg')
+matplotlib.use("Agg")
 
-@pytest.fixture(scope='function')
+
+@pytest.fixture(scope="function")
 def X1():
-    return pd.DataFrame({'col_1': [1, 1, 1, 1],
-                         'col_2': [0, 0, 0, 0],
-                         'col_3': [0, 0, 0, 0]}, index=[1, 2, 3, 4])
+    """
+    Fixture.
+    """
+    return pd.DataFrame({"col_1": [1, 1, 1, 1], "col_2": [0, 0, 0, 0], "col_3": [0, 0, 0, 0]}, index=[1, 2, 3, 4])
 
 
-@pytest.fixture(scope='function')
+@pytest.fixture(scope="function")
 def X2():
-    return pd.DataFrame({'col_1': [0, 0, 0, 0],
-                         'col_2': [0, 0, 0, 0],
-                         'col_3': [0, 0, 0, 0]}, index=[1, 2, 3, 4])
+    """
+    Fixture.
+    """
+    return pd.DataFrame({"col_1": [0, 0, 0, 0], "col_2": [0, 0, 0, 0], "col_3": [0, 0, 0, 0]}, index=[1, 2, 3, 4])
 
 
 def test_base_class(X1, X2):
-    clf= DecisionTreeClassifier(max_depth=1, random_state=1)
+    """
+    Test.
+    """
+    clf = DecisionTreeClassifier(max_depth=1, random_state=1)
     rm = BaseResemblanceModel(clf, test_prc=0.5, n_jobs=1, random_state=42)
 
     # Before fit it should raise an exception
@@ -65,8 +71,12 @@ def test_base_class(X1, X2):
     with pytest.raises(NotImplementedError) as _:
         rm.plot()
 
+
 def test_base_class_lin_models(X1, X2):
-    #Test class BaseResemblanceModel for linear models.
+    """
+    Test.
+    """
+    # Test class BaseResemblanceModel for linear models.
     clf = LogisticRegression()
     rm = BaseResemblanceModel(clf, test_prc=0.5, n_jobs=1, random_state=42)
 
@@ -104,6 +114,9 @@ def test_base_class_lin_models(X1, X2):
 
 
 def test_shap_resemblance_class(X1, X2):
+    """
+    Test.
+    """
     clf = DecisionTreeClassifier(max_depth=1, random_state=1)
     rm = SHAPImportanceResemblance(clf, test_prc=0.5, n_jobs=1, random_state=42)
 
@@ -122,24 +135,28 @@ def test_shap_resemblance_class(X1, X2):
     # Check report shape
     assert actual_report.shape == (3, 2)
     # Check if it is sorted by importance
-    assert actual_report.iloc[0].name == 'col_1'
+    assert actual_report.iloc[0].name == "col_1"
     # Check report values
-    assert actual_report.loc['col_1']['mean_abs_shap_value'] > 0
-    assert actual_report.loc['col_1']['mean_shap_value'] == 0
-    assert actual_report.loc['col_2']['mean_abs_shap_value'] == 0
-    assert actual_report.loc['col_2']['mean_shap_value'] == 0
-    assert actual_report.loc['col_3']['mean_abs_shap_value'] == 0
-    assert actual_report.loc['col_3']['mean_shap_value'] == 0
+    assert actual_report.loc["col_1"]["mean_abs_shap_value"] > 0
+    assert actual_report.loc["col_1"]["mean_shap_value"] == 0
+    assert actual_report.loc["col_2"]["mean_abs_shap_value"] == 0
+    assert actual_report.loc["col_2"]["mean_shap_value"] == 0
+    assert actual_report.loc["col_3"]["mean_abs_shap_value"] == 0
+    assert actual_report.loc["col_3"]["mean_shap_value"] == 0
 
     actual_shap_values_test = rm.get_shap_values()
     assert actual_shap_values_test.shape == (4, 3)
 
     # Run plots
-    rm.plot(plot_type='bar')
-    rm.plot(plot_type='dot')
+    rm.plot(plot_type="bar")
+    rm.plot(plot_type="dot")
+
 
 def test_shap_resemblance_class_lin_models(X1, X2):
-    #Test SHAP Resemblance Model for linear models.
+    """
+    Test.
+    """
+    # Test SHAP Resemblance Model for linear models.
     clf = LogisticRegression()
     rm = SHAPImportanceResemblance(clf, test_prc=0.5, n_jobs=1, random_state=42)
 
@@ -158,39 +175,43 @@ def test_shap_resemblance_class_lin_models(X1, X2):
     # Check report shape
     assert actual_report.shape == (3, 2)
     # Check if it is sorted by importance
-    assert actual_report.iloc[0].name == 'col_1'
+    assert actual_report.iloc[0].name == "col_1"
     # Check report values
-    assert actual_report.loc['col_1']['mean_abs_shap_value'] > 0
-    assert actual_report.loc['col_1']['mean_shap_value'] > 0
-    assert actual_report.loc['col_2']['mean_abs_shap_value'] == 0
-    assert actual_report.loc['col_2']['mean_shap_value'] == 0
-    assert actual_report.loc['col_3']['mean_abs_shap_value'] == 0
-    assert actual_report.loc['col_3']['mean_shap_value'] == 0
+    assert actual_report.loc["col_1"]["mean_abs_shap_value"] > 0
+    assert actual_report.loc["col_1"]["mean_shap_value"] > 0
+    assert actual_report.loc["col_2"]["mean_abs_shap_value"] == 0
+    assert actual_report.loc["col_2"]["mean_shap_value"] == 0
+    assert actual_report.loc["col_3"]["mean_abs_shap_value"] == 0
+    assert actual_report.loc["col_3"]["mean_shap_value"] == 0
 
     actual_shap_values_test = rm.get_shap_values()
     assert actual_shap_values_test.shape == (4, 3)
 
     # Run plots
-    rm.plot(plot_type='bar')
-    rm.plot(plot_type='dot')
+    rm.plot(plot_type="bar")
+    rm.plot(plot_type="dot")
 
-@pytest.mark.skipif(os.environ.get("SKIP_LIGHTGBM") == 'true', reason="LightGBM tests disabled")
-def test_shap_resemblance_class(complex_data, complex_lightgbm):
+
+@pytest.mark.skipif(os.environ.get("SKIP_LIGHTGBM") == "true", reason="LightGBM tests disabled")
+def test_shap_resemblance_class2(complex_data, complex_lightgbm):
+    """
+    Test.
+    """
     X1, _ = complex_data
     X2 = X1.copy()
-    X2['f4'] = X2['f4'] + 100
+    X2["f4"] = X2["f4"] + 100
 
-    rm = SHAPImportanceResemblance(complex_lightgbm, scoring='accuracy', test_prc=0.5, n_jobs=1, random_state=42)
+    rm = SHAPImportanceResemblance(complex_lightgbm, scoring="accuracy", test_prc=0.5, n_jobs=1, random_state=42)
 
     # Before fit it should raise an exception
     with pytest.raises(NotFittedError) as _:
         rm._check_if_fitted()
 
-    actual_report, train_score, test_score = rm.fit_compute(X1, X2, return_scores=True, class_names=['a', 'b'])
+    actual_report, train_score, test_score = rm.fit_compute(X1, X2, return_scores=True, class_names=["a", "b"])
 
     # Check if the X and y within the rm have correct types
-    assert rm.X['f1_categorical'].dtype.name == 'category'
-    for num_column in ['f2_missing', 'f3_static', 'f4', 'f5']:
+    assert rm.X["f1_categorical"].dtype.name == "category"
+    for num_column in ["f2_missing", "f3_static", "f4", "f5"]:
         assert is_numeric_dtype(rm.X[num_column])
 
     # After the fit this should not raise any error
@@ -202,21 +223,24 @@ def test_shap_resemblance_class(complex_data, complex_lightgbm):
     # Check report shape
     assert actual_report.shape == (5, 2)
     # Check if it is sorted by importance
-    assert actual_report.iloc[0].name == 'f4'
+    assert actual_report.iloc[0].name == "f4"
 
     # Check report values
-    assert actual_report.loc['f4']['mean_abs_shap_value'] > 0
+    assert actual_report.loc["f4"]["mean_abs_shap_value"] > 0
 
     actual_shap_values_test = rm.get_shap_values()
     # 50 test samples and 5 features
     assert actual_shap_values_test.shape == (X1.shape[0], X1.shape[1])
 
     # Run plots
-    rm.plot(plot_type='bar', show=True)
-    rm.plot(plot_type='dot', show=False)
+    rm.plot(plot_type="bar", show=True)
+    rm.plot(plot_type="dot", show=False)
 
 
 def test_permutation_resemblance_class(X1, X2):
+    """
+    Test.
+    """
     clf = DecisionTreeClassifier(max_depth=1, random_state=1)
     rm = PermutationImportanceResemblance(clf, test_prc=0.5, n_jobs=1, random_state=42, iterations=20)
 
@@ -235,14 +259,14 @@ def test_permutation_resemblance_class(X1, X2):
     # Check report shape
     assert actual_report.shape == (3, 2)
     # Check if it is sorted by importance
-    assert actual_report.iloc[0].name == 'col_1'
+    assert actual_report.iloc[0].name == "col_1"
     # Check report values
-    assert actual_report.loc['col_1']['mean_importance'] > 0
-    assert actual_report.loc['col_1']['std_importance'] > 0
-    assert actual_report.loc['col_2']['mean_importance'] == 0
-    assert actual_report.loc['col_2']['std_importance'] == 0
-    assert actual_report.loc['col_3']['mean_importance'] == 0
-    assert actual_report.loc['col_3']['std_importance'] == 0
+    assert actual_report.loc["col_1"]["mean_importance"] > 0
+    assert actual_report.loc["col_1"]["std_importance"] > 0
+    assert actual_report.loc["col_2"]["mean_importance"] == 0
+    assert actual_report.loc["col_2"]["std_importance"] == 0
+    assert actual_report.loc["col_3"]["mean_importance"] == 0
+    assert actual_report.loc["col_3"]["std_importance"] == 0
 
     rm.plot(figsize=(10, 10))
     # Check plot size
@@ -252,6 +276,9 @@ def test_permutation_resemblance_class(X1, X2):
 
 
 def test_base_class_same_data(X1):
+    """
+    Test.
+    """
     clf = DecisionTreeClassifier(max_depth=1, random_state=1)
     rm = BaseResemblanceModel(clf, test_prc=0.5, n_jobs=1, random_state=42)
 
