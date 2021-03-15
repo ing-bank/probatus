@@ -18,9 +18,14 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
-from scipy import stats
 from ..utils import assure_numpy_array
 from probatus.stat_tests.utils import verbose_p_vals
+from probatus.utils import NotInstalledError
+
+try:
+    from scipy import stats
+except ModuleNotFoundError:
+    stats = NotInstalledError("scipy", "extras")
 
 
 @verbose_p_vals
@@ -46,9 +51,9 @@ def ad(d1, d2, verbose=False):
         verbose (bool): helpful interpretation msgs printed to stdout (default False)
 
     Returns:
-        (float, float): AD test stat and p-value of rejecting the null hypothesis (that the two distributions are identical)
+        (float, float): AD test stat and p-value of rejecting the null hypothesis
+                       (that the two distributions are identical)
     """
-
     d1 = assure_numpy_array(d1)
     d2 = assure_numpy_array(d2)
 

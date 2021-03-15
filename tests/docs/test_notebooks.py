@@ -5,14 +5,12 @@ import os
 
 # Turn off interactive mode in plots
 
-plots_disable = "import matplotlib \n" \
-                "import matplotlib.pyplot as plt \n" \
-                "plt.ioff() \n" \
-                "matplotlib.use('Agg') \n" \
-
+plots_disable = "import matplotlib \n" "import matplotlib.pyplot as plt \n" "plt.ioff() \n" "matplotlib.use('Agg') \n"
+NOTEBOOKS_PATH = "./docs/tutorials/"
 
 NOTEBOOKS_TO_TEST_LGBM = [
     './docs/tutorials/nb_shap_feature_elimination',
+    './docs/tutorials/nb_imputation_comparision'
 ]
 
 NOTEBOOKS_TO_TEST = [
@@ -25,19 +23,20 @@ NOTEBOOKS_TO_TEST = [
     './docs/howto/reproducibility'
 ]
 
-
 def execute_notebook_test(notebook_name):
+    """
+    Execute a notebook.
+    """
     notebook_path = notebook_name + '.ipynb'
+
     code_to_execute = os.popen(f"jupyter nbconvert --to script --execute --stdout {notebook_path}").read()
     _ = os.popen(f"python3 -c {plots_disable + code_to_execute}").read()
 
 
 @pytest.mark.parametrize("notebook_name", NOTEBOOKS_TO_TEST_LGBM)
-@pytest.mark.skipif(os.environ.get("SKIP_LIGHTGBM") == 'true', reason="LightGBM tests disabled")
+@pytest.mark.skipif(os.environ.get("SKIP_LIGHTGBM") == "true", reason="LightGBM tests disabled")
 def test_jupyter_notebook_lgbm(notebook_name):
-    execute_notebook_test(notebook_name)
-
-
-@pytest.mark.parametrize("notebook_name", NOTEBOOKS_TO_TEST)
-def test_jupyter_notebook_lgbm(notebook_name):
+    """
+    Test a notebook.
+    """
     execute_notebook_test(notebook_name)

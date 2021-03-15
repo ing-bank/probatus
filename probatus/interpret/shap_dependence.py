@@ -33,8 +33,9 @@ from probatus.utils import (
 
 class DependencePlotter(BaseFitComputePlotClass):
     """
-    Plotter used to plot SHAP dependence plot together with the target rates. Currently it supports tree-based and
-    linear models.
+    Plotter used to plot SHAP dependence plot together with the target rates.
+
+    Currently it supports tree-based and linear models.
 
     Args:
         model: classifier for which interpretation is done.
@@ -58,7 +59,7 @@ class DependencePlotter(BaseFitComputePlotClass):
 
     def __init__(self, clf, verbose=0):
         """
-        Initializes the class
+        Initializes the class.
 
         Args:
             clf (model object):
@@ -76,46 +77,37 @@ class DependencePlotter(BaseFitComputePlotClass):
         self.verbose = verbose
 
     def __repr__(self):
+        """
+        Represent string method.
+        """
         return "Shap dependence plotter for {}".format(self.clf.__class__.__name__)
 
     def fit(self, X, y, column_names=None, class_names=None, precalc_shap=None):
         """
-        Fits the plotter to the model and data by computing the shap values. If the shap_values are passed, they do not
-            need to be computed
+        Fits the plotter to the model and data by computing the shap values.
+
+        If the shap_values are passed, they do not need to be computed.
 
         Args:
-            X (pd.DataFrame):
-                input variables.
-
-            y (pd.Series):
-                target variable.
-
+            X (pd.DataFrame): input variables.
+            y (pd.Series): target variable.
             column_names (None, or list of str, optional):
                 List of feature names for the dataset. If None, then column names from the X_train dataframe are used.
-
             class_names (None, or list of str, optional):
                 List of class names e.g. ['neg', 'pos']. If none, the default ['Negative Class', 'Positive Class'] are
                 used.
-
             precalc_shap (Optional, None or np.array):
                 Precalculated shap values, If provided they don't need to be computed.
         """
-
-        self.X, self.column_names = preprocess_data(
-            X, X_name="X", column_names=column_names, verbose=self.verbose
-        )
-        self.y = preprocess_labels(
-            y, y_name="y", index=self.X.index, verbose=self.verbose
-        )
+        self.X, self.column_names = preprocess_data(X, X_name="X", column_names=column_names, verbose=self.verbose)
+        self.y = preprocess_labels(y, y_name="y", index=self.X.index, verbose=self.verbose)
 
         # Set class names
         self.class_names = class_names
         if self.class_names is None:
             self.class_names = ["Negative Class", "Positive Class"]
 
-        self.shap_vals_df = shap_to_df(
-            self.clf, self.X, precalc_shap=precalc_shap, verbose=self.verbose
-        )
+        self.shap_vals_df = shap_to_df(self.clf, self.X, precalc_shap=precalc_shap, verbose=self.verbose)
 
         self.fitted = True
         return self
@@ -134,7 +126,8 @@ class DependencePlotter(BaseFitComputePlotClass):
     def fit_compute(self, X, y, column_names=None, class_names=None, precalc_shap=None):
         """
         Fits the plotter to the model and data by computing the shap values.
-            If the shap_values are passed, they do not need to be computed
+
+        If the shap_values are passed, they do not need to be computed
 
         Args:
             X (pd.DataFrame):
@@ -157,7 +150,6 @@ class DependencePlotter(BaseFitComputePlotClass):
             (pd.DataFrame):
                 SHAP Values for X.
         """
-
         self.fit(
             X,
             y,
@@ -213,9 +205,7 @@ class DependencePlotter(BaseFitComputePlotClass):
         if feature not in self.X.columns:
             raise ValueError("Feature not recognized")
         if type_binning not in ["simple", "agglomerative", "quantile"]:
-            raise ValueError(
-                "Select one of the following binning methods: 'simple', 'agglomerative', 'quantile'"
-            )
+            raise ValueError("Select one of the following binning methods: 'simple', 'agglomerative', 'quantile'")
 
         self.min_q, self.max_q = min_q, max_q
 
@@ -224,9 +214,7 @@ class DependencePlotter(BaseFitComputePlotClass):
         ax2 = plt.subplot2grid((3, 1), (2, 0))
 
         self._dependence_plot(feature=feature, ax=ax1)
-        self._target_rate_plot(
-            feature=feature, bins=bins, type_binning=type_binning, ax=ax2
-        )
+        self._target_rate_plot(feature=feature, bins=bins, type_binning=type_binning, ax=ax2)
 
         ax2.set_xlim(ax1.get_xlim())
 
@@ -257,13 +245,9 @@ class DependencePlotter(BaseFitComputePlotClass):
 
         X, y, shap_val = self._get_X_y_shap_with_q_cut(feature=feature)
 
-        ax.scatter(
-            X[y == 0], shap_val[y == 0], label=self.class_names[0], color="lightblue"
-        )
+        ax.scatter(X[y == 0], shap_val[y == 0], label=self.class_names[0], color="lightblue")
 
-        ax.scatter(
-            X[y == 1], shap_val[y == 1], label=self.class_names[1], color="darkred"
-        )
+        ax.scatter(X[y == 1], shap_val[y == 1], label=self.class_names[1], color="darkred")
 
         ax.set_ylabel("Shap value")
         ax.set_title(f"Dependence plot for {feature} feature")
@@ -300,9 +284,7 @@ class DependencePlotter(BaseFitComputePlotClass):
             if type_binning == "simple":
                 counts, bins = SimpleBucketer.simple_bins(x, bins)
             elif type_binning == "agglomerative":
-                counts, bins = AgglomerativeBucketer.agglomerative_clustering_binning(
-                    x, bins
-                )
+                counts, bins = AgglomerativeBucketer.agglomerative_clustering_binning(x, bins)
             elif type_binning == "quantile":
                 counts, bins = QuantileBucketer.quantile_bins(x, bins)
 
@@ -311,9 +293,9 @@ class DependencePlotter(BaseFitComputePlotClass):
         indices = np.digitize(x, bins)
 
         # Create dataframe with binned data
-        dfs = pd.DataFrame(
-            {feature: x, "y": y, "bin_index": pd.Series(indices, index=x.index)}
-        ).groupby("bin_index", as_index=True)
+        dfs = pd.DataFrame({feature: x, "y": y, "bin_index": pd.Series(indices, index=x.index)}).groupby(
+            "bin_index", as_index=True
+        )
 
         # Extract target ratio and mean feature value
         target_ratio = dfs["y"].mean()
@@ -332,7 +314,7 @@ class DependencePlotter(BaseFitComputePlotClass):
 
     def _get_X_y_shap_with_q_cut(self, feature):
         """
-        Extracts all X, y pairs and shap values that fall within defined quantiles of the feature
+        Extracts all X, y pairs and shap values that fall within defined quantiles of the feature.
 
         Args:
             feature (str): feature to return values for

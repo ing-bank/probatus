@@ -10,10 +10,11 @@ import probatus.metric_volatility
 import probatus.sample_similarity
 import probatus.stat_tests
 import probatus.utils
+import probatus.missing_values
 
 # Turn off interactive mode in plots
 plt.ioff()
-matplotlib.use('Agg')
+matplotlib.use("Agg")
 
 CLASSES_TO_TEST = [
     probatus.binning.SimpleBucketer,
@@ -30,11 +31,13 @@ CLASSES_TO_TEST = [
     probatus.sample_similarity.PermutationImportanceResemblance,
     probatus.stat_tests.DistributionStatistics,
     probatus.stat_tests.AutoDist,
-    probatus.utils.Scorer
+    probatus.utils.Scorer,
+    probatus.missing_values.ImputationSelector,
 ]
 FUNCTIONS_TO_TEST = [
     probatus.utils.sample_row,
 ]
+
 
 def handle_docstring(doc, indent):
     """
@@ -52,6 +55,7 @@ def handle_docstring(doc, indent):
         if end != -1:
             code_part = doc[(start + 10) : end].replace(" " * indent, "")
             exec(code_part)
+
 
 @pytest.mark.parametrize("c", CLASSES_TO_TEST)
 def test_class_docstrings(c):

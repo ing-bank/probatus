@@ -1,8 +1,13 @@
 import setuptools
 import os
 
+
 def read(fname):
+    """
+    Read contents of file as a string.
+    """
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
+
 
 base_packages = [
     "scikit-learn>=0.22.2",
@@ -12,7 +17,11 @@ base_packages = [
     "joblib>=0.13.2",
     "tqdm>=4.41.0",
     "shap>=0.38.1",
-    "numpy>=1.19.0"
+    "numpy>=1.19.0",
+]
+
+extra_dep = [
+    "scipy>=1.4.0",
 ]
 
 dev_dep = [
@@ -56,7 +65,7 @@ setuptools.setup(
     author="ING Bank N.V.",
     author_email="mateusz.garbacz@ing.com",
     license="MIT License",
-    packages=setuptools.find_packages(exclude=['tests']),
+    packages=setuptools.find_packages(exclude=["tests"]),
     python_requires=">=3.6",
     classifiers=[
         "Intended Audience :: Developers",
@@ -72,7 +81,8 @@ setuptools.setup(
     ],
     install_requires=base_packages,
     extras_require={
-        "all": base_packages + dev_dep + docs_dep,
+        "extras": base_packages + extra_dep,
+        "all": base_packages + extra_dep + dev_dep + docs_dep,
     },
     url="https://github.com/ing-bank/probatus",
     zip_safe=False,

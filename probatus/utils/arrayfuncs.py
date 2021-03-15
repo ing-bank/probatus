@@ -28,6 +28,7 @@ import warnings
 def check_1d(x):
     """
     Checks whether or not a list, numpy array, pandas dataframe, pandas series are one-dimensional.
+
     Returns True when check is ok, otherwise throws a `DimensionalityError`
 
     Args:
@@ -60,7 +61,7 @@ def check_1d(x):
 
 def assure_numpy_array(x, assure_1d=False):
     """
-    Returns x as numpy array. X can be a list, numpy array, pandas dataframe, pandas series
+    Returns x as numpy array. X can be a list, numpy array, pandas dataframe, pandas series.
 
     Args:
         x: list, numpy array, pandas dataframe, pandas series
@@ -86,7 +87,7 @@ def assure_numpy_array(x, assure_1d=False):
 
 def assure_pandas_df(x, column_names=None):
     """
-    Returns x as pandas DataFrame. X can be a list, list of lists, numpy array, pandas DataFrame or pandas Series
+    Returns x as pandas DataFrame. X can be a list, list of lists, numpy array, pandas DataFrame or pandas Series.
 
     Args:
         x (list, numpy array, pandas DataFrame, pandas Series): array to be tested
@@ -108,14 +109,12 @@ def assure_pandas_df(x, column_names=None):
     ):
         return pd.DataFrame(x, columns=column_names)
     else:
-        raise TypeError(
-            "Please supply a list, numpy array, pandas Series or pandas DataFrame"
-        )
+        raise TypeError("Please supply a list, numpy array, pandas Series or pandas DataFrame")
 
 
 def assure_pandas_series(x, index=None):
     """
-    Returns x as pandas Series. X can be a list, numpy array, or pandas Series
+    Returns x as pandas Series. X can be a list, numpy array, or pandas Series.
 
     Args:
         x (list, numpy array, pandas DataFrame, pandas Series): array to be tested
@@ -145,7 +144,7 @@ def assure_pandas_series(x, index=None):
 
 def check_numeric_dtypes(x):
     """
-    Checks if all entries in an array are of a data type that can be interpreted as numeric (int, float or bool)
+    Checks if all entries in an array are of a data type that can be interpreted as numeric (int, float or bool).
 
     Args:
         x (np.ndarray or pd.Series, list): array to be checked
@@ -167,6 +166,8 @@ def check_numeric_dtypes(x):
 
 def preprocess_data(X, X_name=None, column_names=None, verbose=0):
     """
+    Preprocess data.
+
     Does basic preprocessing of the data: Transforms to DataFrame, Warns which features have missing variables,
     and transforms object dtype features to category type, such that LightGBM handles them by default.
 
@@ -194,7 +195,6 @@ def preprocess_data(X, X_name=None, column_names=None, verbose=0):
         (pd.DataFrame):
             Preprocessed dataset.
     """
-
     if X_name is None:
         X_name = "X"
 
@@ -202,9 +202,7 @@ def preprocess_data(X, X_name=None, column_names=None, verbose=0):
     X = assure_pandas_df(X, column_names=column_names)
 
     # Warn if missing
-    columns_with_missing = [
-        column for column in X.columns if X[column].isnull().values.any()
-    ]
+    columns_with_missing = [column for column in X.columns if X[column].isnull().values.any()]
     if len(columns_with_missing) > 0:
         if verbose > 0:
             warnings.warn(
@@ -214,9 +212,7 @@ def preprocess_data(X, X_name=None, column_names=None, verbose=0):
 
     # Warn if categorical features and change to category
     indices_categorical_features = [
-        column[0]
-        for column in enumerate(X.dtypes)
-        if column[1].name in ["category", "object"]
+        column[0] for column in enumerate(X.dtypes) if column[1].name in ["category", "object"]
     ]
     categorical_features = list(X.columns[indices_categorical_features])
 

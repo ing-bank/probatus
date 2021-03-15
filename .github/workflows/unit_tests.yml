@@ -31,12 +31,16 @@ jobs:
       uses: actions/setup-python@master
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Static code checking with pyflakes
+    - name: Install dependencies
       env:
         SKIP_LIGHTGBM: ${{ matrix.SKIP_LIGHTGBM }}
       run: |
-        pip install --upgrade setuptools pip
-        pip install ".[all]"
+        pip3 install --upgrade setuptools pip
+        pip3 install ".[all]"
+    - name: Run unit tests and linters
+      env:
+        SKIP_LIGHTGBM: ${{ matrix.SKIP_LIGHTGBM }}
+      run: |
         pytest --cov=probatus/binning --cov=probatus/metric_volatility --cov=probatus/sample_similarity --cov=probatus/stat_tests --cov=probatus/utils --cov=probatus/interpret/ --ignore==tests/interpret/test_inspector.py --cov-report=xml
         pyflakes probatus
         mypy probatus --ignore-missing-imports

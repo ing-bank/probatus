@@ -20,14 +20,21 @@
 
 import pandas as pd
 import random
-from scipy import stats
 from ..utils import assure_numpy_array
+
+from probatus.utils import NotInstalledError
+
+try:
+    from scipy import stats
+except ModuleNotFoundError:
+    stats = NotInstalledError("scipy", "extras")
 
 
 def sw(d1, d2, verbose=False):
     """
-    Examines whether deviation from normality of two distributions are significantly different. By using Shapiro-Wilk test
-    as the basis.
+    Examines whether deviation from normality of two distributions are significantly different.
+
+    By using Shapiro-Wilk test as the basis.
 
     Args:
         d1 (np.ndarray or pd.core.series.Series) : first sample.
@@ -37,9 +44,9 @@ def sw(d1, d2, verbose=False):
         verbose (bool)                           : helpful interpretation msgs printed to stdout (default False).
 
     Returns:
-        (float, float): SW test stat and p-value of rejecting the null hypothesis (that the two distributions are identical).
+        (float, float): SW test stat and p-value of rejecting the null hypothesis
+                        (that the two distributions are identical).
     """
-
     d1 = assure_numpy_array(d1)
     d2 = assure_numpy_array(d2)
 
@@ -78,14 +85,10 @@ def sw(d1, d2, verbose=False):
     if verbose:
 
         if delta < sig_vals[0] or delta > sig_vals[1]:
-            print(
-                "\nShapiro_Difference | Null hypothesis : <delta is not different from zero> REJECTED."
-            )
+            print("\nShapiro_Difference | Null hypothesis : <delta is not different from zero> REJECTED.")
             print("\nDelta is outside 95% CI -> Distributions very different.")
         else:
-            print(
-                "\nShapiro_Difference | Null hypothesis : <delta is not different from zero> NOT REJECTED."
-            )
+            print("\nShapiro_Difference | Null hypothesis : <delta is not different from zero> NOT REJECTED.")
             print("\nDelta is inside 95% CI -> Distributions are not different.")
 
     return delta, delta_p_value
