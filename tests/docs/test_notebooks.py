@@ -8,9 +8,7 @@ import os
 plots_disable = "import matplotlib \n" "import matplotlib.pyplot as plt \n" "plt.ioff() \n" "matplotlib.use('Agg') \n"
 NOTEBOOKS_PATH = "./docs/tutorials/"
 
-NOTEBOOKS_TO_TEST_LGBM = [
-    "nb_shap_feature_elimination",
-]
+NOTEBOOKS_TO_TEST_LGBM = ["nb_shap_feature_elimination", "nb_imputation_comparision"]
 
 NOTEBOOKS_TO_TEST = [
     "nb_binning",
