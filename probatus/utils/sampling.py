@@ -1,5 +1,5 @@
 """
-Utility functions for sampling
+Utility functions for sampling.
 
 This module holds utility functions for sampling data. They can be used, for
 example, to provide a random single typical datapoin in a technical report.
@@ -77,9 +77,7 @@ def sample_row(
         try:
             sample_row = X.dropna().sample(1, random_state=random_state)
         except ValueError:
-            logging.info(
-                "sample_row(): No rows without NaN found, sampling from all rows.."
-            )
+            logging.info("sample_row(): No rows without NaN found, sampling from all rows..")
 
     # Sample every column of X
     for i, col in enumerate(sample_row.columns):
@@ -96,11 +94,7 @@ def sample_row(
 
             # Shorten sampled datapoint if too long
             if isinstance(sample, str) and len(sample) > max_field_len:
-                sample = (
-                    sample[: (max_field_len // 2) - 1]
-                    + "..."
-                    + sample[(-max_field_len // 2) + 2 :]
-                )
+                sample = sample[: (max_field_len // 2) - 1] + "..." + sample[(-max_field_len // 2) + 2 :]
 
         # Add new row to sample_df
         row_df = pd.DataFrame(

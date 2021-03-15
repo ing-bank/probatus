@@ -36,7 +36,9 @@ import pandas as pd
 
 class ShapModelInterpreter(BaseFitComputePlotClass):
     """
-    This class is a wrapper that allows to easily analyse model's features. It allows to plot SHAP feature importance,
+    This class is a wrapper that allows to easily analyse model's features.
+
+    It allows to plot SHAP feature importance,
         SHAP summary plot and SHAP dependence plots.
 
     Example:
@@ -86,7 +88,8 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
 
             scoring (string or probatus.utils.Scorer, optional):
                 Metric for which the model performance is calculated. It can be either a metric name  aligned with
-                predefined [classification scorers names in sklearn](https://scikit-learn.org/stable/modules/model_evaluation.html).
+                predefined classification scorers names in sklearn
+                ([link](https://scikit-learn.org/stable/modules/model_evaluation.html)).
                 Another option is using probatus.utils.Scorer to define a custom metric.
 
             verbose (int, optional):
@@ -139,21 +142,16 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
                 if True uses shap approximations - less accurate, but very fast.
 
             **shap_kwargs:
-                keyword arguments passed to [shap.Explainer](https://shap.readthedocs.io/en/latest/generated/shap.Explainer.html#shap.Explainer).
+                keyword arguments passed to
+                [shap.Explainer](https://shap.readthedocs.io/en/latest/generated/shap.Explainer.html#shap.Explainer).
         """
 
         self.X_train, self.column_names = preprocess_data(
             X_train, X_name="X_train", column_names=column_names, verbose=self.verbose
         )
-        self.X_test, _ = preprocess_data(
-            X_test, X_name="X_test", column_names=column_names, verbose=self.verbose
-        )
-        self.y_train = preprocess_labels(
-            y_train, y_name="y_train", index=self.X_train.index, verbose=self.verbose
-        )
-        self.y_test = preprocess_labels(
-            y_test, y_name="y_test", index=self.X_test.index, verbose=self.verbose
-        )
+        self.X_test, _ = preprocess_data(X_test, X_name="X_test", column_names=column_names, verbose=self.verbose)
+        self.y_train = preprocess_labels(y_train, y_name="y_train", index=self.X_train.index, verbose=self.verbose)
+        self.y_test = preprocess_labels(y_test, y_name="y_test", index=self.X_test.index, verbose=self.verbose)
 
         # Set class names
         self.class_names = class_names
@@ -169,11 +167,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
             f"Test {self.scorer.metric_name}: {np.round(self.test_score, 3)}."
         )
 
-        (
-            self.shap_values_train,
-            self.expected_value_train,
-            self.tdp_train,
-        ) = self._prep_shap_related_variables(
+        (self.shap_values_train, self.expected_value_train, self.tdp_train,) = self._prep_shap_related_variables(
             clf=self.clf,
             X=self.X_train,
             y=self.y_train,
@@ -184,11 +178,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
             **shap_kwargs,
         )
 
-        (
-            self.shap_values_test,
-            self.expected_value_test,
-            self.tdp_test,
-        ) = self._prep_shap_related_variables(
+        (self.shap_values_test, self.expected_value_test, self.tdp_test,) = self._prep_shap_related_variables(
             clf=self.clf,
             X=self.X_test,
             y=self.y_test,
@@ -213,8 +203,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
         **shap_kwargs,
     ):
         """
-        The function prepares the variables related to shap that are used to interpret the model:
-
+        The function prepares the variables related to shap that are used to interpret the model.
 
         Returns:
             (np.array, int, DependencePlotter):
@@ -272,9 +261,9 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
         )
 
         # Concatenate the train and test, sort by test set importance and reorder the columns
-        self.importance_df = pd.concat(
-            [self.importance_df_train, self.importance_df_test], axis=1
-        ).sort_values("mean_abs_shap_value_test", ascending=False)[
+        self.importance_df = pd.concat([self.importance_df_train, self.importance_df_test], axis=1).sort_values(
+            "mean_abs_shap_value_test", ascending=False
+        )[
             [
                 "mean_abs_shap_value_test",
                 "mean_abs_shap_value_train",
@@ -317,22 +306,27 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
                 Series of binary labels for test data.
 
             column_names (None, or list of str, optional):
-                List of feature names for the dataset. If None, then column names from the X_train dataframe are used.
+                List of feature names for the dataset.
+                If None, then column names from the X_train dataframe are used.
 
             class_names (None, or list of str, optional):
-                List of class names e.g. ['neg', 'pos']. If none, the default ['Negative Class', 'Positive Class'] are
+                List of class names e.g. ['neg', 'pos'].
+                If none, the default ['Negative Class', 'Positive Class'] are
                 used.
 
             approximate (boolean, optional):
                 if True uses shap approximations - less accurate, but very fast.
 
             return_scores (bool, optional):
-                Flag indicating whether the method should return the train and test score of the model, together with
-                the model interpretation report. If true, the output of this method is a tuple of DataFrame, float,
+                Flag indicating whether the method should return
+                the train and test score of the model,
+                together with the model interpretation report. If true,
+                the output of this method is a tuple of DataFrame, float,
                 float.
 
             **shap_kwargs: keyword arguments passed to
-                keyword arguments passed to [shap.Explainer](https://shap.readthedocs.io/en/latest/generated/shap.Explainer.html#shap.Explainer).
+                keyword arguments passed to
+                [shap.Explainer](https://shap.readthedocs.io/en/latest/generated/shap.Explainer.html#shap.Explainer).
 
         Returns:
             (pd.DataFrame or tuple(pd.DataFrame, float, float)):
@@ -361,7 +355,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
         **plot_kwargs,
     ):
         """
-        Plots the appropriate SHAP plot
+        Plots the appropriate SHAP plot.
 
         Args:
             plot_type (str):
@@ -401,9 +395,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
             target_columns = self.column_names
 
         target_columns = assure_list_of_strings(target_columns, "target_columns")
-        target_columns_indices = [
-            self.column_names.index(target_column) for target_column in target_columns
-        ]
+        target_columns_indices = [self.column_names.index(target_column) for target_column in target_columns]
 
         # Choose the correct dataset
         if target_set == "test":
@@ -417,9 +409,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
             target_tdp = self.tdp_test
             target_expected_value = self.expected_value_test
         else:
-            raise (
-                ValueError('The target_set parameter can be either "train" or "test".')
-            )
+            raise (ValueError('The target_set parameter can be either "train" or "test".'))
 
         if plot_type in ["importance", "summary"]:
             target_X = target_X[target_columns]
@@ -459,28 +449,16 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
         elif plot_type == "dependence":
             ax = []
             for feature_name in target_columns:
-                ax.append(
-                    target_tdp.plot(feature=feature_name, figsize=(10, 7), show=show, **plot_kwargs)
-                )
+                ax.append(target_tdp.plot(feature=feature_name, figsize=(10, 7), show=show, **plot_kwargs))
 
         elif plot_type == "sample":
             # Ensure the correct samples_index type
             if samples_index is None:
-                raise (
-                    ValueError(
-                        "For sample plot, you need to specify the samples_index be plotted plot"
-                    )
-                )
+                raise (ValueError("For sample plot, you need to specify the samples_index be plotted plot"))
             elif isinstance(samples_index, int) or isinstance(samples_index, str):
                 samples_index = [samples_index]
-            elif not (
-                isinstance(samples_index, list) or isinstance(samples_index, pd.Index)
-            ):
-                raise (
-                    TypeError(
-                        "sample_index must be one of the following: int, str, list or pd.Index"
-                    )
-                )
+            elif not (isinstance(samples_index, list) or isinstance(samples_index, pd.Index)):
+                raise (TypeError("sample_index must be one of the following: int, str, list or pd.Index"))
 
             ax = []
             for sample_index in samples_index:
@@ -503,9 +481,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
                 else:
                     plt.close()
         else:
-            raise ValueError(
-                "Wrong plot type, select from 'importance', 'summary', or 'dependence'"
-            )
+            raise ValueError("Wrong plot type, select from 'importance', 'summary', or 'dependence'")
 
         if isinstance(ax, list) and len(ax) == 1:
             ax = ax[0]

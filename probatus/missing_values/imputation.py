@@ -35,8 +35,10 @@ import pandas as pd
 
 class ImputationSelector(BaseFitComputePlotClass):
     """
-    Comparison of various imputation strategies that can be used for imputing
-    missing values.
+    Comparison of various imputation strategies.
+
+    that can be used for imputing missing values.
+
     The aim of this class is to present the model performance based on imputation
     strategies and a choosen model.
     For models like XGBoost & LighGBM which have capabilities to handle missing values by default
@@ -59,13 +61,13 @@ class ImputationSelector(BaseFitComputePlotClass):
     from sklearn.impute import KNNImputer,SimpleImputer,IterativeImputer
     from sklearn.datasets import make_classification
 
-    #Create data with missing values.
+    # Create data with missing values.
     n_features = 10
     X,y = make_classification(n_samples=1000,n_features=n_features,random_state=123,class_sep=0.3)
     X = pd.DataFrame(X, columns=["f_"+str(i) for i in range(0,n_features)])
     X_missing = generate_MCAR(X,missing=0.2)
 
-    #Create the strategies.
+    # Create the strategies.
     strategies = {
        'Simple Median Imputer' : SimpleImputer(strategy='median',add_indicator=True),
        'Simple Mean Imputer' : SimpleImputer(strategy='mean',add_indicator=True),
@@ -86,6 +88,7 @@ class ImputationSelector(BaseFitComputePlotClass):
     performance_plot=cmp.plot()
 
     ```
+
     <img src="../img/imputation_comparision.png" width="500" />
 
     """
@@ -143,7 +146,7 @@ class ImputationSelector(BaseFitComputePlotClass):
                 Random state set at each round of feature elimination. If it is None, the results will not be
                 reproducible and in random search at each iteration a different hyperparameters might be tested. For
                 reproducible results set it to integer.
-        """
+        """  # noqa
         self.clf = clf
         self.model_na_support = model_na_support
         self.cv = cv
@@ -156,6 +159,9 @@ class ImputationSelector(BaseFitComputePlotClass):
         self.report_df = pd.DataFrame([])
 
     def __repr__(self):
+        """
+        String representation.
+        """
         return "Imputation comparision for {}".format(self.clf.__class__.__name__)
 
     def fit(self, X, y, column_names=None):
@@ -179,9 +185,7 @@ class ImputationSelector(BaseFitComputePlotClass):
         # Place holder for results.
         results = []
 
-        self.X, self.column_names = preprocess_data(
-            X, column_names=column_names, verbose=self.verbose
-        )
+        self.X, self.column_names = preprocess_data(X, column_names=column_names, verbose=self.verbose)
         self.y = preprocess_labels(y, index=self.X.index, verbose=self.verbose)
 
         # Identify categorical features.
@@ -191,9 +195,7 @@ class ImputationSelector(BaseFitComputePlotClass):
 
         for strategy in self.strategies:
 
-            numeric_transformer = Pipeline(
-                steps=[("imputer", self.strategies[strategy])]
-            )
+            numeric_transformer = Pipeline(steps=[("imputer", self.strategies[strategy])])
 
             categorical_transformer = Pipeline(
                 steps=[
@@ -217,13 +219,9 @@ class ImputationSelector(BaseFitComputePlotClass):
                 remainder="passthrough",
             )
 
-            model_pipeline = Pipeline(
-                steps=[("preprocessor", preprocessor), ("classifier", self.clf)]
-            )
+            model_pipeline = Pipeline(steps=[("preprocessor", preprocessor), ("classifier", self.clf)])
 
-            temp_results = self._calculate_results(
-                X, y, clf=model_pipeline, strategy=strategy
-            )
+            temp_results = self._calculate_results(X, y, clf=model_pipeline, strategy=strategy)
 
             results.append(temp_results)
 
@@ -242,13 +240,9 @@ class ImputationSelector(BaseFitComputePlotClass):
                 remainder="passthrough",
             )
 
-            model_pipeline = Pipeline(
-                steps=[("preprocessor", preprocessor), ("classifier", self.clf)]
-            )
+            model_pipeline = Pipeline(steps=[("preprocessor", preprocessor), ("classifier", self.clf)])
 
-            temp_results = self._calculate_results(
-                X, y, clf=model_pipeline, strategy="No Imputation"
-            )
+            temp_results = self._calculate_results(X, y, clf=model_pipeline, strategy="No Imputation")
             results.append(temp_results)
 
         self.report_df = pd.DataFrame(results)
@@ -291,16 +285,10 @@ class ImputationSelector(BaseFitComputePlotClass):
             return_train_score=True,
         )
         # Calculate the mean of the results.
-        imp_agg_results = dict(
-            (k, np.mean(v)) for k, v in imputation_cv_results.items()
-        )
-        imp_agg_results = {
-            "mean_" + str(key): val for key, val in imp_agg_results.items()
-        }
+        imp_agg_results = dict((k, np.mean(v)) for k, v in imputation_cv_results.items())
+        imp_agg_results = {"mean_" + str(key): val for key, val in imp_agg_results.items()}
         imp_agg_results["test_score_std"] = np.std(imputation_cv_results["test_score"])
-        imp_agg_results["train_score_std"] = np.std(
-            imputation_cv_results["train_score"]
-        )
+        imp_agg_results["train_score_std"] = np.std(imputation_cv_results["train_score"])
         # Round off all calculations to 3 decimal places
         imp_agg_results = dict((k, np.round(v, 3)) for k, v in imp_agg_results.items())
         imp_agg_results["strategy"] = strategy
@@ -309,7 +297,9 @@ class ImputationSelector(BaseFitComputePlotClass):
 
     def compute(self):
         """
-        Checks if fit() method has been run and computes the DataFrame with results of imputation for each
+        Checks if fit() method has been run.
+
+        and computes the DataFrame with results of imputation for each
         strategy.
 
         Returns:
@@ -379,7 +369,7 @@ class ImputationSelector(BaseFitComputePlotClass):
                 ax.annotate(
                     "{}".format(width),
                     xy=((width + 0.05 * width), rect.get_y() + rect.get_height() / 2),
-                    xytext=(4,0),  # 4 points horizontal offset
+                    xytext=(4, 0),  # 4 points horizontal offset
                     textcoords="offset points",
                     ha="center",
                     va="bottom",
@@ -410,9 +400,9 @@ class ImputationSelector(BaseFitComputePlotClass):
         ax.set_yticks(y)
         ax.set_yticklabels(imp_methods, rotation=45)
         plt.margins(0.2)
-        plt.legend(loc="best",ncol=2)
+        plt.legend(loc="best", ncol=2)
         fig.tight_layout()
-        
+
         if show:
             plt.show()
         else:

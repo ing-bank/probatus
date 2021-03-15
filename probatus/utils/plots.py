@@ -31,14 +31,16 @@ def plot_distributions_of_feature(
     plot_figsize=(15, 6),
 ):
     """
-    This function plots multiple distributions of the same feature. It is e.g. useful to compare
+    This function plots multiple distributions of the same feature.
+
+    It is e.g. useful to compare
     distribution between train and test.
 
     For categorical feature the plot bar is plotted, and for numeric the density plot.
 
     Args:
-        feature_distributions (list of pd.Series): List of distributions of the same feature, e.g. values of feature 'f1'
-        for Train, Validation and Test.
+        feature_distributions (list of pd.Series): List of distributions of the same feature,
+        e.g. values of feature 'f1' for Train, Validation and Test.
 
         feature_name (Optional, str): Name of the feature plotted.
 

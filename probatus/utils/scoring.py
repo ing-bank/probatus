@@ -28,7 +28,8 @@ def get_scorers(scoring):
     Args:
         scoring (string, list of strings, probatus.utils.Scorer or list of probatus.utils.Scorers):
             Metrics for which the score is calculated. It can be either a name or list of names metric names and
-            needs to be aligned with predefined [classification scorers names in sklearn](https://scikit-learn.org/stable/modules/model_evaluation.html).
+            needs to be aligned with predefined classification scorers names in sklearn
+            ([link](https://scikit-learn.org/stable/modules/model_evaluation.html)).
             Another option is using probatus.utils.Scorer to define a custom metric.
 
     Returns:
@@ -50,8 +51,9 @@ def get_single_scorer(scoring):
 
     Args:
         scoring (string or probatus.utils.Scorer, optional):
-            Metric for which the model performance is calculated. It can be either a metric name  aligned with
-            predefined [classification scorers names in sklearn](https://scikit-learn.org/stable/modules/model_evaluation.html).
+            Metric for which the model performance is calculated. It can be either a metric name aligned with
+            predefined classification scorers names in sklearn
+            ([link](https://scikit-learn.org/stable/modules/model_evaluation.html)).
             Another option is using probatus.utils.Scorer to define a custom metric.
 
     Returns:
@@ -63,11 +65,7 @@ def get_single_scorer(scoring):
     elif isinstance(scoring, Scorer):
         return scoring
     else:
-        raise (
-            ValueError(
-                "The scoring should contain either strings or probatus.utils.Scorer class"
-            )
-        )
+        raise (ValueError("The scoring should contain either strings or probatus.utils.Scorer class"))
 
 
 class Scorer:
@@ -115,13 +113,12 @@ class Scorer:
         Initializes the class.
 
         Args:
-            metric_name (str):
-                Name of the metric used to evaluate the model. If the custom_scorer is not passed, the
-                metric name needs to be aligned with [classification scorers names in sklearn](https://scikit-learn.org/stable/modules/model_evaluation.html).
-
-
-            custom_scorer (sklearn.metrics Scorer callable, optional):
-                Callable that can score samples.
+            metric_name (str): Name of the metric used to evaluate the model.
+                If the custom_scorer is not passed, the
+                metric name needs to be aligned with classification scorers names in sklearn
+                ([link](https://scikit-learn.org/stable/modules/model_evaluation.html)).
+            custom_scorer (sklearn.metrics Scorer callable, optional): Callable
+                that can score samples.
         """
         self.metric_name = metric_name
         if custom_scorer is not None:
@@ -131,7 +128,7 @@ class Scorer:
 
     def score(self, model, X, y):
         """
-        Scores the samples model based on the provided metric name
+        Scores the samples model based on the provided metric name.
 
         Args:
             model (model object):

@@ -89,9 +89,7 @@ def get_metric(
     if not (isinstance(X, np.ndarray) or isinstance(X, pd.Series)):
         y = assure_numpy_array(y)
 
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=test_size, random_state=split_seed, stratify=y
-    )
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=split_seed, stratify=y)
 
     # Sample data based on the input arguments
     X_train, y_train = sample_data(
