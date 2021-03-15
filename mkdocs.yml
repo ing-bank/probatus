@@ -15,11 +15,13 @@ nav:
   - Tutorials:
     - ShapRFECV - Recursive Feature Elimination using SHAP importance: tutorials/nb_shap_feature_elimination.ipynb
     - Tree-based & Linear Model Interpretation with SHAP: tutorials/nb_shap_model_interpreter.ipynb
+    - Imputation Strategy Comparison : tutorials/nb_imputation_comparison.ipynb
     - Model Metrics Volatility: tutorials/nb_metric_volatility.ipynb
     - Multivariate Sample Similarity: tutorials/nb_sample_similarity.ipynb
     - Univariate Sample Similarity: tutorials/nb_distribution_statistics.ipynb
     - Custom Scoring Metrics: tutorials/nb_custom_scoring.ipynb
-    - Imputation Strategy Comparision : tutorials/nb_imputation_comparison.ipynb
+  - HowTo:
+    - Reproducibility of the results: howto/reproducibility.ipynb
   - API:
     - probatus.feature_elimination: api/feature_elimination.md
     - probatus.interpret: api/model_interpret.md
