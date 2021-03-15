@@ -83,7 +83,7 @@ class ImputationSelector(BaseFitComputePlotClass):
 
     cmp.fit_compute(X_missing,y)
     #Plot the results.
-    cmp.plot()
+    cmp.plot(show=False)
 
     ```
     <img src="../img/imputation_comparision.png" width="500" />
@@ -379,7 +379,7 @@ class ImputationSelector(BaseFitComputePlotClass):
                 ax.annotate(
                     "{}".format(width),
                     xy=((width + 0.05 * width), rect.get_y() + rect.get_height() / 2),
-                    xytext=(4, 0),  # 4 points horizontal offset
+                    xytext=(4,0),  # 4 points horizontal offset
                     textcoords="offset points",
                     ha="center",
                     va="bottom",
@@ -412,7 +412,7 @@ class ImputationSelector(BaseFitComputePlotClass):
         plt.margins(0.2)
         plt.legend(loc="best",ncol=2)
         fig.tight_layout()
-
+        
         if show:
             plt.show()
         else:
