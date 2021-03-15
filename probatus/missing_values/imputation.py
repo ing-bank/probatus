@@ -23,7 +23,7 @@ from probatus.utils import (
     BaseFitComputePlotClass,
     get_single_scorer,
 )
-from sklearn.model_selection import cross_val_score,cross_validate
+from sklearn.model_selection import cross_validate
 from sklearn.pipeline import Pipeline
 from sklearn.impute import SimpleImputer
 from sklearn.compose import ColumnTransformer
@@ -31,7 +31,6 @@ from sklearn.preprocessing import OneHotEncoder
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import seaborn as sns
 
 
 class ImputationSelector(BaseFitComputePlotClass):
@@ -188,7 +187,7 @@ class ImputationSelector(BaseFitComputePlotClass):
         # Identify categorical features.
         categorical_columns = X.select_dtypes(include=["category", "object"]).columns
         # Identify the numeric columns.Numeric columns are all columns expect the categorical columns
-        numeric_columns = X.select_dtypes('number').columns
+        numeric_columns = X.select_dtypes("number").columns
 
         for strategy in self.strategies:
 
@@ -253,9 +252,9 @@ class ImputationSelector(BaseFitComputePlotClass):
             results.append(temp_results)
 
         self.report_df = pd.DataFrame(results)
-        #Set the index of the dataframe to the imputation methods.
-        self.report_df=self.report_df.set_index(self.report_df.strategy, 'strategy')
-        self.report_df.drop(columns=['strategy'],inplace=True)
+        # Set the index of the dataframe to the imputation methods.
+        self.report_df = self.report_df.set_index(self.report_df.strategy, "strategy")
+        self.report_df.drop(columns=["strategy"], inplace=True)
         self.report_df.sort_values(by="mean_test_score", inplace=True)
         self.fitted = True
         return self
@@ -283,16 +282,28 @@ class ImputationSelector(BaseFitComputePlotClass):
         """
 
         imputation_cv_results = cross_validate(
-            clf, X, y, scoring=self.scorer.scorer, cv=self.cv, n_jobs=self.n_jobs , return_train_score=True
+            clf,
+            X,
+            y,
+            scoring=self.scorer.scorer,
+            cv=self.cv,
+            n_jobs=self.n_jobs,
+            return_train_score=True,
         )
-        #Calculate the mean of the results.
-        imp_agg_results = dict((k, np.mean(v)) for k, v in imputation_cv_results.items())
-        imp_agg_results = {f'mean_' + str(key): val for key, val in imp_agg_results.items()} 
-        imp_agg_results['test_score_std'] = np.std(imputation_cv_results['test_score'])
-        imp_agg_results['train_score_std'] = np.std(imputation_cv_results['train_score'])
-        #Round off all calculations to 3 decimal places
-        imp_agg_results = dict((k, np.round(v,3)) for k, v in imp_agg_results.items())
-        imp_agg_results['strategy'] = strategy
+        # Calculate the mean of the results.
+        imp_agg_results = dict(
+            (k, np.mean(v)) for k, v in imputation_cv_results.items()
+        )
+        imp_agg_results = {
+            "mean_" + str(key): val for key, val in imp_agg_results.items()
+        }
+        imp_agg_results["test_score_std"] = np.std(imputation_cv_results["test_score"])
+        imp_agg_results["train_score_std"] = np.std(
+            imputation_cv_results["train_score"]
+        )
+        # Round off all calculations to 3 decimal places
+        imp_agg_results = dict((k, np.round(v, 3)) for k, v in imp_agg_results.items())
+        imp_agg_results["strategy"] = strategy
 
         return imp_agg_results
 
@@ -331,7 +342,7 @@ class ImputationSelector(BaseFitComputePlotClass):
         self.fit(X, y, column_names=column_names)
         return self.compute()
 
-    def plot(self, show=True,**figure_kwargs):
+    def plot(self, show=True, **figure_kwargs):
         """
         Generates plot of the performance of various imputation strategies.
 
@@ -351,38 +362,55 @@ class ImputationSelector(BaseFitComputePlotClass):
 
         report_df = self.compute()
         imp_methods = list(report_df.index)
-        test_performance = list(report_df[f"mean_test_score"])
-        test_std_error = list(report_df[f"test_score_std"])
-        train_performance = list(report_df[f"mean_train_score"])
-        train_std_error = list(report_df[f"train_score_std"])
+        test_performance = list(report_df["mean_test_score"])
+        test_std_error = list(report_df["test_score_std"])
+        train_performance = list(report_df["mean_train_score"])
+        train_std_error = list(report_df["train_score_std"])
 
-        y = np.arange(len(imp_methods))*3 # the label locations
-        width = 1 # the width of the bars
-        
+        y = np.arange(len(imp_methods))  # the label locations
+        width = 0.35  # the width of the bars
+
         def _autolabel(rects):
             """
-            Label the bars of the plot
-            """    
+            Label the bars of the plot.
+            """
             for rect in rects:
                 width = rect.get_width()
-                ax.annotate('{}'.format(width),
-                            xy=((width + 0.05*width),rect.get_y() + rect.get_height() / 2 ),
-                            xytext=(4,0),  # 4 points horizontal offset
-                            textcoords="offset points",
-                            ha='center', va='bottom',fontsize='small')
-        
-        
-        train_rect = ax.barh(y - width/2, train_performance, width,xerr=train_std_error,align="center", label='Train')
-        test_rect = ax.barh(y + width/2, test_performance, width,xerr=test_std_error,align="center",label='Test')
+                ax.annotate(
+                    "{}".format(width),
+                    xy=((width + 0.05 * width), rect.get_y() + rect.get_height() / 2),
+                    xytext=(4, 0),  # 4 points horizontal offset
+                    textcoords="offset points",
+                    ha="center",
+                    va="bottom",
+                    fontsize="small",
+                )
+
+        train_rect = ax.barh(
+            y - width / 2,
+            train_performance,
+            width,
+            xerr=train_std_error,
+            align="center",
+            label="CV-Train",
+        )
+        test_rect = ax.barh(
+            y + width / 2,
+            test_performance,
+            width,
+            xerr=test_std_error,
+            align="center",
+            label="CV-Test",
+        )
         _autolabel(train_rect)
         _autolabel(test_rect)
-        
+
         ax.set_xlabel(f'{self.scorer.metric_name.replace("_"," ").upper()} Score')
-        ax.set_title('Imputation Techniques Comparision')
+        ax.set_title("Imputation Techniques Comparision")
         ax.set_yticks(y)
-        ax.set_yticklabels(imp_methods,rotation=45)
-        plt.margins(0.3)
-        plt.legend(loc='best', bbox_to_anchor=(1,1))
+        ax.set_yticklabels(imp_methods, rotation=45)
+        plt.margins(0.2)
+        plt.legend(loc="best",ncol=2)
         fig.tight_layout()
 
         if show:
@@ -390,4 +418,3 @@ class ImputationSelector(BaseFitComputePlotClass):
         else:
             plt.close()
         return ax
-
