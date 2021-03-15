@@ -80,3 +80,4 @@ def test_imputation_boosting(X,y,strategies,complex_lightgbm,capsys):
    # Check if there is any prints
    out, _ = capsys.readouterr()
    assert len(out) == 0
+   
