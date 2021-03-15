@@ -118,7 +118,9 @@ class DistributionStatistics(object):
 
         # Initialize the statistical test
         if self.statistical_test not in self.statistical_test_dict:
-            raise NotImplementedError("The statistical test should be one of {}".format(self.statistical_test_dict.keys()))
+            raise NotImplementedError(
+                "The statistical test should be one of {}".format(self.statistical_test_dict.keys())
+            )
         else:
             self.statistical_test_name = self.statistical_test_dict[self.statistical_test]["name"]
             self._statistical_test_function = self.statistical_test_dict[self.statistical_test]["func"]

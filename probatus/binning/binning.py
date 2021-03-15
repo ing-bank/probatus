@@ -199,7 +199,8 @@ class AgglomerativeBucketer(Bucketer):
         cluster_maximum_values = df.groupby("label")["x"].max().sort_values().tolist()
         # take the mean of the upper boundary of a cluster and the lower boundary of the next cluster
         boundaries = [
-            np.mean([cluster_minimum_values[i + 1], cluster_maximum_values[i]]) for i in range(len(cluster_minimum_values) - 1)
+            np.mean([cluster_minimum_values[i + 1], cluster_maximum_values[i]])
+            for i in range(len(cluster_minimum_values) - 1)
         ]
         # add the lower boundary of the lowest cluster and the upper boundary of the highest cluster
         boundaries = [cluster_minimum_values[0]] + boundaries + [cluster_maximum_values[-1]]

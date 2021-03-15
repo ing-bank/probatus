@@ -136,7 +136,9 @@ def test_shap_interpret(fitted_tree, X_train, y_train, X_test, y_test, expected_
     assert isinstance(ax8, list) and len(ax8) == 2
 
 
-def test_shap_interpret_lin_models(fitted_lin, X_train, y_train, X_test, y_test, expected_feature_importance_lin_models):
+def test_shap_interpret_lin_models(
+    fitted_lin, X_train, y_train, X_test, y_test, expected_feature_importance_lin_models
+):
     """
     Test.
     """

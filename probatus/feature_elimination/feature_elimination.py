@@ -174,7 +174,8 @@ class ShapRFECV(BaseFitComputePlotClass):
         else:
             raise (
                 ValueError(
-                    f"The current value of step = {step} is not allowed. " f"It needs to be a positive integer or positive float."
+                    f"The current value of step = {step} is not allowed. "
+                    f"It needs to be a positive integer or positive float."
                 )
             )
 
@@ -248,7 +249,9 @@ class ShapRFECV(BaseFitComputePlotClass):
             return shap_importance_df.iloc[-num_features_to_remove:].index.tolist()
 
     @staticmethod
-    def _calculate_number_of_features_to_remove(current_num_of_features, num_features_to_remove, min_num_features_to_keep):
+    def _calculate_number_of_features_to_remove(
+        current_num_of_features, num_features_to_remove, min_num_features_to_keep
+    ):
         """
         Calculates the number of features to be removed.
 
@@ -425,7 +428,11 @@ class ShapRFECV(BaseFitComputePlotClass):
             if all(isinstance(x, str) for x in columns_to_keep):
                 len_columns_to_keep = len(columns_to_keep)
             else:
-                raise (ValueError("The current values of columns_to_keep are not allowed.All the elements should be strings."))
+                raise (
+                    ValueError(
+                        "The current values of columns_to_keep are not allowed.All the elements should be strings."
+                    )
+                )
 
         # If the columns_to_keep parameter is provided, check if they match the column names in the X.
         if column_names is not None:
@@ -508,7 +515,9 @@ class ShapRFECV(BaseFitComputePlotClass):
             shap_importance_df = calculate_shap_importance(shap_values, remaining_removeable_features)
 
             # Get features to remove
-            features_to_remove = self._get_current_features_to_remove(shap_importance_df, columns_to_keep=columns_to_keep)
+            features_to_remove = self._get_current_features_to_remove(
+                shap_importance_df, columns_to_keep=columns_to_keep
+            )
             remaining_features = list(set(current_features_set) - set(features_to_remove))
 
             # Report results

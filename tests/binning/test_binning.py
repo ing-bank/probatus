@@ -301,6 +301,8 @@ def test_tree_bucketer_dependence():
         assert myTreeBucketer.fit(x, y)
 
     # Test that if the leaf is set to the number of entries-1, it returns only one bin
-    myTreeBucketer = TreeBucketer(inf_edges=False, max_depth=6, min_samples_leaf=x.shape[0] - 1, random_state=42).fit(x, y)
+    myTreeBucketer = TreeBucketer(inf_edges=False, max_depth=6, min_samples_leaf=x.shape[0] - 1, random_state=42).fit(
+        x, y
+    )
     assert myTreeBucketer.bin_count == 1
     assert all(myTreeBucketer.counts_ >= myTreeBucketer.tree.min_samples_leaf)

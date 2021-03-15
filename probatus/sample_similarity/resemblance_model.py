@@ -86,7 +86,7 @@ class BaseResemblanceModel(BaseFitComputePlotClass):
                 Random state set at each round of feature elimination. If it is None, the results will not be
                 reproducible and in random search at each iteration a different hyperparameters might be tested. For
                 reproducible results set it to integer.
-        """
+        """  # noqa
         self.clf = clf
         self.test_prc = test_prc
         self.n_jobs = n_jobs
@@ -353,7 +353,7 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
                 Random state set at each round of feature elimination. If it is None, the results will not be
                 reproducible and in random search at each iteration a different hyperparameters might be tested. For
                 reproducible results set it to integer.
-        """
+        """  # noqa
         super().__init__(
             clf=clf,
             scoring=scoring,
@@ -582,7 +582,7 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
                 Random state set at each round of feature elimination. If it is None, the results will not be
                 reproducible and in random search at each iteration a different hyperparameters might be tested. For
                 reproducible results set it to integer.
-        """
+        """  # noqa
         super().__init__(
             clf=clf,
             scoring=scoring,

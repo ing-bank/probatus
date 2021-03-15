@@ -211,7 +211,9 @@ def preprocess_data(X, X_name=None, column_names=None, verbose=0):
             )
 
     # Warn if categorical features and change to category
-    indices_categorical_features = [column[0] for column in enumerate(X.dtypes) if column[1].name in ["category", "object"]]
+    indices_categorical_features = [
+        column[0] for column in enumerate(X.dtypes) if column[1].name in ["category", "object"]
+    ]
     categorical_features = list(X.columns[indices_categorical_features])
 
     # Set categorical features type to category

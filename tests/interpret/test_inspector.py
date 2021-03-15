@@ -157,10 +157,15 @@ def test_after_implementation_completed():
         y_score = np.array([0.1, 0.2, 0.3, 0.7, 0.8, 0.9], dtype=float)
 
         expected_output_not_normalized = np.array([0.1, 0.2, 0.3, 0.3, 0.2, 0.1], dtype=float)
-        expected_output_normalized = np.array([0.11111111, 0.22222222, 0.33333333, 0.22222222, 0.11111111, 0.0], dtype=float)
-        assert (expected_output_normalized - return_confusion_metric(y_true, y_score, normalize=True < test_sensitivity)).all()
+        expected_output_normalized = np.array(
+            [0.11111111, 0.22222222, 0.33333333, 0.22222222, 0.11111111, 0.0], dtype=float
+        )
         assert (
-            expected_output_not_normalized - return_confusion_metric(y_true, y_score, normalize=False) < test_sensitivity
+            expected_output_normalized - return_confusion_metric(y_true, y_score, normalize=True < test_sensitivity)
+        ).all()
+        assert (
+            expected_output_not_normalized - return_confusion_metric(y_true, y_score, normalize=False)
+            < test_sensitivity
         ).all()
 
     def test_return_confusion_metric__series():
@@ -169,10 +174,15 @@ def test_after_implementation_completed():
         y_score = pd.Series([0.1, 0.2, 0.3, 0.7, 0.8, 0.9])
 
         expected_output_not_normalized = pd.Series([0.1, 0.2, 0.3, 0.3, 0.2, 0.1], dtype=float)
-        expected_output_normalized = pd.Series([0.11111111, 0.22222222, 0.33333333, 0.22222222, 0.11111111, 0.0], dtype=float)
-        assert (expected_output_normalized - return_confusion_metric(y_true, y_score, normalize=True < test_sensitivity)).all()
+        expected_output_normalized = pd.Series(
+            [0.11111111, 0.22222222, 0.33333333, 0.22222222, 0.11111111, 0.0], dtype=float
+        )
         assert (
-            expected_output_not_normalized - return_confusion_metric(y_true, y_score, normalize=False) < test_sensitivity
+            expected_output_normalized - return_confusion_metric(y_true, y_score, normalize=True < test_sensitivity)
+        ).all()
+        assert (
+            expected_output_not_normalized - return_confusion_metric(y_true, y_score, normalize=False)
+            < test_sensitivity
         ).all()
 
     @patch.object(MockClusterer, "fit")
@@ -433,7 +443,9 @@ def test_after_implementation_completed():
         pd.testing.assert_frame_equal(inspector.cluster_report, expected_result)
         pd.testing.assert_frame_equal(inspector.agg_summary_df, report_value)
 
-    def test_slice_cluster_no_inputs_not_complementary(global_summary_df, global_X_shap, global_y, global_predicted_proba):
+    def test_slice_cluster_no_inputs_not_complementary(
+        global_summary_df, global_X_shap, global_y, global_predicted_proba
+    ):
         inspector = InspectorShap(model=MockModel(), algotype="kmeans")
         summary = global_summary_df
         inspector.summary_df = summary
@@ -546,7 +558,9 @@ def test_after_implementation_completed():
         with pytest.raises(NotFittedError):
             inspector.slice_cluster_eval_set(cluster_id)
 
-    def test_slice_cluster_eval_sets__multiple_df(global_X_shaps, global_ys, global_predicted_probas, global_summary_dfs):
+    def test_slice_cluster_eval_sets__multiple_df(
+        global_X_shaps, global_ys, global_predicted_probas, global_summary_dfs
+    ):
         inspector = InspectorShap(model=MockModel(), algotype="kmeans")
         inspector.hasmultiple_dfs = True
 
@@ -744,7 +758,9 @@ def test_after_implementation_completed():
     def test_compute_probabilities(global_X):
         inspector = InspectorShap(model=MockModel(), algotype="kmeans")
         input_X = global_X
-        model_probas = np.array([[0.2, 0.8], [0.7, 0.3], [0.7, 0.3], [0.3, 0.7], [0.2, 0.8], [0.3, 0.7], [0.7, 0.3], [0.5, 0.5]])
+        model_probas = np.array(
+            [[0.2, 0.8], [0.7, 0.3], [0.7, 0.3], [0.3, 0.7], [0.2, 0.8], [0.3, 0.7], [0.7, 0.3], [0.5, 0.5]]
+        )
         expected_output = np.array([0.8, 0.3, 0.3, 0.7, 0.8, 0.7, 0.3, 0.5])
 
         with patch.object(MockModel, "predict_proba") as mock_predict_proba:

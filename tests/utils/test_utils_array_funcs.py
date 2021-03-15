@@ -266,7 +266,9 @@ def test_preprocess_data():
     X1_expected_output["1"] = X1_expected_output["1"].astype("category")
 
     with pytest.warns(None) as record:
-        X1_output, output_column_names_X1 = preprocess_data(X1, X_name="X1", column_names=target_column_names_X1, verbose=150)
+        X1_output, output_column_names_X1 = preprocess_data(
+            X1, X_name="X1", column_names=target_column_names_X1, verbose=150
+        )
 
     assert target_column_names_X1 == output_column_names_X1
     pd.testing.assert_frame_equal(X1_output, X1_expected_output)

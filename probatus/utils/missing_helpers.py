@@ -1,14 +1,15 @@
 import numpy as np
 
-def generate_MCAR(df,missing):
+
+def generate_MCAR(df, missing):
     """
-    Generate missing values completely at random for dataframe df
+    Generate missing values completely at random for dataframe df.
 
     Args:
         df: input dataframe where some values will be masked
         missings: (float or dict)
-            - float ( must be a fraction between 0 and 1 - both inclusive), then it will apply this fraction of missing
-            values on the whole dataset.
+            - float ( must be a fraction between 0 and 1 - both inclusive), then it will apply this
+            fraction of missing values on the whole dataset.
             - dict:
                 - keys: column names to mask values
                 - values: fraction of missing values for this column
@@ -29,10 +30,10 @@ def generate_MCAR(df,missing):
 
     df = df.copy()
 
-    if type(missing)==float and missing<=1 and missing>=0:
+    if type(missing) == float and missing <= 1 and missing >= 0:
         df = df.mask(np.random.random(df.shape) < missing)
-    elif type(missing)==dict:
-        for k,v in missing.items():
+    elif type(missing) == dict:
+        for k, v in missing.items():
             df[k] = df[k].mask(np.random.random(df.shape[0]) < v)
 
     else:

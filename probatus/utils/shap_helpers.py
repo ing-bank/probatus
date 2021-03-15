@@ -163,9 +163,9 @@ def calculate_shap_importance(shap_values, columns, output_columns_suffix=""):
     importance_df[f"mean_abs_shap_value{output_columns_suffix}"] = importance_df[
         f"mean_abs_shap_value{output_columns_suffix}"
     ].astype(float)
-    importance_df[f"mean_shap_value{output_columns_suffix}"] = importance_df[f"mean_shap_value{output_columns_suffix}"].astype(
-        float
-    )
+    importance_df[f"mean_shap_value{output_columns_suffix}"] = importance_df[
+        f"mean_shap_value{output_columns_suffix}"
+    ].astype(float)
 
     importance_df = importance_df.sort_values(f"mean_abs_shap_value{output_columns_suffix}", ascending=False)
 

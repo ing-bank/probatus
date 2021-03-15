@@ -131,7 +131,9 @@ class BaseInspector(BaseFitComputeClass):
         elif isinstance(series, np.ndarray) and len(series.shape) == 1 and index is not None:
             return pd.Series(series, index=index)
         else:
-            raise TypeError("The object should be a pd.Series, a dataframe with one collumn or a 1 dimensional numpy array")
+            raise TypeError(
+                "The object should be a pd.Series, a dataframe with one collumn or a 1 dimensional numpy array"
+            )
 
 
 class InspectorShap(BaseInspector):
@@ -149,18 +151,24 @@ class InspectorShap(BaseInspector):
             model: (obj) pretrained model (with sklearn-like API)
             algotype: (str) clustering algorithm (supported are kmeans and hdbscan)
             confusion_metric: (str) Confusion metric to use:
-                - "proba": it will calculate the confusion metric as the absolute value of the target minus the predicted
-                           probability. This provides a continuous measure of confusion, where 0 indicated correct predictions
-                           and the closer the number is to 1, the higher the confusion
+                - "proba": it will calculate the confusion metric as the absolute value of the target minus
+                    the predicted probability. This provides a continuous measure of confusion, where 0 indicated
+                    correct predictions and the closer the number is to 1, the higher the confusion
             normalize_probability: (boolean) if true, it will normalize the probabilities to the max value when computing
                 the confusion metric
             cluster_probabilities: (boolean) if true, uses the model prediction as an input for the cluster prediction
             **kwargs: keyword arguments for the clustering algorithm
 
-    """
+    """  # noqa
 
     def __init__(
-        self, model, algotype="kmeans", confusion_metric="proba", normalize_probability=False, cluster_probability=False, **kwargs
+        self,
+        model,
+        algotype="kmeans",
+        confusion_metric="proba",
+        normalize_probability=False,
+        cluster_probability=False,
+        **kwargs
     ):
         """
         Init.
@@ -254,7 +262,8 @@ class InspectorShap(BaseInspector):
             eval_set: (list, default=None). list of tuples in the shape (X,y) containing evaluation samples, for example
                 a test sample, validation sample etc... X corresponds to the feature set of the sample, y corresponds
                 to the targets of the samples
-            sample_names: (list of strings, default=None): list of suffixed for the samples. If none, it will be labelled with
+            sample_names: (list of strings, default=None): list of suffixed for the samples.
+                If none, it will be labelled with
                 sample_{i}, where i corresponds to the index of the sample.
                 List length must match that of eval_set
             **shap_kwargs:  kwargs to pass to the Shapley Tree Explained
@@ -278,7 +287,9 @@ class InspectorShap(BaseInspector):
             self.init_eval_set_report_variables()
 
             for X_, y_ in eval_set:
-                y_, predicted_proba_, X_shap_, clusters_ = self.perform_fit_calc(X=X_, y=y_, fit_clusters=False, **shap_kwargs)
+                y_, predicted_proba_, X_shap_, clusters_ = self.perform_fit_calc(
+                    X=X_, y=y_, fit_clusters=False, **shap_kwargs
+                )
 
                 self.X_shaps.append(X_shap_)
                 self.ys.append(y_)
@@ -316,7 +327,9 @@ class InspectorShap(BaseInspector):
 
         Performs aggregations per cluster id
         """
-        self.summary_df = self.create_summary_df(self.clusters, self.y, self.predicted_proba, normalize=self.normalize_proba)
+        self.summary_df = self.create_summary_df(
+            self.clusters, self.y, self.predicted_proba, normalize=self.normalize_proba
+        )
         self.agg_summary_df = self.aggregate_summary_df(self.summary_df)
 
         if self.hasmultiple_dfs:
@@ -433,7 +446,9 @@ class InspectorShap(BaseInspector):
             raise NotFittedError("You did not fit the eval set. Please add an eval set when calling inspect()")
 
         output = []
-        for X_shap, y, predicted_proba, summary_df in zip(self.X_shaps, self.ys, self.predicted_probas, self.summary_dfs):
+        for X_shap, y, predicted_proba, summary_df in zip(
+            self.X_shaps, self.ys, self.predicted_probas, self.summary_dfs
+        ):
             output.append(
                 self.slice_cluster(
                     cluster_id=cluster_id,
@@ -464,7 +479,9 @@ class InspectorShap(BaseInspector):
     @staticmethod
     def create_summary_df(cluster, y, probas, normalize=False):
         """
-        Creates a summary by concatenating the cluster series, the targets, the probabilities and the measured confusion.
+        Creates a summary.
+
+        by concatenating the cluster series, the targets, the probabilities and the measured confusion.
 
         Args:
             cluster: pd.Series od clusters
@@ -523,6 +540,6 @@ class InspectorShap(BaseInspector):
 
         Returns:
             (pd.DataFrame) Report with aggregations described in compute() method.
-        """
+        """  # noqa
         self.fit(X, y, eval_set, sample_names, **shap_kwargs)
         return self.compute()
