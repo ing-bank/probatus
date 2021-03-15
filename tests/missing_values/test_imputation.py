@@ -2,8 +2,7 @@
 from probatus.missing_values.imputation import ImputationSelector
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
-from sklearn.experimental import enable_iterative_imputer  
-from sklearn.impute import KNNImputer,SimpleImputer,IterativeImputer
+from sklearn.impute import KNNImputer, SimpleImputer
 import pandas as pd
 import numpy as np
 import pytest
@@ -27,7 +26,6 @@ def strategies():
     return  {
         'Simple Median Imputer' : SimpleImputer(strategy='median',add_indicator=True),
         'Simple Mean Imputer' : SimpleImputer(strategy='mean',add_indicator=True),
-        'Iterative Imputer'  : IterativeImputer(add_indicator=True,n_nearest_features=5,sample_posterior=True),
         'KNN' : KNNImputer(n_neighbors=3),
    }
 
@@ -35,13 +33,13 @@ def test_imputation_linear(X,y,strategies,capsys):
     
    #Initialize the classifier
    clf = LogisticRegression()
-   cmp = ImputationSelector(clf=clf,strategies=strategies,cv=3,model_na_support=False)
+   cmp = ImputationSelector(clf=clf, strategies=strategies, cv=3, model_na_support=False)
    report = cmp.fit_compute(X,y)
    ax = cmp.plot(show=False)
    
    assert cmp.fitted == True
    cmp._check_if_fitted()
-   assert report.shape[0]==4
+   assert report.shape[0]==3
 
    # Check if there is any prints
    out, _ = capsys.readouterr()
@@ -58,7 +56,7 @@ def test_imputation_bagging(X,y,strategies,capsys):
    
    assert cmp.fitted == True
    cmp._check_if_fitted()
-   assert report.shape[0]==4
+   assert report.shape[0]==3
 
    # Check if there is any prints
    out, _ = capsys.readouterr()
@@ -75,7 +73,7 @@ def test_imputation_boosting(X,y,strategies,complex_lightgbm,capsys):
    
    assert cmp.fitted == True
    cmp._check_if_fitted()
-   assert report.shape[0]==5
+   assert report.shape[0]==4
 
    # Check if there is any prints
    out, _ = capsys.readouterr()
