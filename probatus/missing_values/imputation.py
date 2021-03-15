@@ -83,7 +83,7 @@ class ImputationSelector(BaseFitComputePlotClass):
 
     cmp.fit_compute(X_missing,y)
     #Plot the results.
-    cmp.plot(show=False)
+    performance_plot=cmp.plot()
 
     ```
     <img src="../img/imputation_comparision.png" width="500" />
