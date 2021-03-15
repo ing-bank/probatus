@@ -2,6 +2,7 @@
 from probatus.missing_values.imputation import ImputationSelector
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
+from sklearn.experimental import enable_iterative_imputer  # noqa
 from sklearn.impute import KNNImputer, SimpleImputer, IterativeImputer
 import pandas as pd
 import numpy as np
