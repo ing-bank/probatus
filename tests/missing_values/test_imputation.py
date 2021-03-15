@@ -8,7 +8,8 @@ import pandas as pd
 import numpy as np
 import pytest
 import os
-import lightgbm as lgb
+from unittest.mock import patch
+
 
 @pytest.fixture(scope='function')
 def X():
@@ -29,7 +30,6 @@ def strategies():
         'Iterative Imputer'  : IterativeImputer(add_indicator=True,n_nearest_features=5,sample_posterior=True),
         'KNN' : KNNImputer(n_neighbors=3),
    }
-
 
 def test_imputation_linear(X,y,strategies,capsys):
     
@@ -65,10 +65,10 @@ def test_imputation_bagging(X,y,strategies,capsys):
    assert len(out) == 0
 
 @pytest.mark.skipif(os.environ.get("SKIP_LIGHTGBM") == 'true', reason="LightGBM tests disabled")
-def test_imputation_boosting(X,y,strategies,capsys):
+def test_imputation_boosting(X,y,strategies,complex_lightgbm,capsys):
     
    #Initialize the classifier
-   clf = lgb.LGBMClassifier()
+   clf = complex_lightgbm
    cmp = ImputationSelector(clf=clf,strategies=strategies,cv=3,model_na_support=True)
    report = cmp.fit_compute(X,y)
    ax=cmp.plot(show=False)
