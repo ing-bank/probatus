@@ -31,6 +31,7 @@ def shap_calc(
     return_explainer=False,
     verbose=0,
     sample_size=100,
+    check_additivity=True,
     **shap_kwargs,
 ):
     """
@@ -57,6 +58,9 @@ def shap_calc(
             - 51 - 100 - shows other warnings and prints
             - above 100 - presents all prints and all warnings (including SHAP warnings).
 
+         check_additivity (boolean):
+            if False SHAP will disable the additivity check.
+
         **shap_kwargs: kwargs of the shap.Explainer
 
     Returns:
@@ -80,7 +84,7 @@ def shap_calc(
 
         explainer = shap.Explainer(model, masker=mask, **shap_kwargs)
         # Calculate Shap values.
-        shap_values = explainer.shap_values(X)
+        shap_values = explainer.shap_values(X, check_additivity=check_additivity, approximate=approximate)
 
         if isinstance(shap_values, list) and len(shap_values) == 2:
             warnings.warn(

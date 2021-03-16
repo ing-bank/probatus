@@ -594,7 +594,7 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
 
         self.plot_title = "SHAP summary plot"
 
-    def fit(self, X1, X2, column_names=None, class_names=None):
+    def fit(self, X1, X2, column_names=None, class_names=None, **shap_kwargs):
         """
         This function assigns to labels to each sample, 0 to first sample, 1 to the second.
 
@@ -619,13 +619,20 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
                 List of class names assigned, in this case provided samples e.g. ['sample1', 'sample2']. If none, the
                 default ['First Sample', 'Second Sample'] are used.
 
+            **shap_kwargs:
+                keyword arguments passed to
+                [shap.Explainer](https://shap.readthedocs.io/en/latest/generated/shap.Explainer.html#shap.Explainer).
+                It also enables `approximate` and `check_additivity` parameters, passed while calculating SHAP values.
+                The `approximate=True` causes less accurate, but faster SHAP values calculation, while
+                `check_additivity=False` disables the additivity check inside SHAP.
+
         Returns:
             (SHAPImportanceResemblance):
                 Fitted object.
         """
         super().fit(X1=X1, X2=X2, column_names=column_names, class_names=class_names)
 
-        self.shap_values_test = shap_calc(self.clf, self.X_test, verbose=self.verbose)
+        self.shap_values_test = shap_calc(self.clf, self.X_test, verbose=self.verbose, **shap_kwargs)
         self.report = calculate_shap_importance(self.shap_values_test, self.column_names)
         return self
 
