@@ -62,8 +62,15 @@ def test_shap_rfe(X, y, capsys):
     """
     clf = DecisionTreeClassifier(max_depth=1, random_state=1)
     with pytest.warns(None) as record:
-        shap_elimination = ShapRFECV(clf, random_state=1, step=1, cv=2, scoring="roc_auc", n_jobs=4)
-        shap_elimination = shap_elimination.fit(X, y)
+        shap_elimination = ShapRFECV(
+            clf,
+            random_state=1,
+            step=1,
+            cv=2,
+            scoring="roc_auc",
+            n_jobs=4,
+        )
+        shap_elimination = shap_elimination.fit(X, y, approximate=True, check_additivity=False)
 
     assert shap_elimination.fitted
     shap_elimination._check_if_fitted()

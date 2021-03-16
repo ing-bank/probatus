@@ -27,10 +27,10 @@ import warnings
 def shap_calc(
     model,
     X,
-    approximate=False,
     return_explainer=False,
     verbose=0,
     sample_size=100,
+    approximate=False,
     check_additivity=True,
     **shap_kwargs,
 ):
@@ -44,9 +44,6 @@ def shap_calc(
         X (pd.DataFrame or np.ndarray):
             features set.
 
-         approximate (boolean):
-            if True uses shap approximations - less accurate, but very fast.
-
         return_explainer (boolean):
             if True, returns a a tuple (shap_values, explainer).
 
@@ -58,8 +55,11 @@ def shap_calc(
             - 51 - 100 - shows other warnings and prints
             - above 100 - presents all prints and all warnings (including SHAP warnings).
 
+         approximate (boolean):
+            if True uses shap approximations - less accurate, but very fast. It applies to tree-based explainers only.
+
          check_additivity (boolean):
-            if False SHAP will disable the additivity check.
+            if False SHAP will disable the additivity check for tree-based models.
 
         **shap_kwargs: kwargs of the shap.Explainer
 
@@ -83,8 +83,14 @@ def shap_calc(
         mask = shap.utils.sample(X, sample_size)
 
         explainer = shap.Explainer(model, masker=mask, **shap_kwargs)
-        # Calculate Shap values.
-        shap_values = explainer.shap_values(X, check_additivity=check_additivity, approximate=approximate)
+
+        # For tree-explainers allow for using check_additivity and approximate arguments
+        if isinstance(explainer, shap.explainers._tree.Tree):
+            # Calculate Shap values.
+            shap_values = explainer.shap_values(X, check_additivity=check_additivity, approximate=approximate)
+        else:
+            # Calculate Shap values.
+            shap_values = explainer.shap_values(X)
 
         if isinstance(shap_values, list) and len(shap_values) == 2:
             warnings.warn(

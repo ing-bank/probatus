@@ -164,7 +164,9 @@ def test_shap_resemblance_class_lin_models(X1, X2):
     with pytest.raises(NotFittedError) as _:
         rm._check_if_fitted()
 
-    actual_report, train_score, test_score = rm.fit_compute(X1, X2, return_scores=True)
+    actual_report, train_score, test_score = rm.fit_compute(
+        X1, X2, return_scores=True, approximate=True, check_additivity=False
+    )
 
     # After the fit this should not raise any error
     rm._check_if_fitted()
