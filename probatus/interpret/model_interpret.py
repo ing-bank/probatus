@@ -104,17 +104,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
         self.scorer = get_single_scorer(scoring)
         self.verbose = verbose
 
-    def fit(
-        self,
-        X_train,
-        X_test,
-        y_train,
-        y_test,
-        column_names=None,
-        class_names=None,
-        approximate=False,
-        **shap_kwargs,
-    ):
+    def fit(self, X_train, X_test, y_train, y_test, column_names=None, class_names=None, **shap_kwargs):
         """
         Fits the object and calculates the shap values for the provided datasets.
 
@@ -138,12 +128,12 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
                 List of class names e.g. ['neg', 'pos']. If none, the default ['Negative Class', 'Positive Class'] are
                 used.
 
-            approximate (boolean, optional):
-                if True uses shap approximations - less accurate, but very fast.
-
             **shap_kwargs:
                 keyword arguments passed to
                 [shap.Explainer](https://shap.readthedocs.io/en/latest/generated/shap.Explainer.html#shap.Explainer).
+                It also enables `approximate` and `check_additivity` parameters, passed while calculating SHAP values.
+                The `approximate=True` causes less accurate, but faster SHAP values calculation, while
+                `check_additivity=False` disables the additivity check inside SHAP.
         """
 
         self.X_train, self.column_names = preprocess_data(
@@ -171,7 +161,6 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
             clf=self.clf,
             X=self.X_train,
             y=self.y_train,
-            approximate=approximate,
             column_names=self.column_names,
             class_names=self.class_names,
             verbose=self.verbose,
@@ -182,7 +171,6 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
             clf=self.clf,
             X=self.X_test,
             y=self.y_test,
-            approximate=approximate,
             column_names=self.column_names,
             class_names=self.class_names,
             verbose=self.verbose,
@@ -285,7 +273,6 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
         y_test,
         column_names=None,
         class_names=None,
-        approximate=False,
         return_scores=False,
         **shap_kwargs,
     ):
@@ -314,9 +301,6 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
                 If none, the default ['Negative Class', 'Positive Class'] are
                 used.
 
-            approximate (boolean, optional):
-                if True uses shap approximations - less accurate, but very fast.
-
             return_scores (bool, optional):
                 Flag indicating whether the method should return
                 the train and test score of the model,
@@ -324,9 +308,12 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
                 the output of this method is a tuple of DataFrame, float,
                 float.
 
-            **shap_kwargs: keyword arguments passed to
+            **shap_kwargs:
                 keyword arguments passed to
                 [shap.Explainer](https://shap.readthedocs.io/en/latest/generated/shap.Explainer.html#shap.Explainer).
+                It also enables `approximate` and `check_additivity` parameters, passed while calculating SHAP values.
+                The `approximate=True` causes less accurate, but faster SHAP values calculation, while
+                `check_additivity=False` disables the additivity check inside SHAP.
 
         Returns:
             (pd.DataFrame or tuple(pd.DataFrame, float, float)):
@@ -340,20 +327,11 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
             y_test=y_test,
             column_names=column_names,
             class_names=class_names,
-            approximate=approximate,
             **shap_kwargs,
         )
         return self.compute()
 
-    def plot(
-        self,
-        plot_type,
-        target_set="test",
-        target_columns=None,
-        samples_index=None,
-        show=True,
-        **plot_kwargs,
-    ):
+    def plot(self, plot_type, target_set="test", target_columns=None, samples_index=None, show=True, **plot_kwargs):
         """
         Plots the appropriate SHAP plot.
 

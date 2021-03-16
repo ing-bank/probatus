@@ -249,7 +249,9 @@ def test_shap_interpret_complex_data(complex_data_split, complex_fitted_lightgbm
 
     shap_interpret = ShapModelInterpreter(complex_fitted_lightgbm, verbose=50)
     with pytest.warns(None) as record:
-        importance_df = shap_interpret.fit_compute(X_train, X_test, y_train, y_test, class_names=class_names)
+        importance_df = shap_interpret.fit_compute(
+            X_train, X_test, y_train, y_test, class_names=class_names, approximate=True, check_additivity=False
+        )
 
     # Check parameters
     assert shap_interpret.fitted

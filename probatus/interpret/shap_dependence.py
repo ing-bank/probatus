@@ -82,7 +82,7 @@ class DependencePlotter(BaseFitComputePlotClass):
         """
         return "Shap dependence plotter for {}".format(self.clf.__class__.__name__)
 
-    def fit(self, X, y, column_names=None, class_names=None, precalc_shap=None):
+    def fit(self, X, y, column_names=None, class_names=None, precalc_shap=None, **shap_kwargs):
         """
         Fits the plotter to the model and data by computing the shap values.
 
@@ -90,14 +90,25 @@ class DependencePlotter(BaseFitComputePlotClass):
 
         Args:
             X (pd.DataFrame): input variables.
+
             y (pd.Series): target variable.
+
             column_names (None, or list of str, optional):
                 List of feature names for the dataset. If None, then column names from the X_train dataframe are used.
+
             class_names (None, or list of str, optional):
                 List of class names e.g. ['neg', 'pos']. If none, the default ['Negative Class', 'Positive Class'] are
                 used.
+
             precalc_shap (Optional, None or np.array):
                 Precalculated shap values, If provided they don't need to be computed.
+
+            **shap_kwargs:
+                keyword arguments passed to
+                [shap.Explainer](https://shap.readthedocs.io/en/latest/generated/shap.Explainer.html#shap.Explainer).
+                It also enables `approximate` and `check_additivity` parameters, passed while calculating SHAP values.
+                The `approximate=True` causes less accurate, but faster SHAP values calculation, while
+                `check_additivity=False` disables the additivity check inside SHAP.
         """
         self.X, self.column_names = preprocess_data(X, X_name="X", column_names=column_names, verbose=self.verbose)
         self.y = preprocess_labels(y, y_name="y", index=self.X.index, verbose=self.verbose)
@@ -107,7 +118,7 @@ class DependencePlotter(BaseFitComputePlotClass):
         if self.class_names is None:
             self.class_names = ["Negative Class", "Positive Class"]
 
-        self.shap_vals_df = shap_to_df(self.clf, self.X, precalc_shap=precalc_shap, verbose=self.verbose)
+        self.shap_vals_df = shap_to_df(self.clf, self.X, precalc_shap=precalc_shap, verbose=self.verbose, **shap_kwargs)
 
         self.fitted = True
         return self
@@ -123,7 +134,7 @@ class DependencePlotter(BaseFitComputePlotClass):
         self._check_if_fitted()
         return self.shap_vals_df
 
-    def fit_compute(self, X, y, column_names=None, class_names=None, precalc_shap=None):
+    def fit_compute(self, X, y, column_names=None, class_names=None, precalc_shap=None, **shap_kwargs):
         """
         Fits the plotter to the model and data by computing the shap values.
 
@@ -146,17 +157,18 @@ class DependencePlotter(BaseFitComputePlotClass):
             precalc_shap (Optional, None or np.array):
                 Precalculated shap values, If provided they don't need to be computed.
 
+            **shap_kwargs:
+                keyword arguments passed to
+                [shap.Explainer](https://shap.readthedocs.io/en/latest/generated/shap.Explainer.html#shap.Explainer).
+                It also enables `approximate` and `check_additivity` parameters, passed while calculating SHAP values.
+                The `approximate=True` causes less accurate, but faster SHAP values calculation, while
+                `check_additivity=False` disables the additivity check inside SHAP.
+
         Returns:
             (pd.DataFrame):
                 SHAP Values for X.
         """
-        self.fit(
-            X,
-            y,
-            column_names=column_names,
-            class_names=class_names,
-            precalc_shap=precalc_shap,
-        )
+        self.fit(X, y, column_names=column_names, class_names=class_names, precalc_shap=precalc_shap, **shap_kwargs)
         return self.compute()
 
     def plot(

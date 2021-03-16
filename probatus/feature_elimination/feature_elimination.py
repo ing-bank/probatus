@@ -333,7 +333,7 @@ class ShapRFECV(BaseFitComputePlotClass):
         self.report_df = pd.concat([self.report_df, current_row], axis=0)
 
     @staticmethod
-    def _get_feature_shap_values_per_fold(X, y, clf, train_index, val_index, scorer, verbose=0):
+    def _get_feature_shap_values_per_fold(X, y, clf, train_index, val_index, scorer, verbose=0, **shap_kwargs):
         """
         This function calculates the shap values on validation set, and Train and Val score.
 
@@ -365,6 +365,12 @@ class ShapRFECV(BaseFitComputePlotClass):
                 - 51 - 100 - shows most important warnings, prints of the feature removal process
                 - above 100 - presents all prints and all warnings (including SHAP warnings).
 
+            **shap_kwargs:
+                keyword arguments passed to
+                [shap.Explainer](https://shap.readthedocs.io/en/latest/generated/shap.Explainer.html#shap.Explainer).
+                It also enables `approximate` and `check_additivity` parameters, passed while calculating SHAP values.
+                The `approximate=True` causes less accurate, but faster SHAP values calculation, while
+                `check_additivity=False` disables the additivity check inside SHAP.
         Returns:
             (np.array, float, float):
                 Tuple with the results: Shap Values on validation fold, train score, validation score.
@@ -380,10 +386,10 @@ class ShapRFECV(BaseFitComputePlotClass):
         score_val = scorer(clf, X_val, y_val)
 
         # Compute SHAP values
-        shap_values = shap_calc(clf, X_val, verbose=verbose)
+        shap_values = shap_calc(clf, X_val, verbose=verbose, **shap_kwargs)
         return shap_values, score_train, score_val
 
-    def fit(self, X, y, columns_to_keep=None, column_names=None):
+    def fit(self, X, y, columns_to_keep=None, column_names=None, **shap_kwargs):
         """
         Fits the object with the provided data.
 
@@ -412,6 +418,13 @@ class ShapRFECV(BaseFitComputePlotClass):
                 List of feature names of the provided samples. If provided it will be used to overwrite the existing
                 feature names. If not provided the existing feature names are used or default feature names are
                 generated.
+
+            **shap_kwargs:
+                keyword arguments passed to
+                [shap.Explainer](https://shap.readthedocs.io/en/latest/generated/shap.Explainer.html#shap.Explainer).
+                It also enables `approximate` and `check_additivity` parameters, passed while calculating SHAP values.
+                The `approximate=True` causes less accurate, but faster SHAP values calculation, while
+                `check_additivity=False` disables the additivity check inside SHAP.
 
         Returns:
             (ShapRFECV): Fitted object.
@@ -502,6 +515,7 @@ class ShapRFECV(BaseFitComputePlotClass):
                     val_index=val_index,
                     scorer=self.scorer.scorer,
                     verbose=self.verbose,
+                    **shap_kwargs,
                 )
                 for train_index, val_index in self.cv.split(current_X, self.y)
             )
@@ -557,7 +571,7 @@ class ShapRFECV(BaseFitComputePlotClass):
 
         return self.report_df
 
-    def fit_compute(self, X, y, columns_to_keep=None, column_names=None):
+    def fit_compute(self, X, y, columns_to_keep=None, column_names=None, **shap_kwargs):
         """
         Fits the object with the provided data.
 
@@ -586,12 +600,19 @@ class ShapRFECV(BaseFitComputePlotClass):
                 feature names. If not provided the existing feature names are used or default feature names are
                 generated.
 
+            **shap_kwargs:
+                keyword arguments passed to
+                [shap.Explainer](https://shap.readthedocs.io/en/latest/generated/shap.Explainer.html#shap.Explainer).
+                It also enables `approximate` and `check_additivity` parameters, passed while calculating SHAP values.
+                The `approximate=True` causes less accurate, but faster SHAP values calculation, while
+                `check_additivity=False` disables the additivity check inside SHAP.
+
         Returns:
             (pd.DataFrame):
                 DataFrame containing results of feature elimination from each iteration.
         """
 
-        self.fit(X, y, columns_to_keep=columns_to_keep, column_names=column_names)
+        self.fit(X, y, columns_to_keep=columns_to_keep, column_names=column_names, **shap_kwargs)
         return self.compute()
 
     def get_reduced_features_set(self, num_features):
