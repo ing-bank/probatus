@@ -379,7 +379,7 @@ class ShapRFECV(BaseFitComputePlotClass):
         y_train, y_val = y.iloc[train_index], y.iloc[val_index]
 
         # Fit model with train folds
-        clf = ShapRFECV._fit_clf(clf, X_train, y_train)
+        clf = clf.fit(X_train, y_train)
 
         # Score the model
         score_train = scorer(clf, X_train, y_train)
@@ -388,27 +388,6 @@ class ShapRFECV(BaseFitComputePlotClass):
         # Compute SHAP values
         shap_values = shap_calc(clf, X_val, verbose=verbose, **shap_kwargs)
         return shap_values, score_train, score_val
-
-    @staticmethod
-    def _fit_clf(clf, X, y):
-        """
-        Fit a classifier.
-
-        Args:
-            clf (binary classifier):
-                    Model to be fitted on X and y.
-
-            X (pd.DataFrame):
-                Dataset with features.
-
-            y (pd.Series):
-                Binary labels for X.
-
-        Returns:
-            (binary classifier):
-                Fitted model.
-        """
-        return clf.fit(X, y)
 
     def fit(self, X, y, columns_to_keep=None, column_names=None, **shap_kwargs):
         """
@@ -521,7 +500,7 @@ class ShapRFECV(BaseFitComputePlotClass):
 
             # Optimize parameters
             if self.search_clf:
-                current_search_clf = self._fit_clf(clone(self.clf), current_X, self.y)
+                current_search_clf = clone(self.clf).fit(current_X, self.y)
                 current_clf = current_search_clf.estimator.set_params(**current_search_clf.best_params_)
             else:
                 current_clf = clone(self.clf)
@@ -716,3 +695,157 @@ class ShapRFECV(BaseFitComputePlotClass):
         else:
             plt.close()
         return ax
+
+
+class EarlyStoppingShapRFECV(ShapRFECV):
+    """
+    This is a child of ShapRFECV which allows early stopping during the fitting.
+
+    Early stopping is a feature of models such as as LightGBM or xgboost.
+
+    Parent (ShapRFECV) docstring:
+    """
+
+    __doc__ = str(__doc__) + str(ShapRFECV.__doc__)
+
+    def __init__(
+        self,
+        clf,
+        early_stopping_rounds=None,
+        eval_metric=None,
+        **kwargs,
+    ):
+        """
+        This method initializes the class.
+
+        Args:
+            clf (binary classifier, sklearn compatible search CV e.g. GridSearchCV, RandomizedSearchCV or BayesSearchCV):
+                A model that will be optimized and trained at each round of features elimination. The recommended model
+                is [LGBMClassifier](https://lightgbm.readthedocs.io/en/latest/pythonapi/lightgbm.LGBMClassifier.html),
+                because it by default handles the missing values and categorical variables. This parameter also supports
+                any hyperparameter search schema that is consistent with the sklearn API e.g.
+                [GridSearchCV](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.GridSearchCV.html),
+                [RandomizedSearchCV](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.RandomizedSearchCV.html)
+                or [BayesSearchCV](https://scikit-optimize.github.io/stable/modules/generated/skopt.BayesSearchCV.html#skopt.BayesSearchCV).
+
+            step (int or float, optional):
+                Number of lowest importance features removed each round. If it is an int, then each round such number of
+                features is discarded. If float, such percentage of remaining features (rounded down) is removed each
+                iteration. It is recommended to use float, since it is faster for a large number of features, and slows
+                down and becomes more precise towards less features. Note: the last round may remove fewer features in
+                order to reach min_features_to_select.
+                If columns_to_keep parameter is specified in the fit method, step is the number of features to remove after
+                keeping those columns.
+
+            min_features_to_select (int, optional):
+                Minimum number of features to be kept. This is a stopping criterion of the feature elimination. By
+                default the process stops when one feature is left. If columns_to_keep is specified in the fit method,
+                it may overide this parameter to the maximum between length of columns_to_keep the two.
+
+            cv (int, cross-validation generator or an iterable, optional):
+                Determines the cross-validation splitting strategy. Compatible with sklearn
+                [cv parameter](https://scikit-learn.org/stable/modules/generated/sklearn.feature_selection.RFECV.html).
+                If None, then cv of 5 is used.
+
+            scoring (string or probatus.utils.Scorer, optional):
+                Metric for which the model performance is calculated. It can be either a metric name  aligned with predefined
+                [classification scorers names in sklearn](https://scikit-learn.org/stable/modules/model_evaluation.html).
+                Another option is using probatus.utils.Scorer to define a custom metric.
+
+            n_jobs (int, optional):
+                Number of cores to run in parallel while fitting across folds. None means 1 unless in a
+                `joblib.parallel_backend` context. -1 means using all processors.
+
+            verbose (int, optional):
+                Controls verbosity of the output:
+
+                - 0 - nether prints nor warnings are shown
+                - 1 - 50 - only most important warnings
+                - 51 - 100 - shows other warnings and prints
+                - above 100 - presents all prints and all warnings (including SHAP warnings).
+
+            random_state (int, optional):
+                Random state set at each round of feature elimination. If it is None, the results will not be
+                reproducible and in random search at each iteration a different hyperparameters might be tested. For
+                reproducible results set it to integer.
+
+            early_stopping_rounds (int, optional):
+                Number of rounds with constant performance after which the model fitting stops. Only supported by some
+                models, such as xgboost and LightGBM.
+
+            eval_metric (str, optional):
+                Metric for early stopping.
+        """  # noqa
+        super(EarlyStoppingShapRFECV, self).__init__(clf, **kwargs)
+        if early_stopping_rounds:
+            print(
+                "WARNING: early_stopping_rounds will be passed when estimating feature importance with SHAP,"
+                + "but not when optimizing hyperparameters."
+            )
+        self.early_stopping_rounds = early_stopping_rounds
+        self.eval_metric = eval_metric
+
+    def _get_feature_shap_values_per_fold(self, X, y, clf, train_index, val_index, scorer, verbose=0, **shap_kwargs):
+        """
+        This function calculates the shap values on validation set, and Train and Val score.
+
+        Args:
+            X (pd.DataFrame):
+                Dataset used in CV.
+
+            y (pd.Series):
+                Binary labels for X.
+
+            clf (binary classifier):
+                Model to be fitted on the train folds.
+
+            train_index (np.array):
+                Positions of train folds samples.
+
+            val_index (np.array):
+                Positions of validation fold samples.
+
+            scorer (string, callable or None):
+                A string (see sklearn [model scoring](https://scikit-learn.org/stable/modules/model_evaluation.html)) or
+                a scorer callable object, function with the signature `scorer(estimator, X, y)`.
+
+            verbose (int, optional):
+                Controls verbosity of the output:
+
+                - 0 - neither prints nor warnings are shown
+                - 1 - 50 - only most important warnings regarding data properties are shown (excluding SHAP warnings)
+                - 51 - 100 - shows most important warnings, prints of the feature removal process
+                - above 100 - presents all prints and all warnings (including SHAP warnings).
+
+            **shap_kwargs:
+                keyword arguments passed to
+                [shap.Explainer](https://shap.readthedocs.io/en/latest/generated/shap.Explainer.html#shap.Explainer).
+                It also enables `approximate` and `check_additivity` parameters, passed while calculating SHAP values.
+                The `approximate=True` causes less accurate, but faster SHAP values calculation, while
+                `check_additivity=False` disables the additivity check inside SHAP.
+        Returns:
+            (np.array, float, float):
+                Tuple with the results: Shap Values on validation fold, train score, validation score.
+        """
+        X_train, X_val = X.iloc[train_index, :], X.iloc[val_index, :]
+        y_train, y_val = y.iloc[train_index], y.iloc[val_index]
+
+        # Fit model with train folds
+        if self.early_stopping_rounds:
+            clf = clf.fit(
+                X_train,
+                y_train,
+                eval_set=[(X_train, y_train), (X_val, y_val)],
+                early_stopping_rounds=self.early_stopping_rounds,
+                eval_metric=self.eval_metric,
+            )
+        else:
+            clf = clf.fit(X_train, y_train)
+
+        # Score the model
+        score_train = scorer(clf, X_train, y_train)
+        score_val = scorer(clf, X_val, y_val)
+
+        # Compute SHAP values
+        shap_values = shap_calc(clf, X_val, verbose=verbose, **shap_kwargs)
+        return shap_values, score_train, score_val
