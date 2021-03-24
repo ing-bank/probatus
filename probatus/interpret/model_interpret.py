@@ -36,9 +36,9 @@ import pandas as pd
 
 class ShapModelInterpreter(BaseFitComputePlotClass):
     """
-    This class is a wrapper that allows to easily analyse model's features.
+    This class is a wrapper that allows to easily analyse a model's features.
 
-    It allows to plot SHAP feature importance,
+    It allows us to plot SHAP feature importance,
         SHAP summary plot and SHAP dependence plots.
 
     Example:
@@ -95,7 +95,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
             verbose (int, optional):
                 Controls verbosity of the output:
 
-                - 0 - nether prints nor warnings are shown
+                - 0 - niether prints nor warnings are shown
                 - 1 - 50 - only most important warnings
                 - 51 - 100 - shows other warnings and prints
                 - above 100 - presents all prints and all warnings (including SHAP warnings).
@@ -224,7 +224,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
 
     def compute(self, return_scores=False):
         """
-        Computes the DataFrame, that presents the importance of each feature.
+        Computes the DataFrame that presents the importance of each feature.
 
         Args:
             return_scores (bool, optional):

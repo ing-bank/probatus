@@ -113,7 +113,7 @@ class ShapRFECV(BaseFitComputePlotClass):
 
         Args:
             clf (binary classifier, sklearn compatible search CV e.g. GridSearchCV, RandomizedSearchCV or BayesSearchCV):
-                A model that will be optimized and trained at each round of features elimination. The recommended model
+                A model that will be optimized and trained at each round of feature elimination. The recommended model
                 is [LGBMClassifier](https://lightgbm.readthedocs.io/en/latest/pythonapi/lightgbm.LGBMClassifier.html),
                 because it by default handles the missing values and categorical variables. This parameter also supports
                 any hyperparameter search schema that is consistent with the sklearn API e.g.
@@ -122,10 +122,10 @@ class ShapRFECV(BaseFitComputePlotClass):
                 or [BayesSearchCV](https://scikit-optimize.github.io/stable/modules/generated/skopt.BayesSearchCV.html#skopt.BayesSearchCV).
 
             step (int or float, optional):
-                Number of lowest importance features removed each round. If it is an int, then each round such number of
-                features is discarded. If float, such percentage of remaining features (rounded down) is removed each
+                Number of lowest importance features removed each round. If it is an int, then each round such a number of
+                features are discarded. If float, such a percentage of remaining features (rounded down) is removed each
                 iteration. It is recommended to use float, since it is faster for a large number of features, and slows
-                down and becomes more precise towards less features. Note: the last round may remove fewer features in
+                down and becomes more precise with fewer features. Note: the last round may remove fewer features in
                 order to reach min_features_to_select.
                 If columns_to_keep parameter is specified in the fit method, step is the number of features to remove after
                 keeping those columns.
@@ -141,7 +141,7 @@ class ShapRFECV(BaseFitComputePlotClass):
                 If None, then cv of 5 is used.
 
             scoring (string or probatus.utils.Scorer, optional):
-                Metric for which the model performance is calculated. It can be either a metric name  aligned with predefined
+                Metric for which the model performance is calculated. It can be either a metric name aligned with predefined
                 [classification scorers names in sklearn](https://scikit-learn.org/stable/modules/model_evaluation.html).
                 Another option is using probatus.utils.Scorer to define a custom metric.
 
@@ -152,7 +152,7 @@ class ShapRFECV(BaseFitComputePlotClass):
             verbose (int, optional):
                 Controls verbosity of the output:
 
-                - 0 - nether prints nor warnings are shown
+                - 0 - neither prints nor warnings are shown
                 - 1 - 50 - only most important warnings
                 - 51 - 100 - shows other warnings and prints
                 - above 100 - presents all prints and all warnings (including SHAP warnings).
@@ -160,7 +160,7 @@ class ShapRFECV(BaseFitComputePlotClass):
             random_state (int, optional):
                 Random state set at each round of feature elimination. If it is None, the results will not be
                 reproducible and in random search at each iteration a different hyperparameters might be tested. For
-                reproducible results set it to integer.
+                reproducible results set it to an integer.
         """  # noqa
         self.clf = clf
 
@@ -203,7 +203,7 @@ class ShapRFECV(BaseFitComputePlotClass):
         If step is a positive integer,
             at each round step lowest SHAP importance features are selected. If it is a float, such percentage
             of remaining features (rounded up) is removed each iteration. It is recommended to use float, since it is
-            faster for a large set of features, and slows down and becomes more precise towards less features.
+            faster for a large set of features, and slows down and becomes more precise with fewer features.
 
         Args:
             shap_importance_df (pd.DataFrame):

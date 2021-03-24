@@ -36,13 +36,14 @@ import warnings
 
 class BaseResemblanceModel(BaseFitComputePlotClass):
     """
-    This model checks for similarity of two samples.
+    This model checks for the similarity of two samples.
 
-    A possible use case is analysis whether train sample differs
-        from test sample, due to e.g. non-stationarity.
+    A possible use case is analysis of whether th train sample differs
+    from the test sample, due to e.g. non-stationarity.
 
-    This is a base class and needs to be extended by a fit() method, which implements how data is split, how model is
-        trained and evaluated. Further, inheriting classes need to implement how feature importance should be indicated.
+    This is a base class and needs to be extended by a fit() method, which implements how the data is split,
+    how the model is trained and evaluated.
+    Further, inheriting classes need to implement how feature importance should be indicated.
     """
 
     def __init__(
@@ -62,10 +63,10 @@ class BaseResemblanceModel(BaseFitComputePlotClass):
                 Binary classification model or pipeline.
 
             scoring (string or probatus.utils.Scorer, optional):
-                Metric for which the model performance is calculated. It can be either a metric name  aligned with
+                Metric for which the model performance is calculated. It can be either a metric name aligned with
                 predefined
                 [classification scorers names in sklearn](https://scikit-learn.org/stable/modules/model_evaluation.html).
-                Another option is using probatus.utils.Scorer to define a custom metric. Recommended option for this
+                Another option is using probatus.utils.Scorer to define a custom metric. The recommended option for this
                 class is 'roc_auc'.
 
             test_prc (float, optional):
@@ -77,7 +78,7 @@ class BaseResemblanceModel(BaseFitComputePlotClass):
             verbose (int, optional):
                 Controls verbosity of the output:
 
-                - 0 - nether prints nor warnings are shown
+                - 0 - neither prints nor warnings are shown
                 - 1 - 50 - only most important warnings
                 - 51 - 100 - shows other warnings and prints
                 - above 100 - presents all prints and all warnings (including SHAP warnings).
@@ -85,7 +86,7 @@ class BaseResemblanceModel(BaseFitComputePlotClass):
             random_state (int, optional):
                 Random state set at each round of feature elimination. If it is None, the results will not be
                 reproducible and in random search at each iteration a different hyperparameters might be tested. For
-                reproducible results set it to integer.
+                reproducible results set it to an integer.
         """  # noqa
         self.clf = clf
         self.test_prc = test_prc
@@ -253,13 +254,12 @@ class BaseResemblanceModel(BaseFitComputePlotClass):
                 List of class names assigned, in this case provided samples e.g. ['sample1', 'sample2']. If none, the
                 default ['First Sample', 'Second Sample'] are used.
 
-
             return_scores (bool, optional):
                 Flag indicating whether the method should return a tuple (feature importances, train score,
                 test score), or feature importances. By default the second option is selected.
 
             **fit_kwargs:
-                In case any other arguments are accepted by fit() method, they can be passed as keyword arguments
+                In case any other arguments are accepted by fit() method, they can be passed as keyword arguments.
 
         Returns:
             (tuple of (pd.DataFrame, float, float) or pd.DataFrame):
@@ -278,19 +278,20 @@ class BaseResemblanceModel(BaseFitComputePlotClass):
 
 class PermutationImportanceResemblance(BaseResemblanceModel):
     """
-    This model checks for similarity of two samples.
+    This model checks the similarity of two samples.
 
-    A possible use case is analysis whether train sample differs
-        from test sample, due to e.g. non-stationarity.
+    A possible use case is analysis of whether the train sample differs
+    from the test sample, due to e.g. non-stationarity.
 
-    It assigns to labels to each sample, 0 to first sample, 1 to the second. Then, It randomly selects a portion of
-        data to train on. The resulting model tries to distinguish which sample does a given test row comes from. This
-        provides insights on how distinguishable these samples are and which features contribute to that. The feature
-        importance is calculated using permutation importance.
+    It assigns labels to each sample, 0 to the first sample, 1 to the second. Then, it randomly selects a portion of
+    data to train on. The resulting model tries to distinguish which sample a given test row comes from. This
+    provides insights on how distinguishable these samples are and which features contribute to that. The feature
+    importance is calculated using permutation importance.
 
-    If the model achieves test AUC significantly different than 0.5, it indicates that it is possible to distinguish
-        the samples, and therefore, the samples differ. Features with high permutation importance contribute to that
-        effect the most. Thus, their distribution might differ between two samples.
+    If the model achieves a test AUC significantly different than 0.5, it indicates that it is possible to distinguish
+    between the samples, and therefore, the samples differ.
+    Features with a high permutation importance contribute to that effect the most.
+    Thus, their distribution might differ between two samples.
 
     Examples:
     ```python
@@ -329,7 +330,7 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
                 feature are done.
 
             scoring (string or probatus.utils.Scorer, optional):
-                Metric for which the model performance is calculated. It can be either a metric name  aligned with
+                Metric for which the model performance is calculated. It can be either a metric name aligned with
                 predefined
                 [classification scorers names in sklearn](https://scikit-learn.org/stable/modules/model_evaluation.html).
                 Another option is using probatus.utils.Scorer to define a custom metric. Recommended option for this
@@ -344,7 +345,7 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
             verbose (int, optional):
                 Controls verbosity of the output:
 
-                - 0 - nether prints nor warnings are shown
+                - 0 - neither prints nor warnings are shown
                 - 1 - 50 - only most important warnings
                 - 51 - 100 - shows other warnings and prints
                 - above 100 - presents all prints and all warnings (including SHAP warnings).
@@ -374,10 +375,10 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
 
     def fit(self, X1, X2, column_names=None, class_names=None):
         """
-        This function assigns to labels to each sample, 0 to first sample, 1 to the second.
+        This function assigns labels to each sample, 0 to the first sample, 1 to the second.
 
         Then, it randomly selects a
-            portion of data to train on. The resulting model tries to distinguish which sample does a given test row
+            portion of data to train on. The resulting model tries to distinguish which sample a given test row
             comes from. This provides insights on how distinguishable these samples are and which features contribute to
             that. The feature importance is calculated using permutation importance.
 
@@ -448,14 +449,14 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
 
         Args:
             ax (matplotlib.axes, optional):
-                Axes to which the output should be plotted. If not provided a new axes are created.
+                Axes to which the output should be plotted. If not provided new axes are created.
 
             top_n (int, optional):
-                Number of the most important features to be plotted. By default are features are included into the plot.
+                Number of the most important features to be plotted. By default features are included in the plot.
 
             show (bool, optional):
-                If True, the plots are showed to the user, otherwise they are not shown. Not showing plot can be useful,
-                when you want to edit the returned axis, before showing it.
+                If True, the plots are shown to the user, otherwise they are not shown. Not showing a plot can be useful
+                when you want to edit the returned axis before showing it.
 
             **plot_kwargs:
                 Keyword arguments passed to the matplotlib.plotly.subplots method.
@@ -510,16 +511,16 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
     """
     This model checks for similarity of two samples.
 
-    A possible use case is analysis whether train sample differs
-        from test sample, due to e.g. non-stationarity.
+    A possible use case is analysis of whether the train sample differs
+        from the test sample, due to e.g. non-stationarity.
 
-    It assigns to labels to each sample, 0 to first sample, 1 to the second. Then, It randomly selects a portion of data
-        to train on. The resulting model tries to distinguish which sample does a given test row comes from. This
+    It assigns labels to each sample, 0 to the first sample, 1 to the second. Then, it randomly selects a portion of data
+        to train on. The resulting model tries to distinguish which sample a given test row comes from. This
         provides insights on how distinguishable these samples are and which features contribute to that. The feature
         importance is calculated using SHAP feature importance.
 
     If the model achieves test AUC significantly different than 0.5, it indicates that it is possible to distinguish
-        the samples, and therefore, the samples differ. Features with high permutation importance contribute to that
+    between the samples, and therefore, the samples differ. Features with a high permutation importance contribute to that
         effect the most. Thus, their distribution might differ between two samples.
 
     This class currently works only with the Tree based models.
@@ -558,7 +559,7 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
                 Binary classification model or pipeline.
 
             scoring (string or probatus.utils.Scorer, optional):
-                Metric for which the model performance is calculated. It can be either a metric name  aligned with
+                Metric for which the model performance is calculated. It can be either a metric name aligned with
                 predefined
                 [classification scorers names in sklearn](https://scikit-learn.org/stable/modules/model_evaluation.html).
                 Another option is using probatus.utils.Scorer to define a custom metric. Recommended option for this
@@ -573,7 +574,7 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
             verbose (int, optional):
                 Controls verbosity of the output:
 
-                - 0 - nether prints nor warnings are shown
+                - 0 - neither prints nor warnings are shown
                 - 1 - 50 - only most important warnings
                 - 51 - 100 - shows other warnings and prints
                 - above 100 - presents all prints and all warnings (including SHAP warnings).
@@ -596,10 +597,10 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
 
     def fit(self, X1, X2, column_names=None, class_names=None, **shap_kwargs):
         """
-        This function assigns to labels to each sample, 0 to first sample, 1 to the second.
+        This function assigns labels to each sample, 0 to the first sample, 1 to the second.
 
-        Then, It randomly selects a
-            portion of data to train on. The resulting model tries to distinguish which sample does a given test row
+        Then, it randomly selects a
+            portion of data to train on. The resulting model tries to distinguish which sample a given test row
             comes from. This provides insights on how distinguishable these samples are and which features contribute to
             that. The feature importance is calculated using SHAP feature importance.
 
