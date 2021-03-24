@@ -1,7 +1,7 @@
-<img src="docs/img/logo_large.png" width="120" align="right">
+<img src="https://github.com/ing-bank/probatus/raw/main/docs/img/logo_large.png" width="120" align="right">
 
-[![pytest](https://github.com/ing-bank/probatus/workflows/Unit%20tests/badge.svg)](https://github.com/ing_rpaa/probatus/actions)
-[![coverage report](https://gitlab.com/ing_rpaa/probatus/badges/master/coverage.svg)](https://gitlab.com/ing_rpaa/probatus/-/commits/master)
+[![pytest](https://github.com/ing-bank/probatus/workflows/Development/badge.svg)](https://github.com/ing-bank/probatus/actions?query=workflow%3A%22Development%22)
+[![codecov](https://codecov.io/gh/ing-bank/probatus/branch/main/graph/badge.svg?token=OFE2YWHLFK)](https://codecov.io/gh/ing-bank/probatus)
 [![PyPi Version](https://img.shields.io/pypi/pyversions/probatus)](#)
 [![PyPI](https://img.shields.io/pypi/v/probatus)](#)
 [![PyPI - Downloads](https://img.shields.io/pypi/dm/probatus)](#)
@@ -16,29 +16,18 @@
 - [probatus.metric_volatility](https://ing-bank.github.io/probatus/api/metric_volatility.html) provides tools using bootstrapping and/or different random seeds to assess metric volatility/stability.
 - [probatus.sample_similarity](https://ing-bank.github.io/probatus/api/sample_similarity.html) to compare two datasets using resemblance modelling, f.e. `train` with out-of-time `test`.
 - [probatus.feature_elimination.ShapRFECV](https://ing-bank.github.io/probatus/api/feature_elimination.html) provides cross-validated Recursive Feature Elimination using shap feature importance.
+- [probatus.missing_values](https://ing-bank.github.io/probatus/api/imputation_selector.html) compares performance gains of different missing values imputation strategies for a given model.
 
 ## Installation
-
-In order to install probatus you need to use Python 3.6 or higher.
-
-You can install probatus using pip:
 
 ```bash
 pip install probatus
 ```
 
-Alternatively you can fork/clone and run:
-
-```bash
-git clone https://gitlab.com/ing_rpaa/probatus.git
-cd probatus
-pip install .
-```
-
 ## Documentation
 
-Documentation available at [ing-bank.github.io/probatus/](https://ing-bank.github.io/probatus/).
+Documentation at [ing-bank.github.io/probatus/](https://ing-bank.github.io/probatus/).
 
-## Contribution
+## Contributing
 
 To learn more about making a contribution to probatus, please see [`CONTRIBUTING.md`](CONTRIBUTING.md).

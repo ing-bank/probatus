@@ -23,13 +23,25 @@ import numpy as np
 from sklearn.cluster import AgglomerativeClustering
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.utils.validation import check_is_fitted
-from probatus.utils import assure_numpy_array, TreePathFinder, ApproximationWarning, BaseFitComputeClass
+from probatus.utils import (
+    assure_numpy_array,
+    TreePathFinder,
+    ApproximationWarning,
+    BaseFitComputeClass,
+)
 import warnings
 from abc import abstractmethod
 
+
 class Bucketer(BaseFitComputeClass):
+    """
+    Bucket (bin) some datea.
+    """
 
     def __repr__(self):
+        """
+        String representation.
+        """
         repr_ = f"{self.__class__.__name__}\n\tbincount: {self.bin_count}"
         if hasattr(self, "boundaries_"):
             repr_ += f"\nResults:\n\tcounts: {self.counts_}\n\tboundaries: {self.boundaries_}"
@@ -37,25 +49,39 @@ class Bucketer(BaseFitComputeClass):
 
     @abstractmethod
     def fit(self):
+        """
+        Fit Bucketer.
+        """
         pass
 
     @property
     def boundaries(self):
-        warnings.warn("The 'boundaries' attribute is deprecated, use 'boundaries_' instead. The underscore suffix signals this is a fitted attribute.",
-                       DeprecationWarning)
+        """
+        The boundaries of the bins.
+        """
+        msg = "The 'boundaries' attribute is deprecated, use 'boundaries_' instead."
+        msg += "The underscore suffix signals this is a fitted attribute."
+        warnings.warn(
+            msg,
+            DeprecationWarning,
+        )
         check_is_fitted(self)
         return self.boundaries_
 
     @property
     def counts(self):
-        warnings.warn("The 'counts' attribute is deprecated, use 'counts_' instead. The underscore suffix signals this is a fitted attribute.", 
-            DeprecationWarning)
+        """
+        Counts.
+        """
+        msg = "The 'counts' attribute is deprecated, use 'counts_' instead."
+        msg += "The underscore suffix signals this is a fitted attribute."
+        warnings.warn(msg, DeprecationWarning)
         check_is_fitted(self)
         return self.counts_
 
     def compute(self, X, y=None):
         """
-        Applies fitted bucketing algorithm on input data and counts number of samples per bin
+        Applies fitted bucketing algorithm on input data and counts number of samples per bin.
 
         Args:
             X: (np.array) data to be bucketed
@@ -65,20 +91,20 @@ class Bucketer(BaseFitComputeClass):
 
         """
         check_is_fitted(self)
-        
+
         # np.digitize returns the indices of the bins to which each value in input array belongs
         # the smallest value of the `boundaries` attribute equals the lowest value in the set the instance was
         # fitted on, to prevent the smallest value of x_new to be in his own bucket, we ignore the first boundary
         # value
         digitize_result = np.digitize(X, self.boundaries_[1:], right=True)
-        result = pd.DataFrame({'bucket': digitize_result}).groupby('bucket')['bucket'].count()
+        result = pd.DataFrame({"bucket": digitize_result}).groupby("bucket")["bucket"].count()
         # reindex the dataframe such that also empty buckets are included in the result
         result = result.reindex(np.arange(self.bin_count), fill_value=0)
         return result.values
 
-    def fit_compute(self, X, y = None):
+    def fit_compute(self, X, y=None):
         """
-        Apply bucketing to new data and return number of samples per bin
+        Apply bucketing to new data and return number of samples per bin.
 
         Args:
             X: (np.array) data to be bucketed
@@ -93,7 +119,8 @@ class Bucketer(BaseFitComputeClass):
 
 
 class SimpleBucketer(Bucketer):
-    """Create equally spaced bins using numpy.histogram function
+    """
+    Create equally spaced bins using numpy.histogram function.
 
     Example:
     ```python
@@ -108,17 +135,24 @@ class SimpleBucketer(Bucketer):
     myBucketer.counts gives the number of elements per bucket
     myBucketer.boundaries gives the boundaries of the buckets
     """
+
     def __init__(self, bin_count):
+        """
+        Init.
+        """
         self.bin_count = bin_count
 
     @staticmethod
     def simple_bins(x, bin_count):
+        """
+        Simple bins.
+        """
         counts, boundaries = np.histogram(x, bins=bin_count)
         return counts, boundaries
 
     def fit(self, x, y=None):
         """
-        Fit bucketing on x
+        Fit bucketing on x.
 
         Args:
             x: (np.array) Input array on which the boundaries of bins are fitted
@@ -131,7 +165,8 @@ class SimpleBucketer(Bucketer):
 
 
 class AgglomerativeBucketer(Bucketer):
-    """Create binning by applying the Scikit-learn implementation of Agglomerative Clustering
+    """
+    Create binning by applying the Scikit-learn implementation of Agglomerative Clustering.
 
     Usage:
     ```python
@@ -146,26 +181,35 @@ class AgglomerativeBucketer(Bucketer):
     myBucketer.counts gives the number of elements per bucket
     myBucketer.boundaries gives the boundaries of the buckets
     """
+
     def __init__(self, bin_count):
+        """
+        Init.
+        """
         self.bin_count = bin_count
 
     @staticmethod
     def agglomerative_clustering_binning(x, bin_count):
+        """
+        Cluster.
+        """
         clustering = AgglomerativeClustering(n_clusters=bin_count).fit(np.asarray(x).reshape(-1, 1))
-        df = pd.DataFrame({'x': x, 'label': clustering.labels_}).sort_values(by='x')
-        cluster_minimum_values = df.groupby('label')['x'].min().sort_values().tolist()
-        cluster_maximum_values = df.groupby('label')['x'].max().sort_values().tolist()
+        df = pd.DataFrame({"x": x, "label": clustering.labels_}).sort_values(by="x")
+        cluster_minimum_values = df.groupby("label")["x"].min().sort_values().tolist()
+        cluster_maximum_values = df.groupby("label")["x"].max().sort_values().tolist()
         # take the mean of the upper boundary of a cluster and the lower boundary of the next cluster
-        boundaries = [np.mean([cluster_minimum_values[i + 1], cluster_maximum_values[i]]) for i in
-                      range(len(cluster_minimum_values) - 1)]
+        boundaries = [
+            np.mean([cluster_minimum_values[i + 1], cluster_maximum_values[i]])
+            for i in range(len(cluster_minimum_values) - 1)
+        ]
         # add the lower boundary of the lowest cluster and the upper boundary of the highest cluster
         boundaries = [cluster_minimum_values[0]] + boundaries + [cluster_maximum_values[-1]]
-        counts = df.groupby('label')['label'].count().values
+        counts = df.groupby("label")["label"].count().values
         return counts, boundaries
 
     def fit(self, x, y=None):
         """
-        Fit bucketing on x
+        Fit bucketing on x.
 
         Args:
             x: (np.array) Input array on which the boundaries of bins are fitted
@@ -178,7 +222,8 @@ class AgglomerativeBucketer(Bucketer):
 
 
 class QuantileBucketer(Bucketer):
-    """Create bins with equal number of elements
+    """
+    Create bins with equal number of elements.
 
     Usage:
     ```python
@@ -193,23 +238,29 @@ class QuantileBucketer(Bucketer):
     myBucketer.counts gives the number of elements per bucket
     myBucketer.boundaries gives the boundaries of the buckets
     """
+
     def __init__(self, bin_count):
+        """
+        Init.
+        """
         self.bin_count = bin_count
 
     @staticmethod
     def quantile_bins(x, bin_count, inf_edges=False):
-
+        """
+        Bins.
+        """
         try:
-            out, boundaries = pd.qcut(x, q=bin_count, retbins=True, duplicates='raise')
+            out, boundaries = pd.qcut(x, q=bin_count, retbins=True, duplicates="raise")
         except ValueError:
             # If there are too many duplicate values (assume a lot of filled missings)
             # this crashes - the exception drops them.
             # This means that it will return approximate quantile bins
-            out, boundaries = pd.qcut(x, q=bin_count, retbins=True, duplicates='drop')
-            warnings.warn(ApproximationWarning("Approximated quantiles - too many unique values" ))
-        df = pd.DataFrame({'x': x})
-        df['label'] = out
-        counts = df.groupby('label').count().values.flatten()
+            out, boundaries = pd.qcut(x, q=bin_count, retbins=True, duplicates="drop")
+            warnings.warn(ApproximationWarning("Approximated quantiles - too many unique values"))
+        df = pd.DataFrame({"x": x})
+        df["label"] = out
+        counts = df.groupby("label").count().values.flatten()
         if inf_edges:
             boundaries[0] = -np.inf
             boundaries[-1] = np.inf
@@ -217,7 +268,7 @@ class QuantileBucketer(Bucketer):
 
     def fit(self, x, y=None):
         """
-        Fit bucketing on x
+        Fit bucketing on x.
 
         Args:
             x: (np.array) Input array on which the boundaries of bins are fitted
@@ -230,12 +281,14 @@ class QuantileBucketer(Bucketer):
 
 
 class TreeBucketer(Bucketer):
-    """Class for bucketing using Decision Trees.
+    """
+    Class for bucketing using Decision Trees.
+
     It returns the optimal buckets found by a one-dimensional Decision Tree relative to a binary target.
 
     Useful if the buckets be defined such that there is a substantial difference between the buckets in
     the distribution of the target.
-    
+
     Usage:
     ```python
     from probatus.binning import TreeBucketer
@@ -321,7 +374,10 @@ class TreeBucketer(Bucketer):
 
     """
 
-    def __init__(self, inf_edges = False, tree = None, **tree_kwargs):
+    def __init__(self, inf_edges=False, tree=None, **tree_kwargs):
+        """
+        Init.
+        """
         self.bin_count = -1
         self.inf_edges = inf_edges
         if tree is None:
@@ -329,19 +385,20 @@ class TreeBucketer(Bucketer):
         else:
             self.tree = tree
 
-
     @staticmethod
     def tree_bins(x, y, inf_edges, tree):
-
+        """
+        Tree.
+        """
         X_in = assure_numpy_array(x).reshape(-1, 1)
         y_in = assure_numpy_array(y).reshape(-1, 1)
-        tree.fit(X_in,y_in)
+        tree.fit(X_in, y_in)
 
-        if tree.min_samples_leaf>=X_in.shape[0]:
+        if tree.min_samples_leaf >= X_in.shape[0]:
             error_msg = (
-                "Cannot Fit decision tree. min_samples_leaf must be < than the length of x.m" +
-                f"Currently min_samples_leaf {tree.min_samples_leaf} " +
-                f"and the length of X is {X_in.shape[0]}"
+                "Cannot Fit decision tree. min_samples_leaf must be < than the length of x.m"
+                + f"Currently min_samples_leaf {tree.min_samples_leaf} "
+                + f"and the length of X is {X_in.shape[0]}"
             )
             raise ValueError(error_msg)
 
@@ -351,8 +408,8 @@ class TreeBucketer(Bucketer):
         bin_count = len(index)
 
         tpf = TreePathFinder(tree)
-        boundaries = [bound['min'] for bound in tpf.get_boundaries().values()]
-        boundaries += [tpf.get_boundaries()[leaves[-1]]['max']]
+        boundaries = [bound["min"] for bound in tpf.get_boundaries().values()]
+        boundaries += [tpf.get_boundaries()[leaves[-1]]["max"]]
 
         if not inf_edges:
             boundaries[0] = np.min(X_in)
@@ -362,7 +419,7 @@ class TreeBucketer(Bucketer):
 
     def fit(self, X, y):
         """
-        Fit bucketing on x
+        Fit bucketing on x.
 
         Args:
             x: (np.array) Input array on which the boundaries of bins are fitted
@@ -370,5 +427,5 @@ class TreeBucketer(Bucketer):
 
         Returns: fitted bucketer object
         """
-        self.counts_, self.boundaries_, self.bin_count, self.tree = self.tree_bins(X,y, self.inf_edges, self.tree)
+        self.counts_, self.boundaries_, self.bin_count, self.tree = self.tree_bins(X, y, self.inf_edges, self.tree)
         return self

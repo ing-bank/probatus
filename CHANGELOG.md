@@ -5,6 +5,36 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.0] - 2021-03-16
+Improvements in this release:
+- Create a comparison of imputation strategies #86
+- Added support for passing check_additivity argument #103
+- Range of code styling issues fixed, based on precommit config #100 
+- Renamed TreeDependencePlotter to DependencePlotter and exposed the docs #94
+- Enable instalation of extra dependencies #97
+- Added how to notebook to ensure reproducibility #99
+- Description of vision of probatus #91
+
+## [1.6.2] - 2021-03-10
+Improvements in this release:
+- Bugfix, allow passing kwargs to dependence plot in ShapModelInterpreter #90
+
+## [1.6.1] - 2021-03-09
+Improvements in this release:
+- Added ShapRFECV support for all sklearn compatible search CVs. #76 #49
+
+## [1.6.0] - 2021-03-01
+Improvements in this release:
+- Added features list to README #53
+- Added docs for sample row functionality #54
+- Added 'open in colab' badges to tutorial notebooks #56
+- Deploy documentation on release #47
+- Added columns_to_keep for shap feature elimination #63
+- Updated docs for usage of columns to keep functionality in SHAPRFECV #66
+- Added shap support for linear models #69
+- Installed probatus in colab notebooks #80
+- Minor infrastructure tweaks #81
+
 ## [1.5.1] - 2020-12-04
 
 Various improvements to the consistency and usability of the package

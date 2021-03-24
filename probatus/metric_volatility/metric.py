@@ -25,8 +25,18 @@ from probatus.metric_volatility.utils import sample_data
 from sklearn.model_selection import train_test_split
 
 
-def get_metric(X, y, clf, test_size, split_seed, scorers, train_sampling_type=None, test_sampling_type=None,
-               train_sampling_fraction=1, test_sampling_fraction=1):
+def get_metric(
+    X,
+    y,
+    clf,
+    test_size,
+    split_seed,
+    scorers,
+    train_sampling_type=None,
+    test_sampling_type=None,
+    train_sampling_fraction=1,
+    test_sampling_fraction=1,
+):
     """
     Draws random train/test sample from the data using random seed and calculates metric of interest.
 
@@ -69,7 +79,7 @@ def get_metric(X, y, clf, test_size, split_seed, scorers, train_sampling_type=No
         test_sampling_fraction (float, optional):
             Fraction of test data sampled, if sample_test_type is not None. Default value is 1.
 
-    Returns: 
+    Returns:
         (pd.Dataframe):
             Dataframe with results for a given model trained. Rows indicate the metric measured and columns ther results
     """
@@ -82,14 +92,24 @@ def get_metric(X, y, clf, test_size, split_seed, scorers, train_sampling_type=No
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=split_seed, stratify=y)
 
     # Sample data based on the input arguments
-    X_train, y_train = sample_data(X=X_train, y=y_train, sampling_type=train_sampling_type,
-                                   sampling_fraction=train_sampling_fraction, dataset_name='train')
-    X_test, y_test = sample_data(X=X_test, y=y_test, sampling_type=test_sampling_type,
-                                 sampling_fraction=test_sampling_fraction, dataset_name='test')
+    X_train, y_train = sample_data(
+        X=X_train,
+        y=y_train,
+        sampling_type=train_sampling_type,
+        sampling_fraction=train_sampling_fraction,
+        dataset_name="train",
+    )
+    X_test, y_test = sample_data(
+        X=X_test,
+        y=y_test,
+        sampling_type=test_sampling_type,
+        sampling_fraction=test_sampling_fraction,
+        dataset_name="test",
+    )
 
     clf = clf.fit(X_train, y_train)
 
-    results_columns = ['metric_name', 'train_score', 'test_score', 'delta_score']
+    results_columns = ["metric_name", "train_score", "test_score", "delta_score"]
     results = pd.DataFrame([], columns=results_columns)
 
     for scorer in scorers:
@@ -97,7 +117,10 @@ def get_metric(X, y, clf, test_size, split_seed, scorers, train_sampling_type=No
         score_test = scorer.score(clf, X_test, y_test)
         score_delta = score_train - score_test
 
-        results = results.append(pd.DataFrame([[scorer.metric_name, score_train, score_test, score_delta]],
-                                              columns=results_columns))
+        results = results.append(
+            pd.DataFrame(
+                [[scorer.metric_name, score_train, score_test, score_delta]],
+                columns=results_columns,
+            )
+        )
     return results
-

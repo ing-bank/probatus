@@ -20,8 +20,11 @@
 
 import functools
 
+
 def verbose_p_vals(func):
-    """Decorator to enable verbose printing of p-vals"""
+    """
+    Decorator to enable verbose printing of p-vals.
+    """
 
     @functools.wraps(func)
     def wrapper_verbose_p_vals(*args, **kwargs):
@@ -38,11 +41,7 @@ def verbose_p_vals(func):
                     )
                 )
             elif pvalue < 0.05:
-                print(
-                    "\n{}: Null hypothesis rejected with 95% confidence. Distributions different.".format(
-                        test_name
-                    )
-                )
+                print("\n{}: Null hypothesis rejected with 95% confidence. Distributions different.".format(test_name))
             else:
                 print(
                     "\n{}: Null hypothesis cannot be rejected. Distributions not statistically different.".format(

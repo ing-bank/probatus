@@ -19,10 +19,24 @@
 
 
 class ApproximationWarning(Warning):
+    """
+    Warning for approx.
+    """
+
     def __init__(self, message):
+        """
+        Init.
+        """
         self.message = message
 
 
 class NotIntendedUseWarning(Warning):
+    """
+    Warning for not intended use.
+    """
+
     def __init__(self, message):
+        """
+        Init.
+        """
         self.message = message

@@ -28,6 +28,7 @@ import warnings
 def check_1d(x):
     """
     Checks whether or not a list, numpy array, pandas dataframe, pandas series are one-dimensional.
+
     Returns True when check is ok, otherwise throws a `DimensionalityError`
 
     Args:
@@ -38,30 +39,29 @@ def check_1d(x):
     """
     if isinstance(x, list):
         if any([isinstance(el, list) for el in x]):
-            raise DimensionalityError('The input is not 1D')
+            raise DimensionalityError("The input is not 1D")
         else:
             return True
     if isinstance(x, np.ndarray):
         if x.ndim == 1 and all([isinstance(el, numbers.Number) for el in x]):
             return True
         else:
-            raise DimensionalityError('The input is not 1D')
+            raise DimensionalityError("The input is not 1D")
     if isinstance(x, pd.core.frame.DataFrame):
-        if len(x.columns) == 1 and pd.api.types.is_numeric_dtype(
-                x[x.columns[0]]):
+        if len(x.columns) == 1 and pd.api.types.is_numeric_dtype(x[x.columns[0]]):
             return True
         else:
-            raise DimensionalityError('The input is not 1D')
+            raise DimensionalityError("The input is not 1D")
     if isinstance(x, pd.core.series.Series):
         if x.ndim == 1 and pd.api.types.is_numeric_dtype(x):
             return True
         else:
-            raise DimensionalityError('The input is not 1D')
+            raise DimensionalityError("The input is not 1D")
 
 
 def assure_numpy_array(x, assure_1d=False):
     """
-    Returns x as numpy array. X can be a list, numpy array, pandas dataframe, pandas series
+    Returns x as numpy array. X can be a list, numpy array, pandas dataframe, pandas series.
 
     Args:
         x: list, numpy array, pandas dataframe, pandas series
@@ -87,11 +87,11 @@ def assure_numpy_array(x, assure_1d=False):
 
 def assure_pandas_df(x, column_names=None):
     """
-    Returns x as pandas DataFrame. X can be a list, list of lists, numpy array, pandas DataFrame or pandas Series
-    
+    Returns x as pandas DataFrame. X can be a list, list of lists, numpy array, pandas DataFrame or pandas Series.
+
     Args:
         x (list, numpy array, pandas DataFrame, pandas Series): array to be tested
-        
+
     Returns:
         pandas DataFrame
     """
@@ -100,21 +100,21 @@ def assure_pandas_df(x, column_names=None):
         if column_names is not None:
             x.columns = column_names
         return x
-    elif any([
+    elif any(
+        [
             isinstance(x, np.ndarray),
             isinstance(x, pd.core.series.Series),
-            isinstance(x, list)
-    ]):
+            isinstance(x, list),
+        ]
+    ):
         return pd.DataFrame(x, columns=column_names)
     else:
-        raise TypeError(
-            "Please supply a list, numpy array, pandas Series or pandas DataFrame"
-        )
+        raise TypeError("Please supply a list, numpy array, pandas Series or pandas DataFrame")
 
 
 def assure_pandas_series(x, index=None):
     """
-    Returns x as pandas Series. X can be a list, numpy array, or pandas Series
+    Returns x as pandas Series. X can be a list, numpy array, or pandas Series.
 
     Args:
         x (list, numpy array, pandas DataFrame, pandas Series): array to be tested
@@ -136,33 +136,28 @@ def assure_pandas_series(x, index=None):
             # If indexes have different values, overwrite
             x.index = index
             return x
-    elif any([
-        isinstance(x, np.ndarray),
-        isinstance(x, list)
-    ]):
+    elif any([isinstance(x, np.ndarray), isinstance(x, list)]):
         return pd.Series(x, index=index)
     else:
-        raise TypeError(
-            "Please supply a list, numpy array, pandas Series"
-        )
+        raise TypeError("Please supply a list, numpy array, pandas Series")
 
 
 def check_numeric_dtypes(x):
     """
-    Checks if all entries in an array are of a data type that can be interpreted as numeric (int, float or bool)
-    
+    Checks if all entries in an array are of a data type that can be interpreted as numeric (int, float or bool).
+
     Args:
         x (np.ndarray or pd.Series, list): array to be checked
-    
+
     Returns:
         x: unchanged input array
-        
+
     Raises:
         TypeError: if not all elements are of numeric dtypes
     """
     x = assure_numpy_array(x)
     allowed_types = [bool, int, float]
-    
+
     for element in np.nditer(x):
         if type(element.item()) not in allowed_types:
             raise TypeError("Please supply an array with only floats, ints or booleans")
@@ -171,6 +166,8 @@ def check_numeric_dtypes(x):
 
 def preprocess_data(X, X_name=None, column_names=None, verbose=0):
     """
+    Preprocess data.
+
     Does basic preprocessing of the data: Transforms to DataFrame, Warns which features have missing variables,
     and transforms object dtype features to category type, such that LightGBM handles them by default.
 
@@ -198,9 +195,8 @@ def preprocess_data(X, X_name=None, column_names=None, verbose=0):
         (pd.DataFrame):
             Preprocessed dataset.
     """
-
     if X_name is None:
-        X_name = 'X'
+        X_name = "X"
 
     # Make sure that X is a pd.DataFrame with correct column names
     X = assure_pandas_df(X, column_names=column_names)
@@ -209,26 +205,30 @@ def preprocess_data(X, X_name=None, column_names=None, verbose=0):
     columns_with_missing = [column for column in X.columns if X[column].isnull().values.any()]
     if len(columns_with_missing) > 0:
         if verbose > 0:
-            warnings.warn(f'The following variables in {X_name} contains missing values {columns_with_missing}. '
-                          f'Make sure to impute missing or apply a model that handles them automatically.')
-
+            warnings.warn(
+                f"The following variables in {X_name} contains missing values {columns_with_missing}. "
+                f"Make sure to impute missing or apply a model that handles them automatically."
+            )
 
     # Warn if categorical features and change to category
-    indices_categorical_features = [column[0] for column in enumerate(X.dtypes) \
-                                          if column[1].name in ['category', 'object']]
+    indices_categorical_features = [
+        column[0] for column in enumerate(X.dtypes) if column[1].name in ["category", "object"]
+    ]
     categorical_features = list(X.columns[indices_categorical_features])
 
     # Set categorical features type to category
     if len(categorical_features) > 0:
         if verbose > 0:
-            warnings.warn(f'The following variables in {X_name} contains categorical variables: '
-                          f'{categorical_features}. Make sure to use a model that handles them automatically or '
-                          f'encode them into numerical variables.')
+            warnings.warn(
+                f"The following variables in {X_name} contains categorical variables: "
+                f"{categorical_features}. Make sure to use a model that handles them automatically or "
+                f"encode them into numerical variables."
+            )
 
         # Ensure category dtype, to enable models e.g. LighGBM, handle them automatically
         for categorical_feature in categorical_features:
-            if X[categorical_feature].dtype.name == 'object':
-                X[categorical_feature] = X[categorical_feature].astype('category')
+            if X[categorical_feature].dtype.name == "object":
+                X[categorical_feature] = X[categorical_feature].astype("category")
     return X, X.columns.tolist()
 
 
@@ -262,7 +262,7 @@ def preprocess_labels(y, y_name=None, index=None, verbose=0):
             Labels in the form of pd.Series.
     """
     if y_name is None:
-        y_name = 'y'
+        y_name = "y"
 
     # Make sure that y is a series with correct index
     y = assure_pandas_series(y, index=index)
@@ -270,6 +270,8 @@ def preprocess_labels(y, y_name=None, index=None, verbose=0):
     # Warn if not binary labels
     if len(y.unique()) != 2:
         if verbose > 0:
-            warnings.warn(f'The labels in {y_name} contain {y.unique()} unique values. The features in probatus support'
-                          f' binary classification models, thus, the feature might not work correctly.')
+            warnings.warn(
+                f"The labels in {y_name} contain {y.unique()} unique values. The features in probatus support"
+                f" binary classification models, thus, the feature might not work correctly."
+            )
     return y

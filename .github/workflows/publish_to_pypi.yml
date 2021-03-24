@@ -1,4 +1,4 @@
-name: Upload Python Package
+name: Release
 
 on:
   release:
@@ -8,25 +8,27 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
     - name: Set up Python
-      uses: actions/setup-python@v1
+      uses: actions/setup-python@v2
       with:
-        python-version: 3.6
+        python-version: 3.7
+        fetch-depth: 0
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip
-        pip install setuptools wheel twine
-        pip install pytest
+        python3 -m pip install --upgrade pip
+        pip3 install -U setuptools wheel twine
+        pip3 install ".[all]"
     - name: Make sure unit tests succeed
       run: |
-        pip install .
-        pip install -r requirements_test.txt
         pytest
     - name: Build package & publish to PyPi
       env:
         TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
         TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
       run: |
-        python setup.py sdist bdist_wheel
+        python3 setup.py sdist bdist_wheel
         twine upload dist/*
+    - name: Deploy mkdocs site
+      run: | 
+        mkdocs gh-deploy --force

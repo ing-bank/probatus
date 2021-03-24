@@ -18,14 +18,23 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
-from scipy import stats
+from probatus.utils import NotInstalledError
+
+try:
+    from scipy import stats
+except ModuleNotFoundError:
+    stats = NotInstalledError("scipy", "extras")
+
 from ..utils import assure_numpy_array
 from probatus.stat_tests.utils import verbose_p_vals
+
 
 @verbose_p_vals
 def ks(d1, d2, verbose=False):
     """
-    Calculates the Kolmogorov-Smirnov statistic on 2 samples. Any binning/bucketing of the distributions/samples
+    Calculates the Kolmogorov-Smirnov statistic on 2 samples.
+
+    Any binning/bucketing of the distributions/samples
     should be done before passing them to this function.
 
     Args:
@@ -36,9 +45,9 @@ def ks(d1, d2, verbose=False):
         verbose (bool)                           : helpful interpretation msgs printed to stdout (default False).
 
     Returns:
-        (float, float): KS test stat and p-value of rejecting the null hypothesis (that the two distributions are identical)
+        (float, float): KS test stat and p-value of rejecting the null hypothesis
+                        (that the two distributions are identical)
     """
-
     # Perform data checks
     d1 = assure_numpy_array(d1)
     d2 = assure_numpy_array(d2)

@@ -20,4 +20,4 @@
 
 from .feature_elimination import ShapRFECV
 
-__all__ = ['ShapRFECV']
+__all__ = ["ShapRFECV"]

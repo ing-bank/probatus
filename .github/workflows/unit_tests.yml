@@ -1,11 +1,11 @@
-name: Unit tests
+name: Development
 on:
   # Trigger the workflow on push or pull request,
-  # but only for the master branch
+  # but only for the main branch
 
   push:
     branches:
-      - master
+      - main
   pull_request:
 jobs:
   run:
@@ -31,17 +31,24 @@ jobs:
       uses: actions/setup-python@master
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Static code checking with pyflakes
+    - name: Install dependencies
       env:
         SKIP_LIGHTGBM: ${{ matrix.SKIP_LIGHTGBM }}
       run: |
-        pip install --upgrade setuptools pip
-        pip install pytest
-        pip install pytest-cov
-        pip install pyflakes
-        pip install mypy
-        pip install .
-        pip install -r tests/requirements_test.txt
-        pytest --cov=probatus/binning --cov=probatus/metric_volatility --cov=probatus/sample_similarity --cov=probatus/stat_tests --cov=probatus/utils --cov=probatus/interpret/ --ignore==tests/interpret/test_inspector.py --cov-report term-missing
+        pip3 install --upgrade setuptools pip
+        pip3 install ".[all]"
+    - name: Run unit tests and linters
+      env:
+        SKIP_LIGHTGBM: ${{ matrix.SKIP_LIGHTGBM }}
+      run: |
+        pytest --cov=probatus/binning --cov=probatus/metric_volatility --cov=probatus/sample_similarity --cov=probatus/stat_tests --cov=probatus/utils --cov=probatus/interpret/ --ignore==tests/interpret/test_inspector.py --cov-report=xml
         pyflakes probatus
         mypy probatus --ignore-missing-imports
+    - name: Upload coverage to Codecov
+      if: github.ref == 'refs/heads/main'
+      uses: codecov/codecov-action@v1
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        file: ./coverage.xml
+        flags: unittests
+        fail_ci_if_error: false

@@ -23,21 +23,26 @@ import pandas as pd
 import numpy as np
 import warnings
 
-def shap_calc(model, X, approximate=False, return_explainer=False, verbose=0, **shap_kwargs):
+
+def shap_calc(
+    model,
+    X,
+    return_explainer=False,
+    verbose=0,
+    sample_size=100,
+    approximate=False,
+    check_additivity=True,
+    **shap_kwargs,
+):
     """
-    Helper function to calculate the shapley values for a given model. For now, only the tree-based models are
-        supported, because of using TreeExplainer from shap. In the future, we will extend the scope of this function to
-         other types of models.
+    Helper function to calculate the shapley values for a given model.
 
     Args:
         model (binary model):
-            Trained model (Random Forest of XGBoost at the moment).
+            Trained model.
 
         X (pd.DataFrame or np.ndarray):
             features set.
-
-         approximate (boolean):
-            if True uses shap approximations - less accurate, but very fast.
 
         return_explainer (boolean):
             if True, returns a a tuple (shap_values, explainer).
@@ -50,10 +55,16 @@ def shap_calc(model, X, approximate=False, return_explainer=False, verbose=0, **
             - 51 - 100 - shows other warnings and prints
             - above 100 - presents all prints and all warnings (including SHAP warnings).
 
-        **shap_kwargs: kwargs of the shap.TreeExplainer
+         approximate (boolean):
+            if True uses shap approximations - less accurate, but very fast. It applies to tree-based explainers only.
+
+         check_additivity (boolean):
+            if False SHAP will disable the additivity check for tree-based models.
+
+        **shap_kwargs: kwargs of the shap.Explainer
 
     Returns:
-        (np.ndarray or tuple(np.ndarray, shap.TreeExplainer)):
+        (np.ndarray or tuple(np.ndarray, shap.Explainer)):
             shapley_values for the model, optionally also returns the explainer.
 
     """
@@ -62,13 +73,29 @@ def shap_calc(model, X, approximate=False, return_explainer=False, verbose=0, **
         if verbose <= 100:
             warnings.simplefilter("ignore")
 
-        explainer = shap.TreeExplainer(model, **shap_kwargs)
-        # Calculate Shap values
-        shap_values = explainer.shap_values(X, approximate=approximate)
+        # Create the background data,required for non tree based models.
+        # A single datapoint can passed as mask (https://github.com/slundberg/shap/issues/955#issuecomment-569837201)
 
-        if isinstance(shap_values, list) and len(shap_values)==2:
-            warnings.warn('Shap values are related to the output probabilities of class 1 for this model, instead of '
-                          'log odds.')
+        if X.shape[1] < sample_size:
+            sample_size = int(np.ceil(X.shape[1] * 0.2))
+        else:
+            pass
+        mask = shap.utils.sample(X, sample_size)
+
+        explainer = shap.Explainer(model, masker=mask, **shap_kwargs)
+
+        # For tree-explainers allow for using check_additivity and approximate arguments
+        if isinstance(explainer, shap.explainers._tree.Tree):
+            # Calculate Shap values.
+            shap_values = explainer.shap_values(X, check_additivity=check_additivity, approximate=approximate)
+        else:
+            # Calculate Shap values.
+            shap_values = explainer.shap_values(X)
+
+        if isinstance(shap_values, list) and len(shap_values) == 2:
+            warnings.warn(
+                "Shap values are related to the output probabilities of class 1 for this model, instead of " "log odds."
+            )
             shap_values = shap_values[1]
 
     if return_explainer:
@@ -110,7 +137,7 @@ def shap_to_df(model, X, precalc_shap=None, **kwargs):
         raise NotImplementedError("X must be a dataframe or a 2d array")
 
 
-def calculate_shap_importance(shap_values, columns, output_columns_suffix=''):
+def calculate_shap_importance(shap_values, columns, output_columns_suffix=""):
     """
     Returns the average shapley value for each column of the dataframe, as well as the average absolute shap value.
 
@@ -129,23 +156,27 @@ def calculate_shap_importance(shap_values, columns, output_columns_suffix=''):
             Mean absolute shap values and Mean shap values of features.
 
     """
-
     # Find average shap importance for neg and pos class
     shap_abs_mean = np.mean(np.abs(shap_values), axis=0)
     shap_mean = np.mean(shap_values, axis=0)
 
     # Prepare importance values in a handy df
-    importance_df = pd.DataFrame({
-        f'mean_abs_shap_value{output_columns_suffix}':shap_abs_mean.tolist(),
-        f'mean_shap_value{output_columns_suffix}': shap_mean.tolist()},
-        index=columns)
+    importance_df = pd.DataFrame(
+        {
+            f"mean_abs_shap_value{output_columns_suffix}": shap_abs_mean.tolist(),
+            f"mean_shap_value{output_columns_suffix}": shap_mean.tolist(),
+        },
+        index=columns,
+    )
 
     # Set the correct column types
-    importance_df[f'mean_abs_shap_value{output_columns_suffix}'] = \
-        importance_df[f'mean_abs_shap_value{output_columns_suffix}'].astype(float)
-    importance_df[f'mean_shap_value{output_columns_suffix}'] = \
-        importance_df[f'mean_shap_value{output_columns_suffix}'].astype(float)
+    importance_df[f"mean_abs_shap_value{output_columns_suffix}"] = importance_df[
+        f"mean_abs_shap_value{output_columns_suffix}"
+    ].astype(float)
+    importance_df[f"mean_shap_value{output_columns_suffix}"] = importance_df[
+        f"mean_shap_value{output_columns_suffix}"
+    ].astype(float)
 
-    importance_df = importance_df.sort_values(f'mean_abs_shap_value{output_columns_suffix}', ascending=False)
+    importance_df = importance_df.sort_values(f"mean_abs_shap_value{output_columns_suffix}", ascending=False)
 
     return importance_df
