@@ -379,7 +379,7 @@ class ShapRFECV(BaseFitComputePlotClass):
         y_train, y_val = y.iloc[train_index], y.iloc[val_index]
 
         # Fit model with train folds
-        clf = clf.fit(X_train, y_train)
+        clf = ShapRFECV._fit_clf(clf, X_train, y_train)
 
         # Score the model
         score_train = scorer(clf, X_train, y_train)
@@ -388,6 +388,27 @@ class ShapRFECV(BaseFitComputePlotClass):
         # Compute SHAP values
         shap_values = shap_calc(clf, X_val, verbose=verbose, **shap_kwargs)
         return shap_values, score_train, score_val
+
+    @staticmethod
+    def _fit_clf(clf, X, y):
+        """
+        Fit a classifier.
+
+        Args:
+            clf (binary classifier):
+                    Model to be fitted on X and y.
+
+            X (pd.DataFrame):
+                Dataset with features.
+
+            y (pd.Series):
+                Binary labels for X.
+
+        Returns:
+            (binary classifier):
+                Fitted model.
+        """
+        return clf.fit(X, y)
 
     def fit(self, X, y, columns_to_keep=None, column_names=None, **shap_kwargs):
         """
@@ -500,7 +521,7 @@ class ShapRFECV(BaseFitComputePlotClass):
 
             # Optimize parameters
             if self.search_clf:
-                current_search_clf = clone(self.clf).fit(current_X, self.y)
+                current_search_clf = self._fit_clf(clone(self.clf), current_X, self.y)
                 current_clf = current_search_clf.estimator.set_params(**current_search_clf.best_params_)
             else:
                 current_clf = clone(self.clf)
