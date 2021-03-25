@@ -10,6 +10,12 @@ assignees: ''
 
 A clear and concise description of what the bug is.
 
+**Environment (please complete the following information):**
+
+ - probatus version [e.g. 1.5.0] (`pip list | grep probatus`)
+ - python version (`python -V`)
+ - OS: [e.g. macOS, windows, linux]
+
 **To Reproduce**
 
 Code or steps to reproduce the error
@@ -30,8 +36,3 @@ If applicable please provide full traceback of the error.
 
 A clear and concise description of what you expected to happen.
 
-**Desktop (please complete the following information):**
-
- - probatus version [e.g. 1.5.0] (`pip list | grep probatus`)
- - python version (`python -V`)
- - OS: [e.g. macOS, windows, linux]
