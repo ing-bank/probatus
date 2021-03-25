@@ -86,7 +86,7 @@ class BaseVolatilityEstimator(BaseFitComputePlotClass):
             verbose (int, optional):
                 Controls verbosity of the output:
 
-                - 0 - nether prints nor warnings are shown
+                - 0 - neither prints nor warnings are shown
                 - 1 - 50 - only most important warnings and indication of progress in fitting the object.
                 - 51 - 100 - shows other warnings and prints
                 - above 100 - presents all prints and all warnings (including SHAP warnings).
@@ -462,7 +462,7 @@ class TrainTestVolatility(BaseVolatilityEstimator):
             verbose (int, optional):
                 Controls verbosity of the output:
 
-                - 0 - nether prints nor warnings are shown
+                - 0 - neither prints nor warnings are shown
                 - 1 - 50 - only most important warnings
                 - 51 - 100 - shows other warnings and prints
                 - above 100 - presents all prints and all warnings (including SHAP warnings).
@@ -618,7 +618,7 @@ class SplitSeedVolatility(TrainTestVolatility):
             verbose (int, optional):
                 Controls verbosity of the output:
 
-                - 0 - nether prints nor warnings are shown
+                - 0 - neither prints nor warnings are shown
                 - 1 - 50 - only most important warnings
                 - 51 - 100 - shows other warnings and prints
                 - above 100 - presents all prints and all warnings (including SHAP warnings).
@@ -720,7 +720,7 @@ class BootstrappedVolatility(TrainTestVolatility):
             verbose (int, optional):
                 Controls verbosity of the output:
 
-                - 0 - nether prints nor warnings are shown
+                - 0 - neither prints nor warnings are shown
                 - 1 - 50 - only most important warnings
                 - 51 - 100 - shows other warnings and prints
                 - above 100 - presents all prints and all warnings (including SHAP warnings).
