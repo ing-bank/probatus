@@ -3,7 +3,6 @@ import pytest
 import numpy as np
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
-from unittest.mock import patch
 from probatus.interpret.shap_dependence import DependencePlotter
 from probatus.utils.exceptions import NotFittedError
 import os
@@ -121,9 +120,8 @@ def test_fit_complex(complex_data_split, complex_fitted_lightgbm):
     assert plotter.fitted is True
 
     # Check if plotting doesnt cause errors
-    with patch("matplotlib.pyplot.figure") as _:
-        for binning in ["simple", "agglomerative", "quantile"]:
-            _ = plotter.plot(feature="f2_missing", type_binning=binning)
+    for binning in ["simple", "agglomerative", "quantile"]:
+        _ = plotter.plot(feature="f2_missing", type_binning=binning, show=False)
 
 
 def test_get_X_y_shap_with_q_cut_normal(X_y, clf):

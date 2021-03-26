@@ -397,8 +397,7 @@ def test_fit_compute_full_process(X_df, y_series):
     assert report.shape == (2, 6)
 
     # Check if plot runs
-    with patch("matplotlib.pyplot.figure") as _:
-        vol.plot()
+    vol.plot(show=False)
 
 
 @pytest.mark.skipif(os.environ.get("SKIP_LIGHTGBM") == "true", reason="LightGBM tests disabled")
@@ -420,5 +419,4 @@ def test_fit_compute_complex(complex_data, complex_lightgbm):
     assert report.shape == (1, 6)
 
     # Check if plot runs
-    with patch("matplotlib.pyplot.figure") as _:
-        vol.plot(show=False)
+    vol.plot(show=False)

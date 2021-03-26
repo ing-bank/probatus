@@ -4,7 +4,6 @@ import pytest
 import numpy as np
 import pandas as pd
 from probatus.interpret import ShapModelInterpreter
-from unittest.mock import patch
 import os
 
 
@@ -116,16 +115,14 @@ def test_shap_interpret(fitted_tree, X_train, y_train, X_test, y_test, expected_
     assert test_auc == pytest.approx(0.833, 0.01)
 
     # Check if plots work for such dataset
-    with patch("matplotlib.pyplot.figure") as _:
-        with patch("shap.plots._waterfall.waterfall_legacy"):
-            ax1 = shap_interpret.plot("importance", target_set="test", show=False)
-            ax2 = shap_interpret.plot("summary", target_set="test", show=False)
-            ax3 = shap_interpret.plot("dependence", target_columns="col_3", target_set="test", show=False)
-            ax4 = shap_interpret.plot("sample", samples_index=X_test.index.tolist()[0:2], target_set="test", show=False)
-            ax5 = shap_interpret.plot("importance", target_set="train")
-            ax6 = shap_interpret.plot("summary", target_set="train")
-            ax7 = shap_interpret.plot("dependence", target_columns="col_3", target_set="train")
-            ax8 = shap_interpret.plot("sample", samples_index=X_train.index.tolist()[0:2], target_set="train")
+    ax1 = shap_interpret.plot("importance", target_set="test", show=False)
+    ax2 = shap_interpret.plot("summary", target_set="test", show=False)
+    ax3 = shap_interpret.plot("dependence", target_columns="col_3", target_set="test", show=False)
+    ax4 = shap_interpret.plot("sample", samples_index=X_test.index.tolist()[0:2], target_set="test", show=False)
+    ax5 = shap_interpret.plot("importance", target_set="train", show=False)
+    ax6 = shap_interpret.plot("summary", target_set="train", show=False)
+    ax7 = shap_interpret.plot("dependence", target_columns="col_3", target_set="train", show=False)
+    ax8 = shap_interpret.plot("sample", samples_index=X_train.index.tolist()[0:2], target_set="train", show=False)
     assert not (isinstance(ax1, list))
     assert not (isinstance(ax2, list))
     assert isinstance(ax3, list) and len(ax4) == 2
@@ -167,16 +164,14 @@ def test_shap_interpret_lin_models(
     assert test_auc == pytest.approx(0.833, 0.01)
 
     # Check if plots work for such dataset
-    with patch("matplotlib.pyplot.figure") as _:
-        with patch("shap.plots._waterfall.waterfall_legacy"):
-            ax1 = shap_interpret.plot("importance", target_set="test", show=False)
-            ax2 = shap_interpret.plot("summary", target_set="test", show=False)
-            ax3 = shap_interpret.plot("dependence", target_columns="col_3", target_set="test", show=False)
-            ax4 = shap_interpret.plot("sample", samples_index=X_test.index.tolist()[0:2], target_set="test", show=False)
-            ax5 = shap_interpret.plot("importance", target_set="train")
-            ax6 = shap_interpret.plot("summary", target_set="train")
-            ax7 = shap_interpret.plot("dependence", target_columns="col_3", target_set="train")
-            ax8 = shap_interpret.plot("sample", samples_index=X_train.index.tolist()[0:2], target_set="train")
+    ax1 = shap_interpret.plot("importance", target_set="test", show=False)
+    ax2 = shap_interpret.plot("summary", target_set="test", show=False)
+    ax3 = shap_interpret.plot("dependence", target_columns="col_3", target_set="test", show=False)
+    ax4 = shap_interpret.plot("sample", samples_index=X_test.index.tolist()[0:2], target_set="test", show=False)
+    ax5 = shap_interpret.plot("importance", target_set="train", show=False)
+    ax6 = shap_interpret.plot("summary", target_set="train", show=False)
+    ax7 = shap_interpret.plot("dependence", target_columns="col_3", target_set="train", show=False)
+    ax8 = shap_interpret.plot("sample", samples_index=X_train.index.tolist()[0:2], target_set="train", show=False)
     assert not (isinstance(ax1, list))
     assert not (isinstance(ax2, list))
     assert isinstance(ax3, list) and len(ax4) == 2
@@ -263,16 +258,14 @@ def test_shap_interpret_complex_data(complex_data_split, complex_fitted_lightgbm
     assert importance_df.shape[0] == X_train.shape[1]
 
     # Check if plots work for such dataset
-    with patch("matplotlib.pyplot.figure") as _:
-        with patch("shap.plots._waterfall.waterfall_legacy"):
-            ax1 = shap_interpret.plot("importance", target_set="test")
-            ax2 = shap_interpret.plot("summary", target_set="test")
-            ax3 = shap_interpret.plot("dependence", target_columns="f2_missing", target_set="test")
-            ax4 = shap_interpret.plot("sample", samples_index=X_test.index.tolist()[0:2], target_set="test")
-            ax5 = shap_interpret.plot("importance", target_set="train")
-            ax6 = shap_interpret.plot("summary", target_set="train")
-            ax7 = shap_interpret.plot("dependence", target_columns="f2_missing", target_set="train")
-            ax8 = shap_interpret.plot("sample", samples_index=X_train.index.tolist()[0:2], target_set="train")
+    ax1 = shap_interpret.plot("importance", target_set="test", show=False)
+    ax2 = shap_interpret.plot("summary", target_set="test", show=False)
+    ax3 = shap_interpret.plot("dependence", target_columns="f2_missing", target_set="test", show=False)
+    ax4 = shap_interpret.plot("sample", samples_index=X_test.index.tolist()[0:2], target_set="test", show=False)
+    ax5 = shap_interpret.plot("importance", target_set="train", show=False)
+    ax6 = shap_interpret.plot("summary", target_set="train", show=False)
+    ax7 = shap_interpret.plot("dependence", target_columns="f2_missing", target_set="train", show=False)
+    ax8 = shap_interpret.plot("sample", samples_index=X_train.index.tolist()[0:2], target_set="train", show=False)
     assert not (isinstance(ax1, list))
     assert not (isinstance(ax2, list))
     assert isinstance(ax3, list) and len(ax4) == 2
