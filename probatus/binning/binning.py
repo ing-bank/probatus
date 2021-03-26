@@ -277,7 +277,17 @@ class QuantileBucketer(Bucketer):
             # this crashes - the exception drops them.
             # This means that it will return approximate quantile bins
             out, boundaries = pd.qcut(x, q=bin_count, retbins=True, duplicates="drop")
-            warnings.warn(ApproximationWarning("Approximated quantiles - too many unique values"))
+            warnings.warn(
+                ApproximationWarning(
+                    f"Unable to calculate quantile bins for this feature, because possibly "
+                    f"there is too many duplicate values.Approximated quantiles, as a result,"
+                    f"the multiple boundaries have the same value. The number of bins has "
+                    f"been lowered to {boundaries-1}. This can cause issue if you want to "
+                    f"calculate the statistical test based on this binning. We suggest to "
+                    f"retry with max number of bins of {boundaries-1} or apply different "
+                    f"type of binning e.g. simple"
+                )
+            )
         df = pd.DataFrame({"x": x})
         df["label"] = out
         counts = df.groupby("label").count().values.flatten()
