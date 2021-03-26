@@ -1,0 +1,44 @@
+name: Cron Test Dependencies
+
+# Controls when the action will run.
+# Everyday at 4:05
+# See https://crontab.guru/#5_4_*_*_*
+on:
+  schedule:
+    - cron: "5 4 * * *"
+
+jobs:
+  run:
+    name: Run unit tests
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        build: [macos, ubuntu, windows]
+        include:
+          - build: macos
+            os: macos-latest
+            SKIP_LIGHTGBM: True
+          - build: ubuntu
+            os: ubuntu-latest
+            SKIP_LIGHTGBM: False
+          - build: windows
+            os: windows-latest
+            SKIP_LIGHTGBM: False
+        python-version: [3.6, 3.7, 3.8]
+    steps:
+    - uses: actions/checkout@master
+    - name: Setup Python  
+      uses: actions/setup-python@master
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      env:
+        SKIP_LIGHTGBM: ${{ matrix.SKIP_LIGHTGBM }}
+      run: |
+        pip3 install --upgrade setuptools pip
+        pip3 install ".[all]"
+    - name: Run unit tests
+      env:
+        SKIP_LIGHTGBM: ${{ matrix.SKIP_LIGHTGBM }}
+      run: |
+        pytest
