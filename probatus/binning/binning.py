@@ -285,7 +285,8 @@ class QuantileBucketer(Bucketer):
                     f"been lowered to {boundaries-1}. This can cause issue if you want to "
                     f"calculate the statistical test based on this binning. We suggest to "
                     f"retry with max number of bins of {boundaries-1} or apply different "
-                    f"type of binning e.g. simple"
+                    f"type of binning e.g. simple. If you run this functionality in AutoDist for multiple features, "
+                    f"then you can decrease the bins only for that feature in a separate AutoDist run."
                 )
             )
         df = pd.DataFrame({"x": x})
