@@ -333,7 +333,7 @@ class ShapRFECV(BaseFitComputePlotClass):
         self.report_df = pd.concat([self.report_df, current_row], axis=0)
 
     @staticmethod
-    def _get_feature_shap_values_per_fold(X, y, clf, train_index, val_index, scorer, verbose=0, **shap_kwargs):
+    def _get_feature_shap_values_per_fold(self, X, y, clf, train_index, val_index, **shap_kwargs):
         """
         This function calculates the shap values on validation set, and Train and Val score.
 
@@ -353,18 +353,6 @@ class ShapRFECV(BaseFitComputePlotClass):
             val_index (np.array):
                 Positions of validation fold samples.
 
-            scorer (string, callable or None):
-                A string (see sklearn [model scoring](https://scikit-learn.org/stable/modules/model_evaluation.html)) or
-                a scorer callable object, function with the signature `scorer(estimator, X, y)`.
-
-            verbose (int, optional):
-                Controls verbosity of the output:
-
-                - 0 - neither prints nor warnings are shown
-                - 1 - 50 - only most important warnings regarding data properties are shown (excluding SHAP warnings)
-                - 51 - 100 - shows most important warnings, prints of the feature removal process
-                - above 100 - presents all prints and all warnings (including SHAP warnings).
-
             **shap_kwargs:
                 keyword arguments passed to
                 [shap.Explainer](https://shap.readthedocs.io/en/latest/generated/shap.Explainer.html#shap.Explainer).
@@ -382,11 +370,11 @@ class ShapRFECV(BaseFitComputePlotClass):
         clf = clf.fit(X_train, y_train)
 
         # Score the model
-        score_train = scorer(clf, X_train, y_train)
-        score_val = scorer(clf, X_val, y_val)
+        score_train = self.scorer(clf, X_train, y_train)
+        score_val = self.scorer(clf, X_val, y_val)
 
         # Compute SHAP values
-        shap_values = shap_calc(clf, X_val, verbose=verbose, **shap_kwargs)
+        shap_values = shap_calc(clf, X_val, verbose=self.verbose, **shap_kwargs)
         return shap_values, score_train, score_val
 
     def fit(self, X, y, columns_to_keep=None, column_names=None, **shap_kwargs):
@@ -513,8 +501,6 @@ class ShapRFECV(BaseFitComputePlotClass):
                     clf=current_clf,
                     train_index=train_index,
                     val_index=val_index,
-                    scorer=self.scorer.scorer,
-                    verbose=self.verbose,
                     **shap_kwargs,
                 )
                 for train_index, val_index in self.cv.split(current_X, self.y)
@@ -703,6 +689,8 @@ class EarlyStoppingShapRFECV(ShapRFECV):
 
     Early stopping is a feature of models such as as LightGBM or xgboost.
 
+    This class is incompatible with hyperparameter tuning.
+
     Parent (ShapRFECV) docstring:
     """
 
@@ -711,8 +699,8 @@ class EarlyStoppingShapRFECV(ShapRFECV):
     def __init__(
         self,
         clf,
-        early_stopping_rounds=None,
-        eval_metric=None,
+        early_stopping_rounds=30,
+        eval_metric="auc",
         **kwargs,
     ):
         """
@@ -777,15 +765,29 @@ class EarlyStoppingShapRFECV(ShapRFECV):
                 Metric for early stopping.
         """  # noqa
         super(EarlyStoppingShapRFECV, self).__init__(clf, **kwargs)
-        if early_stopping_rounds:
-            print(
-                "WARNING: early_stopping_rounds will be passed when estimating feature importance with SHAP,"
-                + "but not when optimizing hyperparameters."
+
+        if isinstance(self.clf, BaseSearchCV):
+            if self.verbose > 0:
+                warnings.warn(
+                    "EarlyStoppingShapRFECV is not compatible with hyperparameter tuning. "
+                    "The hyperparameter tuning step will be skipped. "
+                    "You can use ShapRFECV for that purpose."
+                )
+        self.search_clf = False
+
+        if isinstance(early_stopping_rounds, int) and early_stopping_rounds > 0:
+            self.early_stopping_rounds = early_stopping_rounds
+        else:
+            raise (
+                ValueError(
+                    f"The current value of early_stopping_rounds = {early_stopping_rounds} is not allowed. "
+                    f"It needs to be a positive integer."
+                )
             )
-        self.early_stopping_rounds = early_stopping_rounds
+
         self.eval_metric = eval_metric
 
-    def _get_feature_shap_values_per_fold(self, X, y, clf, train_index, val_index, scorer, verbose=0, **shap_kwargs):
+    def _get_feature_shap_values_per_fold(self, X, y, clf, train_index, val_index, **shap_kwargs):
         """
         This function calculates the shap values on validation set, and Train and Val score.
 
@@ -805,18 +807,6 @@ class EarlyStoppingShapRFECV(ShapRFECV):
             val_index (np.array):
                 Positions of validation fold samples.
 
-            scorer (string, callable or None):
-                A string (see sklearn [model scoring](https://scikit-learn.org/stable/modules/model_evaluation.html)) or
-                a scorer callable object, function with the signature `scorer(estimator, X, y)`.
-
-            verbose (int, optional):
-                Controls verbosity of the output:
-
-                - 0 - neither prints nor warnings are shown
-                - 1 - 50 - only most important warnings regarding data properties are shown (excluding SHAP warnings)
-                - 51 - 100 - shows most important warnings, prints of the feature removal process
-                - above 100 - presents all prints and all warnings (including SHAP warnings).
-
             **shap_kwargs:
                 keyword arguments passed to
                 [shap.Explainer](https://shap.readthedocs.io/en/latest/generated/shap.Explainer.html#shap.Explainer).
@@ -831,21 +821,18 @@ class EarlyStoppingShapRFECV(ShapRFECV):
         y_train, y_val = y.iloc[train_index], y.iloc[val_index]
 
         # Fit model with train folds
-        if self.early_stopping_rounds:
-            clf = clf.fit(
-                X_train,
-                y_train,
-                eval_set=[(X_train, y_train), (X_val, y_val)],
-                early_stopping_rounds=self.early_stopping_rounds,
-                eval_metric=self.eval_metric,
-            )
-        else:
-            clf = clf.fit(X_train, y_train)
+        clf = clf.fit(
+            X_train,
+            y_train,
+            eval_set=[(X_train, y_train), (X_val, y_val)],
+            early_stopping_rounds=self.early_stopping_rounds,
+            eval_metric=self.eval_metric,
+        )
 
         # Score the model
-        score_train = scorer(clf, X_train, y_train)
-        score_val = scorer(clf, X_val, y_val)
+        score_train = self.scorer(clf, X_train, y_train)
+        score_val = self.scorer(clf, X_val, y_val)
 
         # Compute SHAP values
-        shap_values = shap_calc(clf, X_val, verbose=verbose, **shap_kwargs)
+        shap_values = shap_calc(clf, X_val, verbose=self.verbose, **shap_kwargs)
         return shap_values, score_train, score_val
