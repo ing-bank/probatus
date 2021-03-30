@@ -220,7 +220,8 @@ def test_get_feature_shap_values_per_fold(X, y):
     Test with ShapRFECV with features per fold.
     """
     clf = DecisionTreeClassifier(max_depth=1)
-    shap_values, train_score, test_score = ShapRFECV._get_feature_shap_values_per_fold(
+    shap_elimination = ShapRFECV(clf)
+    shap_values, train_score, test_score = shap_elimination._get_feature_shap_values_per_fold(
         X, y, clf, train_index=[2, 3, 4, 5, 6, 7], val_index=[0, 1], scorer=get_scorer("roc_auc")
     )
     assert test_score == 1
