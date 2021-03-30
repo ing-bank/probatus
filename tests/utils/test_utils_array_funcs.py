@@ -147,7 +147,7 @@ def test_assure_pandas_df_list(expected_df):
     """
     x = [1, 2, 3]
     x_df = assure_pandas_df(x)
-    assert x_df.equals(expected_df)
+    pd.testing.assert_frame_equal(x_df, expected_df)
 
 
 def test_assure_pandas_df_list_of_lists(expected_df_2d):
@@ -156,7 +156,7 @@ def test_assure_pandas_df_list_of_lists(expected_df_2d):
     """
     x = [[1, 2, 3], [2, 3, 4]]
     x_df = assure_pandas_df(x)
-    assert x_df.equals(expected_df_2d)
+    pd.testing.assert_frame_equal(x_df, expected_df_2d)
 
 
 def test_assure_pandas_df_series(expected_df):
@@ -165,7 +165,7 @@ def test_assure_pandas_df_series(expected_df):
     """
     x = pd.Series([1, 2, 3])
     x_df = assure_pandas_df(x)
-    assert x_df.equals(expected_df)
+    pd.testing.assert_frame_equal(x_df, expected_df)
 
 
 def test_assure_pandas_df_array(expected_df, expected_df_2d):
@@ -174,11 +174,11 @@ def test_assure_pandas_df_array(expected_df, expected_df_2d):
     """
     x = np.array([[1, 2, 3], [2, 3, 4]])
     x_df = assure_pandas_df(x)
-    assert x_df.equals(expected_df_2d)
+    pd.testing.assert_frame_equal(x_df, expected_df_2d)
 
     x = np.array([1, 2, 3])
     x_df = assure_pandas_df(x)
-    assert x_df.equals(expected_df)
+    pd.testing.assert_frame_equal(x_df, expected_df)
 
 
 def test_assure_pandas_df_df(expected_df_2d):
@@ -187,7 +187,7 @@ def test_assure_pandas_df_df(expected_df_2d):
     """
     x = pd.DataFrame([[1, 2, 3], [2, 3, 4]])
     x_df = assure_pandas_df(x)
-    assert x_df.equals(expected_df_2d)
+    pd.testing.assert_frame_equal(x_df, expected_df_2d)
 
 
 def test_assure_pandas_df_types():
@@ -247,8 +247,6 @@ def test_preprocess_labels():
     index4 = pd.Index([0, 2, 1, 3, 4])
     with pytest.warns(None) as record:
         y4_output = preprocess_labels(y4, y_name="y4", index=index4, verbose=0)
-    print(y4_output)
-    print(pd.Series(["2", "3", "1", "2", "1"], index=index4))
     pd.testing.assert_series_equal(y4_output, pd.Series(["2", "3", "1", "2", "1"], index=index4))
     # Ensure that number of warnings is correct
     assert len(record) == 0
