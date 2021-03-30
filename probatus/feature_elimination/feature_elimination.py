@@ -827,8 +827,8 @@ class EarlyStoppingShapRFECV(ShapRFECV):
         )
 
         # Score the model
-        score_train = self.scorer(clf, X_train, y_train)
-        score_val = self.scorer(clf, X_val, y_val)
+        score_train = self.scorer.scorer(clf, X_train, y_train)
+        score_val = self.scorer.scorer(clf, X_val, y_val)
 
         # Compute SHAP values
         shap_values = shap_calc(clf, X_val, verbose=self.verbose, **shap_kwargs)
