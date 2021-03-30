@@ -332,7 +332,6 @@ class ShapRFECV(BaseFitComputePlotClass):
 
         self.report_df = pd.concat([self.report_df, current_row], axis=0)
 
-    @staticmethod
     def _get_feature_shap_values_per_fold(self, X, y, clf, train_index, val_index, **shap_kwargs):
         """
         This function calculates the shap values on validation set, and Train and Val score.
@@ -370,8 +369,8 @@ class ShapRFECV(BaseFitComputePlotClass):
         clf = clf.fit(X_train, y_train)
 
         # Score the model
-        score_train = self.scorer(clf, X_train, y_train)
-        score_val = self.scorer(clf, X_val, y_val)
+        score_train = self.scorer.scorer(clf, X_train, y_train)
+        score_val = self.scorer.scorer(clf, X_val, y_val)
 
         # Compute SHAP values
         shap_values = shap_calc(clf, X_val, verbose=self.verbose, **shap_kwargs)
