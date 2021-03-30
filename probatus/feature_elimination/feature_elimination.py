@@ -769,11 +769,9 @@ class EarlyStoppingShapRFECV(ShapRFECV):
         if isinstance(self.clf, BaseSearchCV):
             if self.verbose > 0:
                 warnings.warn(
-                    "EarlyStoppingShapRFECV is not compatible with hyperparameter tuning. "
-                    "The hyperparameter tuning step will be skipped. "
-                    "You can use ShapRFECV for that purpose."
+                    "Early stopping will be used only during Shapley value estimation step, and not for hyperparameter"
+                    "optimization."
                 )
-        self.search_clf = False
 
         if isinstance(early_stopping_rounds, int) and early_stopping_rounds > 0:
             self.early_stopping_rounds = early_stopping_rounds
