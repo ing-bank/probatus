@@ -77,16 +77,23 @@ def psi(d1, d2, verbose=False):
     actual_ratio = d2 / m
 
     # Necessary to avoid divide by zero and ln(0). Should have minor impact on PSI value.
-    for i in range(0, b):
+    has_empty_bucket = False
+    for i in range(b):
         if expected_ratio[i] == 0:
             expected_ratio[i] = 0.0001
-            if verbose:
-                print(
-                    "PSI: Bucket {} has zero counts; may result in over-estimated (larger) PSI value. Decreasing \
-                        the number of buckets may also help avoid buckets with zero counts.".format(
-                        i
-                    )
-                )
+            has_empty_bucket = True
+
+        if actual_ratio[i] == 0:
+            actual_ratio[i] = 0.0001
+            has_empty_bucket = True
+
+    if has_empty_bucket:
+        warnings.warn(
+            "PSI: Some of the buckets have zero counts. In theory this situation would mean PSI=Inf due to "
+            "division by 0. However, we artificially modified the count of samples in these bins to a small "
+            "number. This may cause that the PSI value for this feature is over-estimated (larger). "
+            "Decreasing the number of buckets may also help avoid buckets with zero counts."
+        )
 
     # Calculate the PSI value
     psi_value = np.sum((actual_ratio - expected_ratio) * np.log(actual_ratio / expected_ratio))

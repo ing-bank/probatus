@@ -35,7 +35,7 @@ def test_simple_bins():
     assert len(myBucketer.counts_) == bins
     assert np.array_equal(myBucketer.counts_, np.array([2, 0, 1]))
     assert len(myBucketer.boundaries_) == bins + 1
-    np.testing.assert_array_almost_equal(myBucketer.boundaries_, np.array([1.0, 1.33333333, 1.66666667, 2.0]))
+    np.testing.assert_array_almost_equal(myBucketer.boundaries_, np.array([-np.inf, 1.33333333, 1.66666667, np.inf]))
     # test static method
     counts, boundaries = SimpleBucketer(bin_count=bins).simple_bins(x, bins)
     assert np.array_equal(myBucketer.counts_, counts)
@@ -57,7 +57,9 @@ def test_quantile_bins():
     assert len(myBucketer.counts_) == bins
     assert np.array_equal(myBucketer.counts_, np.array([250, 250, 250, 250]))
     assert len(myBucketer.boundaries_) == bins + 1
-    np.testing.assert_array_almost_equal(myBucketer.boundaries_, np.array([-3.0, -0.7, -0.1, 0.6, 2.8]), decimal=1)
+    np.testing.assert_array_almost_equal(
+        myBucketer.boundaries_, np.array([-np.inf, -0.7, -0.1, 0.6, np.inf]), decimal=1
+    )
     # test static method
     counts, boundaries = QuantileBucketer(bin_count=bins).quantile_bins(x, bins)
     assert np.array_equal(myBucketer.counts_, counts)
@@ -86,7 +88,9 @@ def test_agglomerative_clustering_new():
     assert len(myBucketer.counts_) == bins
     assert np.array_equal(myBucketer.counts_, np.array([24, 16, 80, 80]))
     assert len(myBucketer.boundaries_) == bins + 1
-    np.testing.assert_array_almost_equal(myBucketer.boundaries_, np.array([0, 0.11, 0.59, 0.88, 0.99]), decimal=2)
+    np.testing.assert_array_almost_equal(
+        myBucketer.boundaries_, np.array([-np.inf, 0.11, 0.59, 0.88, np.inf]), decimal=2
+    )
     # test static method
     counts, boundaries = AgglomerativeBucketer(bin_count=bins).agglomerative_clustering_binning(x, bins)
     assert np.array_equal(myBucketer.counts_, counts)
@@ -109,7 +113,7 @@ def test_compute():
     np.testing.assert_array_equal(myBucketer.counts_, myBucketer.compute(x_new))
     np.testing.assert_array_equal(myBucketer.counts_, myBucketer.fit_compute(x_new))
     x_new = x + 100
-    np.testing.assert_array_equal(np.array([0, 0, 0, 0, 0]), myBucketer.compute(x_new))
+    np.testing.assert_array_equal(np.array([0, 0, 0, 0, 10]), myBucketer.compute(x_new))
     x_new = x - 100
     np.testing.assert_array_equal(np.array([10, 0, 0, 0, 0]), myBucketer.compute(x_new))
     x_new = [1, 1, 1, 4, 4, 7]
