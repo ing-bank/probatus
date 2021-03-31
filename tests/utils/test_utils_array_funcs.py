@@ -172,11 +172,11 @@ def test_assure_pandas_df_array(expected_df, expected_df_2d):
     """
     Test.
     """
-    x = np.array([[1, 2, 3], [2, 3, 4]])
+    x = np.array([[1, 2, 3], [2, 3, 4]], dtype="int64")
     x_df = assure_pandas_df(x)
     pd.testing.assert_frame_equal(x_df, expected_df_2d)
 
-    x = np.array([1, 2, 3])
+    x = np.array([1, 2, 3], dtype="int64")
     x_df = assure_pandas_df(x)
     pd.testing.assert_frame_equal(x_df, expected_df)
 
