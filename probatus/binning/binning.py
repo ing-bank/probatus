@@ -324,7 +324,6 @@ class TreeBucketer(Bucketer):
 
     x = [1, 2, 2, 5 ,3]
     y = [0, 0 ,1 ,1 ,1]
-    bins = 3
     myBucketer = TreeBucketer(inf_edges=True,max_depth=2,min_impurity_decrease=0.001)
     myBucketer.fit(x,y)
     ```
@@ -437,13 +436,13 @@ class TreeBucketer(Bucketer):
         bin_count = len(index)
 
         boundaries = np.unique(tree.tree_.threshold[tree.tree_.feature != _tree.TREE_UNDEFINED])
-        boundaries = [-np.inf] + boundaries.tolist() + [np.inf]
+        boundaries = [np.min(X_in)] + boundaries.tolist() + [np.max(X_in)]
 
-        if not inf_edges:
-            boundaries[0] = np.min(X_in)
-            boundaries[-1] = np.max(X_in)
+        if inf_edges:
+            boundaries[0] = -np.inf
+            boundaries[-1] = np.inf
 
-        return counts, boundaries, bin_count, tree
+        return counts.tolist(), boundaries, bin_count, tree
 
     def fit(self, X, y):
         """
