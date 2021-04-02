@@ -765,7 +765,7 @@ class EarlyStoppingShapRFECV(ShapRFECV):
         """  # noqa
         super(EarlyStoppingShapRFECV, self).__init__(clf, **kwargs)
 
-        if isinstance(self.clf, BaseSearchCV):
+        if self.search_cv:
             if self.verbose > 0:
                 warnings.warn(
                     "Early stopping will be used only during Shapley value estimation step, and not for hyperparameter"
