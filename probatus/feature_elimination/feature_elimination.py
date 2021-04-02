@@ -752,10 +752,10 @@ class EarlyStoppingShapRFECV(ShapRFECV):
 
 
     # Prepare model and parameter search space
-    clf = LGBMClassifier(max_depth=5)
+    clf = LGBMClassifier(n_estimators=200)
 
     param_grid = {
-        "n_estimators": [20, 50, 100],
+        "max_depth": [2, 4, 8, 16],
         "num_leaves": [3, 5, 7, 10],
     }
     search = RandomizedSearchCV(clf, param_grid)
@@ -763,7 +763,7 @@ class EarlyStoppingShapRFECV(ShapRFECV):
 
     # Run feature elimination
     shap_elimination = EarlyStoppingShapRFECV(
-        clf=search, step=0.2, cv=10, scoring='roc_auc', early_stopping_rounds=5, n_jobs=3)
+        clf=search, step=0.2, cv=10, scoring='roc_auc', early_stopping_rounds=10, n_jobs=3)
     report = shap_elimination.fit_compute(X, y)
 
     # Make plots
@@ -772,7 +772,7 @@ class EarlyStoppingShapRFECV(ShapRFECV):
     # Get final feature set
     final_features_set = shap_elimination.get_reduced_features_set(num_features=3)
     ```
-    <img src="../img/shaprfecv.png" width="500" />
+    <img src="../img/earlystoppingshaprfecv.png" width="500" />
 
     """  # noqa
 
