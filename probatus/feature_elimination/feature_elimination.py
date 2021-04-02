@@ -684,16 +684,96 @@ class ShapRFECV(BaseFitComputePlotClass):
 
 class EarlyStoppingShapRFECV(ShapRFECV):
     """
-    This is a child of ShapRFECV which allows early stopping during the fitting.
+    This class performs Backwards Recursive Feature Elimination, using SHAP feature importance.
 
-    Early stopping is a feature of models such as as LightGBM or xgboost.
+    This is a child of ShapRFECV and it allows early stopping of the training step, available in models such as
+        XGBoost and LightGBM. [Early stopping](https://en.wikipedia.org/wiki/Early_stopping) is a type of
+        regularization technique in which the model is trained until the scoring metric, measured on a validation set,
+        stops improving after a number of early_stopping_rounds. In boosted tree models, this technique can increase
+        the training speed, by skipping the training of trees that do not improve the scoring metric any further,
+        which is particularly useful when the training dataset is large.
 
-    This class is incompatible with hyperparameter tuning.
+    Note that if a hyperparameter search model is used, the early stopping parameter is passed to the fit
+        method of the model for Shapley values estimation, but not for hyperparameter search.
 
-    Parent (ShapRFECV) docstring:
-    """
+    At each round, for a
+        given feature set, starting from all available features, the following steps are applied:
 
-    __doc__ = str(__doc__) + str(ShapRFECV.__doc__)
+    1. (Optional) Tune the hyperparameters of the model using sklearn compatible search CV e.g.
+        [GridSearchCV](https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.LassoCV.html),
+        [RandomizedSearchCV](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.RandomizedSearchCV.html?highlight=randomized#sklearn.model_selection.RandomizedSearchCV), or
+        [BayesSearchCV](https://scikit-optimize.github.io/stable/modules/generated/skopt.BayesSearchCV.html).
+        Note that during this step the model does not use early stopping.
+    2. Apply Cross-validation (CV) to estimate the SHAP feature importance on the provided dataset. In each CV
+        iteration, the model is fitted on the train folds, and applied on the validation fold to estimate
+        SHAP feature importance. The model is trained until the scoring metric, measured on the validation fold,
+        stops improving after a number of early_stopping_rounds.
+    3. Remove `step` lowest SHAP importance features from the dataset.
+
+    At the end of the process, the user can plot the performance of the model for each iteration, and select the
+        optimal number of features and the features set.
+
+    The functionality is
+        similar to [RFECV](https://scikit-learn.org/stable/modules/generated/sklearn.feature_selection.RFECV.html).
+        The main difference is removing the lowest importance features based on SHAP features importance. It also
+        supports the use of sklearn compatible search CV for hyperparameter optimization e.g.
+        [GridSearchCV](https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.LassoCV.html),
+        [RandomizedSearchCV](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.RandomizedSearchCV.html?highlight=randomized#sklearn.model_selection.RandomizedSearchCV), or
+        [BayesSearchCV](https://scikit-optimize.github.io/stable/modules/generated/skopt.BayesSearchCV.html), which
+        needs to be passed as the `clf`. Thanks to this you can perform hyperparameter optimization at each step of
+        the feature elimination. Lastly, it supports categorical features (object and category dtype) and missing values
+        in the data, as long as the model supports them.
+
+    We recommend using [LGBMClassifier](https://lightgbm.readthedocs.io/en/latest/pythonapi/lightgbm.LGBMClassifier.html),
+        because by default it handles missing values and categorical features. In case of other models, make sure to
+        handle these issues for your dataset and consider impact it might have on features importance.
+
+
+    Example:
+    ```python
+    import numpy as np
+    import pandas as pd
+    from probatus.feature_elimination import ShapRFECV
+    from sklearn.datasets import make_classification
+    from sklearn.model_selection import train_test_split
+    from sklearn.ensemble import RandomForestClassifier
+    from sklearn.model_selection import RandomizedSearchCV
+
+    feature_names = [
+        'f1', 'f2', 'f3', 'f4', 'f5', 'f6', 'f7',
+        'f8', 'f9', 'f10', 'f11', 'f12', 'f13',
+        'f14', 'f15', 'f16', 'f17', 'f18', 'f19', 'f20']
+
+    # Prepare two samples
+    X, y = make_classification(n_samples=200, class_sep=0.05, n_informative=6, n_features=20,
+                               random_state=0, n_redundant=10, n_clusters_per_class=1)
+    X = pd.DataFrame(X, columns=feature_names)
+
+
+    # Prepare model and parameter search space
+    clf = RandomForestClassifier(max_depth=5, class_weight='balanced')
+
+    param_grid = {
+        'n_estimators': [5, 7, 10],
+        'min_samples_leaf': [3, 5, 7, 10],
+    }
+    search = RandomizedSearchCV(clf, param_grid)
+
+
+    # Run feature elimination
+    shap_elimination = ShapRFECV(
+        clf=search, step=0.2, cv=10, scoring='roc_auc', n_jobs=3)
+    report = shap_elimination.fit_compute(X, y)
+
+    # Make plots
+    performance_plot = shap_elimination.plot()
+
+    # Get final feature set
+    final_features_set = shap_elimination.get_reduced_features_set(num_features=3)
+    ```
+    <img src="../img/shaprfecv.png" width="500" />
+
+    """  # noqa
 
     def __init__(
         self,
