@@ -268,7 +268,7 @@ def test_shap_rfe_early_stopping(complex_data, complex_lightgbm, capsys):
             cv=10,
             scoring="roc_auc",
             n_jobs=4,
-            early_stopping_rounds=30,
+            early_stopping_rounds=5,
             eval_metric="auc",
         )
         shap_elimination = shap_elimination.fit(X, y, approximate=True, check_additivity=False)
@@ -305,7 +305,14 @@ def test_shap_rfe_randomized_search_early_stopping(complex_data, complex_lightgb
     search = RandomizedSearchCV(clf, param_grid, cv=2, n_iter=2)
     with pytest.warns(None) as record:
         shap_elimination = EarlyStoppingShapRFECV(
-            search, step=1, cv=10, scoring="roc_auc", n_jobs=4, verbose=50, random_state=1
+            search,
+            step=1,
+            cv=10,
+            scoring="roc_auc",
+            early_stopping_rounds=5,
+            n_jobs=4,
+            verbose=50,
+            random_state=1,
         )
         report = shap_elimination.fit_compute(X, y)
 
@@ -334,7 +341,7 @@ def test_get_feature_shap_values_per_fold_early_stopping(complex_data, complex_l
     X, y = complex_data
     y = preprocess_labels(y, y_name="y", index=X.index)
 
-    shap_elimination = EarlyStoppingShapRFECV(clf)
+    shap_elimination = EarlyStoppingShapRFECV(clf, early_stopping_rounds=5)
     shap_values, train_score, test_score = shap_elimination._get_feature_shap_values_per_fold(
         X,
         y,
