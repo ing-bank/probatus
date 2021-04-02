@@ -299,7 +299,7 @@ def test_shap_rfe_randomized_search_early_stopping(complex_data, complex_lightgb
     X, y = complex_data
 
     param_grid = {
-        "n_estimators": [5, 7, 10],
+        "n_estimators": [20, 50, 100],
         "num_leaves": [3, 5, 7, 10],
     }
     search = RandomizedSearchCV(clf, param_grid, cv=2, n_iter=2)
