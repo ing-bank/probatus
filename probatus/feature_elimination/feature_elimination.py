@@ -707,13 +707,17 @@ class EarlyStoppingShapRFECV(ShapRFECV):
 
         Args:
             clf (binary classifier, sklearn compatible search CV e.g. GridSearchCV, RandomizedSearchCV or BayesSearchCV):
-                A model that will be optimized and trained at each round of features elimination. The recommended model
-                is [LGBMClassifier](https://lightgbm.readthedocs.io/en/latest/pythonapi/lightgbm.LGBMClassifier.html),
+                A model that will be optimized and trained at each round of features elimination. The model must
+                support early stopping of training, which is the case for XGBoost and LightGBM, for example. The
+                recommended model is [LGBMClassifier](https://lightgbm.readthedocs.io/en/latest/pythonapi/lightgbm.LGBMClassifier.html),
                 because it by default handles the missing values and categorical variables. This parameter also supports
                 any hyperparameter search schema that is consistent with the sklearn API e.g.
                 [GridSearchCV](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.GridSearchCV.html),
                 [RandomizedSearchCV](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.RandomizedSearchCV.html)
                 or [BayesSearchCV](https://scikit-optimize.github.io/stable/modules/generated/skopt.BayesSearchCV.html#skopt.BayesSearchCV).
+                Note that if a hyperparameter search model is used, the early stopping parameter is passed to the fit
+                method of the model for Shapley values estimation, but not for hyperparameter search.
+
 
             step (int or float, optional):
                 Number of lowest importance features removed each round. If it is an int, then each round such number of
@@ -757,10 +761,9 @@ class EarlyStoppingShapRFECV(ShapRFECV):
                 reproducible results set it to integer.
 
             early_stopping_rounds (int, optional):
-                Number of rounds with constant performance after which the model fitting stops.
-                This is passed to the fit method of the model for Shapley values estimation, but not for hyperparameter
-                optimization.
-                Only supported by some models, such as XGBoost and LightGBM.
+                Number of rounds with constant performance after which the model fitting stops. This is passed to the
+                fit method of the model for Shapley values estimation, but not for hyperparameter search. Only
+                supported by some models, such as XGBoost and LightGBM.
 
             eval_metric (str, optional):
                 Metric for early stopping.
