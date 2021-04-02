@@ -687,7 +687,10 @@ class EarlyStoppingShapRFECV(ShapRFECV):
     This class performs Backwards Recursive Feature Elimination, using SHAP feature importance.
 
     This is a child of ShapRFECV and it allows early stopping of the training step, available in models such as
-        XGBoost and LightGBM. [Early stopping](https://en.wikipedia.org/wiki/Early_stopping) is a type of
+        XGBoost and LightGBM. If you are not using early stopping, you should use the parent class,
+        ShapRFECV, instead of EarlyStoppingShapRFECV.
+
+    [Early stopping](https://en.wikipedia.org/wiki/Early_stopping) is a type of
         regularization technique in which the model is trained until the scoring metric, measured on a validation set,
         stops improving after a number of early_stopping_rounds. In boosted tree models, this technique can increase
         the training speed, by skipping the training of trees that do not improve the scoring metric any further,
