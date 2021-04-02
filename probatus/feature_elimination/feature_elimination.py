@@ -731,9 +731,10 @@ class EarlyStoppingShapRFECV(ShapRFECV):
 
     Example:
     ```python
+    from lightgbm import LGBMClassifier
     import numpy as np
     import pandas as pd
-    from probatus.feature_elimination import ShapRFECV
+    from probatus.feature_elimination import EarlyStoppingShapRFECV
     from sklearn.datasets import make_classification
     from sklearn.model_selection import train_test_split
     from sklearn.ensemble import RandomForestClassifier
@@ -751,18 +752,18 @@ class EarlyStoppingShapRFECV(ShapRFECV):
 
 
     # Prepare model and parameter search space
-    clf = RandomForestClassifier(max_depth=5, class_weight='balanced')
+    clf = LGBMClassifier(max_depth=5)
 
     param_grid = {
-        'n_estimators': [5, 7, 10],
-        'min_samples_leaf': [3, 5, 7, 10],
+        "n_estimators": [20, 50, 100],
+        "num_leaves": [3, 5, 7, 10],
     }
     search = RandomizedSearchCV(clf, param_grid)
 
 
     # Run feature elimination
-    shap_elimination = ShapRFECV(
-        clf=search, step=0.2, cv=10, scoring='roc_auc', n_jobs=3)
+    shap_elimination = EarlyStoppingShapRFECV(
+        clf=search, step=0.2, cv=10, scoring='roc_auc', early_stopping_rounds=5, n_jobs=3)
     report = shap_elimination.fit_compute(X, y)
 
     # Make plots

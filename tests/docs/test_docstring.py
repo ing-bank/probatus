@@ -22,6 +22,7 @@ CLASSES_TO_TEST = [
     probatus.binning.QuantileBucketer,
     probatus.binning.TreeBucketer,
     probatus.feature_elimination.ShapRFECV,
+    probatus.feature_elimination.EarlyStoppingShapRFECV,
     probatus.interpret.DependencePlotter,
     probatus.interpret.ShapModelInterpreter,
     probatus.metric_volatility.TrainTestVolatility,
