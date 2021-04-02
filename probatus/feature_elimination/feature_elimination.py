@@ -757,8 +757,10 @@ class EarlyStoppingShapRFECV(ShapRFECV):
                 reproducible results set it to integer.
 
             early_stopping_rounds (int, optional):
-                Number of rounds with constant performance after which the model fitting stops. Only supported by some
-                models, such as xgboost and LightGBM.
+                Number of rounds with constant performance after which the model fitting stops.
+                This is passed to the fit method of the model for Shapley values estimation, but not for hyperparameter
+                optimization.
+                Only supported by some models, such as XGBoost and LightGBM.
 
             eval_metric (str, optional):
                 Metric for early stopping.
