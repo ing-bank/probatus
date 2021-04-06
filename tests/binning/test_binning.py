@@ -293,10 +293,10 @@ def test_tree_bucketer_dependence():
 
     # Test that the counts per bin never drop below min_samples_leaf
     myTreeBucketer = TreeBucketer(inf_edges=False, max_depth=6, min_samples_leaf=100, random_state=42).fit(x, y)
-    assert all(myTreeBucketer.counts_ >= myTreeBucketer.tree.min_samples_leaf)
+    assert all([x >= myTreeBucketer.tree.min_samples_leaf for x in myTreeBucketer.counts_])
 
     myTreeBucketer = TreeBucketer(inf_edges=False, max_depth=6, min_samples_leaf=200, random_state=42).fit(x, y)
-    assert all(myTreeBucketer.counts_ >= myTreeBucketer.tree.min_samples_leaf)
+    assert all([x >= myTreeBucketer.tree.min_samples_leaf for x in myTreeBucketer.counts_])
 
     # Test that if the leaf is set to the number of entries,it raises an Error
     myTreeBucketer = TreeBucketer(inf_edges=False, max_depth=6, min_samples_leaf=x.shape[0], random_state=42)
@@ -309,4 +309,23 @@ def test_tree_bucketer_dependence():
         x, y
     )
     assert myTreeBucketer.bin_count == 1
-    assert all(myTreeBucketer.counts_ >= myTreeBucketer.tree.min_samples_leaf)
+    assert all([x >= myTreeBucketer.tree.min_samples_leaf for x in myTreeBucketer.counts_])
+
+
+def test_tree_binning():
+    """
+    Test binning with a decisiontree.
+    """
+    x = [1, 2, 2, 5, 3]
+    y = [0, 0, 1, 1, 1]
+    myBucketer = TreeBucketer(inf_edges=True, max_depth=2, min_impurity_decrease=0.001)
+    myBucketer.fit(x, y)
+    assert myBucketer.boundaries_ == [-np.inf, 1.5, 2.5, np.inf]
+    assert myBucketer.bin_count == 3
+    assert myBucketer.counts_ == [1, 2, 2]
+
+    myBucketer = TreeBucketer(max_depth=2, min_impurity_decrease=0.001)
+    myBucketer.fit(x, y)
+    assert myBucketer.boundaries_ == [1, 1.5, 2.5, 5]
+    assert myBucketer.bin_count == 3
+    assert myBucketer.counts_ == [1, 2, 2]

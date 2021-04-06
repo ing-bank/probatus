@@ -21,11 +21,10 @@
 import pandas as pd
 import numpy as np
 from sklearn.cluster import AgglomerativeClustering
-from sklearn.tree import DecisionTreeClassifier
+from sklearn.tree import DecisionTreeClassifier, _tree
 from sklearn.utils.validation import check_is_fitted
 from probatus.utils import (
     assure_numpy_array,
-    TreePathFinder,
     ApproximationWarning,
     BaseFitComputeClass,
 )
@@ -325,7 +324,6 @@ class TreeBucketer(Bucketer):
 
     x = [1, 2, 2, 5 ,3]
     y = [0, 0 ,1 ,1 ,1]
-    bins = 3
     myBucketer = TreeBucketer(inf_edges=True,max_depth=2,min_impurity_decrease=0.001)
     myBucketer.fit(x,y)
     ```
@@ -437,15 +435,14 @@ class TreeBucketer(Bucketer):
 
         bin_count = len(index)
 
-        tpf = TreePathFinder(tree)
-        boundaries = [bound["min"] for bound in tpf.get_boundaries().values()]
-        boundaries += [tpf.get_boundaries()[leaves[-1]]["max"]]
+        boundaries = np.unique(tree.tree_.threshold[tree.tree_.feature != _tree.TREE_UNDEFINED])
+        boundaries = [np.min(X_in)] + boundaries.tolist() + [np.max(X_in)]
 
-        if not inf_edges:
-            boundaries[0] = np.min(X_in)
-            boundaries[-1] = np.max(X_in)
+        if inf_edges:
+            boundaries[0] = -np.inf
+            boundaries[-1] = np.inf
 
-        return counts, boundaries, bin_count, tree
+        return counts.tolist(), boundaries, bin_count, tree
 
     def fit(self, X, y):
         """
