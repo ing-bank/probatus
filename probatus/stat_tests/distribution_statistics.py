@@ -342,12 +342,6 @@ class AutoDist(object):
                 bin_strat = DistributionStatistics.statistical_test_dict[stat_test]["default_binning"]
             
             dist = DistributionStatistics(statistical_test=stat_test, binning_strategy=bin_strat, bin_count=bins)
-
-            if np.sum(df1[col].isna()):
-                    warnings.warn("Missing values in column {col} have been removed")
-            _ = dist.compute(df1[col].dropna(), df2[col].dropna())
-            statistic = dist.statistic
-            p_value = dist.p_value
             try:
                 if suppress_warnings:
                     warnings.filterwarnings("ignore")
