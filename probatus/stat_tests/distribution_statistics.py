@@ -343,7 +343,8 @@ class AutoDist(object):
             try:
                 if suppress_warnings:
                     warnings.filterwarnings("ignore")
-                _ = dist.compute(df1[col], df2[col])
+                    print("in here")
+                _ = dist.compute(df1[col].dropna(), df2[col].dropna())
                 if suppress_warnings:
                     warnings.filterwarnings("default")
                 statistic = dist.statistic
