@@ -22,6 +22,7 @@ import itertools
 import warnings
 
 import pandas as pd
+import numpy as np
 from tqdm import tqdm
 
 from probatus.binning import SimpleBucketer, AgglomerativeBucketer, QuantileBucketer
@@ -339,11 +340,21 @@ class AutoDist(object):
         ):
             if self.binning_strategies == ["default"]:
                 bin_strat = DistributionStatistics.statistical_test_dict[stat_test]["default_binning"]
+            
             dist = DistributionStatistics(statistical_test=stat_test, binning_strategy=bin_strat, bin_count=bins)
+
+            if np.sum(df1[col].isna()):
+                    warnings.warn("Missing values in column {col} have been removed")
+            _ = dist.compute(df1[col].dropna(), df2[col].dropna())
+            statistic = dist.statistic
+            p_value = dist.p_value
             try:
                 if suppress_warnings:
                     warnings.filterwarnings("ignore")
-                    print("in here")
+                # Issue a warning if missing values are present in one of the two columns. These observations are removed
+                # in the calculations. 
+                if np.sum(df1[col].isna()) + np.sum(df2[col].isna()):
+                    warnings.warn(f"Missing values in column {col+1} have been removed")
                 _ = dist.compute(df1[col].dropna(), df2[col].dropna())
                 if suppress_warnings:
                     warnings.filterwarnings("default")
