@@ -328,46 +328,51 @@ class AutoDist(object):
 
         # Calculate statistics and p-values for all combinations
         result_all = pd.DataFrame()
-        for col, stat_test, bin_strat, bins in tqdm(
+        for col in column_names:
+            # Issue a warning if missing values are present in one of the two columns. These observations are removed
+            # in the calculations.
+            if np.sum(df1[col].isna()) + np.sum(df2[col].isna()):
+                    warnings.warn(f"Missing values in column {col} have been removed")
+
+            # Remove the missing values.
+            feature_df1 = df1[col].dropna()
+            feature_df2 = df2[col].dropna()
+
+            for stat_test, bin_strat, bins in tqdm(
             list(
                 itertools.product(
-                    column_names,
                     self.statistical_tests,
                     self.binning_strategies,
                     self.bin_count,
                 )
             )
         ):
-            if self.binning_strategies == ["default"]:
-                bin_strat = DistributionStatistics.statistical_test_dict[stat_test]["default_binning"]
-            
-            dist = DistributionStatistics(statistical_test=stat_test, binning_strategy=bin_strat, bin_count=bins)
-            try:
-                if suppress_warnings:
-                    warnings.filterwarnings("ignore")
-                # Issue a warning if missing values are present in one of the two columns. These observations are removed
-                # in the calculations. 
-                if np.sum(df1[col].isna()) + np.sum(df2[col].isna()):
-                    warnings.warn(f"Missing values in column {col} have been removed")
-                _ = dist.compute(df1[col].dropna(), df2[col].dropna())
-                if suppress_warnings:
-                    warnings.filterwarnings("default")
-                statistic = dist.statistic
-                p_value = dist.p_value
-            except Exception:
-                statistic, p_value = "an error occurred", None
-                pass
+                if self.binning_strategies == ["default"]:
+                    bin_strat = DistributionStatistics.statistical_test_dict[stat_test]["default_binning"]
+                
+                dist = DistributionStatistics(statistical_test=stat_test, binning_strategy=bin_strat, bin_count=bins)
+                try:
+                    if suppress_warnings:
+                        warnings.filterwarnings("ignore")
+                    _ = dist.compute(feature_df1, feature_df2)
+                    if suppress_warnings:
+                        warnings.filterwarnings("default")
+                    statistic = dist.statistic
+                    p_value = dist.p_value
+                except Exception:
+                    statistic, p_value = "an error occurred", None
+                    pass
 
-            # Append result to results list
-            result_ = {
-                "column": col,
-                "statistical_test": stat_test,
-                "binning_strategy": bin_strat,
-                "bin_count": bins,
-                "statistic": statistic,
-                "p_value": p_value,
-            }
-            result_all = result_all.append(result_, ignore_index=True)
+                # Append result to results list
+                result_ = {
+                    "column": col,
+                    "statistical_test": stat_test,
+                    "binning_strategy": bin_strat,
+                    "bin_count": bins,
+                    "statistic": statistic,
+                    "p_value": p_value,
+                }
+                result_all = result_all.append(result_, ignore_index=True)
 
         if not return_failed_tests:
             result_all = result_all[result_all["statistic"] != "an error occurred"]
