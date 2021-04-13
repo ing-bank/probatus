@@ -74,7 +74,7 @@ def shap_calc(
             TypeError(
                 "The provided model is a Pipeline. Unfortunately, the features based on SHAP do not support "
                 "pipelines, because they cannot be used in combination with shap.Explainer. Please apply any "
-                "ata transformations before running the probatus module."
+                "data transformations before running the probatus module."
             )
         )
 
