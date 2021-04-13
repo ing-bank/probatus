@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.1] - 2021-04-13
+Improvements in this release:
+- Add error if model pipeline passed to SHAP #129
+- Fixed PSI bug with empty bins #116
+- Unit tests are run daily #113
+- TreeBucketer has been refactored #124
+- Fixes to failing test pipeline #120
+- Improving language in docs #109, #107 
+
 ## [1.7.0] - 2021-03-16
 Improvements in this release:
 - Create a comparison of imputation strategies #86
