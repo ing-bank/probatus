@@ -926,7 +926,7 @@ class EarlyStoppingShapRFECV(ShapRFECV):
             y_train,
             eval_set=[(X_train, y_train), (X_val, y_val)],
             early_stopping_rounds=self.early_stopping_rounds,
-            eval_metric=self._eval_metric,
+            eval_metric=self.eval_metric,
         )
 
         # Score the model
