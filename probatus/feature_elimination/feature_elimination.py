@@ -686,7 +686,7 @@ class EarlyStoppingShapRFECV(ShapRFECV):
     """
     This class performs Backwards Recursive Feature Elimination, using SHAP feature importance.
 
-    This is a child of ShapRFECV and it allows early stopping of the training step, available in models such as
+    This is a child of ShapRFECV which allows early stopping of the training step, available in models such as
         XGBoost and LightGBM. If you are not using early stopping, you should use the parent class,
         ShapRFECV, instead of EarlyStoppingShapRFECV.
 
@@ -799,8 +799,10 @@ class EarlyStoppingShapRFECV(ShapRFECV):
                 [GridSearchCV](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.GridSearchCV.html),
                 [RandomizedSearchCV](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.RandomizedSearchCV.html)
                 or [BayesSearchCV](https://scikit-optimize.github.io/stable/modules/generated/skopt.BayesSearchCV.html#skopt.BayesSearchCV).
-                Note that if a hyperparameter search model is used, the early stopping parameter is passed to the fit
-                method of the model for Shapley values estimation, but not for hyperparameter search.
+                Note that if a hyperparemeter search model is used, the hyperparameters are tuned without early
+                stopping. Early stopping is applied only during the Shapley values estimation for feature
+                elimination. We recommend simply passing the model without hyperparameter optimization, or using
+                ShapRFECV without early stopping.
 
 
             step (int or float, optional):
