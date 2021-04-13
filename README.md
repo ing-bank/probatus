@@ -5,6 +5,7 @@
 [![PyPi Version](https://img.shields.io/pypi/pyversions/probatus)](#)
 [![PyPI](https://img.shields.io/pypi/v/probatus)](#)
 [![PyPI - Downloads](https://img.shields.io/pypi/dm/probatus)](#)
+![GitHub contributors](https://img.shields.io/github/contributors/ing-bank/probatus)
 
 # Probatus
 
