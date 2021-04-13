@@ -55,7 +55,7 @@ def test_warnings_are_issued_for_missing():
         missing_both = AutoDist(statistical_tests=["PSI"], binning_strategies="SimpleBucketer", bin_count=10).compute(X_na, X_na)
     assert len(record_both) == 2
 
-    # Test the missing values removal on none of the data input
+    # Test case where there are no missing values
     with pytest.warns(None) as record_both:
         missing_both = AutoDist(statistical_tests=["PSI"], binning_strategies="SimpleBucketer", bin_count=10).compute(X, X)
     assert len(record_both) == 0
