@@ -696,8 +696,9 @@ class EarlyStoppingShapRFECV(ShapRFECV):
         the training speed, by skipping the training of trees that do not improve the scoring metric any further,
         which is particularly useful when the training dataset is large.
 
-    Note that if a hyperparameter search model is used, the early stopping parameter is passed to the fit
-        method of the model for Shapley values estimation, but not for hyperparameter search.
+    Note that if the classifier is a hyperparameter search model is used, the early stopping parameter is passed only
+        to the fit method of the model duiring the Shapley values estimation step, and not for the hyperparameter
+        search step.
 
     At each round, for a
         given feature set, starting from all available features, the following steps are applied:
@@ -709,8 +710,8 @@ class EarlyStoppingShapRFECV(ShapRFECV):
         Note that during this step the model does not use early stopping.
     2. Apply Cross-validation (CV) to estimate the SHAP feature importance on the provided dataset. In each CV
         iteration, the model is fitted on the train folds, and applied on the validation fold to estimate
-        SHAP feature importance. The model is trained until the scoring metric, measured on the validation fold,
-        stops improving after a number of early_stopping_rounds.
+        SHAP feature importance. The model is trained until the scoring metric eval_metric, measured on the
+        validation fold, stops improving after a number of early_stopping_rounds.
     3. Remove `step` lowest SHAP importance features from the dataset.
 
     At the end of the process, the user can plot the performance of the model for each iteration, and select the
@@ -852,7 +853,10 @@ class EarlyStoppingShapRFECV(ShapRFECV):
                 supported by some models, such as XGBoost and LightGBM.
 
             eval_metric (str, optional):
-                Metric for early stopping.
+                Metric for scoring fitting rounds and activating early stopping. This is passed to the
+                fit method of the model for Shapley values estimation, but not for hyperparameter search. Only
+                supported by some models, such as XGBoost and LightGBM.
+                Note that `eval_metric` is an argument of the model's fit method and it is different from `scoring`.
         """  # noqa
         super(EarlyStoppingShapRFECV, self).__init__(clf, **kwargs)
 
@@ -922,7 +926,7 @@ class EarlyStoppingShapRFECV(ShapRFECV):
             y_train,
             eval_set=[(X_train, y_train), (X_val, y_val)],
             early_stopping_rounds=self.early_stopping_rounds,
-            eval_metric=self.eval_metric,
+            eval_metric=self._eval_metric,
         )
 
         # Score the model
