@@ -348,7 +348,7 @@ class AutoDist(object):
                 # Issue a warning if missing values are present in one of the two columns. These observations are removed
                 # in the calculations. 
                 if np.sum(df1[col].isna()) + np.sum(df2[col].isna()):
-                    warnings.warn(f"Missing values in column {col+1} have been removed")
+                    warnings.warn(f"Missing values in column {col} have been removed")
                 _ = dist.compute(df1[col].dropna(), df2[col].dropna())
                 if suppress_warnings:
                     warnings.filterwarnings("default")
