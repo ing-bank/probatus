@@ -40,8 +40,7 @@ def shap_calc(
 
     Args:
         model (binary model):
-            Trained model. It also provides a limited support for sklearn pipelines, in case they do not modify feature
-            names or number of features.
+            Trained model.
 
         X (pd.DataFrame or np.ndarray):
             features set.
