@@ -6,6 +6,8 @@ import pandas as pd
 from probatus.feature_elimination import ShapRFECV
 from sklearn.model_selection import RandomizedSearchCV
 from sklearn.metrics import get_scorer
+from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import Pipeline
 import os
 
 
@@ -87,6 +89,23 @@ def test_shap_rfe(X, y, capsys):
     # Check if there is any prints
     out, _ = capsys.readouterr()
     assert len(out) == 0
+
+
+def test_shap_pipeline_error(X, y, capsys):
+    """
+    Test with ShapRFECV for pipelines.
+    """
+    clf = Pipeline([("scaler", StandardScaler()), ("dt", DecisionTreeClassifier(max_depth=1, random_state=1))])
+    with pytest.raises(TypeError):
+        shap_elimination = ShapRFECV(
+            clf,
+            random_state=1,
+            step=1,
+            cv=2,
+            scoring="roc_auc",
+            n_jobs=4,
+        )
+        shap_elimination = shap_elimination.fit(X, y, approximate=True, check_additivity=False)
 
 
 def test_shap_rfe_linear_model(X, y, capsys):
