@@ -215,7 +215,7 @@ def test_missing_values_in_autodist():
 
 def test_warnings_are_issued_for_missing():
     """Test if warnings are issued when missing values are present in the input of autodist."""
-    # Generate a random input matrix
+    # Generate an input dataframe without missing values
     X = pd.DataFrame({"A":[number for number in range (0, 50)]})
     X = X.assign(B = X['A'], C = X['A'], D = X['A'], E = X['A'])
 
