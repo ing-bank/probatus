@@ -29,6 +29,7 @@ nav:
     - probatus.utils: api/utils.md
   - Discussion:
       - Vision: discussion/vision.md
+      - ShapRFECV vs sklearn RFECV: discussion/nb_rfecv_vs_shaprfecv.ipynb
       - Contributing: discussion/contributing.md
 
 
