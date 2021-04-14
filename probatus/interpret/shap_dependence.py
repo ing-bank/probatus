@@ -68,7 +68,7 @@ class DependencePlotter(BaseFitComputePlotClass):
             verbose (int, optional):
                 Controls verbosity of the output:
 
-                - 0 - nether prints nor warnings are shown
+                - 0 - neither prints nor warnings are shown
                 - 1 - 50 - only most important warnings regarding data properties are shown (excluding SHAP warnings)
                 - 51 - 100 - shows most important warnings, prints of the feature removal process
                 - above 100 - presents all prints and all warnings (including SHAP warnings).

@@ -21,11 +21,10 @@
 import pandas as pd
 import numpy as np
 from sklearn.cluster import AgglomerativeClustering
-from sklearn.tree import DecisionTreeClassifier
+from sklearn.tree import DecisionTreeClassifier, _tree
 from sklearn.utils.validation import check_is_fitted
 from probatus.utils import (
     assure_numpy_array,
-    TreePathFinder,
     ApproximationWarning,
     BaseFitComputeClass,
 )
@@ -100,6 +99,7 @@ class Bucketer(BaseFitComputeClass):
         result = pd.DataFrame({"bucket": digitize_result}).groupby("bucket")["bucket"].count()
         # reindex the dataframe such that also empty buckets are included in the result
         result = result.reindex(np.arange(self.bin_count), fill_value=0)
+
         return result.values
 
     def fit_compute(self, X, y=None):
@@ -116,6 +116,21 @@ class Bucketer(BaseFitComputeClass):
         """
         self.fit(X, y)
         return self.compute(X, y)
+
+    @staticmethod
+    def _enforce_inf_boundaries(boundaries):
+        """
+        This function ensures that the boundaries of the buckets are infinite.
+
+        Arguments
+            boundaries: (list) List of bin boundaries.
+
+        Returns:
+            (list): Boundaries with infinite edges
+        """
+        boundaries[0] = -np.inf
+        boundaries[-1] = np.inf
+        return boundaries
 
 
 class SimpleBucketer(Bucketer):
@@ -143,11 +158,13 @@ class SimpleBucketer(Bucketer):
         self.bin_count = bin_count
 
     @staticmethod
-    def simple_bins(x, bin_count):
+    def simple_bins(x, bin_count, inf_edges=True):
         """
         Simple bins.
         """
         counts, boundaries = np.histogram(x, bins=bin_count)
+        if inf_edges:
+            boundaries = Bucketer._enforce_inf_boundaries(boundaries)
         return counts, boundaries
 
     def fit(self, x, y=None):
@@ -189,7 +206,7 @@ class AgglomerativeBucketer(Bucketer):
         self.bin_count = bin_count
 
     @staticmethod
-    def agglomerative_clustering_binning(x, bin_count):
+    def agglomerative_clustering_binning(x, bin_count, inf_edges=True):
         """
         Cluster.
         """
@@ -205,6 +222,8 @@ class AgglomerativeBucketer(Bucketer):
         # add the lower boundary of the lowest cluster and the upper boundary of the highest cluster
         boundaries = [cluster_minimum_values[0]] + boundaries + [cluster_maximum_values[-1]]
         counts = df.groupby("label")["label"].count().values
+        if inf_edges:
+            boundaries = Bucketer._enforce_inf_boundaries(boundaries)
         return counts, boundaries
 
     def fit(self, x, y=None):
@@ -246,7 +265,7 @@ class QuantileBucketer(Bucketer):
         self.bin_count = bin_count
 
     @staticmethod
-    def quantile_bins(x, bin_count, inf_edges=False):
+    def quantile_bins(x, bin_count, inf_edges=True):
         """
         Bins.
         """
@@ -257,13 +276,23 @@ class QuantileBucketer(Bucketer):
             # this crashes - the exception drops them.
             # This means that it will return approximate quantile bins
             out, boundaries = pd.qcut(x, q=bin_count, retbins=True, duplicates="drop")
-            warnings.warn(ApproximationWarning("Approximated quantiles - too many unique values"))
+            warnings.warn(
+                ApproximationWarning(
+                    f"Unable to calculate quantile bins for this feature, because possibly "
+                    f"there is too many duplicate values.Approximated quantiles, as a result,"
+                    f"the multiple boundaries have the same value. The number of bins has "
+                    f"been lowered to {boundaries-1}. This can cause issue if you want to "
+                    f"calculate the statistical test based on this binning. We suggest to "
+                    f"retry with max number of bins of {boundaries-1} or apply different "
+                    f"type of binning e.g. simple. If you run this functionality in AutoDist for multiple features, "
+                    f"then you can decrease the bins only for that feature in a separate AutoDist run."
+                )
+            )
         df = pd.DataFrame({"x": x})
         df["label"] = out
         counts = df.groupby("label").count().values.flatten()
         if inf_edges:
-            boundaries[0] = -np.inf
-            boundaries[-1] = np.inf
+            boundaries = Bucketer._enforce_inf_boundaries(boundaries)
         return counts, boundaries
 
     def fit(self, x, y=None):
@@ -295,7 +324,6 @@ class TreeBucketer(Bucketer):
 
     x = [1, 2, 2, 5 ,3]
     y = [0, 0 ,1 ,1 ,1]
-    bins = 3
     myBucketer = TreeBucketer(inf_edges=True,max_depth=2,min_impurity_decrease=0.001)
     myBucketer.fit(x,y)
     ```
@@ -407,15 +435,14 @@ class TreeBucketer(Bucketer):
 
         bin_count = len(index)
 
-        tpf = TreePathFinder(tree)
-        boundaries = [bound["min"] for bound in tpf.get_boundaries().values()]
-        boundaries += [tpf.get_boundaries()[leaves[-1]]["max"]]
+        boundaries = np.unique(tree.tree_.threshold[tree.tree_.feature != _tree.TREE_UNDEFINED])
+        boundaries = [np.min(X_in)] + boundaries.tolist() + [np.max(X_in)]
 
-        if not inf_edges:
-            boundaries[0] = np.min(X_in)
-            boundaries[-1] = np.max(X_in)
+        if inf_edges:
+            boundaries[0] = -np.inf
+            boundaries[-1] = np.inf
 
-        return counts, boundaries, bin_count, tree
+        return counts.tolist(), boundaries, bin_count, tree
 
     def fit(self, X, y):
         """
