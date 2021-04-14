@@ -34,11 +34,12 @@ def test_missing_values_in_autodist():
 def test_warnings_are_issued_for_missing():
     """Test if warnings are issued when missing values are present in the input of autodist."""
     # Generate a random input matrix
-    X, y = make_classification(500, 5, random_state=2)
-    X = pd.DataFrame(X)
+    X = pd.DataFrame({"A":[number for number in range (0, 50)]})
+    X = X.assign(B = X['A'], C = X['A'], D = X['A'], E = X['A'])
 
+    # Add some missing values to the dataframe.
     X_na = X.copy()
-    X_na.iloc[30:45,1:3] = np.nan
+    X_na.iloc[X.sample(5, random_state=1).index,1:3] = np.nan
 
     # Test missing value removal on the first data input.
     with pytest.warns(None) as record_first:
