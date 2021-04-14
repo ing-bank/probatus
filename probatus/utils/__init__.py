@@ -36,7 +36,6 @@ from ._utils import (
     assure_list_values_allowed,
 )
 from .sampling import sample_row
-from .tree import TreePathFinder
 from .plots import plot_distributions_of_feature
 from .interface import BaseFitComputeClass, BaseFitComputePlotClass
 
@@ -54,7 +53,6 @@ __all__ = [
     "get_scorers",
     "assure_list_of_strings",
     "assure_list_values_allowed",
-    "TreePathFinder",
     "check_numeric_dtypes",
     "plot_distributions_of_feature",
     "shap_calc",

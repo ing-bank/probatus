@@ -1,14 +1,14 @@
 # Metric Volatility
 
-The aim of this module is analysis of how well a model performs on a given dataset, and how stable the performance is.
+The aim of this module is the analysis of how well a model performs on a given dataset, and how stable the performance is.
 
 The following features are implemented:
 
-- **TrainTestVolatility** - Estimation of volatility of metrics. The estimation is done by splitting the data into train and test multiple times and training and scoring a model based on these metrics.
+- **TrainTestVolatility** - Estimation of the volatility of metrics. The estimation is done by splitting the data into train and test multiple times and training and scoring a model based on these metrics.
 
-  - **SplitSeedVolatility** - Estimates volatility of metrics based on splitting the data into train and test sets multiple times randomly, each time with different seed.
+  - **SplitSeedVolatility** - Estimates the volatility of metrics based on splitting the data into train and test sets multiple times randomly, each time with a different seed.
 
-  - **BootstrappedVolatility** - Estimates volatility of metrics based on splitting the data into train and test with static seed, and bootstrapping train and test set.
+  - **BootstrappedVolatility** - Estimates the volatility of metrics based on splitting the data into train and test with static seed, and bootstrapping the train and test set.
 
 
 ::: probatus.metric_volatility.volatility
