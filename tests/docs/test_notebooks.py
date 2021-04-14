@@ -30,7 +30,9 @@ def execute_notebook_test(notebook_name):
     """
     notebook_path = notebook_name + ".ipynb"
 
-    code_to_execute = os.popen(f"jupyter nbconvert --to script --execute --stdout {notebook_path}").read()
+    code_to_execute = os.popen(
+        f"jupyter nbconvert --to script --execute --stdout --PythonExporter.exclude_markdown=True {notebook_path}"
+    ).read()
     _ = os.popen(f"python3 -c {plots_disable + code_to_execute}").read()
 
 
