@@ -699,6 +699,8 @@ class EarlyStoppingShapRFECV(ShapRFECV):
     Note that if the classifier is a hyperparameter search model is used, the early stopping parameter is passed only
         to the fit method of the model duiring the Shapley values estimation step, and not for the hyperparameter
         search step.
+        Early stopping can be seen as a type of regularization of the optimal number of trees. Therefore you can use
+        it directly with a LightGBM or XGBoost model, as an alternative to a hyperparameter search model.
 
     At each round, for a
         given feature set, starting from all available features, the following steps are applied:
