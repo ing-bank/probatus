@@ -55,7 +55,7 @@ def complex_lightgbm():
     """
     import lightgbm
 
-    return lightgbm.LGBMClassifier(max_depth=5, num_leaves=11, class_weight="balanced")
+    return lightgbm.LGBMClassifier(max_depth=5, num_leaves=11, class_weight="balanced", random_state=42)
 
 
 @pytest.fixture(scope="function")

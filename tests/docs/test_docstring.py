@@ -3,6 +3,8 @@
 import pytest
 import matplotlib.pyplot as plt
 import matplotlib
+import os
+
 import probatus.binning
 import probatus.feature_elimination
 import probatus.interpret
@@ -34,6 +36,11 @@ CLASSES_TO_TEST = [
     probatus.utils.Scorer,
     probatus.missing_values.ImputationSelector,
 ]
+
+CLASSES_TO_TEST_LGBM = [
+    probatus.feature_elimination.EarlyStoppingShapRFECV,
+]
+
 FUNCTIONS_TO_TEST = [
     probatus.utils.sample_row,
 ]
@@ -63,6 +70,19 @@ def test_class_docstrings(c):
     Take the docstring of a given class.
 
     The test passes if the usage examples causes no errors.
+    """
+    handle_docstring(c.__doc__, indent=4)
+
+
+@pytest.mark.skipif(os.environ.get("SKIP_LIGHTGBM") == "true", reason="LightGBM tests disabled")
+@pytest.mark.parametrize("c", CLASSES_TO_TEST_LGBM)
+def test_class_docstrings_lgbm(c):
+    """
+    Take the docstring of a given class which uses LightGBM.
+
+    The test passes if the usage examples causes no errors.
+
+    The test is skipped if the environment does not support LightGBM correctly, such as macos.
     """
     handle_docstring(c.__doc__, indent=4)
 
