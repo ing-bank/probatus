@@ -719,17 +719,6 @@ class EarlyStoppingShapRFECV(ShapRFECV):
     At the end of the process, the user can plot the performance of the model for each iteration, and select the
         optimal number of features and the features set.
 
-    The functionality is
-        similar to [RFECV](https://scikit-learn.org/stable/modules/generated/sklearn.feature_selection.RFECV.html).
-        The main difference is removing the lowest importance features based on SHAP features importance. It also
-        supports the use of sklearn compatible search CV for hyperparameter optimization e.g.
-        [GridSearchCV](https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.LassoCV.html),
-        [RandomizedSearchCV](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.RandomizedSearchCV.html?highlight=randomized#sklearn.model_selection.RandomizedSearchCV), or
-        [BayesSearchCV](https://scikit-optimize.github.io/stable/modules/generated/skopt.BayesSearchCV.html), which
-        needs to be passed as the `clf`. Thanks to this you can perform hyperparameter optimization at each step of
-        the feature elimination. Lastly, it supports categorical features (object and category dtype) and missing values
-        in the data, as long as the model supports them.
-
     We recommend using [LGBMClassifier](https://lightgbm.readthedocs.io/en/latest/pythonapi/lightgbm.LGBMClassifier.html),
         because by default it handles missing values and categorical features. In case of other models, make sure to
         handle these issues for your dataset and consider impact it might have on features importance.
@@ -752,7 +741,6 @@ class EarlyStoppingShapRFECV(ShapRFECV):
                                random_state=0, n_redundant=10, n_clusters_per_class=1)
     X = pd.DataFrame(X, columns=feature_names)
 
-
     # Prepare model
     clf = LGBMClassifier(n_estimators=200, max_depth=3)
 
@@ -774,9 +762,15 @@ class EarlyStoppingShapRFECV(ShapRFECV):
     def __init__(
         self,
         clf,
+        step=1,
+        min_features_to_select=1,
+        cv=None,
+        scoring="roc_auc",
+        n_jobs=-1,
+        verbose=0,
+        random_state=None,
         early_stopping_rounds=5,
         eval_metric="auc",
-        **kwargs,
     ):
         """
         This method initializes the class.
@@ -846,11 +840,20 @@ class EarlyStoppingShapRFECV(ShapRFECV):
             eval_metric (str, optional):
                 Metric for scoring fitting rounds and activating early stopping. This is passed to the
                 fit method of the model for Shapley values estimation, but not for hyperparameter search. Only
-                supported by some models, such as XGBoost and LightGBM.
+                supported by some models, such as [XGBoost](https://xgboost.readthedocs.io/en/latest/parameter.html#learning-task-parameters)
+                 and [LightGBM](https://lightgbm.readthedocs.io/en/latest/Parameters.html#metric-parameters).
                 Note that `eval_metric` is an argument of the model's fit method and it is different from `scoring`.
         """  # noqa
-        super(EarlyStoppingShapRFECV, self).__init__(clf, **kwargs)
-
+        super(EarlyStoppingShapRFECV, self).__init__(
+            clf,
+            step=step,
+            min_features_to_select=min_features_to_select,
+            cv=cv,
+            scoring=scoring,
+            n_jobs=n_jobs,
+            verbose=verbose,
+            random_state=random_state,
+        )
         if self.search_clf:
             if self.verbose > 0:
                 warnings.warn(
