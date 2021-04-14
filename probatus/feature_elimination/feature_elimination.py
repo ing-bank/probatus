@@ -776,7 +776,7 @@ class EarlyStoppingShapRFECV(ShapRFECV):
     def __init__(
         self,
         clf,
-        early_stopping_rounds=None,
+        early_stopping_rounds=5,
         eval_metric="auc",
         **kwargs,
     ):
@@ -860,15 +860,7 @@ class EarlyStoppingShapRFECV(ShapRFECV):
                     "optimization."
                 )
 
-        if early_stopping_rounds is None:
-            raise (
-                ValueError(
-                    "early_stopping_rounds is set to None. "
-                    "EarlyStoppingShapRFECV should only be used with early stopping. "
-                    "If you don't need early stopping, please use ShapRFECV instead."
-                )
-            )
-        elif isinstance(early_stopping_rounds, int) and early_stopping_rounds > 0:
+        if isinstance(early_stopping_rounds, int) and early_stopping_rounds > 0:
             self.early_stopping_rounds = early_stopping_rounds
         else:
             raise (
