@@ -36,9 +36,9 @@ def execute_notebook_test(notebook_name):
     _ = os.popen(f"python3 -c {plots_disable + code_to_execute}").read()
 
 
-@pytest.mark.skip(reason="GitHub pipelines are failing on these tests. Could not find a solution for now.")
 @pytest.mark.parametrize("notebook_name", NOTEBOOKS_TO_TEST_LGBM)
 @pytest.mark.skipif(os.environ.get("SKIP_LIGHTGBM") == "true", reason="LightGBM tests disabled")
+@pytest.mark.skip(reason="GitHub pipelines are failing on these tests. Could not find a solution for now.")
 def test_jupyter_notebook_lgbm(notebook_name):
     """
     Test a notebook.
