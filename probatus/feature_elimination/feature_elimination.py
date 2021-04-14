@@ -755,15 +755,8 @@ class EarlyStoppingShapRFECV(ShapRFECV):
     X = pd.DataFrame(X, columns=feature_names)
 
 
-    # Prepare model and parameter search space
-    clf = LGBMClassifier(n_estimators=200)
-
-    param_grid = {
-        "max_depth": [2, 4, 8, 16],
-        "num_leaves": [3, 5, 7, 10],
-    }
-    search = RandomizedSearchCV(clf, param_grid)
-
+    # Prepare model
+    clf = LGBMClassifier(n_estimators=200, max_depth=3)
 
     # Run feature elimination
     shap_elimination = EarlyStoppingShapRFECV(
