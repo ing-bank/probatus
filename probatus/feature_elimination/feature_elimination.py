@@ -1,19 +1,21 @@
-from probatus.utils import (
-    preprocess_data,
-    shap_calc,
-    calculate_shap_importance,
-    BaseFitComputePlotClass,
-    preprocess_labels,
-    get_single_scorer,
-)
-import numpy as np
-import matplotlib.pyplot as plt
-import pandas as pd
-from sklearn.model_selection._search import BaseSearchCV
-from sklearn.model_selection import check_cv
-from sklearn.base import clone, is_classifier
-from joblib import Parallel, delayed
 import warnings
+
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+from joblib import Parallel, delayed
+from probatus.utils import (
+    BaseFitComputePlotClass,
+    assure_pandas_series,
+    calculate_shap_importance,
+    get_single_scorer,
+    preprocess_data,
+    preprocess_labels,
+    shap_calc,
+)
+from sklearn.base import clone, is_classifier
+from sklearn.model_selection import check_cv
+from sklearn.model_selection._search import BaseSearchCV
 
 
 class ShapRFECV(BaseFitComputePlotClass):
@@ -333,7 +335,7 @@ class ShapRFECV(BaseFitComputePlotClass):
         self.report_df = pd.concat([self.report_df, current_row], axis=0)
 
     @staticmethod
-    def _get_feature_shap_values_per_fold(X, y, clf, train_index, val_index, scorer, verbose=0, **shap_kwargs):
+    def _get_feature_shap_values_per_fold(X, y, clf, train_index, val_index, scorer, sample_weight=None, verbose=0, **shap_kwargs):
         """
         This function calculates the shap values on validation set, and Train and Val score.
 
@@ -378,10 +380,14 @@ class ShapRFECV(BaseFitComputePlotClass):
         X_train, X_val = X.iloc[train_index, :], X.iloc[val_index, :]
         y_train, y_val = y.iloc[train_index], y.iloc[val_index]
 
-        # Fit model with train folds
-        clf = clf.fit(X_train, y_train)
+        if sample_weight is not None:
+            sw_train, sw_val = sample_weight.iloc[train_index], sample_weight.iloc[val_index]
+            clf = clf.fit(X_train, y_train, sample_weight=sw_train)
+        else:
+            clf = clf.fit(X_train, y_train)
 
         # Score the model
+        # Use sample_weights here if available or not?
         score_train = scorer(clf, X_train, y_train)
         score_val = scorer(clf, X_val, y_val)
 
@@ -389,7 +395,7 @@ class ShapRFECV(BaseFitComputePlotClass):
         shap_values = shap_calc(clf, X_val, verbose=verbose, **shap_kwargs)
         return shap_values, score_train, score_val
 
-    def fit(self, X, y, columns_to_keep=None, column_names=None, **shap_kwargs):
+    def fit(self, X, y, sample_weight=None, columns_to_keep=None, column_names=None, **shap_kwargs):
         """
         Fits the object with the provided data.
 
@@ -408,6 +414,12 @@ class ShapRFECV(BaseFitComputePlotClass):
 
             y (pd.Series):
                 Binary labels for X.
+            
+            sample_weight (pd.Series, np.ndarray, list, optional):
+                array-like of shape (n_samples,) - only use if the model you're using supports
+                sample weighting (check the corresponding scikit-learn documentation).
+                Array of weights that are assigned to individual samples.
+                If not provided, then each sample is given unit weight.l
 
             columns_to_keep (list of str, optional):
                 List of column names to keep. If given,
@@ -465,6 +477,8 @@ class ShapRFECV(BaseFitComputePlotClass):
 
         self.X, self.column_names = preprocess_data(X, X_name="X", column_names=column_names, verbose=self.verbose)
         self.y = preprocess_labels(y, y_name="y", index=self.X.index, verbose=self.verbose)
+        if sample_weight is not None:
+            sample_weight = assure_pandas_series(sample_weight, index=self.X.index)
         self.cv = check_cv(self.cv, self.y, classifier=is_classifier(self.clf))
 
         remaining_features = current_features_set = self.column_names
@@ -514,6 +528,7 @@ class ShapRFECV(BaseFitComputePlotClass):
                     train_index=train_index,
                     val_index=val_index,
                     scorer=self.scorer.scorer,
+                    sample_weight=sample_weight,
                     verbose=self.verbose,
                     **shap_kwargs,
                 )
