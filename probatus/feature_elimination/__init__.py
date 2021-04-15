@@ -18,6 +18,6 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
-from .feature_elimination import ShapRFECV
+from .feature_elimination import ShapRFECV, EarlyStoppingShapRFECV
 
-__all__ = ["ShapRFECV"]
+__all__ = ["ShapRFECV", "EarlyStoppingShapRFECV"]

@@ -58,7 +58,7 @@ docs_dep = [
 
 setuptools.setup(
     name="probatus",
-    version="1.7.1",
+    version="1.8.0",
     description="Validation of binary classifiers and data used to develop them",
     long_description=read("README.md"),
     long_description_content_type="text/markdown",
@@ -74,6 +74,7 @@ setuptools.setup(
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
         "Topic :: Scientific/Engineering",
         "Topic :: Scientific/Engineering :: Artificial Intelligence",
         "License :: OSI Approved :: MIT License",
