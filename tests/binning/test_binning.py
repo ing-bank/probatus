@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from probatus.binning import SimpleBucketer, QuantileBucketer, AgglomerativeBucketer, TreeBucketer
+from probatus.binning import SimpleBucketer, QuantileBucketer, AgglomerativeBucketer, TreeBucketer, Bucketer
 from sklearn.exceptions import NotFittedError
 
 
@@ -76,21 +76,17 @@ def test_agglomerative_clustering_new():
     Test.
     """
 
-    def log_function(x):
-        return 1 / (1 + np.exp(-10 * x))
-
-    x = [log_function(x) for x in np.arange(-1, 1, 0.01)]
+    x = [0.5, 1, 1, 1, 2, 2, 3, 3, 3, 3, 3, 4, 4, 4.5]
     bins = 4
     myBucketer = AgglomerativeBucketer(bin_count=bins)
     with pytest.raises(NotFittedError):
         myBucketer.compute([1, 2])
     myBucketer.fit(x)
     assert len(myBucketer.counts_) == bins
-    assert np.array_equal(myBucketer.counts_, np.array([24, 16, 80, 80]))
+    print(myBucketer.counts_)
+    assert np.array_equal(myBucketer.counts_, np.array([4, 2, 5, 3]))
     assert len(myBucketer.boundaries_) == bins + 1
-    np.testing.assert_array_almost_equal(
-        myBucketer.boundaries_, np.array([-np.inf, 0.11, 0.59, 0.88, np.inf]), decimal=2
-    )
+    np.testing.assert_array_almost_equal(myBucketer.boundaries_, np.array([-np.inf, 1.5, 2.5, 3.5, np.inf]), decimal=2)
     # test static method
     counts, boundaries = AgglomerativeBucketer(bin_count=bins).agglomerative_clustering_binning(x, bins)
     assert np.array_equal(myBucketer.counts_, counts)
@@ -329,3 +325,12 @@ def test_tree_binning():
     assert myBucketer.boundaries_ == [1, 1.5, 2.5, 5]
     assert myBucketer.bin_count == 3
     assert myBucketer.counts_ == [1, 2, 2]
+
+
+def test_compute_counts_per_bin():
+    """
+    Test for checking if counts per bin are correctly computed.
+    """
+    x = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    boundaries = [0, 1, 5, 6, 10, 11]  # down boundary < current value <= up boundary
+    np.testing.assert_array_almost_equal(Bucketer._compute_counts_per_bin(x, boundaries), np.array([1, 4, 1, 4, 0]))
