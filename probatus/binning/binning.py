@@ -91,16 +91,28 @@ class Bucketer(BaseFitComputeClass):
         """
         check_is_fitted(self)
 
+        return self._compute_counts_per_bin(X, self.boundaries_)
+
+    @staticmethod
+    def _compute_counts_per_bin(X, boundaries):
+        """
+        Computes the counts per bin.
+
+        Args:
+            X (np.array): data to be bucketed
+            boundaries (np.array): boundaries of the bins.
+
+        Returns (np.array): Counts per bin.
+        """
         # np.digitize returns the indices of the bins to which each value in input array belongs
         # the smallest value of the `boundaries` attribute equals the lowest value in the set the instance was
         # fitted on, to prevent the smallest value of x_new to be in his own bucket, we ignore the first boundary
         # value
-        digitize_result = np.digitize(X, self.boundaries_[1:], right=True)
+        bins = len(boundaries) - 1
+        digitize_result = np.digitize(X, boundaries[1:], right=True)
         result = pd.DataFrame({"bucket": digitize_result}).groupby("bucket")["bucket"].count()
         # reindex the dataframe such that also empty buckets are included in the result
-        result = result.reindex(np.arange(self.bin_count), fill_value=0)
-
-        return result.values
+        return result.reindex(np.arange(bins), fill_value=0).to_numpy()
 
     def fit_compute(self, X, y=None):
         """
@@ -162,9 +174,11 @@ class SimpleBucketer(Bucketer):
         """
         Simple bins.
         """
-        counts, boundaries = np.histogram(x, bins=bin_count)
+        _, boundaries = np.histogram(x, bins=bin_count)
         if inf_edges:
             boundaries = Bucketer._enforce_inf_boundaries(boundaries)
+
+        counts = Bucketer._compute_counts_per_bin(x, boundaries)
         return counts, boundaries
 
     def fit(self, x, y=None):
@@ -221,9 +235,9 @@ class AgglomerativeBucketer(Bucketer):
         ]
         # add the lower boundary of the lowest cluster and the upper boundary of the highest cluster
         boundaries = [cluster_minimum_values[0]] + boundaries + [cluster_maximum_values[-1]]
-        counts = df.groupby("label")["label"].count().values
         if inf_edges:
             boundaries = Bucketer._enforce_inf_boundaries(boundaries)
+        counts = Bucketer._compute_counts_per_bin(x, boundaries)
         return counts, boundaries
 
     def fit(self, x, y=None):
@@ -290,9 +304,9 @@ class QuantileBucketer(Bucketer):
             )
         df = pd.DataFrame({"x": x})
         df["label"] = out
-        counts = df.groupby("label").count().values.flatten()
         if inf_edges:
             boundaries = Bucketer._enforce_inf_boundaries(boundaries)
+        counts = Bucketer._compute_counts_per_bin(x, boundaries)
         return counts, boundaries
 
     def fit(self, x, y=None):

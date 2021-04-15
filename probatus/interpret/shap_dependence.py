@@ -21,7 +21,6 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-
 from probatus.binning import SimpleBucketer, AgglomerativeBucketer, QuantileBucketer
 from probatus.utils import (
     BaseFitComputePlotClass,
@@ -303,7 +302,6 @@ class DependencePlotter(BaseFitComputePlotClass):
         # Determine bin for datapoints
         bins[-1] = bins[-1] + 1
         indices = np.digitize(x, bins)
-
         # Create dataframe with binned data
         dfs = pd.DataFrame({feature: x, "y": y, "bin_index": pd.Series(indices, index=x.index)}).groupby(
             "bin_index", as_index=True
@@ -312,6 +310,12 @@ class DependencePlotter(BaseFitComputePlotClass):
         # Extract target ratio and mean feature value
         target_ratio = dfs["y"].mean()
         x_vals = dfs[feature].mean()
+
+        # Transform the first and last bin to work with plt.hist method
+        if bins[0] == -np.inf:
+            bins[0] = x.min()
+        if bins[-1] == np.inf:
+            bins[-1] = x.max()
 
         # Plot target rate
         ax.hist(x, bins=bins, lw=2, alpha=0.4)
