@@ -364,6 +364,13 @@ class ShapRFECV(BaseFitComputePlotClass):
             val_index (np.array):
                 Positions of validation fold samples.
 
+            sample_weight (pd.Series, np.ndarray, list, optional):
+                array-like of shape (n_samples,) - only use if the model you're using supports
+                sample weighting (check the corresponding scikit-learn documentation).
+                Array of weights that are assigned to individual samples.
+                Note that they're only used for fitting of  the model, not during evaluation of metrics.
+                If not provided, then each sample is given unit weight.
+
             **shap_kwargs:
                 keyword arguments passed to
                 [shap.Explainer](https://shap.readthedocs.io/en/latest/generated/shap.Explainer.html#shap.Explainer).
@@ -414,7 +421,8 @@ class ShapRFECV(BaseFitComputePlotClass):
                 array-like of shape (n_samples,) - only use if the model you're using supports
                 sample weighting (check the corresponding scikit-learn documentation).
                 Array of weights that are assigned to individual samples.
-                If not provided, then each sample is given unit weight.l
+                Note that they're only used for fitting of  the model, not during evaluation of metrics.
+                If not provided, then each sample is given unit weight.
 
             columns_to_keep (list of str, optional):
                 List of column names to keep. If given,
@@ -608,7 +616,8 @@ class ShapRFECV(BaseFitComputePlotClass):
                 array-like of shape (n_samples,) - only use if the model you're using supports
                 sample weighting (check the corresponding scikit-learn documentation).
                 Array of weights that are assigned to individual samples.
-                If not provided, then each sample is given unit weight.l
+                Note that they're only used for fitting of  the model, not during evaluation of metrics.
+                If not provided, then each sample is given unit weight.
 
             columns_to_keep (list of str, optional):
                 List of columns to keep. If given, these columns will not be eliminated.
@@ -633,7 +642,7 @@ class ShapRFECV(BaseFitComputePlotClass):
         self.fit(
             X,
             y,
-            sample_weight,
+            sample_weight=sample_weight,
             columns_to_keep=columns_to_keep,
             column_names=column_names,
             **shap_kwargs,
@@ -923,6 +932,13 @@ class EarlyStoppingShapRFECV(ShapRFECV):
 
             y (pd.Series):
                 Binary labels for X.
+
+            sample_weight (pd.Series, np.ndarray, list, optional):
+                array-like of shape (n_samples,) - only use if the model you're using supports
+                sample weighting (check the corresponding scikit-learn documentation).
+                Array of weights that are assigned to individual samples.
+                Note that they're only used for fitting of  the model, not during evaluation of metrics.
+                If not provided, then each sample is given unit weight.
 
             clf (binary classifier):
                 Model to be fitted on the train folds.

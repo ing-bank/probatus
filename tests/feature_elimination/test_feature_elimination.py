@@ -1,15 +1,16 @@
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.linear_model import LogisticRegression
-from sklearn.svm import SVC
-import pytest
-import pandas as pd
-from probatus.feature_elimination import ShapRFECV, EarlyStoppingShapRFECV
-from probatus.utils import preprocess_labels
-from sklearn.model_selection import RandomizedSearchCV
-from sklearn.metrics import get_scorer
-from sklearn.preprocessing import StandardScaler
-from sklearn.pipeline import Pipeline
 import os
+
+import pandas as pd
+import pytest
+from probatus.feature_elimination import EarlyStoppingShapRFECV, ShapRFECV
+from probatus.utils import preprocess_labels
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import get_scorer
+from sklearn.model_selection import RandomizedSearchCV
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.svm import SVC
+from sklearn.tree import DecisionTreeClassifier
 
 
 @pytest.fixture(scope="function")
@@ -29,6 +30,14 @@ def y():
     Fixture for y.
     """
     return pd.Series([1, 0, 1, 0, 1, 0, 1, 0], index=[1, 2, 3, 4, 5, 6, 7, 8])
+
+
+@pytest.fixture(scope="function")
+def sample_weight():
+    """
+    Fixture for sample_weight.
+    """
+    return pd.Series([1, 1, 1, 1, 1, 1, 1, 1], index=[1, 2, 3, 4, 5, 6, 7, 8])
 
 
 def test_shap_rfe_randomized_search(X, y, capsys):
@@ -59,7 +68,7 @@ def test_shap_rfe_randomized_search(X, y, capsys):
     assert len(out) == 0
 
 
-def test_shap_rfe(X, y, capsys):
+def test_shap_rfe(X, y, sample_weight, capsys):
     """
     Test with ShapRFECV.
     """
@@ -73,7 +82,9 @@ def test_shap_rfe(X, y, capsys):
             scoring="roc_auc",
             n_jobs=4,
         )
-        shap_elimination = shap_elimination.fit(X, y, approximate=True, check_additivity=False)
+        shap_elimination = shap_elimination.fit(
+            X, y, sample_weight=sample_weight, approximate=True, check_additivity=False
+        )
 
     assert shap_elimination.fitted
     shap_elimination._check_if_fitted()
@@ -292,7 +303,7 @@ def test_shap_rfe_early_stopping(complex_data, capsys):
             early_stopping_rounds=5,
             eval_metric="auc",
         )
-        shap_elimination = shap_elimination.fit(X, y, approximate=True, check_additivity=False)
+        shap_elimination = shap_elimination.fit(X, y, approximate=False, check_additivity=False)
 
     assert shap_elimination.fitted
     shap_elimination._check_if_fitted()
