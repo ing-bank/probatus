@@ -377,9 +377,7 @@ class ShapRFECV(BaseFitComputePlotClass):
         X_train, X_val = X.iloc[train_index, :], X.iloc[val_index, :]
         y_train, y_val = y.iloc[train_index], y.iloc[val_index]
 
-        print("gfs", sample_weight)
         if sample_weight is not None:
-            print("Yo!")
             clf = clf.fit(X_train, y_train, sample_weight=sample_weight.iloc[train_index])
         else:
             clf = clf.fit(X_train, y_train)
@@ -915,7 +913,7 @@ class EarlyStoppingShapRFECV(ShapRFECV):
 
         self.eval_metric = eval_metric
 
-    def _get_feature_shap_values_per_fold(self, X, y, clf, train_index, val_index, sample_weight, **shap_kwargs):
+    def _get_feature_shap_values_per_fold(self, X, y, clf, train_index, val_index, sample_weight=None, **shap_kwargs):
         """
         This function calculates the shap values on validation set, and Train and Val score.
 
