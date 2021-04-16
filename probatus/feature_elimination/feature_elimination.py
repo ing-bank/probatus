@@ -165,7 +165,6 @@ class ShapRFECV(BaseFitComputePlotClass):
                 reproducible results set it to an integer.
         """  # noqa
         self.clf = clf
-
         if isinstance(self.clf, BaseSearchCV):
             self.search_clf = True
         else:
@@ -181,10 +180,7 @@ class ShapRFECV(BaseFitComputePlotClass):
                 )
             )
 
-        if (
-            isinstance(min_features_to_select, int)
-            and min_features_to_select > 0
-        ):
+        if isinstance(min_features_to_select, int) and min_features_to_select > 0:
             self.min_features_to_select = min_features_to_select
         else:
             raise (
@@ -201,9 +197,7 @@ class ShapRFECV(BaseFitComputePlotClass):
         self.report_df = pd.DataFrame([])
         self.verbose = verbose
 
-    def _get_current_features_to_remove(
-        self, shap_importance_df, columns_to_keep=None
-    ):
+    def _get_current_features_to_remove(self, shap_importance_df, columns_to_keep=None):
         """
         Implements the logic used to determine which features to remove.
 
@@ -232,36 +226,28 @@ class ShapRFECV(BaseFitComputePlotClass):
 
         # If the step is an int remove n features.
         if isinstance(self.step, int):
-            num_features_to_remove = (
-                self._calculate_number_of_features_to_remove(
-                    current_num_of_features=shap_importance_df.shape[0],
-                    num_features_to_remove=self.step,
-                    min_num_features_to_keep=self.min_features_to_select,
-                )
+            num_features_to_remove = self._calculate_number_of_features_to_remove(
+                current_num_of_features=shap_importance_df.shape[0],
+                num_features_to_remove=self.step,
+                min_num_features_to_keep=self.min_features_to_select,
             )
         # If the step is a float remove n * number features that are left, rounded down
         elif isinstance(self.step, float):
-            current_step = int(
-                np.floor(shap_importance_df.shape[0] * self.step)
-            )
+            current_step = int(np.floor(shap_importance_df.shape[0] * self.step))
             # The step after rounding down should be at least 1
             if current_step < 1:
                 current_step = 1
 
-            num_features_to_remove = (
-                self._calculate_number_of_features_to_remove(
-                    current_num_of_features=shap_importance_df.shape[0],
-                    num_features_to_remove=current_step,
-                    min_num_features_to_keep=self.min_features_to_select,
-                )
+            num_features_to_remove = self._calculate_number_of_features_to_remove(
+                current_num_of_features=shap_importance_df.shape[0],
+                num_features_to_remove=current_step,
+                min_num_features_to_keep=self.min_features_to_select,
             )
 
         if num_features_to_remove == 0:
             return []
         else:
-            return shap_importance_df.iloc[
-                -num_features_to_remove:
-            ].index.tolist()
+            return shap_importance_df.iloc[-num_features_to_remove:].index.tolist()
 
     @staticmethod
     def _calculate_number_of_features_to_remove(
@@ -289,9 +275,7 @@ class ShapRFECV(BaseFitComputePlotClass):
             (int):
                 Number of features to be removed.
         """
-        num_features_after_removal = (
-            current_num_of_features - num_features_to_remove
-        )
+        num_features_after_removal = current_num_of_features - num_features_to_remove
         if num_features_after_removal >= min_num_features_to_keep:
             num_to_remove = num_features_to_remove
         else:
@@ -393,38 +377,22 @@ class ShapRFECV(BaseFitComputePlotClass):
         X_train, X_val = X.iloc[train_index, :], X.iloc[val_index, :]
         y_train, y_val = y.iloc[train_index], y.iloc[val_index]
 
+        print("gfs", sample_weight)
         if sample_weight is not None:
-            sw_train, sw_val = (
-                sample_weight.iloc[train_index],
-                sample_weight.iloc[val_index],
-            )
-            clf = clf.fit(X_train, y_train, sample_weight=sw_train)
+            print("Yo!")
+            clf = clf.fit(X_train, y_train, sample_weight=sample_weight.iloc[train_index])
         else:
             clf = clf.fit(X_train, y_train)
 
         # Score the model
-        score_train = scorer(clf, X_train, y_train)
-        score_val = scorer(clf, X_val, y_val)
-
-        # Use sample_weights here if available or not?
         score_train = self.scorer.scorer(clf, X_train, y_train)
         score_val = self.scorer.scorer(clf, X_val, y_val)
 
         # Compute SHAP values
-        shap_values = shap_calc(
-            clf, X_val, verbose=self.verbose, **shap_kwargs
-        )
+        shap_values = shap_calc(clf, X_val, verbose=self.verbose, **shap_kwargs)
         return shap_values, score_train, score_val
 
-    def fit(
-        self,
-        X,
-        y,
-        sample_weight=None,
-        columns_to_keep=None,
-        column_names=None,
-        **shap_kwargs,
-    ):
+    def fit(self, X, y, sample_weight=None, columns_to_keep=None, column_names=None, **shap_kwargs):
         """
         Fits the object with the provided data.
 
@@ -493,42 +461,32 @@ class ShapRFECV(BaseFitComputePlotClass):
             if all(x in column_names for x in list(X.columns)):
                 pass
             else:
-                raise (
-                    ValueError(
-                        "The column names in parameter columns_to_keep and column_names are not macthing."
-                    )
-                )
+                raise (ValueError("The column names in parameter columns_to_keep and column_names are not macthing."))
 
         # Check that the total number of columns to select is less than total number of columns in the data.
         # only when both parameters are provided.
         if column_names is not None and columns_to_keep is not None:
-            if (self.min_features_to_select + len_columns_to_keep) > len(
-                self.column_names
-            ):
+            if (self.min_features_to_select + len_columns_to_keep) > len(self.column_names):
                 raise ValueError(
                     "Minimum features to select is greater than number of features."
                     "Lower the value for min_features_to_select or number of columns in columns_to_keep"
                 )
 
-        self.X, self.column_names = preprocess_data(
-            X, X_name="X", column_names=column_names, verbose=self.verbose
-        )
-        self.y = preprocess_labels(
-            y, y_name="y", index=self.X.index, verbose=self.verbose
-        )
+        self.X, self.column_names = preprocess_data(X, X_name="X", column_names=column_names, verbose=self.verbose)
+        self.y = preprocess_labels(y, y_name="y", index=self.X.index, verbose=self.verbose)
         if sample_weight is not None:
-            sample_weight = assure_pandas_series(
-                sample_weight, index=self.X.index
-            )
+            if self.verbose > 0:
+                warnings.warn(
+                    "sample_weight is passed only to the fit method of the model, not the evaluation metrics."
+                )
+            sample_weight = assure_pandas_series(sample_weight, index=self.X.index)
         self.cv = check_cv(self.cv, self.y, classifier=is_classifier(self.clf))
 
         remaining_features = current_features_set = self.column_names
         round_number = 0
 
         # Stop when stopping criteria is met.
-        stopping_criteria = np.max(
-            [self.min_features_to_select, len_columns_to_keep]
-        )
+        stopping_criteria = np.max([self.min_features_to_select, len_columns_to_keep])
 
         # Setting up the min_features_to_select parameter.
         if columns_to_keep is None:
@@ -538,9 +496,7 @@ class ShapRFECV(BaseFitComputePlotClass):
             # This ensures that, if columns_to_keep is provided ,
             # the last features remaining are only the columns_to_keep.
             if self.verbose > 50:
-                warnings.warn(
-                    f"Minimum features to select : {stopping_criteria}"
-                )
+                warnings.warn(f"Minimum features to select : {stopping_criteria}")
 
         while len(current_features_set) > stopping_criteria:
             round_number += 1
@@ -550,9 +506,7 @@ class ShapRFECV(BaseFitComputePlotClass):
             if columns_to_keep is None:
                 remaining_removeable_features = list(set(current_features_set))
             else:
-                remaining_removeable_features = list(
-                    set(current_features_set) | set(columns_to_keep)
-                )
+                remaining_removeable_features = list(set(current_features_set) | set(columns_to_keep))
             current_X = self.X[remaining_removeable_features]
 
             # Set seed for results reproducibility
@@ -562,9 +516,7 @@ class ShapRFECV(BaseFitComputePlotClass):
             # Optimize parameters
             if self.search_clf:
                 current_search_clf = clone(self.clf).fit(current_X, self.y)
-                current_clf = current_search_clf.estimator.set_params(
-                    **current_search_clf.best_params_
-                )
+                current_clf = current_search_clf.estimator.set_params(**current_search_clf.best_params_)
             else:
                 current_clf = clone(self.clf)
 
@@ -582,29 +534,19 @@ class ShapRFECV(BaseFitComputePlotClass):
                 for train_index, val_index in self.cv.split(current_X, self.y)
             )
 
-            shap_values = np.vstack(
-                [current_result[0] for current_result in results_per_fold]
-            )
-            scores_train = [
-                current_result[1] for current_result in results_per_fold
-            ]
-            scores_val = [
-                current_result[2] for current_result in results_per_fold
-            ]
+            shap_values = np.vstack([current_result[0] for current_result in results_per_fold])
+            scores_train = [current_result[1] for current_result in results_per_fold]
+            scores_val = [current_result[2] for current_result in results_per_fold]
 
             # Calculate the shap features with remaining features and features to keep.
 
-            shap_importance_df = calculate_shap_importance(
-                shap_values, remaining_removeable_features
-            )
+            shap_importance_df = calculate_shap_importance(shap_values, remaining_removeable_features)
 
             # Get features to remove
             features_to_remove = self._get_current_features_to_remove(
                 shap_importance_df, columns_to_keep=columns_to_keep
             )
-            remaining_features = list(
-                set(current_features_set) - set(features_to_remove)
-            )
+            remaining_features = list(set(current_features_set) - set(features_to_remove))
 
             # Report results
             self._report_current_results(
@@ -643,9 +585,7 @@ class ShapRFECV(BaseFitComputePlotClass):
 
         return self.report_df
 
-    def fit_compute(
-        self, X, y, columns_to_keep=None, column_names=None, **shap_kwargs
-    ):
+    def fit_compute(self, X, y, sample_weight=None, columns_to_keep=None, column_names=None, **shap_kwargs):
         """
         Fits the object with the provided data.
 
@@ -665,6 +605,12 @@ class ShapRFECV(BaseFitComputePlotClass):
 
             y (pd.Series):
                 Binary labels for X.
+
+            sample_weight (pd.Series, np.ndarray, list, optional):
+                array-like of shape (n_samples,) - only use if the model you're using supports
+                sample weighting (check the corresponding scikit-learn documentation).
+                Array of weights that are assigned to individual samples.
+                If not provided, then each sample is given unit weight.l
 
             columns_to_keep (list of str, optional):
                 List of columns to keep. If given, these columns will not be eliminated.
@@ -689,6 +635,7 @@ class ShapRFECV(BaseFitComputePlotClass):
         self.fit(
             X,
             y,
+            sample_weight,
             columns_to_keep=columns_to_keep,
             column_names=column_names,
             **shap_kwargs,
@@ -717,9 +664,7 @@ class ShapRFECV(BaseFitComputePlotClass):
                 )
             )
         else:
-            return self.report_df[self.report_df.num_features == num_features][
-                "features_set"
-            ].values[0]
+            return self.report_df[self.report_df.num_features == num_features]["features_set"].values[0]
 
     def plot(self, show=True, **figure_kwargs):
         """
@@ -748,10 +693,8 @@ class ShapRFECV(BaseFitComputePlotClass):
         )
         plt.fill_between(
             pd.to_numeric(self.report_df.num_features, errors="coerce"),
-            self.report_df["train_metric_mean"]
-            - self.report_df["train_metric_std"],
-            self.report_df["train_metric_mean"]
-            + self.report_df["train_metric_std"],
+            self.report_df["train_metric_mean"] - self.report_df["train_metric_std"],
+            self.report_df["train_metric_mean"] + self.report_df["train_metric_std"],
             alpha=0.3,
         )
 
@@ -762,10 +705,8 @@ class ShapRFECV(BaseFitComputePlotClass):
         )
         plt.fill_between(
             pd.to_numeric(self.report_df.num_features, errors="coerce"),
-            self.report_df["val_metric_mean"]
-            - self.report_df["val_metric_std"],
-            self.report_df["val_metric_mean"]
-            + self.report_df["val_metric_std"],
+            self.report_df["val_metric_mean"] - self.report_df["val_metric_std"],
+            self.report_df["val_metric_mean"] + self.report_df["val_metric_std"],
             alpha=0.3,
         )
 
@@ -962,10 +903,7 @@ class EarlyStoppingShapRFECV(ShapRFECV):
                     "optimization."
                 )
 
-        if (
-            isinstance(early_stopping_rounds, int)
-            and early_stopping_rounds > 0
-        ):
+        if isinstance(early_stopping_rounds, int) and early_stopping_rounds > 0:
             self.early_stopping_rounds = early_stopping_rounds
         else:
             raise (
@@ -977,9 +915,7 @@ class EarlyStoppingShapRFECV(ShapRFECV):
 
         self.eval_metric = eval_metric
 
-    def _get_feature_shap_values_per_fold(
-        self, X, y, clf, train_index, val_index, **shap_kwargs
-    ):
+    def _get_feature_shap_values_per_fold(self, X, y, clf, train_index, val_index, sample_weight, **shap_kwargs):
         """
         This function calculates the shap values on validation set, and Train and Val score.
 
@@ -1012,21 +948,27 @@ class EarlyStoppingShapRFECV(ShapRFECV):
         X_train, X_val = X.iloc[train_index, :], X.iloc[val_index, :]
         y_train, y_val = y.iloc[train_index], y.iloc[val_index]
 
-        # Fit model with train folds
-        clf = clf.fit(
-            X_train,
-            y_train,
-            eval_set=[(X_train, y_train), (X_val, y_val)],
-            early_stopping_rounds=self.early_stopping_rounds,
-            eval_metric=self.eval_metric,
-        )
-
+        if sample_weight is not None:
+            clf = clf.fit(
+                X_train,
+                y_train,
+                sample_weight=sample_weight.iloc[train_index],
+                eval_set=[(X_val, y_val)],
+                early_stopping_rounds=self.early_stopping_rounds,
+                eval_metric=self.eval_metric,
+            )
+        else:
+            clf = clf.fit(
+                X_train,
+                y_train,
+                eval_set=[(X_val, y_val)],
+                early_stopping_rounds=self.early_stopping_rounds,
+                eval_metric=self.eval_metric,
+            )
         # Score the model
         score_train = self.scorer.scorer(clf, X_train, y_train)
         score_val = self.scorer.scorer(clf, X_val, y_val)
 
         # Compute SHAP values
-        shap_values = shap_calc(
-            clf, X_val, verbose=self.verbose, **shap_kwargs
-        )
+        shap_values = shap_calc(clf, X_val, verbose=self.verbose, **shap_kwargs)
         return shap_values, score_train, score_val
