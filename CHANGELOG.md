@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.1] - 2021-04-18
+Improvements in this release:
+- Enable use of sample_weight in ShapRFECV and EarlyStoppingShapRFECV #139
+- Fix bug in EarlyStoppingShapRFECV #139
+- Fix issue with categorical features in SHAP #138
+- Missing values handled by autodist #126
+- Fix issue with missing histogram in DependencePlot #137
+
 ## [1.8.0] - 2021-04-14
 Improvements in this release:
 - Implemented EarlyStoppingShapRFECV #108
