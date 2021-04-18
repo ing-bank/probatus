@@ -18,10 +18,11 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
-import shap
-import pandas as pd
-import numpy as np
 import warnings
+
+import numpy as np
+import pandas as pd
+import shap
 from sklearn.pipeline import Pipeline
 
 
@@ -77,7 +78,6 @@ def shap_calc(
                 "data transformations before running the probatus module."
             )
         )
-
     # Suppress warnings regarding XGboost and Lightgbm models.
     with warnings.catch_warnings():
         if verbose <= 100:
@@ -92,7 +92,17 @@ def shap_calc(
             pass
         mask = shap.utils.sample(X, sample_size)
 
-        explainer = shap.Explainer(model, masker=mask, **shap_kwargs)
+        # For LGBM to work with categorical features, we need to exclude background data from shap
+        model_str = str(model) if not isinstance(model, Pipeline) else str(model[-1])
+        if (X.select_dtypes("category").shape[1] > 0) and model_str.startswith(("LGBM", "CatBoost")):
+            if verbose > 0:
+                warnings.warn(
+                    "Using tree_dependent feature_perturbation (in shap) without background"
+                    " data for LGBM + categorical features."
+                )
+            explainer = shap.Explainer(model, **shap_kwargs)
+        else:
+            explainer = shap.Explainer(model, masker=mask, **shap_kwargs)
 
         # For tree-explainers allow for using check_additivity and approximate arguments
         if isinstance(explainer, shap.explainers._tree.Tree):

@@ -1,19 +1,21 @@
-from probatus.utils import (
-    preprocess_data,
-    shap_calc,
-    calculate_shap_importance,
-    BaseFitComputePlotClass,
-    preprocess_labels,
-    get_single_scorer,
-)
-import numpy as np
-import matplotlib.pyplot as plt
-import pandas as pd
-from sklearn.model_selection._search import BaseSearchCV
-from sklearn.model_selection import check_cv
-from sklearn.base import clone, is_classifier
-from joblib import Parallel, delayed
 import warnings
+
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+from joblib import Parallel, delayed
+from probatus.utils import (
+    BaseFitComputePlotClass,
+    assure_pandas_series,
+    calculate_shap_importance,
+    get_single_scorer,
+    preprocess_data,
+    preprocess_labels,
+    shap_calc,
+)
+from sklearn.base import clone, is_classifier
+from sklearn.model_selection import check_cv
+from sklearn.model_selection._search import BaseSearchCV
 
 
 class ShapRFECV(BaseFitComputePlotClass):
@@ -163,7 +165,6 @@ class ShapRFECV(BaseFitComputePlotClass):
                 reproducible results set it to an integer.
         """  # noqa
         self.clf = clf
-
         if isinstance(self.clf, BaseSearchCV):
             self.search_clf = True
         else:
@@ -250,7 +251,9 @@ class ShapRFECV(BaseFitComputePlotClass):
 
     @staticmethod
     def _calculate_number_of_features_to_remove(
-        current_num_of_features, num_features_to_remove, min_num_features_to_keep
+        current_num_of_features,
+        num_features_to_remove,
+        min_num_features_to_keep,
     ):
         """
         Calculates the number of features to be removed.
@@ -332,7 +335,16 @@ class ShapRFECV(BaseFitComputePlotClass):
 
         self.report_df = pd.concat([self.report_df, current_row], axis=0)
 
-    def _get_feature_shap_values_per_fold(self, X, y, clf, train_index, val_index, **shap_kwargs):
+    def _get_feature_shap_values_per_fold(
+        self,
+        X,
+        y,
+        clf,
+        train_index,
+        val_index,
+        sample_weight=None,
+        **shap_kwargs,
+    ):
         """
         This function calculates the shap values on validation set, and Train and Val score.
 
@@ -352,6 +364,13 @@ class ShapRFECV(BaseFitComputePlotClass):
             val_index (np.array):
                 Positions of validation fold samples.
 
+            sample_weight (pd.Series, np.ndarray, list, optional):
+                array-like of shape (n_samples,) - only use if the model you're using supports
+                sample weighting (check the corresponding scikit-learn documentation).
+                Array of weights that are assigned to individual samples.
+                Note that they're only used for fitting of  the model, not during evaluation of metrics.
+                If not provided, then each sample is given unit weight.
+
             **shap_kwargs:
                 keyword arguments passed to
                 [shap.Explainer](https://shap.readthedocs.io/en/latest/generated/shap.Explainer.html#shap.Explainer).
@@ -365,8 +384,10 @@ class ShapRFECV(BaseFitComputePlotClass):
         X_train, X_val = X.iloc[train_index, :], X.iloc[val_index, :]
         y_train, y_val = y.iloc[train_index], y.iloc[val_index]
 
-        # Fit model with train folds
-        clf = clf.fit(X_train, y_train)
+        if sample_weight is not None:
+            clf = clf.fit(X_train, y_train, sample_weight=sample_weight.iloc[train_index])
+        else:
+            clf = clf.fit(X_train, y_train)
 
         # Score the model
         score_train = self.scorer.scorer(clf, X_train, y_train)
@@ -376,7 +397,7 @@ class ShapRFECV(BaseFitComputePlotClass):
         shap_values = shap_calc(clf, X_val, verbose=self.verbose, **shap_kwargs)
         return shap_values, score_train, score_val
 
-    def fit(self, X, y, columns_to_keep=None, column_names=None, **shap_kwargs):
+    def fit(self, X, y, sample_weight=None, columns_to_keep=None, column_names=None, **shap_kwargs):
         """
         Fits the object with the provided data.
 
@@ -395,6 +416,13 @@ class ShapRFECV(BaseFitComputePlotClass):
 
             y (pd.Series):
                 Binary labels for X.
+
+            sample_weight (pd.Series, np.ndarray, list, optional):
+                array-like of shape (n_samples,) - only use if the model you're using supports
+                sample weighting (check the corresponding scikit-learn documentation).
+                Array of weights that are assigned to individual samples.
+                Note that they're only used for fitting of  the model, not during evaluation of metrics.
+                If not provided, then each sample is given unit weight.
 
             columns_to_keep (list of str, optional):
                 List of column names to keep. If given,
@@ -452,6 +480,12 @@ class ShapRFECV(BaseFitComputePlotClass):
 
         self.X, self.column_names = preprocess_data(X, X_name="X", column_names=column_names, verbose=self.verbose)
         self.y = preprocess_labels(y, y_name="y", index=self.X.index, verbose=self.verbose)
+        if sample_weight is not None:
+            if self.verbose > 0:
+                warnings.warn(
+                    "sample_weight is passed only to the fit method of the model, not the evaluation metrics."
+                )
+            sample_weight = assure_pandas_series(sample_weight, index=self.X.index)
         self.cv = check_cv(self.cv, self.y, classifier=is_classifier(self.clf))
 
         remaining_features = current_features_set = self.column_names
@@ -500,6 +534,7 @@ class ShapRFECV(BaseFitComputePlotClass):
                     clf=current_clf,
                     train_index=train_index,
                     val_index=val_index,
+                    sample_weight=sample_weight,
                     **shap_kwargs,
                 )
                 for train_index, val_index in self.cv.split(current_X, self.y)
@@ -556,7 +591,7 @@ class ShapRFECV(BaseFitComputePlotClass):
 
         return self.report_df
 
-    def fit_compute(self, X, y, columns_to_keep=None, column_names=None, **shap_kwargs):
+    def fit_compute(self, X, y, sample_weight=None, columns_to_keep=None, column_names=None, **shap_kwargs):
         """
         Fits the object with the provided data.
 
@@ -576,6 +611,13 @@ class ShapRFECV(BaseFitComputePlotClass):
 
             y (pd.Series):
                 Binary labels for X.
+
+            sample_weight (pd.Series, np.ndarray, list, optional):
+                array-like of shape (n_samples,) - only use if the model you're using supports
+                sample weighting (check the corresponding scikit-learn documentation).
+                Array of weights that are assigned to individual samples.
+                Note that they're only used for fitting of  the model, not during evaluation of metrics.
+                If not provided, then each sample is given unit weight.
 
             columns_to_keep (list of str, optional):
                 List of columns to keep. If given, these columns will not be eliminated.
@@ -597,7 +639,14 @@ class ShapRFECV(BaseFitComputePlotClass):
                 DataFrame containing results of feature elimination from each iteration.
         """
 
-        self.fit(X, y, columns_to_keep=columns_to_keep, column_names=column_names, **shap_kwargs)
+        self.fit(
+            X,
+            y,
+            sample_weight=sample_weight,
+            columns_to_keep=columns_to_keep,
+            column_names=column_names,
+            **shap_kwargs,
+        )
         return self.compute()
 
     def get_reduced_features_set(self, num_features):
@@ -873,7 +922,7 @@ class EarlyStoppingShapRFECV(ShapRFECV):
 
         self.eval_metric = eval_metric
 
-    def _get_feature_shap_values_per_fold(self, X, y, clf, train_index, val_index, **shap_kwargs):
+    def _get_feature_shap_values_per_fold(self, X, y, clf, train_index, val_index, sample_weight=None, **shap_kwargs):
         """
         This function calculates the shap values on validation set, and Train and Val score.
 
@@ -883,6 +932,13 @@ class EarlyStoppingShapRFECV(ShapRFECV):
 
             y (pd.Series):
                 Binary labels for X.
+
+            sample_weight (pd.Series, np.ndarray, list, optional):
+                array-like of shape (n_samples,) - only use if the model you're using supports
+                sample weighting (check the corresponding scikit-learn documentation).
+                Array of weights that are assigned to individual samples.
+                Note that they're only used for fitting of  the model, not during evaluation of metrics.
+                If not provided, then each sample is given unit weight.
 
             clf (binary classifier):
                 Model to be fitted on the train folds.
@@ -906,15 +962,23 @@ class EarlyStoppingShapRFECV(ShapRFECV):
         X_train, X_val = X.iloc[train_index, :], X.iloc[val_index, :]
         y_train, y_val = y.iloc[train_index], y.iloc[val_index]
 
-        # Fit model with train folds
-        clf = clf.fit(
-            X_train,
-            y_train,
-            eval_set=[(X_train, y_train), (X_val, y_val)],
-            early_stopping_rounds=self.early_stopping_rounds,
-            eval_metric=self.eval_metric,
-        )
-
+        if sample_weight is not None:
+            clf = clf.fit(
+                X_train,
+                y_train,
+                sample_weight=sample_weight.iloc[train_index],
+                eval_set=[(X_val, y_val)],
+                early_stopping_rounds=self.early_stopping_rounds,
+                eval_metric=self.eval_metric,
+            )
+        else:
+            clf = clf.fit(
+                X_train,
+                y_train,
+                eval_set=[(X_val, y_val)],
+                early_stopping_rounds=self.early_stopping_rounds,
+                eval_metric=self.eval_metric,
+            )
         # Score the model
         score_train = self.scorer.scorer(clf, X_train, y_train)
         score_val = self.scorer.scorer(clf, X_val, y_val)
