@@ -185,7 +185,7 @@ class BaseResemblanceModel(BaseFitComputePlotClass):
             print(f"Finished model training: \n{self.results_text}")
 
         if self.verbose > 0:
-            if self.auc_train > self.auc_test:
+            if self.train_score > self.test_score:
                 warnings.warn(
                     f"Train {self.scorer.metric_name} > Test {self.scorer.metric_name}, which might indicate "
                     f"an overfit. \n Strong overfit might lead to misleading conclusions when analysing "
