@@ -10,9 +10,9 @@ Improvements in this release:
 - Enable use of sample_weight in ShapRFECV and EarlyStoppingShapRFECV #139
 - Fix bug in EarlyStoppingShapRFECV #139
 - Fix issue with categorical features in SHAP #138
-- Missing values handled by autodist #126
+- Missing values handled by AutoDist #126
 - Fix issue with missing histogram in DependencePlot #137
-
+  
 ## [1.8.0] - 2021-04-14
 Improvements in this release:
 - Implemented EarlyStoppingShapRFECV #108
