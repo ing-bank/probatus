@@ -14,6 +14,8 @@ import probatus.stat_tests
 import probatus.utils
 import probatus.missing_values
 
+from typing import List
+
 # Turn off interactive mode in plots
 plt.ioff()
 matplotlib.use("Agg")
@@ -41,9 +43,7 @@ CLASSES_TO_TEST_LGBM = [
     probatus.feature_elimination.EarlyStoppingShapRFECV,
 ]
 
-FUNCTIONS_TO_TEST = [
-    probatus.utils.sample_row,
-]
+FUNCTIONS_TO_TEST: List = []
 
 
 def handle_docstring(doc, indent):
