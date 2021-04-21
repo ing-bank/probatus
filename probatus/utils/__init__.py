@@ -35,7 +35,6 @@ from ._utils import (
     assure_list_of_strings,
     assure_list_values_allowed,
 )
-from .sampling import sample_row
 from .plots import plot_distributions_of_feature
 from .interface import BaseFitComputeClass, BaseFitComputePlotClass
 
@@ -59,7 +58,6 @@ __all__ = [
     "shap_to_df",
     "calculate_shap_importance",
     "assure_pandas_series",
-    "sample_row",
     "preprocess_data",
     "preprocess_labels",
     "BaseFitComputeClass",
