@@ -22,7 +22,9 @@ import warnings
 
 import numpy as np
 import pandas as pd
-import shap
+from shap import Explainer
+from shap.explainers._tree import Tree
+from shap.utils import sample
 from sklearn.pipeline import Pipeline
 
 
@@ -90,7 +92,7 @@ def shap_calc(
             sample_size = int(np.ceil(X.shape[1] * 0.2))
         else:
             pass
-        mask = shap.utils.sample(X, sample_size)
+        mask = sample(X, sample_size)
 
         # For LGBM to work with categorical features, we need to exclude background data from shap
         model_str = str(model) if not isinstance(model, Pipeline) else str(model[-1])
@@ -100,12 +102,12 @@ def shap_calc(
                     "Using tree_dependent feature_perturbation (in shap) without background"
                     " data for LGBM + categorical features."
                 )
-            explainer = shap.Explainer(model, **shap_kwargs)
+            explainer = Explainer(model, **shap_kwargs)
         else:
-            explainer = shap.Explainer(model, masker=mask, **shap_kwargs)
+            explainer = Explainer(model, masker=mask, **shap_kwargs)
 
         # For tree-explainers allow for using check_additivity and approximate arguments
-        if isinstance(explainer, shap.explainers._tree.Tree):
+        if isinstance(explainer, Tree):
             # Calculate Shap values.
             shap_values = explainer.shap_values(X, check_additivity=check_additivity, approximate=approximate)
         else:
