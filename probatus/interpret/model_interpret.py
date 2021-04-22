@@ -29,7 +29,8 @@ from probatus.utils import (
     get_single_scorer,
 )
 import numpy as np
-import shap
+from shap import summary_plot
+from shap.plots._waterfall import waterfall_legacy
 import matplotlib.pyplot as plt
 import pandas as pd
 
@@ -400,7 +401,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
                 plot_type = "dot"
                 plot_title = f"SHAP Summary plot for {target_set} set"
 
-            shap.summary_plot(
+            summary_plot(
                 target_shap_values,
                 target_X,
                 plot_type=plot_type,
@@ -442,7 +443,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
             for sample_index in samples_index:
                 sample_loc = target_X.index.get_loc(sample_index)
 
-                shap.plots._waterfall.waterfall_legacy(
+                waterfall_legacy(
                     target_expected_value,
                     target_shap_values[sample_loc, :],
                     target_X.loc[sample_index],
