@@ -30,7 +30,7 @@ from probatus.utils import (
 from probatus.utils.shap_helpers import shap_calc, calculate_shap_importance
 from sklearn.inspection import permutation_importance
 import matplotlib.pyplot as plt
-import shap
+from shap import summary_plot
 import warnings
 
 
@@ -660,7 +660,7 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
         # This line serves as a double check if the object has been fitted
         self._check_if_fitted()
 
-        shap.summary_plot(
+        summary_plot(
             self.shap_values_test,
             self.X_test,
             plot_type=plot_type,
