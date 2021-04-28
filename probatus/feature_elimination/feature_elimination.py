@@ -968,6 +968,7 @@ class EarlyStoppingShapRFECV(ShapRFECV):
                 y_train,
                 sample_weight=sample_weight.iloc[train_index],
                 eval_set=[(X_val, y_val)],
+                eval_sample_weight=[sample_weight.iloc[val_index]],
                 early_stopping_rounds=self.early_stopping_rounds,
                 eval_metric=self.eval_metric,
             )
