@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+
+## [1.8.2] - 2021-05-04
+Improvements in this release:
+- Fix catboost bug when calculating SHAP values #147
+- Supply eval_sample_weight for fit in EarlyStoppingShapRFECV #144
+- Remove codecov.io #145
+- Remove sample_row from probatus #140
+
 ## [1.8.1] - 2021-04-18
 Improvements in this release:
 - Enable use of sample_weight in ShapRFECV and EarlyStoppingShapRFECV #139
