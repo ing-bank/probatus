@@ -94,13 +94,11 @@ def shap_calc(
             pass
         mask = sample(X, sample_size)
 
-        # For LGBM to work with categorical features, we need to exclude background data from shap
-        model_str = str(model) if not isinstance(model, Pipeline) else str(model[-1])
-        if (X.select_dtypes("category").shape[1] > 0) and model_str.startswith(("LGBM", "CatBoost")):
+        if X.select_dtypes("category").shape[1] > 0:
             if verbose > 0:
                 warnings.warn(
                     "Using tree_dependent feature_perturbation (in shap) without background"
-                    " data for LGBM + categorical features."
+                    " data for tree-based model with categorical features."
                 )
             explainer = Explainer(model, **shap_kwargs)
         else:
