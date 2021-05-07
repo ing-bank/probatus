@@ -6,7 +6,7 @@
 [![PyPI - Downloads](https://img.shields.io/pypi/dm/probatus)](#)
 ![GitHub contributors](https://img.shields.io/github/contributors/ing-bank/probatus)
 
-# Probatus
+# probatus
 
 ## Overview
 
@@ -27,6 +27,11 @@ pip install probatus
 ## Documentation
 
 Documentation at [ing-bank.github.io/probatus/](https://ing-bank.github.io/probatus/).
+
+You can also check out blog posts about Probatus: 
+
+-  [Open-sourcing ShapRFECV — Improved feature selection powered by SHAP.](https://medium.com/ing-blog/open-sourcing-shaprfecv-improved-feature-selection-powered-by-shap-994fe7861560)
+-  [Model Explainability — How to choose the right tool?](https://medium.com/ing-blog/model-explainability-how-to-choose-the-right-tool-6c5eabd1a46a)
 
 ## Contributing
 
