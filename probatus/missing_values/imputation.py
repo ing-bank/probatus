@@ -35,9 +35,7 @@ import pandas as pd
 
 class ImputationSelector(BaseFitComputePlotClass):
     """
-    Comparison of various imputation strategies.
-
-    that can be used for imputing missing values.
+    Comparison of various imputation strategies that can be used for imputing missing values.
 
     The aim of this class is to present the model performance based on imputation
     strategies and a choosen model.
@@ -46,11 +44,10 @@ class ImputationSelector(BaseFitComputePlotClass):
     The missing values categorical features are imputed with the value `missing` and an missing indicator is
     added.
 
-    Example usage.
+    Example:
     ```python
 
     #Import the class
-
     import pandas as pd
     import numpy as np
     import matplotlib.pyplot as plt
@@ -91,7 +88,7 @@ class ImputationSelector(BaseFitComputePlotClass):
 
     <img src="../img/imputation_comparision.png" width="500" />
 
-    """
+    """ # noqa
 
     def __init__(
         self,
@@ -107,7 +104,7 @@ class ImputationSelector(BaseFitComputePlotClass):
         """
         Initialise the class.
 
-        Args :
+        Args:
             clf (binary classifier,sklearn.Pipeline):
                 A binary classification model, that will used to evaluate various imputation strategies.
 
@@ -125,7 +122,7 @@ class ImputationSelector(BaseFitComputePlotClass):
                 needs to be aligned with predefined [classification scorers names in sklearn](https://scikit-learn.org/stable/modules/model_evaluation.html).
                 Another option is using probatus.utils.Scorer to define a custom metric.
 
-            model_na_support(boolean): default False
+            model_na_support (boolean): default False
                 If the classifier supports missing values by default e.g. LightGBM,XGBoost etc.
                 If True an default comparison `No Imputation`  result will be added indicating the model performance without any explict imputation.
                 If False only the provided strategies will be used.
