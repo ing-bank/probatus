@@ -126,6 +126,6 @@ def psi(d1, d2, verbose=False):
 
     # Calculate p-value
     z = (psi_value / ((1 / n) + (1 / m)) - (b - 1)) / np.sqrt(2 * (b - 1))
-    p_value = stats.norm.cdf(z)
+    p_value = 1 - stats.norm.cdf(z)
 
     return psi_value, p_value
