@@ -18,7 +18,8 @@ nav:
     - Univariate Sample Similarity: tutorials/nb_distribution_statistics.ipynb
     - Custom Scoring Metrics: tutorials/nb_custom_scoring.ipynb
   - HowTo:
-    - Reproducibility of the results: howto/reproducibility.ipynb
+    - Reproduce the results: howto/reproducibility.ipynb
+    - Work with grouped data: howto/grouped_data.ipynb
   - API:
     - probatus.feature_elimination: api/feature_elimination.md
     - probatus.interpret: api/model_interpret.md
