@@ -380,13 +380,13 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
         if target_set == "test":
             target_X = self.X_test
             target_shap_values = self.shap_values_test
-            target_tdp = self.tdp_train
-            target_expected_value = self.expected_value_train
+            target_tdp = self.tdp_test
+            target_expected_value = self.expected_value_test
         elif target_set == "train":
             target_X = self.X_train
             target_shap_values = self.shap_values_train
-            target_tdp = self.tdp_test
-            target_expected_value = self.expected_value_test
+            target_tdp = self.tdp_train
+            target_expected_value = self.expected_value_train
         else:
             raise (ValueError('The target_set parameter can be either "train" or "test".'))
 
