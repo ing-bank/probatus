@@ -25,6 +25,7 @@ import pandas as pd
 from shap import Explainer
 from shap.explainers._tree import Tree
 from shap.utils import sample
+from sklearn.model_selection import StratifiedKFold
 from sklearn.pipeline import Pipeline
 
 
@@ -200,3 +201,66 @@ def calculate_shap_importance(shap_values, columns, output_columns_suffix=""):
     importance_df = importance_df.sort_values(f"mean_abs_shap_value{output_columns_suffix}", ascending=False)
 
     return importance_df
+
+
+def get_shap_cv_values(model, X_train, y_train, cv, approximate=False, check_additivity=True, **shap_kwargs):
+    """
+    Calculates SHAP values of a model via cross validation.
+
+    Args:
+        model (binary model):
+            Trained model.
+
+        X_train (pd.DataFrame or np.ndarray):
+            Model features.
+
+        y_train (pd.Series or np.ndarray):
+            Model target.
+
+        cv (int or cross-validation generator):
+            If int, use StratifiedKFolds with k = cv. Otherwise, use CV generator (aka CV splitter) passed.
+
+        approximate (bool):
+            If True, uses SHAP approximations - less accurate, but very fast. It applies to tree-based explainers only.
+
+        check_additivity (bool):
+            If False, SHAP will disable the additivity check for tree-based models.
+
+        **shap_kwargs: kwargs of the shap.Explainer
+
+    Returns:
+        shap_values_cv
+    """
+    if isinstance(cv, int):
+        cv = StratifiedKFold(n_splits=cv, shuffle=True, random_state=0)
+
+    shap_values_cv = []
+
+    for train_index, test_index in cv.split(X_train, y_train):
+
+        X_train_cv = X_train.iloc[train_index]
+        y_train_cv = y_train.iloc[train_index]
+
+        model.fit(X_train_cv, y_train_cv)
+
+        X_test_cv = X_train.iloc[test_index]
+
+        shap_values_cv_split = shap_calc(
+            model,
+            X_test_cv,
+            return_explainer=False,
+            verbose=0,
+            sample_size=100,
+            approximate=approximate,
+            check_additivity=check_additivity,
+            **shap_kwargs,
+        )
+
+        if not shap_values_cv:
+            shap_values_cv = shap_values_cv_split[0]
+            shap_values_cv = [shap_values_cv, shap_values_cv_split[1]]
+        else:
+            shap_values_cv[0] = np.vstack((shap_values_cv[0], shap_values_cv_split[0]))
+            shap_values_cv[1] = np.vstack((shap_values_cv[1], shap_values_cv_split[1]))
+
+    return shap_values_cv

@@ -28,7 +28,7 @@ from .arrayfuncs import (
     preprocess_data,
     preprocess_labels,
 )
-from .shap_helpers import shap_calc, shap_to_df, calculate_shap_importance
+from .shap_helpers import shap_calc, shap_to_df, calculate_shap_importance, get_shap_cv_values
 from .warnings import ApproximationWarning
 from ._utils import (
     class_name_from_object,
@@ -63,4 +63,5 @@ __all__ = [
     "BaseFitComputeClass",
     "BaseFitComputePlotClass",
     "get_single_scorer",
+    "get_shap_cv_values",
 ]
