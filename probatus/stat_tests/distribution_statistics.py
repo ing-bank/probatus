@@ -227,7 +227,7 @@ class AutoDist(object):
 
         Args:
             statistical_tests (str or list of str, optional): Test or list of tests to apply.
-            Set to 'all' to apply all the available test. Available tests:
+                Set to `'all'` to apply all the available test. Available tests:
 
                 - `'ES'`: Epps-Singleton
                 - `'KS'`: Kolmogorov-Smirnov
