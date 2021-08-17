@@ -45,6 +45,11 @@ def psi(d1, d2, verbose=False):
     Note that the PSI varies with number of buckets chosen (typically 10-20 bins are used).
     Quantile bucketing is typically recommended.
 
+    References:
+
+    - [Statistical Properties of Population Stability Index](https://scholarworks.wmich.edu/cgi/viewcontent.cgi?article=4249&context=dissertations)
+
+
     Args:
         d1 (np.ndarray or pandas.Series): First distribution ("expected").
 
@@ -52,9 +57,6 @@ def psi(d1, d2, verbose=False):
 
         verbose (bool): If True, useful interpretation info is printed to stdout.
 
-    References:
-
-        - [Statistical Properties of Population Stability Index](https://scholarworks.wmich.edu/cgi/viewcontent.cgi?article=4249&context=dissertations)
 
     Returns:
         float: Measure of the similarity between d1 & d2. (range 0-inf, with 0 indicating identical
