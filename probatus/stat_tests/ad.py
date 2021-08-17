@@ -31,28 +31,33 @@ except ModuleNotFoundError:
 @verbose_p_vals
 def ad(d1, d2, verbose=False):
     """
-    Calculates the Anderson-Darling TS on 2 distributions.
+    Calculates the Anderson-Darling test statistic on 2 distributions.
 
-    Can be used on continuous or discrete distributions. Any binning/bucketing of the distributions/samples should be
-    done before passing them to this function.
+    Can be used on continuous or discrete distributions.
 
-    Anderson & Darling 1954
+    Any binning/bucketing of the distributions/samples should be done before passing them to this function.
 
     Advantages:
+
     - Unlike the KS, the AD (like the ES) can be used on both continuous & discrete distributions.
-    - Works well even when dist has fewer than 25 observations.
+    - Works well even when the sample has fewer than 25 observations.
     - More powerful than KS, especially for differences in the tails of distributions.
 
+    References:
+
+    - [Wikipedia article about the Anderson-Darling test](https://en.wikipedia.org/wiki/Anderson%E2%80%93Darling_test)
+    - [SciPy documentation](https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.anderson_ksamp.html)
+
     Args:
-        d1 (np.array or pandas.core.series.Series): first sample
+        d1 (np.array or pandas.Series): First sample.
 
-        d2 (np.array or pandas.core.series.Series): second sample
+        d2 (np.array or pandas.Series): Second sample.
 
-        verbose (bool): helpful interpretation msgs printed to stdout (default False)
+        verbose (bool): If True, useful interpretation info is printed to stdout.
 
     Returns:
-        (float, float): AD test stat and p-value of rejecting the null hypothesis
-                       (that the two distributions are identical)
+        float: Anderson-Darling test statistic.
+        float: p-value of rejecting the null hypothesis (that the two distributions are identical).
     """
     d1 = assure_numpy_array(d1)
     d2 = assure_numpy_array(d2)

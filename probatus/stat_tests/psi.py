@@ -36,23 +36,30 @@ def psi(d1, d2, verbose=False):
     """
     Calculates the Population Stability Index.
 
-    A simple statistical test that quantifies the similarity of two distributions. Commonly used in the banking / risk
-    modeling industry. Only works on categorical data or bucketed numerical data. Distributions must be binned/bucketed
-    before passing them to this function. Bin boundaries should be same for both distributions. Distributions must have
-    same number of buckets. Note that the PSI varies with number of buckets chosen (typically 10-20 bins are used).
+    A simple statistical test that quantifies the similarity of two distributions.
+    Commonly used in the banking / risk modeling industry.
+    Only works on categorical data or bucketed numerical data.
+    Distributions must be binned/bucketed before passing them to this function.
+    Bin boundaries should be the same for both distributions.
+    Distributions must have the same number of buckets.
+    Note that the PSI varies with number of buckets chosen (typically 10-20 bins are used).
     Quantile bucketing is typically recommended.
 
     Args:
-        d1 (np.ndarray or pd.core.series.Series) : first distribution ("expected").
+        d1 (np.ndarray or pandas.Series): First distribution ("expected").
 
-        d2 (np.ndarray or pd.core.series.Series) : second distribution ("actual").
+        d2 (np.ndarray or pandas.Series): Second distribution ("actual").
 
-        verbose (bool)                           : print useful interpretation info to stdout (default False).
+        verbose (bool): If True, useful interpretation info is printed to stdout.
+
+    References:
+
+        - [Statistical Properties of Population Stability Index](https://scholarworks.wmich.edu/cgi/viewcontent.cgi?article=4249&context=dissertations)
 
     Returns:
-        (float, float) : measure of the similarity between d1 & d2. (range 0-inf, with 0 indicating identical
-        distributions and > 0.25 indicating significantly different distributions); p_value for rejecting null
-        hypothesis (that the two distributions are identical).
+        float: Measure of the similarity between d1 & d2. (range 0-inf, with 0 indicating identical
+        distributions and > 0.25 indicating significantly different distributions)
+        float: p-value for rejecting null hypothesis (that the two distributions are identical)
     """
     # Perform data checks
     d1 = assure_numpy_array(d1)

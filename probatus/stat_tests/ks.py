@@ -32,21 +32,25 @@ from probatus.stat_tests.utils import verbose_p_vals
 @verbose_p_vals
 def ks(d1, d2, verbose=False):
     """
-    Calculates the Kolmogorov-Smirnov statistic on 2 samples.
+    Calculates the Kolmogorov-Smirnov test statistic on 2 samples.
 
-    Any binning/bucketing of the distributions/samples
-    should be done before passing them to this function.
+    Any binning/bucketing of the distributions/samples should be done before passing them to this function.
+
+    References:
+
+    - [Wikipedia article about the Kolmogorov-Smirnov test](https://en.wikipedia.org/wiki/Kolmogorov%E2%80%93Smirnov_test)
+    - [SciPy documentation](https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.ks_2samp.html)
 
     Args:
-        d1 (np.ndarray or pd.core.series.Series) : first sample.
+        d1 (np.ndarray or pandas.Series): First sample.
 
-        d2 (np.ndarray or pd.core.series.Series) : second sample.
+        d2 (np.ndarray or pandas.Series): Second sample.
 
-        verbose (bool)                           : helpful interpretation msgs printed to stdout (default False).
+        verbose (bool): If True, useful interpretation info is printed to stdout.
 
     Returns:
-        (float, float): KS test stat and p-value of rejecting the null hypothesis
-                        (that the two distributions are identical)
+        float: Kolmogorov-Smirnov test statistic.
+        float: p-value of rejecting the null hypothesis (that the two distributions are identical).
     """
     # Perform data checks
     d1 = assure_numpy_array(d1)
