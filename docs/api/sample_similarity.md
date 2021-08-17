@@ -10,9 +10,10 @@ By looking at the test AUC, one can conclude that the samples have a different d
 
 The following features are implemented:
 
-- **SHAPImportanceResemblance (Recommended)** -  The class applies SHAP library, in order to interpret the tree based resemblance model.
-
-- **PermutationImportanceResemblance** -  The class applies permutation feature importance in order to understand which features the current model relies on the most. The higher the importance of the feature, the more a given feature possibly differs in X2 compared to X1. The importance indicates how much the test AUC drops if a given feature is permuted.
+- [SHAPImportanceResemblance (Recommended)][probatus.sample_similarity.resemblance_model.SHAPImportanceResemblance]:
+  The class applies SHAP library, in order to interpret the tree based resemblance model.
+- [PermutationImportanceResemblance][probatus.sample_similarity.resemblance_model.PermutationImportanceResemblance]:
+  The class applies permutation feature importance in order to understand which features the current model relies on the most. The higher the importance of the feature, the more a given feature possibly differs in X2 compared to X1. The importance indicates how much the test AUC drops if a given feature is permuted.
 
 
 ::: probatus.sample_similarity.resemblance_model
