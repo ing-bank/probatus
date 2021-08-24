@@ -32,10 +32,11 @@ from probatus.utils.arrayfuncs import check_numeric_dtypes
 
 class DistributionStatistics(object):
     """
-    Wrapper that applies a statistical method to compare two distributions.
+    Wrapper that applies a statistical test to compare two distributions.
 
-    Depending on a test, one can also apply
-        binning of the data.
+    Details on the available tests can be found [here](/probatus/api/stat_tests.html#available-tests).
+
+    For some tests, default data binning strategies are also provided.
 
     Example:
     ```python
@@ -89,14 +90,15 @@ class DistributionStatistics(object):
         Initializes the class.
 
         Args:
-            statistical_test (string): Statistical
-                method to apply, statistical methods implemented:
+            statistical_test (str): Statistical test to apply. Available tests:
 
-                - `'ES'`: Epps-Singleton,
-                - `'KS'`: Kolmogorov-Smirnov statistic,
-                - `'PSI'`: Population Stability Index,
-                - `'SW'`: Shapiro-Wilk based difference statistic,
-                - `'AD'`: Anderson-Darling TS.
+                - `'ES'`: Epps-Singleton
+                - `'KS'`: Kolmogorov-Smirnov
+                - `'PSI'`: Population Stability Index
+                - `'SW'`: Shapiro-Wilk
+                - `'AD'`: Anderson-Darling
+
+                Details on the available tests can be found [here](/probatus/api/stat_tests.html#available-tests)
 
             binning_strategy (string, optional):
                 Binning strategy to apply, binning strategies implemented:
@@ -160,18 +162,18 @@ class DistributionStatistics(object):
         Apply the statistical test and compute statistic value and p-value.
 
         Args:
-            d1: (np.array or pd.DataFrame):
+            d1 (np.array or pandas.DataFrame):
                 distribution 1.
 
-            d2: (np.array or pd.DataFrame):
+            d2 (np.array or pandas.DataFrame):
                 distribution 2.
 
-            verbose: (bool, optional):
+            verbose (bool, optional):
                 Flag indicating whether prints should be shown.
 
         Returns:
-            (Tuple of floats):
-                statistic value and p_value. For PSI test the return is only statistic
+            float: Statistic value
+            float: p_value. For PSI test, only the statistic value is returned
         """
         check_numeric_dtypes(d1)
         check_numeric_dtypes(d2)
@@ -199,9 +201,10 @@ class DistributionStatistics(object):
 
 class AutoDist(object):
     """
-    Class to automatically apply all implemented statistical distribution tests and binning strategies.
-
+    Class to automatically apply all implemented statistical distribution tests and binning strategies
     to (a selection of) features in two dataframes.
+
+    Details on the available tests can be found [here](/probatus/api/stat_tests.html#available-tests).
 
     Example:
     ```python
@@ -223,13 +226,16 @@ class AutoDist(object):
         Initializes the class.
 
         Args:
-            statistical_tests (str, optional): Statistical tests to apply, either list of tests names, or 'all'.
-                Statistical methods implemented:
+            statistical_tests (str or list of str, optional): Test or list of tests to apply.
+                Set to `'all'` to apply all the available test. Available tests:
 
-                - `'ES'`: Epps-Singleton,
-                - `'KS'`: Kolmogorov-Smirnov statistic,
-                - `'PSI'`: Population Stability Index,
-                - `'AD'`: Anderson-Darling TS.
+                - `'ES'`: Epps-Singleton
+                - `'KS'`: Kolmogorov-Smirnov
+                - `'PSI'`: Population Stability Index
+                - `'SW'`: Shapiro-Wilk
+                - `'AD'`: Anderson-Darling
+
+                Details on the available tests can be found [here](/probatus/api/stat_tests.html#available-tests).
 
             binning_strategies (str, optional): Binning strategies to apply for each test, either list of tests names,
                 'all' or 'default'. Binning strategies that can be chosen:
@@ -298,14 +304,14 @@ class AutoDist(object):
 
         Args:
 
-            df1 (pd.DataFrame):
-                dataframe 1 for distribution comparison with dataframe 2.
+            df1 (pandas.DataFrame):
+                DataFrame 1 for distribution comparison with DataFrame 2.
 
-            df2 (pd.DataFrame):
-                dataframe 2 for distribution comparison with dataframe 1.
+            df2 (pandas.DataFrame):
+                DataFrame 2 for distribution comparison with DataFrame 1.
 
             column_names (list of str, optional):
-                list of columns in df1 and df2 that should be compared. If None, all column names will be compared
+                list of columns in df1 and df2 that should be compared. If None, all column names will be compared.
 
             return_failed_tests (bool, optional):
                 remove tests in result that did not succeed.
@@ -314,8 +320,7 @@ class AutoDist(object):
                 whether to suppress warnings during the fit process.
 
         Returns:
-            (pd.DataFrame):
-                dataframe with results of the performed statistical tests and binning strategies.
+            pandas.DataFrame: DataFrame with results of the performed statistical tests and binning strategies.
 
         """
         if column_names is None:

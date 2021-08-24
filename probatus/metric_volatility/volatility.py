@@ -74,14 +74,16 @@ class BaseVolatilityEstimator(BaseFitComputePlotClass):
             n_jobs (int, optional):
                 Number of parallel executions. If -1 use all available cores. By default 1.
 
-            stats_tests_to_apply (None, string or list of strings, optional):
-                List of tests to apply. Available options:
+            stats_tests_to_apply (str or list of str, optional):
+                Test or list of tests to apply. Available tests:
 
-                - `'ES'`: Epps-Singleton,
-                - `'KS'`: Kolmogorov-Smirnov statistic,
-                - `'PSI'`: Population Stability Index,
-                - `'SW'`: Shapiro-Wilk based difference statistic,
-                - `'AD'`: Anderson-Darling TS.
+                - `'ES'`: Epps-Singleton
+                - `'KS'`: Kolmogorov-Smirnov
+                - `'PSI'`: Population Stability Index
+                - `'SW'`: Shapiro-Wilk
+                - `'AD'`: Anderson-Darling
+
+                Details on the available tests can be found [here](/probatus/api/stat_tests.html#available-tests).
 
             verbose (int, optional):
                 Controls verbosity of the output:
@@ -450,14 +452,16 @@ class TrainTestVolatility(BaseVolatilityEstimator):
             n_jobs (int, optional):
                 Number of parallel executions. If -1 use all available cores. By default 1.
 
-            stats_tests_to_apply (None, string or list of strings, optional):
+            stats_tests_to_apply (str or list of str, optional):
                 List of tests to apply, default is None. Available options:
 
-                - `'ES'`: Epps-Singleton,
-                - `'KS'`: Kolmogorov-Smirnov statistic,
-                - `'PSI'`: Population Stability Index,
-                - `'SW'`: Shapiro-Wilk based difference statistic,
-                - `'AD'`: Anderson-Darling TS.
+                - `'ES'`: Epps-Singleton
+                - `'KS'`: Kolmogorov-Smirnov
+                - `'PSI'`: Population Stability Index
+                - `'SW'`: Shapiro-Wilk
+                - `'AD'`: Anderson-Darling
+
+                Details on the available tests can be found [here](/probatus/api/stat_tests.html#available-tests).
 
             verbose (int, optional):
                 Controls verbosity of the output:
@@ -606,14 +610,16 @@ class SplitSeedVolatility(TrainTestVolatility):
             n_jobs (int, optional):
                 Number of parallel executions. If -1 use all available cores. By default 1.
 
-            stats_tests_to_apply (None, string or list of strings, optional):
+            stats_tests_to_apply (None, string or list of str, optional):
                 List of tests to apply, default is None. Available options:
 
-                - `'ES'`: Epps-Singleton,
-                - `'KS'`: Kolmogorov-Smirnov statistic,
-                - `'PSI'`: Population Stability Index,
-                - `'SW'`: Shapiro-Wilk based difference statistic,
-                - `'AD'`: Anderson-Darling TS.
+                - `'ES'`: Epps-Singleton
+                - `'KS'`: Kolmogorov-Smirnov
+                - `'PSI'`: Population Stability Index
+                - `'SW'`: Shapiro-Wilk
+                - `'AD'`: Anderson-Darling
+
+                Details on the available tests can be found [here](/probatus/api/stat_tests.html#available-tests).
 
             verbose (int, optional):
                 Controls verbosity of the output:
@@ -708,14 +714,16 @@ class BootstrappedVolatility(TrainTestVolatility):
             n_jobs (int, optional):
                 Number of parallel executions. If -1 use all available cores. By default 1.
 
-            stats_tests_to_apply (None, string or list of strings, optional):
+            stats_tests_to_apply (str or list of str, optional):
                 List of tests to apply, default is None. Available options:
 
-                - `'ES'`: Epps-Singleton,
-                - `'KS'`: Kolmogorov-Smirnov statistic,
-                - `'PSI'`: Population Stability Index,
-                - `'SW'`: Shapiro-Wilk based difference statistic,
-                - `'AD'`: Anderson-Darling TS.
+                - `'ES'`: Epps-Singleton
+                - `'KS'`: Kolmogorov-Smirnov
+                - `'PSI'`: Population Stability Index
+                - `'SW'`: Shapiro-Wilk
+                - `'AD'`: Anderson-Darling
+
+                Details on the available tests can be found [here](/probatus/api/stat_tests.html#available-tests).
 
             verbose (int, optional):
                 Controls verbosity of the output:

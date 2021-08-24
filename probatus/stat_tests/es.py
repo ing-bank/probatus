@@ -48,20 +48,26 @@ def es(d1, d2, verbose=False):
     - ES has higher power (vs KS) in many examples.
 
     Disadvantages:
+
     - Not recommended for fewer than 25 observations. Instead, use the Anderson-Darling TS. (However, ES can still be
     used for small samples. A correction factor is applied so that the asymptotic TS distribution more closely follows
     the chi-squared distribution, such that p-values can be computed.)
 
+
+    References:
+
+    - [SciPy documentation](https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.epps_singleton_2samp.html)
+
     Args:
-        d1 (np.array or pandas.core.series.Series) : first sample.
+        d1 (np.array or pandas.Series): First sample.
 
-        d2 (np.array or pandas.core.series.Series) : second sample.
+        d2 (np.array or pandas.Series): Second sample.
 
-        verbose (bool) : helpful interpretation msgs printed to stdout (default False).
+        verbose (bool): If True, useful interpretation info is printed to stdout.
 
     Returns:
-        (float, float): ES test stat and p-value of rejecting the null hypothesis
-                        (that the two distributions are identical)
+        float: Epps-Singleton test statistic
+        float: p-value of rejecting the null hypothesis (that the two distributions are identical)
     """
     d1 = assure_numpy_array(d1)
     d2 = assure_numpy_array(d2)

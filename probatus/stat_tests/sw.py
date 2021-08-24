@@ -32,20 +32,25 @@ except ModuleNotFoundError:
 
 def sw(d1, d2, verbose=False):
     """
-    Examines whether deviation from normality of two distributions are significantly different.
+    Calculates the Shapiro-Wilk test statistic on 2 distributions,
+    which examines whether deviation from normality of two distributions are significantly different.
 
-    By using Shapiro-Wilk test as the basis.
+    References:
+
+    - [Wikipedia article about the Shapiro-Wilk test](https://en.wikipedia.org/wiki/Shapiro%E2%80%93Wilk_test)
+    - [SciPy documentation](https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.shapiro.html)
+
 
     Args:
-        d1 (np.ndarray or pd.core.series.Series) : first sample.
+        d1 (np.ndarray or pandas.Series): First sample.
 
-        d2 (np.ndarray or pd.core.series.Series) : second sample.
+        d2 (np.ndarray or pandas.Series): Second sample.
 
-        verbose (bool)                           : helpful interpretation msgs printed to stdout (default False).
+        verbose (bool): If True, useful interpretation info is printed to stdout.
 
     Returns:
-        (float, float): SW test stat and p-value of rejecting the null hypothesis
-                        (that the two distributions are identical).
+        float: Shapiro-Wilk test statistic
+        float: p-value of rejecting the null hypothesis (that the two distributions are identical)
     """
     d1 = assure_numpy_array(d1)
     d2 = assure_numpy_array(d2)
