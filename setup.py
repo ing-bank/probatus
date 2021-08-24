@@ -58,7 +58,7 @@ docs_dep = [
 
 setuptools.setup(
     name="probatus",
-    version="1.8.4",
+    version="1.8.5",
     description="Validation of binary classifiers and data used to develop them",
     long_description=read("README.md"),
     long_description_content_type="text/markdown",
