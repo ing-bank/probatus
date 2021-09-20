@@ -179,6 +179,7 @@ class DependencePlotter(BaseFitComputePlotClass):
         show=True,
         min_q=0,
         max_q=1,
+        alpha=1.0,
     ):
         """
         Plots the shap values for data points for a given feature, as well as the target rate and values distribution.
@@ -206,6 +207,9 @@ class DependencePlotter(BaseFitComputePlotClass):
             max_q (float, optional):
                 Optional maximum quantile until which data points are considered, used for plotting under outliers.
 
+            alpha (float, optional):
+                Optional alpha blending value, between 0 (transparent) and 1 (opaque).
+
         Returns
             (list(matplotlib.axes)):
                 List of axes that include the plots.
@@ -217,8 +221,10 @@ class DependencePlotter(BaseFitComputePlotClass):
             raise ValueError("Feature not recognized")
         if type_binning not in ["simple", "agglomerative", "quantile"]:
             raise ValueError("Select one of the following binning methods: 'simple', 'agglomerative', 'quantile'")
+        if (alpha < 0) or (alpha > 1):
+            raise ValueError("alpha must be a float value betwee 0 and 1")
 
-        self.min_q, self.max_q = min_q, max_q
+        self.min_q, self.max_q, self.alpha = min_q, max_q, alpha
 
         _ = plt.figure(1, figsize=figsize)
         ax1 = plt.subplot2grid((3, 1), (0, 0), rowspan=2)
@@ -256,9 +262,9 @@ class DependencePlotter(BaseFitComputePlotClass):
 
         X, y, shap_val = self._get_X_y_shap_with_q_cut(feature=feature)
 
-        ax.scatter(X[y == 0], shap_val[y == 0], label=self.class_names[0], color="lightblue")
+        ax.scatter(X[y == 0], shap_val[y == 0], label=self.class_names[0], color="lightblue", alpha=self.alpha)
 
-        ax.scatter(X[y == 1], shap_val[y == 1], label=self.class_names[1], color="darkred")
+        ax.scatter(X[y == 1], shap_val[y == 1], label=self.class_names[1], color="darkred", alpha=self.alpha)
 
         ax.set_ylabel("Shap value")
         ax.set_title(f"Dependence plot for {feature} feature")
