@@ -292,6 +292,8 @@ class ShapRFECV(BaseFitComputePlotClass):
         train_metric_std,
         val_metric_mean,
         val_metric_std,
+        features_mean_abs_shap_value,
+        features_mean_shap_value,
     ):
         """
         This function adds the results from a current iteration to the report.
@@ -317,6 +319,12 @@ class ShapRFECV(BaseFitComputePlotClass):
 
             val_metric_std (float or int):
                 Std scoring metric measured on validation set during CV.
+
+            features_mean_abs_shap_value (dict of float):
+                Mean absolute shap values of features.
+
+            features_mean_shap_value (dict of float):
+                Mean shap values of features.
         """
 
         current_results = {
@@ -327,6 +335,8 @@ class ShapRFECV(BaseFitComputePlotClass):
             "train_metric_std": train_metric_std,
             "val_metric_mean": val_metric_mean,
             "val_metric_std": val_metric_std,
+            "features_mean_abs_shap_value": [features_mean_abs_shap_value],
+            "features_mean_shap_value": [features_mean_shap_value],
         }
 
         current_row = pd.DataFrame(current_results, index=[round_number])
@@ -563,6 +573,8 @@ class ShapRFECV(BaseFitComputePlotClass):
                 train_metric_std=np.round(np.std(scores_train), 3),
                 val_metric_mean=np.round(np.mean(scores_val), 3),
                 val_metric_std=np.round(np.std(scores_val), 3),
+                features_mean_abs_shap_value=shap_importance_df.to_dict()["mean_abs_shap_value"],
+                features_mean_shap_value=shap_importance_df.to_dict()["mean_shap_value"],
             )
             if self.verbose > 50:
                 print(
@@ -672,6 +684,37 @@ class ShapRFECV(BaseFitComputePlotClass):
             )
         else:
             return self.report_df[self.report_df.num_features == num_features]["features_set"].values[0]
+
+    def get_reduced_features_set_shap_values(self, num_features, abs_shap_values=True):
+        """
+        Gets the shap values of a features set after the feature elimination process, for a given number of features.
+
+        Args:
+            num_features (int):
+                Number of features in the reduced features set.
+
+            abs_shap_values (bool, optional):
+                If True, the absolute shap values are returned, otherwise the true shap values are.
+
+        Returns:
+            (dict of float):
+                (Absolute) shap values for the reduced features set.
+        """
+        self._check_if_fitted()
+
+        if num_features not in self.report_df.num_features.tolist():
+            raise (
+                ValueError(
+                    f"The provided number of features has not been achieved at any stage of the process. "
+                    f"You can select one of the following: {self.report_df.num_features.tolist()}"
+                )
+            )
+        else:
+            if abs_shap_values:
+                shap_values_col = "features_mean_abs_shap_value"
+            else:
+                shap_values_col = "features_mean_shap_value"
+            return self.report_df[self.report_df.num_features == num_features][shap_values_col].values[0]
 
     def plot(self, show=True, **figure_kwargs):
         """
