@@ -346,9 +346,11 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
                 - `'sample'`: Explanation of a given sample in the test data
 
             target_set (str, optional):
-                The set for which the plot should be generated, either `train` or `test` set. We recommend using test
-                set, because it is not biased by model training. The train set plots are mainly used to compare with the
-                test set plots, whether there are significant differences, which indicate shift in data distribution.
+                The set for which the plot should be generated, either `train`, `test` or `both` sets.
+                We recommend using test set, because it is not biased by model training.
+                The train set plots are mainly used to compare with the test set plots,
+                whether there are significant differences, which indicate shift in data distribution.
+                By using `both` you can see the plots for both sets side by side and perform a better comparison.
 
             target_columns (None, str or list of str, optional):
                 List of features names, for which the plots should be generated. If None, all features will be plotted.
@@ -378,49 +380,69 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
 
         # Choose the correct dataset
         if target_set == "test":
-            target_X = self.X_test
-            target_shap_values = self.shap_values_test
-            target_tdp = self.tdp_test
+            target_X = [self.X_test]
+            target_shap_values = [self.shap_values_test]
+            target_tdp = [self.tdp_test]
             target_expected_value = self.expected_value_test
+            target_set_title = ["test"]
         elif target_set == "train":
-            target_X = self.X_train
-            target_shap_values = self.shap_values_train
-            target_tdp = self.tdp_train
+            target_X = [self.X_train]
+            target_shap_values = [self.shap_values_train]
+            target_tdp = [self.tdp_train]
             target_expected_value = self.expected_value_train
+            target_set_title = ["train"]
+        elif target_set == "both":
+            target_X = [self.X_test, self.X_train]
+            target_shap_values = [self.shap_values_test, self.shap_values_train]
+            target_tdp = [self.tdp_test, self.tdp_train]
+            target_expected_value = [self.expected_value_test, self.expected_value_train]
+            target_set_title = ["test", "train"]
         else:
-            raise (ValueError('The target_set parameter can be either "train" or "test".'))
+            raise (ValueError('The target_set parameter can be either "train", "test" or "both".'))
 
         if plot_type in ["importance", "summary"]:
-            target_X = target_X[target_columns]
-            target_shap_values = target_shap_values[:, target_columns_indices]
-            # Set summary plot settings
-            if plot_type == "importance":
-                plot_type = "bar"
-                plot_title = f"SHAP Feature Importance for {target_set} set"
-            else:
-                plot_type = "dot"
-                plot_title = f"SHAP Summary plot for {target_set} set"
+            ax = []
+            for i, (X, shap_values) in enumerate(zip(target_X, target_shap_values)):
+                X = X[target_columns]
+                shap_values = shap_values[:, target_columns_indices]
+                # Set summary plot settings
+                if plot_type == "importance":
+                    plot_type_call = "bar"
+                    plot_title = f"SHAP Feature Importance for {target_set_title[i]} set"
+                else:
+                    plot_type_call = "dot"
+                    plot_title = f"SHAP Summary plot for {target_set_title[i]} set"
 
-            summary_plot(
-                target_shap_values,
-                target_X,
-                plot_type=plot_type,
-                class_names=self.class_names,
-                show=False,
-                **plot_kwargs,
-            )
-            ax = plt.gca()
-            ax.set_title(plot_title)
+                if target_set == "both":
+                    plt.subplot(1, 2, i + 1)
 
-            ax.annotate(
-                self.results_text,
-                (0, 0),
-                (0, -50),
-                fontsize=12,
-                xycoords="axes fraction",
-                textcoords="offset points",
-                va="top",
-            )
+                summary_plot(
+                    shap_values,
+                    X,
+                    plot_type=plot_type_call,
+                    class_names=self.class_names,
+                    show=False,
+                    **plot_kwargs,
+                )
+                ax_plot = plt.gca()
+                ax_plot.set_title(plot_title)
+
+                ax_plot.annotate(
+                    self.results_text,
+                    (0, 0),
+                    (0, -50),
+                    fontsize=12,
+                    xycoords="axes fraction",
+                    textcoords="offset points",
+                    va="top",
+                )
+
+                ax.append(ax_plot)
+
+            if target_set == "both":
+                fig = plt.gcf()
+                fig.set_size_inches(20, 4)
+
             if show:
                 plt.show()
             else:
@@ -428,8 +450,27 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
         elif plot_type == "dependence":
             ax = []
             for feature_name in target_columns:
-                ax.append(target_tdp.plot(feature=feature_name, figsize=(10, 7), show=show, **plot_kwargs))
-
+                if len(target_tdp) == 1:
+                    ax.append(
+                        target_tdp[0].plot(
+                            feature=feature_name,
+                            figsize=(10, 7),
+                            show=show,
+                            target_set_name=target_set_title,
+                            **plot_kwargs,
+                        )
+                    )
+                else:
+                    ax.append(
+                        target_tdp[0].plot(
+                            feature=feature_name,
+                            figsize=(10, 7),
+                            show=show,
+                            other_tdp=target_tdp[1],
+                            target_set_name=target_set_title,
+                            **plot_kwargs,
+                        )
+                    )
         elif plot_type == "sample":
             # Ensure the correct samples_index type
             if samples_index is None:
@@ -441,12 +482,12 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
 
             ax = []
             for sample_index in samples_index:
-                sample_loc = target_X.index.get_loc(sample_index)
+                sample_loc = target_X[0].index.get_loc(sample_index)
 
                 waterfall_legacy(
                     target_expected_value,
-                    target_shap_values[sample_loc, :],
-                    target_X.loc[sample_index],
+                    target_shap_values[0][sample_loc, :],
+                    target_X[0].loc[sample_index],
                     show=False,
                     **plot_kwargs,
                 )

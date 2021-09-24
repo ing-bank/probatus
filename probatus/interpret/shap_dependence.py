@@ -180,6 +180,8 @@ class DependencePlotter(BaseFitComputePlotClass):
         min_q=0,
         max_q=1,
         alpha=1.0,
+        other_tdp=None,
+        target_set_name=[""],
     ):
         """
         Plots the shap values for data points for a given feature, as well as the target rate and values distribution.
@@ -210,8 +212,14 @@ class DependencePlotter(BaseFitComputePlotClass):
             alpha (float, optional):
                 Optional alpha blending value, between 0 (transparent) and 1 (opaque).
 
+            other_tdp (DependencePlotter, optional):
+                Optional additional DependencePlotter object to include in the plot.
+
+            target_set_name (list[str], optional):
+                Optional list of strings to include in the title of the plot.
+
         Returns
-            (list(matplotlib.axes)):
+            ax_output (list(matplotlib.axes)):
                 List of axes that include the plots.
         """
         self._check_if_fitted()
@@ -226,21 +234,52 @@ class DependencePlotter(BaseFitComputePlotClass):
 
         self.min_q, self.max_q, self.alpha = min_q, max_q, alpha
 
-        _ = plt.figure(1, figsize=figsize)
-        ax1 = plt.subplot2grid((3, 1), (0, 0), rowspan=2)
-        ax2 = plt.subplot2grid((3, 1), (2, 0))
+        ax_input = DependencePlotter._initialize_axes(figsize, other_tdp)
+        ax_output = []
 
-        self._dependence_plot(feature=feature, ax=ax1)
-        self._target_rate_plot(feature=feature, bins=bins, type_binning=type_binning, ax=ax2)
-
-        ax2.set_xlim(ax1.get_xlim())
+        for i, (tdp, (ax1, ax2)) in enumerate(zip([self, other_tdp], ax_input)):
+            tdp._dependence_plot(feature=feature, ax=ax1)
+            tdp._target_rate_plot(feature=feature, bins=bins, type_binning=type_binning, ax=ax2)
+            ax1.set_title(f"Dependence plot for {feature} feature, for {target_set_name[i]} set")
+            ax2.set_xlim(ax1.get_xlim())
+            ax_output.extend([ax1, ax2])
 
         if show:
             plt.show()
         else:
             plt.close()
 
-        return [ax1, ax2]
+        return ax_output
+
+    @staticmethod
+    def _initialize_axes(figsize, other_tdp=False):
+        """
+        Initializes figure and axes of the plot method.
+
+        Args:
+            figsize ((float, float), optional):
+                Tuple specifying size (width, height) of resulting figure in inches.
+
+            other_tdp (bool, optional):
+                Optional bool variable to specify whether a 2nd object will be included in the plot.
+
+        Returns:
+            (matplotlib.pyplot.axes):
+                Axes on which plot is drawn.
+        """
+        if not other_tdp:
+            _ = plt.figure(1, figsize=figsize)
+            ax1 = plt.subplot2grid((3, 1), (0, 0), rowspan=2)
+            ax2 = plt.subplot2grid((3, 1), (2, 0))
+            ax_input = [(ax1, ax2)]
+        else:
+            _ = plt.figure(1, figsize=(figsize[0] * 2, figsize[1]))
+            ax1 = plt.subplot2grid((3, 2), (0, 0), rowspan=2)
+            ax2 = plt.subplot2grid((3, 2), (2, 0))
+            ax3 = plt.subplot2grid((3, 2), (0, 1), rowspan=2)
+            ax4 = plt.subplot2grid((3, 2), (2, 1))
+            ax_input = [(ax1, ax2), (ax3, ax4)]
+        return ax_input
 
     def _dependence_plot(self, feature, ax=None):
         """
@@ -267,7 +306,6 @@ class DependencePlotter(BaseFitComputePlotClass):
         ax.scatter(X[y == 1], shap_val[y == 1], label=self.class_names[1], color="darkred", alpha=self.alpha)
 
         ax.set_ylabel("Shap value")
-        ax.set_title(f"Dependence plot for {feature} feature")
         ax.legend()
 
         return ax
