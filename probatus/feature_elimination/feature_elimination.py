@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from joblib import Parallel, delayed
-from lightgbm import early_stopping, log_evaluation, LGBMModel
+from lightgbm import early_stopping, LGBMModel
 from probatus.utils import (
     BaseFitComputePlotClass,
     assure_pandas_series,
