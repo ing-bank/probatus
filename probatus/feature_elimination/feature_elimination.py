@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from joblib import Parallel, delayed
+from lightgbm import early_stopping, log_evaluation, LGBMModel
 from probatus.utils import (
     BaseFitComputePlotClass,
     assure_pandas_series,
@@ -16,7 +17,6 @@ from probatus.utils import (
 from sklearn.base import clone, is_classifier
 from sklearn.model_selection import check_cv
 from sklearn.model_selection._search import BaseSearchCV
-
 
 class ShapRFECV(BaseFitComputePlotClass):
     """
@@ -921,6 +921,7 @@ class EarlyStoppingShapRFECV(ShapRFECV):
             )
 
         self.eval_metric = eval_metric
+        
 
     def _get_feature_shap_values_per_fold(self, X, y, clf, train_index, val_index, sample_weight=None, **shap_kwargs):
         """
@@ -962,24 +963,25 @@ class EarlyStoppingShapRFECV(ShapRFECV):
         X_train, X_val = X.iloc[train_index, :], X.iloc[val_index, :]
         y_train, y_val = y.iloc[train_index], y.iloc[val_index]
 
-        if sample_weight is not None:
-            clf = clf.fit(
-                X_train,
-                y_train,
-                sample_weight=sample_weight.iloc[train_index],
-                eval_set=[(X_val, y_val)],
-                eval_sample_weight=[sample_weight.iloc[val_index]],
-                early_stopping_rounds=self.early_stopping_rounds,
-                eval_metric=self.eval_metric,
-            )
+        fit_params = {
+            'X':X_train,
+            'y':y_train,
+            'eval_set':[(X_val, y_val)],
+            'eval_metric':self.eval_metric
+        }
+
+        if isinstance(clf, LGBMModel):
+            fit_params['callbacks'] = [early_stopping(self.early_stopping_rounds)]
         else:
-            clf = clf.fit(
-                X_train,
-                y_train,
-                eval_set=[(X_val, y_val)],
-                early_stopping_rounds=self.early_stopping_rounds,
-                eval_metric=self.eval_metric,
-            )
+            fit_params['early_stopping_rounds'] = self.early_stopping_rounds
+
+        if sample_weight is not None:
+            fit_params['sample_weight'] = sample_weight.iloc[train_index]
+            fit_params['eval_sample_weight'] = [sample_weight.iloc[val_index]]
+
+        # Train the model
+        clf = clf.fit(**fit_params)
+
         # Score the model
         score_train = self.scorer.scorer(clf, X_train, y_train)
         score_val = self.scorer.scorer(clf, X_val, y_val)
