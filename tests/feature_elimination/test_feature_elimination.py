@@ -2,6 +2,7 @@ import os
 
 import pandas as pd
 import pytest
+from probatus.feature_elimination import EarlyStoppingShapRFECV, ShapRFECV
 from probatus.utils import preprocess_labels
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import get_scorer
@@ -39,13 +40,10 @@ def sample_weight():
     return pd.Series([1, 1, 1, 1, 1, 1, 1, 1], index=[1, 2, 3, 4, 5, 6, 7, 8])
 
 
-@pytest.mark.skipif(os.environ.get("SKIP_LIGHTGBM") == "true", reason="LightGBM tests disabled")
 def test_shap_rfe_randomized_search(X, y, capsys):
     """
     Test with RandomizedSearchCV.
     """
-    from probatus.feature_elimination import ShapRFECV
-    
     clf = DecisionTreeClassifier(max_depth=1)
     param_grid = {"criterion": ["gini"], "min_samples_split": [1, 2]}
     search = RandomizedSearchCV(clf, param_grid, cv=2, n_iter=2)
@@ -70,13 +68,10 @@ def test_shap_rfe_randomized_search(X, y, capsys):
     assert len(out) == 0
 
 
-@pytest.mark.skipif(os.environ.get("SKIP_LIGHTGBM") == "true", reason="LightGBM tests disabled")
 def test_shap_rfe(X, y, sample_weight, capsys):
     """
     Test with ShapRFECV.
     """
-    from probatus.feature_elimination import ShapRFECV
-    
     clf = DecisionTreeClassifier(max_depth=1, random_state=1)
     with pytest.warns(None) as record:
         shap_elimination = ShapRFECV(
@@ -108,13 +103,10 @@ def test_shap_rfe(X, y, sample_weight, capsys):
     assert len(out) == 0
 
 
-@pytest.mark.skipif(os.environ.get("SKIP_LIGHTGBM") == "true", reason="LightGBM tests disabled")
 def test_shap_pipeline_error(X, y, capsys):
     """
     Test with ShapRFECV for pipelines.
     """
-    from probatus.feature_elimination import ShapRFECV
-    
     clf = Pipeline([("scaler", StandardScaler()), ("dt", DecisionTreeClassifier(max_depth=1, random_state=1))])
     with pytest.raises(TypeError):
         shap_elimination = ShapRFECV(
@@ -128,13 +120,10 @@ def test_shap_pipeline_error(X, y, capsys):
         shap_elimination = shap_elimination.fit(X, y, approximate=True, check_additivity=False)
 
 
-@pytest.mark.skipif(os.environ.get("SKIP_LIGHTGBM") == "true", reason="LightGBM tests disabled")
 def test_shap_rfe_linear_model(X, y, capsys):
     """
     Test ShapRFECV with linear model.
     """
-    from probatus.feature_elimination import ShapRFECV
-    
     clf = LogisticRegression(C=1, random_state=1)
     with pytest.warns(None) as record:
         shap_elimination = ShapRFECV(clf, random_state=1, step=1, cv=2, scoring="roc_auc", n_jobs=4)
@@ -157,13 +146,10 @@ def test_shap_rfe_linear_model(X, y, capsys):
     assert len(out) == 0
 
 
-@pytest.mark.skipif(os.environ.get("SKIP_LIGHTGBM") == "true", reason="LightGBM tests disabled")
 def test_shap_rfe_svm(X, y, capsys):
     """
     Test with ShapRFECV with SVM.
     """
-    from probatus.feature_elimination import ShapRFECV
-    
     clf = SVC(C=1, kernel="linear", probability=True)
     with pytest.warns(None) as record:
         shap_elimination = ShapRFECV(clf, random_state=1, step=1, cv=2, scoring="roc_auc", n_jobs=4)
@@ -186,13 +172,10 @@ def test_shap_rfe_svm(X, y, capsys):
     assert len(out) == 0
 
 
-@pytest.mark.skipif(os.environ.get("SKIP_LIGHTGBM") == "true", reason="LightGBM tests disabled")
 def test_shap_rfe_cols_to_keep(X, y, capsys):
     """
     Test for shap_rfe_cv with feautures to keep parameter.
     """
-    from probatus.feature_elimination import ShapRFECV
-    
     clf = DecisionTreeClassifier(max_depth=1, random_state=1)
     with pytest.warns(None) as record:
         shap_elimination = ShapRFECV(
@@ -216,13 +199,10 @@ def test_shap_rfe_cols_to_keep(X, y, capsys):
     assert len(out) == 0
 
 
-@pytest.mark.skipif(os.environ.get("SKIP_LIGHTGBM") == "true", reason="LightGBM tests disabled")
 def test_shap_rfe_randomized_search_cols_to_keep(X, y, capsys):
     """
     Test with ShapRFECV with column to keep param.
     """
-    from probatus.feature_elimination import ShapRFECV
-    
     clf = DecisionTreeClassifier(max_depth=1)
     param_grid = {"criterion": ["gini"], "min_samples_split": [1, 2]}
     search = RandomizedSearchCV(clf, param_grid, cv=2, n_iter=2)
@@ -248,13 +228,10 @@ def test_shap_rfe_randomized_search_cols_to_keep(X, y, capsys):
     assert len(out) == 0
 
 
-@pytest.mark.skipif(os.environ.get("SKIP_LIGHTGBM") == "true", reason="LightGBM tests disabled")
 def test_calculate_number_of_features_to_remove():
     """
     Test with ShapRFECV with n features to remove.
     """
-    from probatus.feature_elimination import ShapRFECV
-    
     assert 3 == ShapRFECV._calculate_number_of_features_to_remove(
         current_num_of_features=10, num_features_to_remove=3, min_num_features_to_keep=5
     )
@@ -269,13 +246,10 @@ def test_calculate_number_of_features_to_remove():
     )
 
 
-@pytest.mark.skipif(os.environ.get("SKIP_LIGHTGBM") == "true", reason="LightGBM tests disabled")
 def test_get_feature_shap_values_per_fold(X, y):
     """
     Test with ShapRFECV with features per fold.
     """
-    from probatus.feature_elimination import ShapRFECV
-    
     clf = DecisionTreeClassifier(max_depth=1)
     shap_elimination = ShapRFECV(clf)
     shap_values, train_score, test_score = shap_elimination._get_feature_shap_values_per_fold(
@@ -291,8 +265,6 @@ def test_complex_dataset(complex_data, complex_lightgbm):
     """
     Test on complex dataset.
     """
-    from probatus.feature_elimination import ShapRFECV
-    
     X, y = complex_data
 
     param_grid = {
@@ -316,7 +288,6 @@ def test_shap_rfe_early_stopping(complex_data, capsys):
     Test EarlyStoppingShapRFECV with a LGBMClassifier.
     """
     from lightgbm import LGBMClassifier
-    from probatus.feature_elimination import EarlyStoppingShapRFECV
 
     clf = LGBMClassifier(n_estimators=200, max_depth=3)
     X, y = complex_data
@@ -357,7 +328,6 @@ def test_shap_rfe_randomized_search_early_stopping(complex_data):
     Test EarlyStoppingShapRFECV with RandomizedSearchCV and a LGBMClassifier on complex dataset.
     """
     from lightgbm import LGBMClassifier
-    from probatus.feature_elimination import EarlyStoppingShapRFECV
 
     clf = LGBMClassifier(n_estimators=200)
     X, y = complex_data
@@ -398,7 +368,6 @@ def test_get_feature_shap_values_per_fold_early_stopping(complex_data):
     Test with ShapRFECV with features per fold.
     """
     from lightgbm import LGBMClassifier
-    from probatus.feature_elimination import EarlyStoppingShapRFECV
 
     clf = LGBMClassifier(n_estimators=200, max_depth=3)
     X, y = complex_data
