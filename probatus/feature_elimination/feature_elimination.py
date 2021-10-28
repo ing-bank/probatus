@@ -902,8 +902,6 @@ class EarlyStoppingShapRFECV(ShapRFECV):
             verbose=verbose,
             random_state=random_state,
         )
- 
-        from lightgbm import early_stopping, LGBMModel
 
         if self.search_clf:
             if self.verbose > 0:
@@ -962,6 +960,8 @@ class EarlyStoppingShapRFECV(ShapRFECV):
             (np.array, float, float):
                 Tuple with the results: Shap Values on validation fold, train score, validation score.
         """
+        from lightgbm import early_stopping, LGBMModel
+        
         X_train, X_val = X.iloc[train_index, :], X.iloc[val_index, :]
         y_train, y_val = y.iloc[train_index], y.iloc[val_index]
 
