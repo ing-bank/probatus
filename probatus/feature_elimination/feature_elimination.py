@@ -4,7 +4,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from joblib import Parallel, delayed
-from lightgbm import early_stopping, LGBMModel
 from probatus.utils import (
     BaseFitComputePlotClass,
     assure_pandas_series,
@@ -903,6 +902,9 @@ class EarlyStoppingShapRFECV(ShapRFECV):
             verbose=verbose,
             random_state=random_state,
         )
+ 
+        from lightgbm import early_stopping, LGBMModel
+
         if self.search_clf:
             if self.verbose > 0:
                 warnings.warn(
