@@ -18,7 +18,6 @@ base_packages = [
     "tqdm>=4.41.0",
     "shap >= 0.38.1, < 0.39.0",# 0.40.0 causes issues in certain plots. For now it is excluded
     "numpy>=1.19.0",
-    "lightgbm>=3.3.0",
 ]
 
 extra_dep = [
@@ -36,6 +35,7 @@ dev_dep = [
     "pyflakes",
     "seaborn>=0.9.0",
     "joblib>=0.13.2",
+    "lightgbm>=3.1.0",
     "jupyter>=1.0.0",
     "tabulate>=0.8.7",
     "nbconvert>=6.0.7",
@@ -58,7 +58,7 @@ docs_dep = [
 
 setuptools.setup(
     name="probatus",
-    version="1.8.6",
+    version="1.8.7",
     description="Validation of binary classifiers and data used to develop them",
     long_description=read("README.md"),
     long_description_content_type="text/markdown",
