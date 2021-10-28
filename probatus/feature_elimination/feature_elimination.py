@@ -960,6 +960,9 @@ class EarlyStoppingShapRFECV(ShapRFECV):
             (np.array, float, float):
                 Tuple with the results: Shap Values on validation fold, train score, validation score.
         """
+        
+        # The lightgbm imports are temporarily placed here, until the tests on
+        # macOS have been fixed for lightgbm.
         from lightgbm import early_stopping, LGBMModel
         
         X_train, X_val = X.iloc[train_index, :], X.iloc[val_index, :]
