@@ -6,6 +6,7 @@ import matplotlib
 import os
 
 import probatus.binning
+import probatus.feature_elimination
 import probatus.interpret
 import probatus.metric_volatility
 import probatus.sample_similarity
