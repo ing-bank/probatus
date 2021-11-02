@@ -17,6 +17,7 @@ from sklearn.base import clone, is_classifier
 from sklearn.model_selection import check_cv
 from sklearn.model_selection._search import BaseSearchCV
 
+
 class ShapRFECV(BaseFitComputePlotClass):
     """
     This class performs Backwards Recursive Feature Elimination, using SHAP feature importance.
@@ -1003,7 +1004,7 @@ class EarlyStoppingShapRFECV(ShapRFECV):
 
         # The lightgbm imports are temporarily placed here, until the tests on
         # macOS have been fixed for lightgbm.
-        from lightgbm import early_stopping, LGBMModel
+        from lightgbm import early_stopping, log_evaluation, LGBMModel
 
         X_train, X_val = X.iloc[train_index, :], X.iloc[val_index, :]
         y_train, y_val = y.iloc[train_index], y.iloc[val_index]
@@ -1017,7 +1018,10 @@ class EarlyStoppingShapRFECV(ShapRFECV):
 
         if isinstance(clf, LGBMModel):
             fit_params['callbacks'] = [
-                early_stopping(self.early_stopping_rounds)
+                early_stopping(
+                    self.early_stopping_rounds, first_metric_only=True
+                ),
+                log_evaluation(0),
             ]
         else:
             fit_params['early_stopping_rounds'] = self.early_stopping_rounds
