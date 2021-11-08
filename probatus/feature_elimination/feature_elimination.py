@@ -1016,16 +1016,23 @@ class EarlyStoppingShapRFECV(ShapRFECV):
             'eval_metric': self.eval_metric
         }
 
+        # first_metric_only bypasses a bug that defaults the metric to the
+        # scoring. It should only be True until the bug is found and fixed.
         if isinstance(clf, LGBMModel):
             fit_params['callbacks'] = [
                 early_stopping(
                     self.early_stopping_rounds, first_metric_only=True
-                ),
-                log_evaluation(0),
+                )
             ]
+            
+            if self.verbose == 100:
+                fit_params['callbacks'].append(log_evaluation(1))
+            else:
+                fit_params['callbacks'].append(log_evaluation(0))
+                
         else:
             fit_params['early_stopping_rounds'] = self.early_stopping_rounds
-
+               
         if sample_weight is not None:
             fit_params['sample_weight'] = sample_weight.iloc[train_index]
             fit_params['eval_sample_weight'] = [sample_weight.iloc[val_index]]
