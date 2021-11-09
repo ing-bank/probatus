@@ -1025,7 +1025,7 @@ class EarlyStoppingShapRFECV(ShapRFECV):
                 )
             ]
             
-            if self.verbose == 100:
+            if self.verbose >= 100:
                 fit_params['callbacks'].append(log_evaluation(1))
             else:
                 fit_params['callbacks'].append(log_evaluation(0))
