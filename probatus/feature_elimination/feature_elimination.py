@@ -17,6 +17,7 @@ from sklearn.base import clone, is_classifier
 from sklearn.model_selection import check_cv
 from sklearn.model_selection._search import BaseSearchCV
 
+
 class ShapRFECV(BaseFitComputePlotClass):
     """
     This class performs Backwards Recursive Feature Elimination, using SHAP feature importance.
@@ -384,7 +385,9 @@ class ShapRFECV(BaseFitComputePlotClass):
         y_train, y_val = y.iloc[train_index], y.iloc[val_index]
 
         if sample_weight is not None:
-            clf = clf.fit(X_train, y_train, sample_weight=sample_weight.iloc[train_index])
+            clf = clf.fit(
+                X_train, y_train, sample_weight=sample_weight.iloc[train_index]
+            )
         else:
             clf = clf.fit(X_train, y_train)
 
@@ -393,10 +396,20 @@ class ShapRFECV(BaseFitComputePlotClass):
         score_val = self.scorer.scorer(clf, X_val, y_val)
 
         # Compute SHAP values
-        shap_values = shap_calc(clf, X_val, verbose=self.verbose, **shap_kwargs)
+        shap_values = shap_calc(
+            clf, X_val, verbose=self.verbose, **shap_kwargs
+        )
         return shap_values, score_train, score_val
 
-    def fit(self, X, y, sample_weight=None, columns_to_keep=None, column_names=None, **shap_kwargs):
+    def fit(
+        self,
+        X,
+        y,
+        sample_weight=None,
+        columns_to_keep=None,
+        column_names=None,
+        **shap_kwargs,
+    ):
         """
         Fits the object with the provided data.
 
@@ -477,14 +490,20 @@ class ShapRFECV(BaseFitComputePlotClass):
                     "Lower the value for min_features_to_select or number of columns in columns_to_keep"
                 )
 
-        self.X, self.column_names = preprocess_data(X, X_name="X", column_names=column_names, verbose=self.verbose)
-        self.y = preprocess_labels(y, y_name="y", index=self.X.index, verbose=self.verbose)
+        self.X, self.column_names = preprocess_data(
+            X, X_name="X", column_names=column_names, verbose=self.verbose
+        )
+        self.y = preprocess_labels(
+            y, y_name="y", index=self.X.index, verbose=self.verbose
+        )
         if sample_weight is not None:
             if self.verbose > 0:
                 warnings.warn(
                     "sample_weight is passed only to the fit method of the model, not the evaluation metrics."
                 )
-            sample_weight = assure_pandas_series(sample_weight, index=self.X.index)
+            sample_weight = assure_pandas_series(
+                sample_weight, index=self.X.index
+            )
         self.cv = check_cv(self.cv, self.y, classifier=is_classifier(self.clf))
 
         remaining_features = current_features_set = self.column_names
@@ -521,7 +540,9 @@ class ShapRFECV(BaseFitComputePlotClass):
             # Optimize parameters
             if self.search_clf:
                 current_search_clf = clone(self.clf).fit(current_X, self.y)
-                current_clf = current_search_clf.estimator.set_params(**current_search_clf.best_params_)
+                current_clf = current_search_clf.estimator.set_params(
+                    **current_search_clf.best_params_
+                )
             else:
                 current_clf = clone(self.clf)
 
@@ -545,7 +566,9 @@ class ShapRFECV(BaseFitComputePlotClass):
 
             # Calculate the shap features with remaining features and features to keep.
 
-            shap_importance_df = calculate_shap_importance(shap_values, remaining_removeable_features)
+            shap_importance_df = calculate_shap_importance(
+                shap_values, remaining_removeable_features
+            )
 
             # Get features to remove
             features_to_remove = self._get_current_features_to_remove(
@@ -590,7 +613,15 @@ class ShapRFECV(BaseFitComputePlotClass):
 
         return self.report_df
 
-    def fit_compute(self, X, y, sample_weight=None, columns_to_keep=None, column_names=None, **shap_kwargs):
+    def fit_compute(
+        self,
+        X,
+        y,
+        sample_weight=None,
+        columns_to_keep=None,
+        column_names=None,
+        **shap_kwargs
+    ):
         """
         Fits the object with the provided data.
 
@@ -906,8 +937,9 @@ class EarlyStoppingShapRFECV(ShapRFECV):
         if self.search_clf:
             if self.verbose > 0:
                 warnings.warn(
-                    "Early stopping will be used only during Shapley value estimation step, and not for hyperparameter"
-                    "optimization."
+                    "Early stopping will be used only during Shapley value"
+                    " estimation step, and not for hyperparameter"
+                    " optimization."
                 )
 
         if isinstance(early_stopping_rounds, int) and early_stopping_rounds > 0:
@@ -915,15 +947,24 @@ class EarlyStoppingShapRFECV(ShapRFECV):
         else:
             raise (
                 ValueError(
-                    f"The current value of early_stopping_rounds = {early_stopping_rounds} is not allowed. "
-                    f"It needs to be a positive integer."
+                    f"The current value of early_stopping_rounds ="
+                    f" {early_stopping_rounds} is not allowed."
+                    f" It needs to be a positive integer."
                 )
             )
 
         self.eval_metric = eval_metric
-        
 
-    def _get_feature_shap_values_per_fold(self, X, y, clf, train_index, val_index, sample_weight=None, **shap_kwargs):
+    def _get_feature_shap_values_per_fold(
+        self,
+        X,
+        y,
+        clf,
+        train_index,
+        val_index,
+        sample_weight=None,
+        **shap_kwargs
+    ):
         """
         This function calculates the shap values on validation set, and Train and Val score.
 
@@ -960,26 +1001,38 @@ class EarlyStoppingShapRFECV(ShapRFECV):
             (np.array, float, float):
                 Tuple with the results: Shap Values on validation fold, train score, validation score.
         """
-        
+
         # The lightgbm imports are temporarily placed here, until the tests on
         # macOS have been fixed for lightgbm.
-        from lightgbm import early_stopping, LGBMModel
-        
+        from lightgbm import early_stopping, log_evaluation, LGBMModel
+
         X_train, X_val = X.iloc[train_index, :], X.iloc[val_index, :]
         y_train, y_val = y.iloc[train_index], y.iloc[val_index]
 
         fit_params = {
-            'X':X_train,
-            'y':y_train,
-            'eval_set':[(X_val, y_val)],
-            'eval_metric':self.eval_metric
+            'X': X_train,
+            'y': y_train,
+            'eval_set': [(X_val, y_val)],
+            'eval_metric': self.eval_metric
         }
 
+        # first_metric_only bypasses a bug that defaults the metric to the
+        # scoring. It should only be True until the bug is found and fixed.
         if isinstance(clf, LGBMModel):
-            fit_params['callbacks'] = [early_stopping(self.early_stopping_rounds)]
+            fit_params['callbacks'] = [
+                early_stopping(
+                    self.early_stopping_rounds, first_metric_only=True
+                )
+            ]
+            
+            if self.verbose >= 100:
+                fit_params['callbacks'].append(log_evaluation(1))
+            else:
+                fit_params['callbacks'].append(log_evaluation(0))
+                
         else:
             fit_params['early_stopping_rounds'] = self.early_stopping_rounds
-
+               
         if sample_weight is not None:
             fit_params['sample_weight'] = sample_weight.iloc[train_index]
             fit_params['eval_sample_weight'] = [sample_weight.iloc[val_index]]
@@ -992,5 +1045,7 @@ class EarlyStoppingShapRFECV(ShapRFECV):
         score_val = self.scorer.scorer(clf, X_val, y_val)
 
         # Compute SHAP values
-        shap_values = shap_calc(clf, X_val, verbose=self.verbose, **shap_kwargs)
+        shap_values = shap_calc(
+            clf, X_val, verbose=self.verbose, **shap_kwargs
+        )
         return shap_values, score_train, score_val
