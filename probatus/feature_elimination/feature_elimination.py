@@ -504,6 +504,11 @@ class ShapRFECV(BaseFitComputePlotClass):
             if self.verbose > 50:
                 warnings.warn(f"Minimum features to select : {stopping_criteria}")
 
+        n_features = X.shape[1]
+        features = X.columns.tolist()
+        support_ = np.ones(n_features, dtype=bool)
+        ranking_ = np.ones(n_features, dtype=int)
+
         while len(current_features_set) > stopping_criteria:
             round_number += 1
 
@@ -554,6 +559,11 @@ class ShapRFECV(BaseFitComputePlotClass):
             )
             remaining_features = list(set(current_features_set) - set(features_to_remove))
 
+            if features_to_remove:
+                idx = [features.index(feat) for feat in features_to_remove]
+                support_[idx] = False
+                ranking_[np.logical_not(support_)] += 1
+
             # Report results
             self._report_current_results(
                 round_number=round_number,
@@ -575,6 +585,9 @@ class ShapRFECV(BaseFitComputePlotClass):
                     f"Removed features at the end of the round: {features_to_remove}"
                 )
         self.fitted = True
+
+        self.support_ = support_
+        self.ranking_ = ranking_
         return self
 
     def compute(self):
@@ -649,12 +662,12 @@ class ShapRFECV(BaseFitComputePlotClass):
         )
         return self.compute()
 
-    def get_reduced_features_set(self, num_features):
+    def get_reduced_features_set(self, num_features=None):
         """
         Gets the features set after the feature elimination process, for a given number of features.
 
         Args:
-            num_features (int):
+            num_features (int, optional):
                 Number of features in the reduced features set.
 
         Returns:
@@ -663,7 +676,16 @@ class ShapRFECV(BaseFitComputePlotClass):
         """
         self._check_if_fitted()
 
-        if num_features not in self.report_df.num_features.tolist():
+        if num_features is None:
+            warnings.warn("This is an estimate according to the values of the Validation AUC mean and std.")
+            warnings.warn(
+                "We advise you to take these with caution, look into the overall results,"
+                "and see what better suits your problem."
+            )
+            return self.report_df.loc[
+                self.report_df.apply(lambda x: x["val_metric_mean"] - x["val_metric_std"], axis=1).idxmax()
+            ]["features_set"]
+        elif num_features not in self.report_df.num_features.tolist():
             raise (
                 ValueError(
                     f"The provided number of features has not been achieved at any stage of the process. "
