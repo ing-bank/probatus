@@ -233,6 +233,8 @@ class DependencePlotter(BaseFitComputePlotClass):
             raise ValueError("alpha must be a float value betwee 0 and 1")
 
         self.min_q, self.max_q, self.alpha = min_q, max_q, alpha
+        if other_tdp:
+            other_tdp.min_q, other_tdp.max_q, other_tdp.alpha = min_q, max_q, alpha
 
         ax_input = DependencePlotter._initialize_axes(figsize, other_tdp)
         ax_output = []
