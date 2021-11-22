@@ -44,7 +44,7 @@ class ShapRFECV(BaseFitComputePlotClass):
         [GridSearchCV](https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.LassoCV.html),
         [RandomizedSearchCV](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.RandomizedSearchCV.html?highlight=randomized#sklearn.model_selection.RandomizedSearchCV), or
         [BayesSearchCV](https://scikit-optimize.github.io/stable/modules/generated/skopt.BayesSearchCV.html), which
-        needs to be passed as the `clf`. Thanks to this you can perform hyperparameter optimization at each step of
+        needs to be passed as the `model`. Thanks to this you can perform hyperparameter optimization at each step of
         the feature elimination. Lastly, it supports categorical features (object and category dtype) and missing values
         in the data, as long as the model supports them.
 
@@ -75,18 +75,18 @@ class ShapRFECV(BaseFitComputePlotClass):
 
 
     # Prepare model and parameter search space
-    clf = RandomForestClassifier(max_depth=5, class_weight='balanced')
+    model = RandomForestClassifier(max_depth=5, class_weight='balanced')
 
     param_grid = {
         'n_estimators': [5, 7, 10],
         'min_samples_leaf': [3, 5, 7, 10],
     }
-    search = RandomizedSearchCV(clf, param_grid)
+    search = RandomizedSearchCV(model, param_grid)
 
 
     # Run feature elimination
     shap_elimination = ShapRFECV(
-        clf=search, step=0.2, cv=10, scoring='roc_auc', n_jobs=3)
+        model=search, step=0.2, cv=10, scoring='roc_auc', n_jobs=3)
     report = shap_elimination.fit_compute(X, y)
 
     # Make plots
@@ -101,7 +101,7 @@ class ShapRFECV(BaseFitComputePlotClass):
 
     def __init__(
         self,
-        clf,
+        model,
         step=1,
         min_features_to_select=1,
         cv=None,
@@ -114,7 +114,7 @@ class ShapRFECV(BaseFitComputePlotClass):
         This method initializes the class.
 
         Args:
-            clf (binary classifier, sklearn compatible search CV e.g. GridSearchCV, RandomizedSearchCV or BayesSearchCV):
+            model (sklearn compatible classifier or regressor, sklearn compatible search CV e.g. GridSearchCV, RandomizedSearchCV or BayesSearchCV):
                 A model that will be optimized and trained at each round of feature elimination. The recommended model
                 is [LGBMClassifier](https://lightgbm.readthedocs.io/en/latest/pythonapi/lightgbm.LGBMClassifier.html),
                 because it by default handles the missing values and categorical variables. This parameter also supports
@@ -164,11 +164,11 @@ class ShapRFECV(BaseFitComputePlotClass):
                 reproducible and in random search at each iteration a different hyperparameters might be tested. For
                 reproducible results set it to an integer.
         """  # noqa
-        self.clf = clf
-        if isinstance(self.clf, BaseSearchCV):
-            self.search_clf = True
+        self.model = model
+        if isinstance(self.model, BaseSearchCV):
+            self.search_model = True
         else:
-            self.search_clf = False
+            self.search_model = False
 
         if (isinstance(step, int) or isinstance(step, float)) and step > 0:
             self.step = step
@@ -180,7 +180,10 @@ class ShapRFECV(BaseFitComputePlotClass):
                 )
             )
 
-        if isinstance(min_features_to_select, int) and min_features_to_select > 0:
+        if (
+            isinstance(min_features_to_select, int)
+            and min_features_to_select > 0
+        ):
             self.min_features_to_select = min_features_to_select
         else:
             raise (
@@ -197,7 +200,9 @@ class ShapRFECV(BaseFitComputePlotClass):
         self.report_df = pd.DataFrame([])
         self.verbose = verbose
 
-    def _get_current_features_to_remove(self, shap_importance_df, columns_to_keep=None):
+    def _get_current_features_to_remove(
+        self, shap_importance_df, columns_to_keep=None
+    ):
         """
         Implements the logic used to determine which features to remove.
 
@@ -226,28 +231,36 @@ class ShapRFECV(BaseFitComputePlotClass):
 
         # If the step is an int remove n features.
         if isinstance(self.step, int):
-            num_features_to_remove = self._calculate_number_of_features_to_remove(
-                current_num_of_features=shap_importance_df.shape[0],
-                num_features_to_remove=self.step,
-                min_num_features_to_keep=self.min_features_to_select,
+            num_features_to_remove = (
+                self._calculate_number_of_features_to_remove(
+                    current_num_of_features=shap_importance_df.shape[0],
+                    num_features_to_remove=self.step,
+                    min_num_features_to_keep=self.min_features_to_select,
+                )
             )
         # If the step is a float remove n * number features that are left, rounded down
         elif isinstance(self.step, float):
-            current_step = int(np.floor(shap_importance_df.shape[0] * self.step))
+            current_step = int(
+                np.floor(shap_importance_df.shape[0] * self.step)
+            )
             # The step after rounding down should be at least 1
             if current_step < 1:
                 current_step = 1
 
-            num_features_to_remove = self._calculate_number_of_features_to_remove(
-                current_num_of_features=shap_importance_df.shape[0],
-                num_features_to_remove=current_step,
-                min_num_features_to_keep=self.min_features_to_select,
+            num_features_to_remove = (
+                self._calculate_number_of_features_to_remove(
+                    current_num_of_features=shap_importance_df.shape[0],
+                    num_features_to_remove=current_step,
+                    min_num_features_to_keep=self.min_features_to_select,
+                )
             )
 
         if num_features_to_remove == 0:
             return []
         else:
-            return shap_importance_df.iloc[-num_features_to_remove:].index.tolist()
+            return shap_importance_df.iloc[
+                -num_features_to_remove:
+            ].index.tolist()
 
     @staticmethod
     def _calculate_number_of_features_to_remove(
@@ -275,7 +288,9 @@ class ShapRFECV(BaseFitComputePlotClass):
             (int):
                 Number of features to be removed.
         """
-        num_features_after_removal = current_num_of_features - num_features_to_remove
+        num_features_after_removal = (
+            current_num_of_features - num_features_to_remove
+        )
         if num_features_after_removal >= min_num_features_to_keep:
             num_to_remove = num_features_to_remove
         else:
@@ -339,7 +354,7 @@ class ShapRFECV(BaseFitComputePlotClass):
         self,
         X,
         y,
-        clf,
+        model,
         train_index,
         val_index,
         sample_weight=None,
@@ -353,9 +368,9 @@ class ShapRFECV(BaseFitComputePlotClass):
                 Dataset used in CV.
 
             y (pd.Series):
-                Binary labels for X.
+                Labels for X.
 
-            clf (binary classifier):
+            model:
                 Model to be fitted on the train folds.
 
             train_index (np.array):
@@ -385,19 +400,19 @@ class ShapRFECV(BaseFitComputePlotClass):
         y_train, y_val = y.iloc[train_index], y.iloc[val_index]
 
         if sample_weight is not None:
-            clf = clf.fit(
+            model = model.fit(
                 X_train, y_train, sample_weight=sample_weight.iloc[train_index]
             )
         else:
-            clf = clf.fit(X_train, y_train)
+            model = model.fit(X_train, y_train)
 
         # Score the model
-        score_train = self.scorer.scorer(clf, X_train, y_train)
-        score_val = self.scorer.scorer(clf, X_val, y_val)
+        score_train = self.scorer.scorer(model, X_train, y_train)
+        score_val = self.scorer.scorer(model, X_val, y_val)
 
         # Compute SHAP values
         shap_values = shap_calc(
-            clf, X_val, verbose=self.verbose, **shap_kwargs
+            model, X_val, verbose=self.verbose, **shap_kwargs
         )
         return shap_values, score_train, score_val
 
@@ -414,7 +429,7 @@ class ShapRFECV(BaseFitComputePlotClass):
         Fits the object with the provided data.
 
         The algorithm starts with the entire dataset, and then sequentially
-             eliminates features. If sklearn compatible search CV is passed as clf e.g.
+             eliminates features. If sklearn compatible search CV is passed as model e.g.
              [GridSearchCV](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.GridSearchCV.html),
              [RandomizedSearchCV](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.RandomizedSearchCV.html)
              or [BayesSearchCV](https://scikit-optimize.github.io/stable/modules/generated/skopt.BayesSearchCV.html),
@@ -427,7 +442,7 @@ class ShapRFECV(BaseFitComputePlotClass):
                 Provided dataset.
 
             y (pd.Series):
-                Binary labels for X.
+                Labels for X.
 
             sample_weight (pd.Series, np.ndarray, list, optional):
                 array-like of shape (n_samples,) - only use if the model you're using supports
@@ -479,12 +494,18 @@ class ShapRFECV(BaseFitComputePlotClass):
             if all(x in column_names for x in list(X.columns)):
                 pass
             else:
-                raise (ValueError("The column names in parameter columns_to_keep and column_names are not macthing."))
+                raise (
+                    ValueError(
+                        "The column names in parameter columns_to_keep and column_names are not macthing."
+                    )
+                )
 
         # Check that the total number of columns to select is less than total number of columns in the data.
         # only when both parameters are provided.
         if column_names is not None and columns_to_keep is not None:
-            if (self.min_features_to_select + len_columns_to_keep) > len(self.column_names):
+            if (self.min_features_to_select + len_columns_to_keep) > len(
+                self.column_names
+            ):
                 raise ValueError(
                     "Minimum features to select is greater than number of features."
                     "Lower the value for min_features_to_select or number of columns in columns_to_keep"
@@ -504,13 +525,17 @@ class ShapRFECV(BaseFitComputePlotClass):
             sample_weight = assure_pandas_series(
                 sample_weight, index=self.X.index
             )
-        self.cv = check_cv(self.cv, self.y, classifier=is_classifier(self.clf))
+        self.cv = check_cv(
+            self.cv, self.y, classifier=is_classifier(self.model)
+        )
 
         remaining_features = current_features_set = self.column_names
         round_number = 0
 
         # Stop when stopping criteria is met.
-        stopping_criteria = np.max([self.min_features_to_select, len_columns_to_keep])
+        stopping_criteria = np.max(
+            [self.min_features_to_select, len_columns_to_keep]
+        )
 
         # Setting up the min_features_to_select parameter.
         if columns_to_keep is None:
@@ -520,7 +545,9 @@ class ShapRFECV(BaseFitComputePlotClass):
             # This ensures that, if columns_to_keep is provided ,
             # the last features remaining are only the columns_to_keep.
             if self.verbose > 50:
-                warnings.warn(f"Minimum features to select : {stopping_criteria}")
+                warnings.warn(
+                    f"Minimum features to select : {stopping_criteria}"
+                )
 
         while len(current_features_set) > stopping_criteria:
             round_number += 1
@@ -530,7 +557,9 @@ class ShapRFECV(BaseFitComputePlotClass):
             if columns_to_keep is None:
                 remaining_removeable_features = list(set(current_features_set))
             else:
-                remaining_removeable_features = list(set(current_features_set) | set(columns_to_keep))
+                remaining_removeable_features = list(
+                    set(current_features_set) | set(columns_to_keep)
+                )
             current_X = self.X[remaining_removeable_features]
 
             # Set seed for results reproducibility
@@ -538,20 +567,20 @@ class ShapRFECV(BaseFitComputePlotClass):
                 np.random.seed(self.random_state)
 
             # Optimize parameters
-            if self.search_clf:
-                current_search_clf = clone(self.clf).fit(current_X, self.y)
-                current_clf = current_search_clf.estimator.set_params(
-                    **current_search_clf.best_params_
+            if self.search_model:
+                current_search_model = clone(self.model).fit(current_X, self.y)
+                current_model = current_search_model.estimator.set_params(
+                    **current_search_model.best_params_
                 )
             else:
-                current_clf = clone(self.clf)
+                current_model = clone(self.model)
 
             # Perform CV to estimate feature importance with SHAP
             results_per_fold = Parallel(n_jobs=self.n_jobs)(
                 delayed(self._get_feature_shap_values_per_fold)(
                     X=current_X,
                     y=self.y,
-                    clf=current_clf,
+                    model=current_model,
                     train_index=train_index,
                     val_index=val_index,
                     sample_weight=sample_weight,
@@ -560,7 +589,7 @@ class ShapRFECV(BaseFitComputePlotClass):
                 for train_index, val_index in self.cv.split(current_X, self.y)
             )
 
-            if self.y.nunique() == 2 or is_regressor(current_clf):
+            if self.y.nunique() == 2 or is_regressor(current_model):
                 shap_values = np.vstack(
                     [current_result[0] for current_result in results_per_fold]
                 )
@@ -586,7 +615,9 @@ class ShapRFECV(BaseFitComputePlotClass):
             features_to_remove = self._get_current_features_to_remove(
                 shap_importance_df, columns_to_keep=columns_to_keep
             )
-            remaining_features = list(set(current_features_set) - set(features_to_remove))
+            remaining_features = list(
+                set(current_features_set) - set(features_to_remove)
+            )
 
             # Report results
             self._report_current_results(
@@ -632,13 +663,13 @@ class ShapRFECV(BaseFitComputePlotClass):
         sample_weight=None,
         columns_to_keep=None,
         column_names=None,
-        **shap_kwargs
+        **shap_kwargs,
     ):
         """
         Fits the object with the provided data.
 
         The algorithm starts with the entire dataset, and then sequentially
-             eliminates features. If sklearn compatible search CV is passed as clf e.g.
+             eliminates features. If sklearn compatible search CV is passed as model e.g.
              [GridSearchCV](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.GridSearchCV.html),
              [RandomizedSearchCV](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.RandomizedSearchCV.html)
              or [BayesSearchCV](https://scikit-optimize.github.io/stable/modules/generated/skopt.BayesSearchCV.html),
@@ -652,7 +683,7 @@ class ShapRFECV(BaseFitComputePlotClass):
                 Provided dataset.
 
             y (pd.Series):
-                Binary labels for X.
+                Labels for X.
 
             sample_weight (pd.Series, np.ndarray, list, optional):
                 array-like of shape (n_samples,) - only use if the model you're using supports
@@ -713,7 +744,9 @@ class ShapRFECV(BaseFitComputePlotClass):
                 )
             )
         else:
-            return self.report_df[self.report_df.num_features == num_features]["features_set"].values[0]
+            return self.report_df[self.report_df.num_features == num_features][
+                "features_set"
+            ].values[0]
 
     def plot(self, show=True, **figure_kwargs):
         """
@@ -742,8 +775,10 @@ class ShapRFECV(BaseFitComputePlotClass):
         )
         plt.fill_between(
             pd.to_numeric(self.report_df.num_features, errors="coerce"),
-            self.report_df["train_metric_mean"] - self.report_df["train_metric_std"],
-            self.report_df["train_metric_mean"] + self.report_df["train_metric_std"],
+            self.report_df["train_metric_mean"]
+            - self.report_df["train_metric_std"],
+            self.report_df["train_metric_mean"]
+            + self.report_df["train_metric_std"],
             alpha=0.3,
         )
 
@@ -754,8 +789,10 @@ class ShapRFECV(BaseFitComputePlotClass):
         )
         plt.fill_between(
             pd.to_numeric(self.report_df.num_features, errors="coerce"),
-            self.report_df["val_metric_mean"] - self.report_df["val_metric_std"],
-            self.report_df["val_metric_mean"] + self.report_df["val_metric_std"],
+            self.report_df["val_metric_mean"]
+            - self.report_df["val_metric_std"],
+            self.report_df["val_metric_mean"]
+            + self.report_df["val_metric_std"],
             alpha=0.3,
         )
 
@@ -833,11 +870,11 @@ class EarlyStoppingShapRFECV(ShapRFECV):
     X = pd.DataFrame(X, columns=feature_names)
 
     # Prepare model
-    clf = LGBMClassifier(n_estimators=200, max_depth=3)
+    model = LGBMClassifier(n_estimators=200, max_depth=3)
 
     # Run feature elimination
     shap_elimination = EarlyStoppingShapRFECV(
-        clf=clf, step=0.2, cv=10, scoring='roc_auc', early_stopping_rounds=10, n_jobs=3)
+        model=model, step=0.2, cv=10, scoring='roc_auc', early_stopping_rounds=10, n_jobs=3)
     report = shap_elimination.fit_compute(X, y)
 
     # Make plots
@@ -852,7 +889,7 @@ class EarlyStoppingShapRFECV(ShapRFECV):
 
     def __init__(
         self,
-        clf,
+        model,
         step=1,
         min_features_to_select=1,
         cv=None,
@@ -867,7 +904,7 @@ class EarlyStoppingShapRFECV(ShapRFECV):
         This method initializes the class.
 
         Args:
-            clf (binary classifier, sklearn compatible search CV e.g. GridSearchCV, RandomizedSearchCV or BayesSearchCV):
+            model (sklearn compatible classifier or regressor, sklearn compatible search CV e.g. GridSearchCV, RandomizedSearchCV or BayesSearchCV):
                 A model that will be optimized and trained at each round of features elimination. The model must
                 support early stopping of training, which is the case for XGBoost and LightGBM, for example. The
                 recommended model is [LGBMClassifier](https://lightgbm.readthedocs.io/en/latest/pythonapi/lightgbm.LGBMClassifier.html),
@@ -936,7 +973,7 @@ class EarlyStoppingShapRFECV(ShapRFECV):
                 Note that `eval_metric` is an argument of the model's fit method and it is different from `scoring`.
         """  # noqa
         super(EarlyStoppingShapRFECV, self).__init__(
-            clf,
+            model,
             step=step,
             min_features_to_select=min_features_to_select,
             cv=cv,
@@ -946,7 +983,7 @@ class EarlyStoppingShapRFECV(ShapRFECV):
             random_state=random_state,
         )
 
-        if self.search_clf:
+        if self.search_model:
             if self.verbose > 0:
                 warnings.warn(
                     "Early stopping will be used only during Shapley value"
@@ -954,7 +991,10 @@ class EarlyStoppingShapRFECV(ShapRFECV):
                     " optimization."
                 )
 
-        if isinstance(early_stopping_rounds, int) and early_stopping_rounds > 0:
+        if (
+            isinstance(early_stopping_rounds, int)
+            and early_stopping_rounds > 0
+        ):
             self.early_stopping_rounds = early_stopping_rounds
         else:
             raise (
@@ -971,11 +1011,11 @@ class EarlyStoppingShapRFECV(ShapRFECV):
         self,
         X,
         y,
-        clf,
+        model,
         train_index,
         val_index,
         sample_weight=None,
-        **shap_kwargs
+        **shap_kwargs,
     ):
         """
         This function calculates the shap values on validation set, and Train and Val score.
@@ -985,7 +1025,7 @@ class EarlyStoppingShapRFECV(ShapRFECV):
                 Dataset used in CV.
 
             y (pd.Series):
-                Binary labels for X.
+                Labels for X.
 
             sample_weight (pd.Series, np.ndarray, list, optional):
                 array-like of shape (n_samples,) - only use if the model you're using supports
@@ -994,7 +1034,7 @@ class EarlyStoppingShapRFECV(ShapRFECV):
                 Note that they're only used for fitting of  the model, not during evaluation of metrics.
                 If not provided, then each sample is given unit weight.
 
-            clf (binary classifier):
+            model:
                 Model to be fitted on the train folds.
 
             train_index (np.array):
@@ -1016,48 +1056,48 @@ class EarlyStoppingShapRFECV(ShapRFECV):
 
         # The lightgbm imports are temporarily placed here, until the tests on
         # macOS have been fixed for lightgbm.
-        from lightgbm import early_stopping, log_evaluation, LGBMModel
+        from lightgbm import LGBMModel, early_stopping, log_evaluation
 
         X_train, X_val = X.iloc[train_index, :], X.iloc[val_index, :]
         y_train, y_val = y.iloc[train_index], y.iloc[val_index]
 
         fit_params = {
-            'X': X_train,
-            'y': y_train,
-            'eval_set': [(X_val, y_val)],
-            'eval_metric': self.eval_metric
+            "X": X_train,
+            "y": y_train,
+            "eval_set": [(X_val, y_val)],
+            "eval_metric": self.eval_metric,
         }
 
         # first_metric_only bypasses a bug that defaults the metric to the
         # scoring. It should only be True until the bug is found and fixed.
-        if isinstance(clf, LGBMModel):
-            fit_params['callbacks'] = [
+        if isinstance(model, LGBMModel):
+            fit_params["callbacks"] = [
                 early_stopping(
                     self.early_stopping_rounds, first_metric_only=True
                 )
             ]
-            
+
             if self.verbose >= 100:
-                fit_params['callbacks'].append(log_evaluation(1))
+                fit_params["callbacks"].append(log_evaluation(1))
             else:
-                fit_params['callbacks'].append(log_evaluation(0))
-                
+                fit_params["callbacks"].append(log_evaluation(0))
+
         else:
-            fit_params['early_stopping_rounds'] = self.early_stopping_rounds
-               
+            fit_params["early_stopping_rounds"] = self.early_stopping_rounds
+
         if sample_weight is not None:
-            fit_params['sample_weight'] = sample_weight.iloc[train_index]
-            fit_params['eval_sample_weight'] = [sample_weight.iloc[val_index]]
+            fit_params["sample_weight"] = sample_weight.iloc[train_index]
+            fit_params["eval_sample_weight"] = [sample_weight.iloc[val_index]]
 
         # Train the model
-        clf = clf.fit(**fit_params)
+        model = model.fit(**fit_params)
 
         # Score the model
-        score_train = self.scorer.scorer(clf, X_train, y_train)
-        score_val = self.scorer.scorer(clf, X_val, y_val)
+        score_train = self.scorer.scorer(model, X_train, y_train)
+        score_val = self.scorer.scorer(model, X_val, y_val)
 
         # Compute SHAP values
         shap_values = shap_calc(
-            clf, X_val, verbose=self.verbose, **shap_kwargs
+            model, X_val, verbose=self.verbose, **shap_kwargs
         )
         return shap_values, score_train, score_val
