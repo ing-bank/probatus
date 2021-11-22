@@ -13,7 +13,7 @@ from probatus.utils import (
     preprocess_labels,
     shap_calc,
 )
-from sklearn.base import clone, is_classifier
+from sklearn.base import clone, is_classifier, is_regressor
 from sklearn.model_selection import check_cv
 from sklearn.model_selection._search import BaseSearchCV
 
@@ -560,9 +560,21 @@ class ShapRFECV(BaseFitComputePlotClass):
                 for train_index, val_index in self.cv.split(current_X, self.y)
             )
 
-            shap_values = np.vstack([current_result[0] for current_result in results_per_fold])
-            scores_train = [current_result[1] for current_result in results_per_fold]
-            scores_val = [current_result[2] for current_result in results_per_fold]
+            if self.y.nunique() == 2 or is_regressor(current_clf):
+                shap_values = np.vstack(
+                    [current_result[0] for current_result in results_per_fold]
+                )
+            else:  # multi-class case
+                shap_values = np.hstack(
+                    [current_result[0] for current_result in results_per_fold]
+                )
+
+            scores_train = [
+                current_result[1] for current_result in results_per_fold
+            ]
+            scores_val = [
+                current_result[2] for current_result in results_per_fold
+            ]
 
             # Calculate the shap features with remaining features and features to keep.
 

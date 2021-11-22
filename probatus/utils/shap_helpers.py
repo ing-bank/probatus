@@ -176,9 +176,13 @@ def calculate_shap_importance(shap_values, columns, output_columns_suffix=""):
             Mean absolute shap values and Mean shap values of features.
 
     """
-    # Find average shap importance for neg and pos class
-    shap_abs_mean = np.mean(np.abs(shap_values), axis=0)
-    shap_mean = np.mean(shap_values, axis=0)
+    if np.ndim(shap_values) > 2:  # multi-class case
+        shap_abs_mean = np.mean(np.sum(np.abs(shap_values), axis=0), axis=0)
+        shap_mean = np.mean(np.sum(shap_values, axis=0), axis=0)
+    else:
+        # Find average shap importance for neg and pos class
+        shap_abs_mean = np.mean(np.abs(shap_values), axis=0)
+        shap_mean = np.mean(shap_values, axis=0)
 
     # Prepare importance values in a handy df
     importance_df = pd.DataFrame(
