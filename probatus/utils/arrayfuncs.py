@@ -267,11 +267,4 @@ def preprocess_labels(y, y_name=None, index=None, verbose=0):
     # Make sure that y is a series with correct index
     y = assure_pandas_series(y, index=index)
 
-    # Warn if not binary labels
-    if len(y.unique()) != 2:
-        if verbose > 0:
-            warnings.warn(
-                f"The labels in {y_name} contain {y.unique()} unique values. The features in probatus support"
-                f" binary classification models, thus, the feature might not work correctly."
-            )
     return y
