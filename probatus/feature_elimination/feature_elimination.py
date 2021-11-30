@@ -939,6 +939,41 @@ class EarlyStoppingShapRFECV(ShapRFECV):
     def _get_fit_params_lightGBM(
         self, X_train, y_train, X_val, y_val, sample_weight=None, train_index=None, val_index=None
     ):
+        """Get the fit parameters for for a LightGBM Model.
+
+        Args:
+
+            X_train (pd.DataFrame):
+                Train Dataset used in CV.
+
+            y_train (pd.Series):
+                Train Binary labels for X.
+
+            X_val (pd.DataFrame):
+                Validation Dataset used in CV.
+
+            y_val (pd.Series):
+                Validation Binary labels for X.
+
+            sample_weight (pd.Series, np.ndarray, list, optional):
+                array-like of shape (n_samples,) - only use if the model you're using supports
+                sample weighting (check the corresponding scikit-learn documentation).
+                Array of weights that are assigned to individual samples.
+                Note that they're only used for fitting of  the model, not during evaluation of metrics.
+                If not provided, then each sample is given unit weight.
+
+            train_index (np.array):
+                Positions of train folds samples.
+
+            val_index (np.array):
+                Positions of validation fold samples.
+
+        Raises:
+            ValueError: if the clf is not supported.
+
+        Returns:
+            dict: fit parameters
+        """
         from lightgbm import early_stopping, log_evaluation
 
         fit_params = {
@@ -960,7 +995,41 @@ class EarlyStoppingShapRFECV(ShapRFECV):
     def _get_fit_params_XGBoost(
         self, X_train, y_train, X_val, y_val, sample_weight=None, train_index=None, val_index=None
     ):
+        """Get the fit parameters for for a XGBoost Model.
 
+        Args:
+
+            X_train (pd.DataFrame):
+                Train Dataset used in CV.
+
+            y_train (pd.Series):
+                Train Binary labels for X.
+
+            X_val (pd.DataFrame):
+                Validation Dataset used in CV.
+
+            y_val (pd.Series):
+                Validation Binary labels for X.
+
+            sample_weight (pd.Series, np.ndarray, list, optional):
+                array-like of shape (n_samples,) - only use if the model you're using supports
+                sample weighting (check the corresponding scikit-learn documentation).
+                Array of weights that are assigned to individual samples.
+                Note that they're only used for fitting of  the model, not during evaluation of metrics.
+                If not provided, then each sample is given unit weight.
+
+            train_index (np.array):
+                Positions of train folds samples.
+
+            val_index (np.array):
+                Positions of validation fold samples.
+
+        Raises:
+            ValueError: if the clf is not supported.
+
+        Returns:
+            dict: fit parameters
+        """
         fit_params = {
             "X": X_train,
             "y": y_train,
@@ -976,6 +1045,42 @@ class EarlyStoppingShapRFECV(ShapRFECV):
     def _get_fit_params_CatBoost(
         self, X_train, y_train, X_val, y_val, sample_weight=None, train_index=None, val_index=None
     ):
+        """Get the fit parameters for for a CatBoost Model.
+
+        Args:
+
+            X_train (pd.DataFrame):
+                Train Dataset used in CV.
+
+            y_train (pd.Series):
+                Train Binary labels for X.
+
+            X_val (pd.DataFrame):
+                Validation Dataset used in CV.
+
+            y_val (pd.Series):
+                Validation Binary labels for X.
+
+            sample_weight (pd.Series, np.ndarray, list, optional):
+                array-like of shape (n_samples,) - only use if the model you're using supports
+                sample weighting (check the corresponding scikit-learn documentation).
+                Array of weights that are assigned to individual samples.
+                Note that they're only used for fitting of  the model, not during evaluation of metrics.
+                If not provided, then each sample is given unit weight.
+
+            train_index (np.array):
+                Positions of train folds samples.
+
+            val_index (np.array):
+                Positions of validation fold samples.
+
+        Raises:
+            ValueError: if the clf is not supported.
+
+        Returns:
+            dict: fit parameters
+        """
+
         cat_features = [col for col in X_train.select_dtypes(include=["category"]).columns]
         fit_params = {
             "X": Pool(X_train, y_train, cat_features=cat_features),
@@ -991,6 +1096,43 @@ class EarlyStoppingShapRFECV(ShapRFECV):
     def _get_fit_params(
         self, clf, X_train, y_train, X_val, y_val, sample_weight=None, train_index=None, val_index=None
     ):
+        """Get the fit parameters for the specified classifier.
+
+        Args:
+            clf (binary classifier):
+                Model to be fitted on the train folds.
+
+            X_train (pd.DataFrame):
+                Train Dataset used in CV.
+
+            y_train (pd.Series):
+                Train Binary labels for X.
+
+            X_val (pd.DataFrame):
+                Validation Dataset used in CV.
+
+            y_val (pd.Series):
+                Validation Binary labels for X.
+
+            sample_weight (pd.Series, np.ndarray, list, optional):
+                array-like of shape (n_samples,) - only use if the model you're using supports
+                sample weighting (check the corresponding scikit-learn documentation).
+                Array of weights that are assigned to individual samples.
+                Note that they're only used for fitting of  the model, not during evaluation of metrics.
+                If not provided, then each sample is given unit weight.
+
+            train_index (np.array):
+                Positions of train folds samples.
+
+            val_index (np.array):
+                Positions of validation fold samples.
+
+        Raises:
+            ValueError: if the clf is not supported.
+
+        Returns:
+            dict: fit parameters
+        """
         # The lightgbm imports are temporarily placed here, until the tests on
         # macOS have been fixed for lightgbm.
         from lightgbm import LGBMModel

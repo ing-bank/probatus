@@ -325,7 +325,7 @@ def test_shap_rfe_early_stopping_lightGBM(complex_data, capsys):
 
 def test_shap_rfe_early_stopping_CatBoost(complex_data, capsys):
     """
-    Test EarlyStoppingShapRFECV with a LGBMClassifier.
+    Test EarlyStoppingShapRFECV with a CatBoostClassifier.
     """
 
     clf = CatBoostClassifier()
