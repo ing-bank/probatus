@@ -2,6 +2,7 @@ import os
 
 import pandas as pd
 import pytest
+from catboost import CatBoostClassifier
 from probatus.feature_elimination import EarlyStoppingShapRFECV, ShapRFECV
 from probatus.utils import preprocess_labels
 from sklearn.linear_model import LogisticRegression
@@ -283,7 +284,7 @@ def test_complex_dataset(complex_data, complex_lightgbm):
 
 
 @pytest.mark.skipif(os.environ.get("SKIP_LIGHTGBM") == "true", reason="LightGBM tests disabled")
-def test_shap_rfe_early_stopping(complex_data, capsys):
+def test_shap_rfe_early_stopping_lightGBM(complex_data, capsys):
     """
     Test EarlyStoppingShapRFECV with a LGBMClassifier.
     """
@@ -322,8 +323,47 @@ def test_shap_rfe_early_stopping(complex_data, capsys):
     assert len(out) == 0
 
 
+def test_shap_rfe_early_stopping_CatBoost(complex_data, capsys):
+    """
+    Test EarlyStoppingShapRFECV with a LGBMClassifier.
+    """
+
+    clf = CatBoostClassifier()
+    X, y = complex_data
+    X["f1_categorical"] = X["f1_categorical"].astype(str).astype("category")
+
+    with pytest.warns(None) as record:
+        shap_elimination = EarlyStoppingShapRFECV(
+            clf,
+            random_state=1,
+            step=1,
+            cv=10,
+            scoring="roc_auc",
+            n_jobs=4,
+            early_stopping_rounds=5,
+            eval_metric="auc",
+        )
+        shap_elimination = shap_elimination.fit(X, y, approximate=False, check_additivity=False)
+
+    assert shap_elimination.fitted
+    shap_elimination._check_if_fitted()
+
+    report = shap_elimination.compute()
+
+    assert report.shape[0] == 5
+    assert shap_elimination.get_reduced_features_set(1) == ["f5"]
+
+    _ = shap_elimination.plot(show=False)
+
+    # Ensure that number of warnings was 0
+    assert len(record) == 0
+    # Check if there is any prints
+    out, _ = capsys.readouterr()
+    assert len(out) == 0
+
+
 @pytest.mark.skipif(os.environ.get("SKIP_LIGHTGBM") == "true", reason="LightGBM tests disabled")
-def test_shap_rfe_randomized_search_early_stopping(complex_data):
+def test_shap_rfe_randomized_search_early_stopping_lightGBM(complex_data):
     """
     Test EarlyStoppingShapRFECV with RandomizedSearchCV and a LGBMClassifier on complex dataset.
     """
@@ -363,7 +403,7 @@ def test_shap_rfe_randomized_search_early_stopping(complex_data):
 
 
 @pytest.mark.skipif(os.environ.get("SKIP_LIGHTGBM") == "true", reason="LightGBM tests disabled")
-def test_get_feature_shap_values_per_fold_early_stopping(complex_data):
+def test_get_feature_shap_values_per_fold_early_stopping_lightGBM(complex_data):
     """
     Test with ShapRFECV with features per fold.
     """
@@ -371,6 +411,29 @@ def test_get_feature_shap_values_per_fold_early_stopping(complex_data):
 
     clf = LGBMClassifier(n_estimators=200, max_depth=3)
     X, y = complex_data
+    y = preprocess_labels(y, y_name="y", index=X.index)
+
+    shap_elimination = EarlyStoppingShapRFECV(clf, early_stopping_rounds=5)
+    shap_values, train_score, test_score = shap_elimination._get_feature_shap_values_per_fold(
+        X,
+        y,
+        clf,
+        train_index=list(range(5, 50)),
+        val_index=[0, 1, 2, 3, 4],
+        scorer=get_scorer("roc_auc"),
+    )
+    assert test_score > 0.6
+    assert train_score > 0.6
+    assert shap_values.shape == (5, 5)
+
+
+def test_get_feature_shap_values_per_fold_early_stopping_CatBoost(complex_data):
+    """
+    Test with ShapRFECV with features per fold.
+    """
+    clf = CatBoostClassifier()
+    X, y = complex_data
+    X["f1_categorical"] = X["f1_categorical"].astype(str).astype("category")
     y = preprocess_labels(y, y_name="y", index=X.index)
 
     shap_elimination = EarlyStoppingShapRFECV(clf, early_stopping_rounds=5)

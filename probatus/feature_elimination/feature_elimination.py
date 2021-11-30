@@ -976,10 +976,10 @@ class EarlyStoppingShapRFECV(ShapRFECV):
     def _get_fit_params_CatBoost(
         self, X_train, y_train, X_val, y_val, sample_weight=None, train_index=None, val_index=None
     ):
-
+        cat_features = [col for col in X_train.select_dtypes(include=["category"]).columns]
         fit_params = {
-            "X": Pool(X_train, y_train),
-            "eval_set": Pool(X_val, y_val),
+            "X": Pool(X_train, y_train, cat_features=cat_features),
+            "eval_set": Pool(X_val, y_val, cat_features=cat_features),
             "early_stopping_rounds": self.early_stopping_rounds,
             # Evaluation metric should be passed during initialization
         }
