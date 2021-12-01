@@ -8,7 +8,6 @@ from joblib import Parallel, delayed
 from sklearn.base import clone, is_classifier
 from sklearn.model_selection import check_cv
 from sklearn.model_selection._search import BaseSearchCV
-from xgboost.sklearn import XGBModel
 
 from probatus.utils import (
     BaseFitComputePlotClass,
@@ -1133,9 +1132,10 @@ class EarlyStoppingShapRFECV(ShapRFECV):
         Returns:
             dict: fit parameters
         """
-        # The lightgbm imports are temporarily placed here, until the tests on
-        # macOS have been fixed for lightgbm.
+        # The lightgbm and xgboost imports are temporarily placed here, until the tests on
+        # macOS have been fixed.
         from lightgbm import LGBMModel
+        from xgboost.sklearn import XGBModel
 
         if isinstance(clf, LGBMModel):
             fit_params = self._get_fit_params_lightGBM(
