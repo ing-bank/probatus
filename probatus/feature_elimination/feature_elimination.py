@@ -1134,44 +1134,56 @@ class EarlyStoppingShapRFECV(ShapRFECV):
         """
         # The lightgbm and xgboost imports are temporarily placed here, until the tests on
         # macOS have been fixed.
-        from lightgbm import LGBMModel
-        from xgboost.sklearn import XGBModel
-        from catboost import CatBoost
 
-        if isinstance(clf, LGBMModel):
-            fit_params = self._get_fit_params_lightGBM(
-                X_train=X_train,
-                y_train=y_train,
-                X_val=X_val,
-                y_val=y_val,
-                sample_weight=sample_weight,
-                train_index=train_index,
-                val_index=val_index,
-            )
-        elif isinstance(clf, XGBModel):
-            fit_params = self._get_fit_params_XGBoost(
-                X_train=X_train,
-                y_train=y_train,
-                X_val=X_val,
-                y_val=y_val,
-                sample_weight=sample_weight,
-                train_index=train_index,
-                val_index=val_index,
-            )
-        elif isinstance(clf, CatBoost):
-            fit_params = self._get_fit_params_CatBoost(
-                X_train=X_train,
-                y_train=y_train,
-                X_val=X_val,
-                y_val=y_val,
-                sample_weight=sample_weight,
-                train_index=train_index,
-                val_index=val_index,
-            )
-        else:
-            raise ValueError("Model type not supported")
+        try:
+            from lightgbm import LGBMModel
 
-        return fit_params
+            if isinstance(clf, LGBMModel):
+                return self._get_fit_params_lightGBM(
+                    X_train=X_train,
+                    y_train=y_train,
+                    X_val=X_val,
+                    y_val=y_val,
+                    sample_weight=sample_weight,
+                    train_index=train_index,
+                    val_index=val_index,
+                )
+        except ImportError:
+            pass
+
+        try:
+            from xgboost.sklearn import XGBModel
+
+            if isinstance(clf, XGBModel):
+                return self._get_fit_params_XGBoost(
+                    X_train=X_train,
+                    y_train=y_train,
+                    X_val=X_val,
+                    y_val=y_val,
+                    sample_weight=sample_weight,
+                    train_index=train_index,
+                    val_index=val_index,
+                )
+        except ImportError:
+            pass
+
+        try:
+            from catboost import CatBoost
+
+            if isinstance(clf, CatBoost):
+                return self._get_fit_params_CatBoost(
+                    X_train=X_train,
+                    y_train=y_train,
+                    X_val=X_val,
+                    y_val=y_val,
+                    sample_weight=sample_weight,
+                    train_index=train_index,
+                    val_index=val_index,
+                )
+        except ImportError:
+            pass
+
+        raise ValueError("Model type not supported")
 
     def _get_feature_shap_values_per_fold(self, X, y, clf, train_index, val_index, sample_weight=None, **shap_kwargs):
         """

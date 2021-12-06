@@ -16,14 +16,14 @@ base_packages = [
     "scipy>=1.4.0",
     "joblib>=0.13.2",
     "tqdm>=4.41.0",
-    "shap >= 0.38.1, < 0.39.0",# 0.40.0 causes issues in certain plots. For now it is excluded
+    "shap >= 0.38.1, < 0.39.0",  # 0.40.0 causes issues in certain plots. For now it is excluded
     "numpy>=1.19.0",
-    "lightgbm>=3.3.0",
-    "catboost>=1.0.0",
-    "xgboost>=1.5.0"
 ]
 
 extra_dep = [
+    "lightgbm>=3.3.0",
+    "catboost>=1.0.0",
+    "xgboost>=1.5.0",
     "scipy>=1.4.0",
 ]
 
