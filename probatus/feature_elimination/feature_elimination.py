@@ -3,7 +3,6 @@ import warnings
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from catboost import CatBoost, Pool
 from joblib import Parallel, delayed
 from sklearn.base import clone, is_classifier
 from sklearn.model_selection import check_cv
@@ -1079,6 +1078,7 @@ class EarlyStoppingShapRFECV(ShapRFECV):
         Returns:
             dict: fit parameters
         """
+        from catboost import Pool
 
         cat_features = [col for col in X_train.select_dtypes(include=["category"]).columns]
         fit_params = {
@@ -1136,6 +1136,7 @@ class EarlyStoppingShapRFECV(ShapRFECV):
         # macOS have been fixed.
         from lightgbm import LGBMModel
         from xgboost.sklearn import XGBModel
+        from catboost import CatBoost
 
         if isinstance(clf, LGBMModel):
             fit_params = self._get_fit_params_lightGBM(
