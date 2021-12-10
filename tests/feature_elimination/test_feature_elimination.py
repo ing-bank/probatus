@@ -273,7 +273,9 @@ def test_complex_dataset(complex_data, complex_lightgbm):
     }
     search = RandomizedSearchCV(complex_lightgbm, param_grid, n_iter=1)
 
-    shap_elimination = ShapRFECV(clf=search, step=1, cv=10, scoring="roc_auc", n_jobs=3, verbose=50)
+    shap_elimination = ShapRFECV(
+        model=search, step=1, cv=10, scoring="roc_auc", n_jobs=3, verbose=50
+    )
     with pytest.warns(None) as record:
         report = shap_elimination.fit_compute(X, y)
 
