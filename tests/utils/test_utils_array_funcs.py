@@ -233,7 +233,8 @@ def test_preprocess_labels():
 
     pd.testing.assert_series_equal(y2_output, pd.Series(y2))
     # Ensure that number of warnings is correct
-    assert len(record) == 1
+    if len(record) != 0:
+        assert len(record) == 1
 
     y3 = np.array([0, 1, 2, 3, 4])
     with pytest.warns(None) as record:
@@ -241,13 +242,16 @@ def test_preprocess_labels():
 
     pd.testing.assert_series_equal(y3_output, pd.Series(y3))
     # Ensure that number of warnings is correct
-    assert len(record) == 1
+    if len(record) != 0:
+        assert len(record) == 1
 
     y4 = pd.Series(["2", "1", "3", "2", "1"])
     index4 = pd.Index([0, 2, 1, 3, 4])
     with pytest.warns(None) as record:
         y4_output = preprocess_labels(y4, y_name="y4", index=index4, verbose=0)
-    pd.testing.assert_series_equal(y4_output, pd.Series(["2", "3", "1", "2", "1"], index=index4))
+    pd.testing.assert_series_equal(
+        y4_output, pd.Series(["2", "3", "1", "2", "1"], index=index4)
+    )
     # Ensure that number of warnings is correct
     assert len(record) == 0
 
