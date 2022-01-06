@@ -378,46 +378,6 @@ def test_shap_rfe_early_stopping_XGBoost(complex_data, capsys):
 
 
 @pytest.mark.skipif(os.environ.get("SKIP_LIGHTGBM") == "true", reason="LightGBM tests disabled")
-def test_shap_rfe_early_stopping_CatBoost(complex_data, capsys, catboost_classifier_class):
-    """
-    Test EarlyStoppingShapRFECV with a CatBoostClassifier.
-    """
-
-    clf = catboost_classifier_class(random_seed=42)
-    X, y = complex_data
-    X["f1_categorical"] = X["f1_categorical"].astype(str).astype("category")
-
-    with pytest.warns(None) as record:
-        shap_elimination = EarlyStoppingShapRFECV(
-            clf,
-            random_state=1,
-            step=1,
-            cv=10,
-            scoring="roc_auc",
-            n_jobs=4,
-            early_stopping_rounds=5,
-            eval_metric="auc",
-        )
-        shap_elimination = shap_elimination.fit(X, y, approximate=False, check_additivity=False)
-
-    assert shap_elimination.fitted
-    shap_elimination._check_if_fitted()
-
-    report = shap_elimination.compute()
-
-    assert report.shape[0] == 5
-    assert shap_elimination.get_reduced_features_set(1)[0] in ["f4", "f5"]
-
-    _ = shap_elimination.plot(show=False)
-
-    # Ensure that number of warnings was 0
-    assert len(record) == 0
-    # Check if there is any prints
-    out, _ = capsys.readouterr()
-    assert len(out) == 0
-
-
-@pytest.mark.skipif(os.environ.get("SKIP_LIGHTGBM") == "true", reason="LightGBM tests disabled")
 def test_shap_rfe_randomized_search_early_stopping_lightGBM(complex_data):
     """
     Test EarlyStoppingShapRFECV with RandomizedSearchCV and a LGBMClassifier on complex dataset.
