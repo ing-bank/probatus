@@ -32,12 +32,11 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
-    # https://github.com/numba/llvmlite/issues/55 
     - name: Install LLVM
       if: "contains("3.10", matrix.python-version) && contains("ubuntu", matrix.os)"
       run: |
         sudo apt-get install -y llvm
-        
+  
     - name: Install dependencies
       env:
         SKIP_LIGHTGBM: ${{ matrix.SKIP_LIGHTGBM }}
