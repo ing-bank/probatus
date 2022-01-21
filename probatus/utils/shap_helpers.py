@@ -88,8 +88,8 @@ def shap_calc(
         # Create the background data,required for non tree based models.
         # A single datapoint can passed as mask (https://github.com/slundberg/shap/issues/955#issuecomment-569837201)
 
-        if X.shape[1] < sample_size:
-            sample_size = int(np.ceil(X.shape[1] * 0.2))
+        if X.shape[0] < sample_size:
+            sample_size = int(np.ceil(X.shape[0] * 0.2))
         else:
             pass
         mask = sample(X, sample_size)
