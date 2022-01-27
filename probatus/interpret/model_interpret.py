@@ -96,7 +96,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
             verbose (int, optional):
                 Controls verbosity of the output:
 
-                - 0 - niether prints nor warnings are shown
+                - 0 - neither prints nor warnings are shown
                 - 1 - 50 - only most important warnings
                 - 51 - 100 - shows other warnings and prints
                 - above 100 - presents all prints and all warnings (including SHAP warnings).
