@@ -289,7 +289,7 @@ class BaseVolatilityEstimator(BaseFitComputePlotClass):
         ]
         report_columns = stats_columns + stats_tests_columns
 
-        self.report = pd.DataFrame([], columns=report_columns)
+        self.report = pd.DataFrame()
 
         for metric in unique_metrics:
             metric_iterations_results = self.iterations_results[self.iterations_results["metric_name"] == metric]
