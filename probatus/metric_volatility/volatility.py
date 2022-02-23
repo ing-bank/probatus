@@ -289,14 +289,16 @@ class BaseVolatilityEstimator(BaseFitComputePlotClass):
         ]
         report_columns = stats_columns + stats_tests_columns
 
-        self.report = pd.DataFrame([], columns=report_columns)
+        report = []
 
         for metric in unique_metrics:
             metric_iterations_results = self.iterations_results[self.iterations_results["metric_name"] == metric]
             metrics = self._compute_mean_std_from_runs(metric_iterations_results)
             stats_tests_values = self._compute_stats_tests_values(metric_iterations_results)
-            metric_row = pd.DataFrame([metrics + stats_tests_values], columns=report_columns, index=[metric])
-            self.report = self.report.append(metric_row)
+            metric_row = metrics + stats_tests_values
+            report.append(metric_row)
+
+        self.report = pd.DataFrame(report, columns=report_columns, index=unique_metrics)
 
     def _compute_mean_std_from_runs(self, metric_iterations_results):
         """

@@ -200,7 +200,8 @@ class DistributionStatistics(object):
 
 
 class AutoDist(object):
-    """
+    """Apply stat tests and binning strategies.
+
     Class to automatically apply all implemented statistical distribution tests and binning strategies
     to (a selection of) features in two dataframes.
 
@@ -332,30 +333,34 @@ class AutoDist(object):
             raise Exception("Not all columns in `column_names` are in the provided dataframes")
 
         # Calculate statistics and p-values for all combinations
-        result_all = pd.DataFrame()
+        result_all = []
         for col in column_names:
             # Issue a warning if missing values are present in one of the two columns. These observations are removed
             # in the calculations.
             if np.sum(df1[col].isna()) + np.sum(df2[col].isna()):
-                    warnings.warn(f"Missing values in column {col} have been removed")
+                warnings.warn(f"Missing values in column {col} have been removed")
 
             # Remove the missing values.
             feature_df1 = df1[col].dropna()
             feature_df2 = df2[col].dropna()
 
             for stat_test, bin_strat, bins in tqdm(
-            list(
-                itertools.product(
-                    self.statistical_tests,
-                    self.binning_strategies,
-                    self.bin_count,
+                list(
+                    itertools.product(
+                        self.statistical_tests,
+                        self.binning_strategies,
+                        self.bin_count,
+                    )
                 )
-            )
-        ):
+            ):
                 if self.binning_strategies == ["default"]:
                     bin_strat = DistributionStatistics.statistical_test_dict[stat_test]["default_binning"]
-                
-                dist = DistributionStatistics(statistical_test=stat_test, binning_strategy=bin_strat, bin_count=bins)
+
+                dist = DistributionStatistics(
+                    statistical_test=stat_test,
+                    binning_strategy=bin_strat,
+                    bin_count=bins,
+                )
                 try:
                     if suppress_warnings:
                         warnings.filterwarnings("ignore")
@@ -377,7 +382,10 @@ class AutoDist(object):
                     "statistic": statistic,
                     "p_value": p_value,
                 }
-                result_all = result_all.append(result_, ignore_index=True)
+
+                result_all.append(result_)
+
+        result_all = pd.DataFrame(result_all)
 
         if not return_failed_tests:
             result_all = result_all[result_all["statistic"] != "an error occurred"]
