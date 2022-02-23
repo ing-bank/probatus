@@ -110,17 +110,14 @@ def get_metric(
     clf = clf.fit(X_train, y_train)
 
     results_columns = ["metric_name", "train_score", "test_score", "delta_score"]
-    results = pd.DataFrame()
+    results = []
 
     for scorer in scorers:
         score_train = scorer.score(clf, X_train, y_train)
         score_test = scorer.score(clf, X_test, y_test)
         score_delta = score_train - score_test
 
-        results = results.append(
-            pd.DataFrame(
-                [[scorer.metric_name, score_train, score_test, score_delta]],
-                columns=results_columns,
-            )
+        results.append(
+            [scorer.metric_name, score_train, score_test, score_delta],
         )
-    return results
+    return pd.DataFrame(results, columns=results_columns)
