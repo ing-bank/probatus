@@ -3,14 +3,14 @@ import os
 import pandas as pd
 import pytest
 from probatus.feature_elimination import EarlyStoppingShapRFECV, ShapRFECV
-from probatus.utils import preprocess_labels
+from probatus.utils import Scorer, preprocess_labels
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import get_scorer
+from sklearn.metrics import get_scorer, make_scorer, roc_auc_score
 from sklearn.model_selection import RandomizedSearchCV
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVC
-from sklearn.tree import DecisionTreeClassifier
+from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 
 
 @pytest.fixture(scope="function")
@@ -30,6 +30,39 @@ def y():
     Fixture for y.
     """
     return pd.Series([1, 0, 1, 0, 1, 0, 1, 0], index=[1, 2, 3, 4, 5, 6, 7, 8])
+
+
+@pytest.fixture(scope="function")
+def X_multi():
+    """
+    Fixture for multi-class X.
+    """
+    return pd.DataFrame(
+        {
+            "col_1": [1, 1, 1, 1, 0, 1, 0, 0],
+            "col_2": [0, 0, 0, 0, 1, 0, 1, 1],
+            "col_3": [1, 0, 2, 0, 2, 0, 1, 0],
+        },
+        index=[1, 2, 3, 4, 5, 6, 7, 8],
+    )
+
+
+@pytest.fixture(scope="function")
+def y_multi():
+    """
+    Fixture for multi-class y.
+    """
+    return pd.Series([1, 0, 2, 0, 2, 0, 1, 0], index=[1, 2, 3, 4, 5, 6, 7, 8])
+
+
+@pytest.fixture(scope="function")
+def y_reg():
+    """
+    Fixture for y.
+    """
+    return pd.Series(
+        [100, 1, 101, 2, 99, -1, 102, 1], index=[1, 2, 3, 4, 5, 6, 7, 8]
+    )
 
 
 @pytest.fixture(scope="function")
@@ -83,7 +116,97 @@ def test_shap_rfe(X, y, sample_weight, capsys):
             n_jobs=4,
         )
         shap_elimination = shap_elimination.fit(
-            X, y, sample_weight=sample_weight, approximate=True, check_additivity=False
+            X,
+            y,
+            sample_weight=sample_weight,
+            approximate=True,
+            check_additivity=False,
+        )
+
+    assert shap_elimination.fitted
+    shap_elimination._check_if_fitted()
+
+    report = shap_elimination.compute()
+
+    assert report.shape[0] == 3
+    assert shap_elimination.get_reduced_features_set(1) == ["col_3"]
+
+    _ = shap_elimination.plot(show=False)
+
+    # Ensure that number of warnings was 0
+    assert len(record) == 0
+    # Check if there is any prints
+    out, _ = capsys.readouterr()
+    assert len(out) == 0
+
+
+def test_shap_rfe_multi(X_multi, y_multi, sample_weight, capsys):
+    """
+    Test with ShapRFECV.
+    """
+    clf = DecisionTreeClassifier(max_depth=1, random_state=1)
+    with pytest.warns(None) as record:
+        shap_elimination = ShapRFECV(
+            clf,
+            random_state=1,
+            step=1,
+            cv=2,
+            scoring=Scorer(
+                "roc_auc_multi",
+                make_scorer(
+                    roc_auc_score,
+                    average="macro",
+                    multi_class="ovo",
+                    needs_proba=True,
+                ),
+            ),
+            n_jobs=4,
+        )
+        shap_elimination = shap_elimination.fit(
+            X_multi,
+            y_multi,
+            sample_weight=sample_weight,
+            approximate=True,
+            check_additivity=False,
+        )
+
+    assert shap_elimination.fitted
+    shap_elimination._check_if_fitted()
+
+    report = shap_elimination.compute()
+
+    assert report.shape[0] == 3
+    assert shap_elimination.get_reduced_features_set(1) == ["col_3"]
+
+    _ = shap_elimination.plot(show=False)
+
+    # Ensure that number of warnings was 0
+    assert len(record) == 0
+    # Check if there is any prints
+    out, _ = capsys.readouterr()
+    assert len(out) == 0
+
+
+def test_shap_rfe_reg(X, y_reg, sample_weight, capsys):
+    """
+    Test with ShapRFECV.
+    """
+    reg = DecisionTreeRegressor(max_depth=1, random_state=1)
+    with pytest.warns(None) as record:
+        shap_elimination = ShapRFECV(
+            reg,
+            random_state=1,
+            step=1,
+            cv=2,
+            scoring="neg_mean_absolute_error",
+            n_jobs=4,
+        )
+        shap_elimination = shap_elimination.fit(
+            X,
+            y_reg,
+            sample_weight=sample_weight,
+            approximate=True,
+            check_additivity=False,
         )
 
     assert shap_elimination.fitted
