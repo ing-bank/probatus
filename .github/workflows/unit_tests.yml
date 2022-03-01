@@ -24,13 +24,14 @@ jobs:
           - build: windows
             os: windows-latest
             SKIP_LIGHTGBM: False
-        python-version: [3.6, 3.7, 3.8, 3.9]
+        python-version: [3.7, 3.8, 3.9, "3.10"]
     steps:
     - uses: actions/checkout@master
     - name: Setup Python  
       uses: actions/setup-python@master
       with:
         python-version: ${{ matrix.python-version }}
+
     - name: Install dependencies
       env:
         SKIP_LIGHTGBM: ${{ matrix.SKIP_LIGHTGBM }}
