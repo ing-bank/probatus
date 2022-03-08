@@ -402,6 +402,7 @@ class ShapRFECV(BaseFitComputePlotClass):
         self,
         X,
         y,
+        groups=None,
         sample_weight=None,
         columns_to_keep=None,
         column_names=None,
@@ -425,6 +426,12 @@ class ShapRFECV(BaseFitComputePlotClass):
 
             y (pd.Series):
                 Binary labels for X.
+
+            groups (pd.Series, np.ndarray, list, optional):
+                array-like of shape (n_samples,)
+                Group labels for the samples used while splitting the dataset into train/test set.
+                Only used in conjunction with a "Group" `cv` instance.
+                (e.g. `sklearn.model_selection.GroupKFold`).
 
             sample_weight (pd.Series, np.ndarray, list, optional):
                 array-like of shape (n_samples,) - only use if the model you're using supports
@@ -546,7 +553,7 @@ class ShapRFECV(BaseFitComputePlotClass):
                     sample_weight=sample_weight,
                     **shap_kwargs,
                 )
-                for train_index, val_index in self.cv.split(current_X, self.y)
+                for train_index, val_index in self.cv.split(current_X, self.y, groups)
             )
 
             shap_values = np.vstack([current_result[0] for current_result in results_per_fold])
