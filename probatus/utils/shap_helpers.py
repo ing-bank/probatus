@@ -86,9 +86,10 @@ def shap_calc(
             warnings.simplefilter("ignore")
 
         # For tree explainers, do not pass masker when feature_perturbation is
-        # tree_path_dependent, related to issue:
+        # tree_path_dependent, or when X contains categorical features
+        # related to issue:
         # https://github.com/slundberg/shap/issues/480
-        if shap_kwargs.get("feature_perturbation") == "tree_path_dependent":
+        if shap_kwargs.get("feature_perturbation") == "tree_path_dependent" or X.select_dtypes("category").shape[1] > 0:
             # Calculate Shap values.
             explainer = Explainer(model, **shap_kwargs)
         else:
