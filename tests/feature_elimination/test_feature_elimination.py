@@ -569,10 +569,7 @@ def test_EarlyStoppingShapRFECV_no_categorical(complex_data):
     )
     X, y = complex_data
     X = X.drop(columns=["f1_categorical"])
-    report = shap_elimination.fit_compute(
-        X,
-        y,
-    )
+    report = shap_elimination.fit_compute(X, y, feature_perturbation="tree_path_dependent")
     assert shap_elimination.fitted
     shap_elimination._check_if_fitted()
 
@@ -615,10 +612,7 @@ def test_LightGBM_stratified_kfold():
             eval_metric="logloss",
             early_stopping_rounds=5,
         )
-        report = shap_elimination.fit_compute(
-            X,
-            y,
-        )
+        report = shap_elimination.fit_compute(X, y, feature_perturbation="tree_path_dependent")
     assert shap_elimination.fitted
     shap_elimination._check_if_fitted()
 

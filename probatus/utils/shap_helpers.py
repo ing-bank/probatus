@@ -85,15 +85,13 @@ def shap_calc(
         if verbose <= 100:
             warnings.simplefilter("ignore")
 
-        # For tree explainers, avoid using masker, related to issue:
+        # For tree explainers, do not pass masker when feature_perturbation is
+        # tree_path_dependent, related to issue:
         # https://github.com/slundberg/shap/issues/480
-        if Tree.supports_model_with_masker(model, masker=None):
+        if shap_kwargs.get("feature_perturbation") == "tree_path_dependent":
             # Calculate Shap values.
             explainer = Explainer(model, **shap_kwargs)
-            shap_values = explainer.shap_values(X, check_additivity=check_additivity, approximate=approximate)
         else:
-            # Calculate Shap values.
-
             # Create the background data,required for non tree based models.
             # A single datapoint can passed as mask
             # (https://github.com/slundberg/shap/issues/955#issuecomment-569837201)
@@ -103,6 +101,13 @@ def shap_calc(
                 pass
             mask = sample(X, sample_size)
             explainer = Explainer(model, masker=mask, **shap_kwargs)
+
+        # For tree-explainers allow for using check_additivity and approximate arguments
+        if isinstance(explainer, Tree):
+            # Calculate Shap values
+            shap_values = explainer.shap_values(X, check_additivity=check_additivity, approximate=approximate)
+        else:
+            # Calculate Shap values
             shap_values = explainer.shap_values(X)
 
         if isinstance(shap_values, list) and len(shap_values) == 2:
