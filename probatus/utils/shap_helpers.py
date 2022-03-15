@@ -85,8 +85,8 @@ def shap_calc(
         if verbose <= 100:
             warnings.simplefilter("ignore")
 
-
-        # For tree-explainers allow for using check_additivity and approximate arguments
+        # For tree explainers, avoid using masker, related to issue:
+        # https://github.com/slundberg/shap/issues/480
         if Tree.supports_model_with_masker(model, masker=None):
             # Calculate Shap values.
             explainer = Explainer(model, **shap_kwargs)
@@ -95,7 +95,8 @@ def shap_calc(
             # Calculate Shap values.
 
             # Create the background data,required for non tree based models.
-            # A single datapoint can passed as mask (https://github.com/slundberg/shap/issues/955#issuecomment-569837201)
+            # A single datapoint can passed as mask
+            # (https://github.com/slundberg/shap/issues/955#issuecomment-569837201)
             if X.shape[0] < sample_size:
                 sample_size = int(np.ceil(X.shape[0] * 0.2))
             else:

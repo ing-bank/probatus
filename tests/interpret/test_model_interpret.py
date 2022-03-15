@@ -65,8 +65,8 @@ def expected_feature_importance():
         {
             "mean_abs_shap_value_test": [0.5, 0.0, 0.0],
             "mean_abs_shap_value_train": [0.5, 0.0, 0.0],
-            "mean_shap_value_test": [-0.5, 0.0, 0.0],
-            "mean_shap_value_train": [-0.5, 0.0, 0.0],
+            "mean_shap_value_test": [0.0, 0.0, 0.0],
+            "mean_shap_value_train": [0.0, 0.0, 0.0],
         },
         index=["col_3", "col_1", "col_2"],
     )

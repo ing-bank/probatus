@@ -6,7 +6,7 @@ from probatus.feature_elimination import EarlyStoppingShapRFECV, ShapRFECV
 from probatus.utils import preprocess_labels
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import get_scorer
-from sklearn.model_selection import RandomizedSearchCV
+from sklearn.model_selection import RandomizedSearchCV, StratifiedKFold
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVC
@@ -19,7 +19,11 @@ def X():
     Fixture for X.
     """
     return pd.DataFrame(
-        {"col_1": [1, 1, 1, 1, 1, 1, 1, 0], "col_2": [0, 0, 0, 0, 0, 0, 0, 1], "col_3": [1, 0, 1, 0, 1, 0, 1, 0]},
+        {
+            "col_1": [1, 1, 1, 1, 1, 1, 1, 0],
+            "col_2": [0, 0, 0, 0, 0, 0, 0, 1],
+            "col_3": [1, 0, 1, 0, 1, 0, 1, 0],
+        },
         index=[1, 2, 3, 4, 5, 6, 7, 8],
     )
 
@@ -121,7 +125,12 @@ def test_shap_pipeline_error(X, y, capsys):
     """
     Test with ShapRFECV for pipelines.
     """
-    clf = Pipeline([("scaler", StandardScaler()), ("dt", DecisionTreeClassifier(max_depth=1, random_state=1))])
+    clf = Pipeline(
+        [
+            ("scaler", StandardScaler()),
+            ("dt", DecisionTreeClassifier(max_depth=1, random_state=1)),
+        ]
+    )
     with pytest.raises(TypeError):
         shap_elimination = ShapRFECV(
             clf,
@@ -193,7 +202,13 @@ def test_shap_rfe_cols_to_keep(X, y, capsys):
     clf = DecisionTreeClassifier(max_depth=1, random_state=1)
     with pytest.warns(None) as record:
         shap_elimination = ShapRFECV(
-            clf, random_state=1, step=2, cv=2, scoring="roc_auc", n_jobs=4, min_features_to_select=1
+            clf,
+            random_state=1,
+            step=2,
+            cv=2,
+            scoring="roc_auc",
+            n_jobs=4,
+            min_features_to_select=1,
         )
         shap_elimination = shap_elimination.fit(X, y, columns_to_keep=["col_2", "col_3"])
 
@@ -266,8 +281,13 @@ def test_get_feature_shap_values_per_fold(X, y):
     """
     clf = DecisionTreeClassifier(max_depth=1)
     shap_elimination = ShapRFECV(clf)
-    shap_values, train_score, test_score = shap_elimination._get_feature_shap_values_per_fold(
-        X, y, clf, train_index=[2, 3, 4, 5, 6, 7], val_index=[0, 1], scorer=get_scorer("roc_auc")
+    (shap_values, train_score, test_score,) = shap_elimination._get_feature_shap_values_per_fold(
+        X,
+        y,
+        clf,
+        train_index=[2, 3, 4, 5, 6, 7],
+        val_index=[0, 1],
+        scorer=get_scorer("roc_auc"),
     )
     assert test_score == 1
     assert train_score > 0.9
@@ -376,7 +396,8 @@ def test_shap_rfe_early_stopping_XGBoost(complex_data, capsys):
     out, _ = capsys.readouterr()
     assert len(out) == 0
 
-# For now this test fails, catboost has issues with categorical variables and 
+
+# For now this test fails, catboost has issues with categorical variables and
 @pytest.mark.xfail
 @pytest.mark.skipif(os.environ.get("SKIP_LIGHTGBM") == "true", reason="LightGBM tests disabled")
 def test_shap_rfe_early_stopping_CatBoost(complex_data, capsys, catboost_classifier_class):
@@ -468,7 +489,7 @@ def test_get_feature_shap_values_per_fold_early_stopping_lightGBM(complex_data):
     y = preprocess_labels(y, y_name="y", index=X.index)
 
     shap_elimination = EarlyStoppingShapRFECV(clf, early_stopping_rounds=5)
-    shap_values, train_score, test_score = shap_elimination._get_feature_shap_values_per_fold(
+    (shap_values, train_score, test_score,) = shap_elimination._get_feature_shap_values_per_fold(
         X,
         y,
         clf,
@@ -492,7 +513,7 @@ def test_get_feature_shap_values_per_fold_early_stopping_CatBoost(complex_data, 
     y = preprocess_labels(y, y_name="y", index=X.index)
 
     shap_elimination = EarlyStoppingShapRFECV(clf, early_stopping_rounds=5)
-    shap_values, train_score, test_score = shap_elimination._get_feature_shap_values_per_fold(
+    (shap_values, train_score, test_score,) = shap_elimination._get_feature_shap_values_per_fold(
         X,
         y,
         clf,
@@ -518,7 +539,7 @@ def test_get_feature_shap_values_per_fold_early_stopping_XGBoost(complex_data):
     y = preprocess_labels(y, y_name="y", index=X.index)
 
     shap_elimination = EarlyStoppingShapRFECV(clf, early_stopping_rounds=5)
-    shap_values, train_score, test_score = shap_elimination._get_feature_shap_values_per_fold(
+    (shap_values, train_score, test_score,) = shap_elimination._get_feature_shap_values_per_fold(
         X,
         y,
         clf,
@@ -529,3 +550,78 @@ def test_get_feature_shap_values_per_fold_early_stopping_XGBoost(complex_data):
     assert test_score > 0
     assert train_score > 0.6
     assert shap_values.shape == (5, 5)
+
+
+@pytest.mark.skipif(os.environ.get("SKIP_LIGHTGBM") == "true", reason="LightGBM tests disabled")
+def test_EarlyStoppingShapRFECV_no_categorical(complex_data):
+    """Test EarlyStoppingShapRFECV when no categorical features are present."""
+    from lightgbm import LGBMClassifier
+
+    model = LGBMClassifier(n_estimators=50, max_depth=3, num_leaves=3)
+
+    shap_elimination = EarlyStoppingShapRFECV(
+        clf=model,
+        step=0.33,
+        cv=5,
+        scoring="accuracy",
+        eval_metric="logloss",
+        early_stopping_rounds=5,
+    )
+    X, y = complex_data
+    X = X.drop(columns=["f1_categorical"])
+    report = shap_elimination.fit_compute(
+        X,
+        y,
+    )
+    assert shap_elimination.fitted
+    shap_elimination._check_if_fitted()
+
+    assert report.shape[0] == X.shape[1]
+    assert shap_elimination.get_reduced_features_set(1) == ["f5"]
+
+    _ = shap_elimination.plot(show=False)
+
+
+@pytest.mark.skipif(os.environ.get("SKIP_LIGHTGBM") == "true", reason="LightGBM tests disabled")
+def test_LightGBM_stratified_kfold():
+    """
+    Test added to check for https://github.com/ing-bank/probatus/issues/170.
+    """
+    from lightgbm import LGBMClassifier
+
+    X = pd.DataFrame(
+        [
+            [1, 2, 3, 4, 5, 101, 102, 103, 104, 105],
+            [-1, -2, 2, -5, -7, 1, 2, 5, -1, 3],
+            ["a", "b"] * 5,  # noisy categorical will dropped first
+        ]
+    ).transpose()
+    X[2] = X[2].astype("category")
+    X[1] = X[1].astype("float")
+    X[0] = X[0].astype("float")
+    y = [0] * 5 + [1] * 5
+
+    model = LGBMClassifier()
+    n_iter = 2
+    n_folds = 3
+
+    for _ in range(n_iter):
+        skf = StratifiedKFold(n_folds, shuffle=True, random_state=42)
+        shap_elimination = EarlyStoppingShapRFECV(
+            clf=model,
+            step=1 / (n_iter + 1),
+            cv=skf,
+            scoring="accuracy",
+            eval_metric="logloss",
+            early_stopping_rounds=5,
+        )
+        report = shap_elimination.fit_compute(
+            X,
+            y,
+        )
+    assert shap_elimination.fitted
+    shap_elimination._check_if_fitted()
+
+    assert report.shape[0] == X.shape[1]
+
+    shap_elimination.plot(show=False)
