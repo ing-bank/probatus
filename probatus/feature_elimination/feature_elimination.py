@@ -402,10 +402,10 @@ class ShapRFECV(BaseFitComputePlotClass):
         self,
         X,
         y,
-        groups=None,
         sample_weight=None,
         columns_to_keep=None,
         column_names=None,
+        groups=None,
         **shap_kwargs,
     ):
         """
@@ -427,12 +427,6 @@ class ShapRFECV(BaseFitComputePlotClass):
             y (pd.Series):
                 Binary labels for X.
 
-            groups (pd.Series, np.ndarray, list, optional):
-                array-like of shape (n_samples,)
-                Group labels for the samples used while splitting the dataset into train/test set.
-                Only used in conjunction with a "Group" `cv` instance.
-                (e.g. `sklearn.model_selection.GroupKFold`).
-
             sample_weight (pd.Series, np.ndarray, list, optional):
                 array-like of shape (n_samples,) - only use if the model you're using supports
                 sample weighting (check the corresponding scikit-learn documentation).
@@ -449,6 +443,12 @@ class ShapRFECV(BaseFitComputePlotClass):
                 List of feature names of the provided samples. If provided it will be used to overwrite the existing
                 feature names. If not provided the existing feature names are used or default feature names are
                 generated.
+
+            groups (pd.Series, np.ndarray, list, optional):
+                array-like of shape (n_samples,)
+                Group labels for the samples used while splitting the dataset into train/test set.
+                Only used in conjunction with a "Group" `cv` instance.
+                (e.g. `sklearn.model_selection.GroupKFold`).
 
             **shap_kwargs:
                 keyword arguments passed to
