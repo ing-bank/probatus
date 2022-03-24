@@ -85,31 +85,30 @@ def shap_calc(
         if verbose <= 100:
             warnings.simplefilter("ignore")
 
-        # Create the background data,required for non tree based models.
-        # A single datapoint can passed as mask (https://github.com/slundberg/shap/issues/955#issuecomment-569837201)
-
-        if X.shape[0] < sample_size:
-            sample_size = int(np.ceil(X.shape[0] * 0.2))
-        else:
-            pass
-        mask = sample(X, sample_size)
-
-        if X.select_dtypes("category").shape[1] > 0:
-            if verbose > 0:
-                warnings.warn(
-                    "Using tree_dependent feature_perturbation (in shap) without background"
-                    " data for tree-based model with categorical features."
-                )
+        # For tree explainers, do not pass masker when feature_perturbation is
+        # tree_path_dependent, or when X contains categorical features
+        # related to issue:
+        # https://github.com/slundberg/shap/issues/480
+        if shap_kwargs.get("feature_perturbation") == "tree_path_dependent" or X.select_dtypes("category").shape[1] > 0:
+            # Calculate Shap values.
             explainer = Explainer(model, **shap_kwargs)
         else:
+            # Create the background data,required for non tree based models.
+            # A single datapoint can passed as mask
+            # (https://github.com/slundberg/shap/issues/955#issuecomment-569837201)
+            if X.shape[0] < sample_size:
+                sample_size = int(np.ceil(X.shape[0] * 0.2))
+            else:
+                pass
+            mask = sample(X, sample_size)
             explainer = Explainer(model, masker=mask, **shap_kwargs)
 
         # For tree-explainers allow for using check_additivity and approximate arguments
         if isinstance(explainer, Tree):
-            # Calculate Shap values.
+            # Calculate Shap values
             shap_values = explainer.shap_values(X, check_additivity=check_additivity, approximate=approximate)
         else:
-            # Calculate Shap values.
+            # Calculate Shap values
             shap_values = explainer.shap_values(X)
 
         if isinstance(shap_values, list) and len(shap_values) == 2:
