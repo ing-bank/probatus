@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.9] - 2022-04-08
+Improvements in this release:
+- Drop explicit support for python 3.6, add 3.10 #177
+- Bug fix: define shap mask based on rows, instead of columns #178
+- Bug fixes in unit tests #180
+- Improve support for categorical features in shap calculations #184
+
 ## [1.8.8] - 2021-12-08
 Improvements in this release:
 - Added support for XGBoost and Catboost models in ShapRFECV  #175

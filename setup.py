@@ -1,5 +1,6 @@
-import setuptools
 import os
+
+import setuptools
 
 
 def read(fname):
@@ -60,7 +61,7 @@ docs_dep = [
 
 setuptools.setup(
     name="probatus",
-    version="1.8.8",
+    version="1.8.9",
     description="Validation of binary classifiers and data used to develop them",
     long_description=read("README.md"),
     long_description_content_type="text/markdown",
