@@ -16,7 +16,6 @@ jobs:
     - name: Install dependencies
       run: |
         pip3 install --upgrade setuptools pip
-        pip3 install --upgrade wheel twine
         pip3 install ".[all]"
     - name: Run unit tests and linters
       env:
@@ -28,6 +27,7 @@ jobs:
         TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
         TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
       run: |
+        pip3 install --upgrade wheel twine
         python3 setup.py sdist bdist_wheel
         twine upload dist/*
     - name: Deploy mkdocs site
