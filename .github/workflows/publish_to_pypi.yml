@@ -8,18 +8,19 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@master
     - name: Set up Python
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@master
       with:
         python-version: 3.8
-        fetch-depth: 0
     - name: Install dependencies
       run: |
-        python3 -m pip install --upgrade pip
-        pip3 install -U setuptools wheel twine
+        pip3 install --upgrade setuptools pip
+        pip3 install --upgrade wheel twine
         pip3 install ".[all]"
-    - name: Make sure unit tests succeed
+    - name: Run unit tests and linters
+      env:
+          SKIP_LIGHTGBM: False
       run: |
         pytest
     - name: Build package & publish to PyPi
