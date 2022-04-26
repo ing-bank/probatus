@@ -6,7 +6,8 @@ from probatus.feature_elimination import EarlyStoppingShapRFECV, ShapRFECV
 from probatus.utils import Scorer, preprocess_labels
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import get_scorer, make_scorer, roc_auc_score
-from sklearn.model_selection import RandomizedSearchCV, StratifiedKFold
+
+from sklearn.model_selection import RandomizedSearchCV, StratifiedGroupKFold, StratifiedKFold
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVC
@@ -89,6 +90,14 @@ def sample_weight():
     Fixture for sample_weight.
     """
     return pd.Series([1, 1, 1, 1, 1, 1, 1, 1], index=[1, 2, 3, 4, 5, 6, 7, 8])
+
+
+@pytest.fixture(scope="function")
+def groups():
+    """
+    Fixture for groups.
+    """
+    return pd.Series(["grp1", "grp1", "grp1", "grp1", "grp2", "grp2", "grp2", "grp2"], index=[1, 2, 3, 4, 5, 6, 7, 8])
 
 
 def test_shap_rfe_randomized_search(X, y, capsys):
@@ -225,6 +234,42 @@ def test_shap_rfe_reg(X, y_reg, sample_weight, capsys):
             sample_weight=sample_weight,
             approximate=True,
             check_additivity=False,
+        )
+
+    assert shap_elimination.fitted
+    shap_elimination._check_if_fitted()
+
+    report = shap_elimination.compute()
+
+    assert report.shape[0] == 3
+    assert shap_elimination.get_reduced_features_set(1) == ["col_3"]
+
+    _ = shap_elimination.plot(show=False)
+
+    # Ensure that number of warnings was 0
+    assert len(record) == 0
+    # Check if there is any prints
+    out, _ = capsys.readouterr()
+    assert len(out) == 0
+
+
+def test_shap_rfe_group_cv(X, y, groups, sample_weight, capsys):
+    """
+    Test ShapRFECV with StratifiedGroupKFold.
+    """
+    clf = DecisionTreeClassifier(max_depth=1, random_state=1)
+    cv = StratifiedGroupKFold(n_splits=2, shuffle=True, random_state=1)
+    with pytest.warns(None) as record:
+        shap_elimination = ShapRFECV(
+            clf,
+            random_state=1,
+            step=1,
+            cv=cv,
+            scoring="roc_auc",
+            n_jobs=4,
+        )
+        shap_elimination = shap_elimination.fit(
+            X, y, groups=groups, sample_weight=sample_weight, approximate=True, check_additivity=False
         )
 
     assert shap_elimination.fitted
