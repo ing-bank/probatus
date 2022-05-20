@@ -981,7 +981,7 @@ class EarlyStoppingShapRFECV(ShapRFECV):
         """
         try:
             from lightgbm import early_stopping, log_evaluation
-        except: # For LGBM < 3.3.0
+        except ImportError: # For LGBM < 3.3.0
             from lightgbm import early_stopping, print_evaluation as log_evaluation
 
 
