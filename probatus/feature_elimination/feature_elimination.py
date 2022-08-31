@@ -575,10 +575,10 @@ class ShapRFECV(BaseFitComputePlotClass):
                 round_number=round_number,
                 current_features_set=current_features_set,
                 features_to_remove=features_to_remove,
-                train_metric_mean=np.round(np.mean(scores_train), 3),
-                train_metric_std=np.round(np.std(scores_train), 3),
-                val_metric_mean=np.round(np.mean(scores_val), 3),
-                val_metric_std=np.round(np.std(scores_val), 3),
+                train_metric_mean=np.mean(scores_train),
+                train_metric_std=np.std(scores_train),
+                val_metric_mean=np.mean(scores_val),
+                val_metric_std=np.std(scores_val),
             )
             if self.verbose > 50:
                 print(
