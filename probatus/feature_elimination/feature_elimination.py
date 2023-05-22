@@ -526,11 +526,11 @@ class ShapRFECV(BaseFitComputePlotClass):
             # Get current dataset info
             current_features_set = remaining_features
             if columns_to_keep is None:
-                remaining_removeable_features = sorted(list(set(current_features_set)))
+                remaining_removeable_features = pd.Series(current_features_set).unique()
             else:
-                remaining_removeable_features = sorted(
-                    list(set(current_features_set) | set(columns_to_keep))
-                )
+                remaining_removeable_features = pd.Series(
+                    current_features_set + columns_to_keep
+                ).unique()
             current_X = self.X[remaining_removeable_features]
 
             # Set seed for results reproducibility
@@ -570,8 +570,10 @@ class ShapRFECV(BaseFitComputePlotClass):
             features_to_remove = self._get_current_features_to_remove(
                 shap_importance_df, columns_to_keep=columns_to_keep
             )
-            remaining_features = sorted(
-                list(set(current_features_set) - set(features_to_remove))
+            remaining_features = np.setdiff1d(
+                pd.Series(current_features_set).unique(),
+                pd.Series(features_to_remove).unique(),
+                assume_unique=True,
             )
 
             # Report results
