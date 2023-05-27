@@ -32,6 +32,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
+from loguru import logger
+
 
 class ImputationSelector(BaseFitComputePlotClass):
     """
@@ -244,7 +246,7 @@ class ImputationSelector(BaseFitComputePlotClass):
 
         self.report_df = pd.DataFrame(results)
         # Set the index of the dataframe to the imputation methods.
-        self.report_df = self.report_df.set_index(self.report_df.strategy, "strategy")
+        self.report_df = self.report_df.set_index(self.report_df.strategy)
         self.report_df.drop(columns=["strategy"], inplace=True)
         self.report_df.sort_values(by="mean_test_score", inplace=True)
         self.fitted = True
