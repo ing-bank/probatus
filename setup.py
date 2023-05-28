@@ -23,9 +23,11 @@ base_packages = [
 
 extra_dep = [
     "lightgbm>=3.3.0",
-    # https://github.com/catboost/catboost/issues/2371
-    "catboost>=1.1,<1.2 ; python_version == '3.8' and sys_platform == 'darwin'",
-    "catboost>=1.0.0",
+    "catboost": [
+        # https://github.com/catboost/catboost/issues/2371
+        "catboost>=1.1,<1.2 ; python_version == '3.8' and sys_platform == 'darwin'",
+        "catboost>=1.0.0",
+    ],
     "xgboost>=1.5.0",
     "scipy>=1.4.0",
 ]
