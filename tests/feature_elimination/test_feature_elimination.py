@@ -407,7 +407,7 @@ def test_shap_rfe_early_stopping_XGBoost(complex_data, capsys):
     """
     from xgboost import XGBClassifier
 
-    clf = XGBClassifier(n_estimators=200, max_depth=3, use_label_encoder=False, random_state=42)
+    clf = XGBClassifier(n_estimators=200, max_depth=3, random_state=42)
     X, y = complex_data
     X["f1_categorical"] = X["f1_categorical"].astype(float)
 
@@ -577,7 +577,7 @@ def test_get_feature_shap_values_per_fold_early_stopping_XGBoost(complex_data):
     """
     from xgboost import XGBClassifier
 
-    clf = XGBClassifier(n_estimators=200, max_depth=3, use_label_encoder=False, random_state=42)
+    clf = XGBClassifier(n_estimators=200, max_depth=3, random_state=42)
     X, y = complex_data
     X["f1_categorical"] = X["f1_categorical"].astype(float)
     y = preprocess_labels(y, y_name="y", index=X.index)
