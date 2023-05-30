@@ -17,12 +17,14 @@ base_packages = [
     "scipy>=1.4.0",
     "joblib>=0.13.2",
     "tqdm>=4.41.0",
-    "shap >= 0.38.1, < 0.39.0",  # 0.40.0 causes issues in certain plots. For now it is excluded
-    "numpy>=1.19.0",
+    "shap==0.41.0",  # 0.40.0 causes issues in certain plots. For now it is excluded
+    "numpy==1.23.0",
 ]
 
 extra_dep = [
     "lightgbm>=3.3.0",
+    # https://github.com/catboost/catboost/issues/2371
+    "catboost>=1.1,<1.2 ; python_version == '3.8' and sys_platform == 'darwin'",
     "catboost>=1.0.0",
     "xgboost>=1.5.0",
     "scipy>=1.4.0",

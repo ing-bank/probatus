@@ -989,7 +989,6 @@ class EarlyStoppingShapRFECV(ShapRFECV):
             "X": X_train,
             "y": y_train,
             "eval_set": [(X_val, y_val)],
-            "eval_metric": self.eval_metric,
             "callbacks": [early_stopping(self.early_stopping_rounds, first_metric_only=True)],
         }
         if self.verbose >= 100:
@@ -1043,8 +1042,6 @@ class EarlyStoppingShapRFECV(ShapRFECV):
             "X": X_train,
             "y": y_train,
             "eval_set": [(X_val, y_val)],
-            "eval_metric": self.eval_metric,
-            "early_stopping_rounds": self.early_stopping_rounds,
         }
         if sample_weight is not None:
             fit_params["sample_weight"] = sample_weight.iloc[train_index]
@@ -1095,7 +1092,6 @@ class EarlyStoppingShapRFECV(ShapRFECV):
         fit_params = {
             "X": Pool(X_train, y_train, cat_features=cat_features),
             "eval_set": Pool(X_val, y_val, cat_features=cat_features),
-            "early_stopping_rounds": self.early_stopping_rounds,
             # Evaluation metric should be passed during initialization
         }
         if sample_weight is not None:
@@ -1247,6 +1243,32 @@ class EarlyStoppingShapRFECV(ShapRFECV):
             train_index=train_index,
             val_index=val_index,
         )
+
+        # Due to deprecation issues (compatibility with Sklearn) set some params
+        # like below, instead of through fit().
+        try:
+            from lightgbm import LGBMModel
+
+            if isinstance(clf, LGBMModel):
+                clf.set_params(eval_metric=self.eval_metric)
+        except ImportError:
+            pass
+
+        try:
+            from xgboost.sklearn import XGBModel
+
+            if isinstance(clf, XGBModel):
+                clf.set_params(eval_metric=self.eval_metric, early_stopping_rounds=self.early_stopping_rounds)
+        except ImportError:
+            pass
+
+        try:
+            from catboost import CatBoost
+
+            if isinstance(clf, CatBoost):
+                clf.set_params(early_stopping_rounds=self.early_stopping_rounds)
+        except ImportError:
+            pass
 
         # Train the model
         clf = clf.fit(**fit_params)

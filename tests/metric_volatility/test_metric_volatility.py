@@ -234,7 +234,7 @@ def test_create_report(mock_model, iteration_results, report):
     vol.iterations_results = iteration_results
 
     vol._create_report()
-    pd.testing.assert_frame_equal(vol.report, report, check_less_precise=3)
+    pd.testing.assert_frame_equal(vol.report, report, atol=1e-3)
 
 
 def test_compute_mean_std_from_runs(mock_model, iteration_results):

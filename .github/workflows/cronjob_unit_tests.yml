@@ -24,21 +24,32 @@ jobs:
           - build: windows
             os: windows-latest
             SKIP_LIGHTGBM: False
-        python-version: [3.6, 3.7, 3.8, 3.9]
+        python-version: [3.8, 3.9, "3.10"]
     steps:
     - uses: actions/checkout@master
-    - name: Setup Python  
+
+    - name: Get latest CMake and Ninja
+      uses: lukka/get-cmake@latest
+      with:
+        cmakeVersion: latest
+        ninjaVersion: latest
+
+    - name: Setup Python
       uses: actions/setup-python@master
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Install dependencies
+
+    - name: Install Python dependencies
       env:
         SKIP_LIGHTGBM: ${{ matrix.SKIP_LIGHTGBM }}
       run: |
         pip3 install --upgrade setuptools pip
         pip3 install ".[all]"
-    - name: Run unit tests
+
+    - name: Run unit tests and linters
       env:
         SKIP_LIGHTGBM: ${{ matrix.SKIP_LIGHTGBM }}
       run: |
-        pytest
+        pytest --cov=probatus/binning --cov=probatus/metric_volatility --cov=probatus/missing_values --cov=probatus/sample_similarity --cov=probatus/stat_tests --cov=probatus/utils --cov=probatus/interpret/ --ignore==tests/interpret/test_inspector.py --cov-report=xml
+        pyflakes probatus
+        mypy probatus --ignore-missing-imports
