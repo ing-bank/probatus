@@ -529,7 +529,7 @@ class ShapRFECV(BaseFitComputePlotClass):
                 remaining_removeable_features = pd.Series(current_features_set).unique()
             else:
                 remaining_removeable_features = pd.Series(
-                    current_features_set + columns_to_keep
+                    list(current_features_set) + columns_to_keep
                 ).unique()
 
             current_X = self.X[remaining_removeable_features]
