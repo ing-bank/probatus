@@ -17,8 +17,9 @@ base_packages = [
     "scipy>=1.4.0",
     "joblib>=0.13.2",
     "tqdm>=4.41.0",
-    "shap==0.41.0",  # 0.40.0 causes issues in certain plots. For now it is excluded
+    "shap==0.41.0",  # 0.40.0 causes issues in certain plots.
     "numpy==1.23.0",
+    "numba==0.56.4"
 ]
 
 extra_dep = [
