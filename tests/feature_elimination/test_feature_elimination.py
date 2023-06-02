@@ -341,10 +341,10 @@ def test_get_feature_shap_values_per_fold(X, y):
 
 def test_shap_rfe_same_features_are_kept_after_each_run():
     """
-    Test a use case which appears to be flickering with Probatus 1.8.6 and lower.
+    Test a use case which appears to be flickering with Probatus 1.8.9 and lower.
 
     Expected result: every run the same outcome.
-    Probatus <= 1.8.6: A different order every time.
+    Probatus <= 1.8.9: A different order every time.
     """
     SEED = 1234
 
