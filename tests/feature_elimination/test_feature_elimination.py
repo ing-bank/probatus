@@ -341,34 +341,14 @@ def test_get_feature_shap_values_per_fold(X, y):
 
 def test_shap_rfe_same_features_are_kept_after_each_run():
     """
-    Test a usecase which appears to be flickering with probatus 1.8.6 and lower.
+    Test a use case which appears to be flickering with Probatus 1.8.6 and lower.
 
-    Expected result: every run a different outcome.
+    Expected result: every run the same outcome.
+    Probatus <= 1.8.6: A different order every time.
     """
     SEED = 1234
 
-    feature_names = [
-        "f1",
-        "f2",
-        "f3_static",
-        "f4",
-        "f5",
-        "f6",
-        "f7",
-        "f8",
-        "f9",
-        "f10",
-        "f11",
-        "f12",
-        "f13",
-        "f14",
-        "f15",
-        "f16",
-        "f17",
-        "f18",
-        "f19",
-        "f20",
-    ]
+    feature_names = [(f"f{num}") for num in range(1, 21)]
 
     # Code from tutorial on probatus documentation
     X, y = make_classification(
