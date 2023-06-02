@@ -4,6 +4,8 @@ import pandas as pd
 import pytest
 from probatus.feature_elimination import EarlyStoppingShapRFECV, ShapRFECV
 from probatus.utils import preprocess_labels
+from sklearn.datasets import make_classification
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import get_scorer
 from sklearn.model_selection import RandomizedSearchCV, StratifiedGroupKFold, StratifiedKFold
@@ -241,7 +243,7 @@ def test_shap_rfe_svm(X, y, capsys):
 
 def test_shap_rfe_cols_to_keep(X, y, capsys):
     """
-    Test for shap_rfe_cv with feautures to keep parameter.
+    Test for shap_rfe_cv with features to keep parameter.
     """
     clf = DecisionTreeClassifier(max_depth=1, random_state=1)
     with pytest.warns(None) as record:
@@ -337,6 +339,55 @@ def test_get_feature_shap_values_per_fold(X, y):
     assert train_score > 0.9
     assert shap_values.shape == (2, 3)
 
+def test_shap_rfe_same_features_are_kept_after_each_run():
+    """
+    Test a use case which appears to be flickering with Probatus 1.8.9 and lower.
+
+    Expected result: every run the same outcome.
+    Probatus <= 1.8.9: A different order every time.
+    """
+    SEED = 1234
+
+    feature_names = [(f"f{num}") for num in range(1, 21)]
+
+    # Code from tutorial on probatus documentation
+    X, y = make_classification(
+        n_samples=100,
+        class_sep=0.05,
+        n_informative=6,
+        n_features=20,
+        random_state=SEED,
+        n_redundant=10,
+        n_clusters_per_class=1,
+    )
+    X = pd.DataFrame(X, columns=feature_names)
+
+    random_forest = RandomForestClassifier(
+        random_state=SEED,
+        n_estimators=70,
+        max_features="log2",
+        criterion="entropy",
+        class_weight="balanced",
+    )
+
+    shap_elimination = ShapRFECV(
+        clf=random_forest,
+        step=0.2,
+        cv=5,
+        scoring="f1_macro",
+        n_jobs=1,
+        random_state=SEED,
+    )
+
+    report = shap_elimination.fit_compute(X, y, check_additivity=True, seed=SEED)
+    # Return the set of features with the best validation accuracy
+
+    kept_features = list(
+        report.iloc[[report["val_metric_mean"].idxmax() - 1]]["features_set"].to_list()[0]
+    )
+
+    # Results from the first run
+    assert ["f6", "f10", "f12", "f14", "f15", "f17", "f18", "f20"] == kept_features
 
 @pytest.mark.skipif(os.environ.get("SKIP_LIGHTGBM") == "true", reason="LightGBM tests disabled")
 def test_complex_dataset(complex_data, complex_lightgbm):
