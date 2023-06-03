@@ -19,7 +19,7 @@ base_packages = [
     "tqdm>=4.41.0",
     "shap==0.41.0",  # 0.40.0 causes issues in certain plots.
     "numpy==1.23.0",
-    "numba>0.57.0 ; python_version == '3.11'",
+    "numba>=0.57.0 ; python_version == '3.11'",
     "numba==0.56.4", # wait for SHAP to upgrade numba version.
 ]
 
