@@ -44,7 +44,7 @@ repos:
       entry: isort
       language: system
       types: [python]
-      args: ["--skip", "__init__.py", "--filter-files", "profile=black", "line_length", *line_length]
+      args: ["--skip", "__init__.py", "--filter-files", "--profile=black", "--line-length", *line_length]
   - repo: local
     hooks:
     - id: codespell
