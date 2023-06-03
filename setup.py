@@ -11,6 +11,18 @@ def read(fname):
     """
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
 
+def python_ver():
+    """
+    Returns the python version as a string. e.g.: "3.8"
+    """
+    return str(sys.version_info.major) + "." + str(sys.version_info.minor)
+
+def system():
+    """
+    Returns the system os as a string. e.g.: "darwin"
+    """
+    return platform.system().lower()
+
 
 base_packages = [
     "scikit-learn>=0.22.2",
@@ -20,14 +32,14 @@ base_packages = [
     "joblib>=0.13.2",
     "tqdm>=4.41.0",
     "shap==0.41.0",  # 0.40.0 causes issues in certain plots.
-    "numpy==1.23.0" if sys.version_info < (3, 11) else "numpy==1.23.2", # wait for SHAP to upgrade.
-    "numba==0.56.4" if sys.version_info < (3, 11) else "numba>=0.57.0", # wait for SHAP to upgrade.
+    "numpy==1.23.0" if python_ver() == "3.11" else "numpy==1.23.2", # wait for SHAP to upgrade.
+    "numba==0.56.4" if python_ver() == "3.11" else "numba>=0.57.0", # wait for SHAP to upgrade.
 ]
 
 extra_dep = [
     "lightgbm>=3.3.0",
     # https://github.com/catboost/catboost/issues/2371
-    "catboost<1.2" if (sys.version_info == (3, 8) and platform.system().lower() == 'darwin') else "catboost>=1.0.0",
+    "catboost<1.2" if python_ver() == "3.8" and system() == "darwin" else "catboost>=1.0.0",
     "xgboost>=1.5.0",
     "scipy>=1.4.0",
 ]
