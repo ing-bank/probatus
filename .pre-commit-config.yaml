@@ -44,7 +44,7 @@ repos:
       entry: isort
       language: system
       types: [python]
-      args: [--profile=black, --line-length, *line_length]
+      args: ["--skip", "__init__.py", "--filter-files", "profile=black", "line_length", *line_length]
   - repo: local
     hooks:
     - id: codespell
@@ -52,4 +52,5 @@ repos:
       entry: codespell
       language: system
       types: [python]
+      # Skip the word "mot"
       args: [-L mot, --skip="**.egg-info*"]

@@ -19,8 +19,13 @@
 
 
 from .metric import get_metric
-from .utils import check_sampling_input, sample_data
-from .volatility import BaseVolatilityEstimator, BootstrappedVolatility, SplitSeedVolatility, TrainTestVolatility
+from .volatility import (
+    BaseVolatilityEstimator,
+    TrainTestVolatility,
+    BootstrappedVolatility,
+    SplitSeedVolatility,
+)
+from .utils import sample_data, check_sampling_input
 
 __all__ = [
     "get_metric",

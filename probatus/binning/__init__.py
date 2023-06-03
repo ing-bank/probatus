@@ -18,6 +18,6 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
-from .binning import AgglomerativeBucketer, Bucketer, QuantileBucketer, SimpleBucketer, TreeBucketer
+from .binning import SimpleBucketer, AgglomerativeBucketer, QuantileBucketer, TreeBucketer, Bucketer
 
 __all__ = ["SimpleBucketer", "AgglomerativeBucketer", "QuantileBucketer", "TreeBucketer", "Bucketer"]

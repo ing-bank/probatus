@@ -17,22 +17,26 @@
 # IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-from ._utils import assure_list_of_strings, assure_list_values_allowed, class_name_from_object
+from .exceptions import NotFittedError, DimensionalityError, UnsupportedModelError, NotInstalledError
+from .scoring import Scorer, get_scorers, get_single_scorer
 from .arrayfuncs import (
     assure_numpy_array,
     assure_pandas_df,
-    assure_pandas_series,
     check_1d,
     check_numeric_dtypes,
+    assure_pandas_series,
     preprocess_data,
     preprocess_labels,
 )
-from .exceptions import DimensionalityError, NotFittedError, NotInstalledError, UnsupportedModelError
-from .interface import BaseFitComputeClass, BaseFitComputePlotClass
-from .plots import plot_distributions_of_feature
-from .scoring import Scorer, get_scorers, get_single_scorer
-from .shap_helpers import calculate_shap_importance, shap_calc, shap_to_df
+from .shap_helpers import shap_calc, shap_to_df, calculate_shap_importance
 from .warnings import ApproximationWarning
+from ._utils import (
+    class_name_from_object,
+    assure_list_of_strings,
+    assure_list_values_allowed,
+)
+from .plots import plot_distributions_of_feature
+from .interface import BaseFitComputeClass, BaseFitComputePlotClass
 
 __all__ = [
     "NotFittedError",
