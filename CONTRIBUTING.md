@@ -40,7 +40,7 @@ pre-commit install
 
 ## Standards
 
-- Python 3.6+
+- Python 3.8+
 - Follow [PEP8](http://pep8.org/) as closely as possible (except line length)
 - [google docstring format](https://sphinxcontrib-napoleon.readthedocs.io/en/latest/)
 - Git: Include a short description of *what* and *why* was done, *how* can be seen in the code. Use present tense, imperative mood
@@ -51,14 +51,13 @@ pre-commit install
 
 * Model validation modules assume that trained models passed for validation are developed in a scikit-learn framework (i.e. have predict_proba and other standard functions), or follow a scikit-learn API e.g. XGBoost.
 * Every python file used for model validation needs to be in `/probatus/`
-* Class structure for a given module should have a base class and specific functionality classes that inherit from base. If a given module implements only a single way of computing the output, the base class is not required. 
-* Functions should not be as short as possible in terms of lines of code. If a lot of code is needed, try to put together snippets of code into 
-other functions. This make the code more readable, and easier to test.
+* Class structure for a given module should have a base class and specific functionality classes that inherit from base. If a given module implements only a single way of computing the output, the base class is not required.
+* Functions should not be as short as possible in terms of lines of code. If a lot of code is needed, try to put together snippets of code into other functions. This make the code more readable, and easier to test.
 * Classes follow the probatus API structure:
     * Each class implements `fit()`, `compute()` and `fit_compute()` methods. `fit()` is used to fit an object with provided data (unless no fit is required), and `compute()` calculates the output e.g. DataFrame with a report for the user. Lastly, `fit_compute()` applies one after the other.
     * If applicable, the `plot()` method presents the user with the appropriate graphs.
     * For `compute()` and `plot()`, check if the object is fitted first.
-        
+
 
 ### Documentation
 

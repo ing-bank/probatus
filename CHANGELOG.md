@@ -10,7 +10,7 @@ Improvements in this release:
 - Drop explicit support for python 3.7, add support for 3.11 #206
 - Activate and add pre-commit hooks (isort, codespell) #206
 - Add support for groups in SHAP RFECV #182
-- Bug fix: SHAP RFECV now produces reproducible results every time #197
+- Bug fix: SHAP RFECV now produces reproducible results every time (this breaks backwards compatibility) #197
 - Bug fix: Updated GitHub actions, fixed deprecations #199
 
 ## [1.8.9] - 2022-04-08
