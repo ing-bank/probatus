@@ -25,8 +25,9 @@ try:
 except ModuleNotFoundError:
     stats = NotInstalledError("scipy", "extras")
 
-from ..utils import assure_numpy_array
 from probatus.stat_tests.utils import verbose_p_vals
+
+from ..utils import assure_numpy_array
 
 
 @verbose_p_vals
@@ -51,7 +52,7 @@ def ks(d1, d2, verbose=False):
     Returns:
         float: Kolmogorov-Smirnov test statistic.
         float: p-value of rejecting the null hypothesis (that the two distributions are identical).
-    """
+    """  # noqa
     # Perform data checks
     d1 = assure_numpy_array(d1)
     d2 = assure_numpy_array(d2)

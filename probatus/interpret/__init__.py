@@ -19,7 +19,7 @@
 
 
 from .inspector import InspectorShap
-from .shap_dependence import DependencePlotter
 from .model_interpret import ShapModelInterpreter
+from .shap_dependence import DependencePlotter
 
 __all__ = ["InspectorShap", "DependencePlotter", "ShapModelInterpreter"]

@@ -21,12 +21,12 @@
 import itertools
 import warnings
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 from tqdm import tqdm
 
-from probatus.binning import SimpleBucketer, AgglomerativeBucketer, QuantileBucketer
-from probatus.stat_tests import es, ks, psi, ad, sw
+from probatus.binning import AgglomerativeBucketer, QuantileBucketer, SimpleBucketer
+from probatus.stat_tests import ad, es, ks, psi, sw
 from probatus.utils.arrayfuncs import check_numeric_dtypes
 
 
@@ -107,7 +107,7 @@ class DistributionStatistics(object):
                 - `'agglomerativebucketer'`: binning by applying the Scikit-learn implementation of Agglomerative
                     Clustering,
                 - `'quantilebucketer'`: bins with equal number of elements,
-                - `'default'`: applies a default binning for a given stats_test. For all tests appart from PSI, no
+                - `'default'`: applies a default binning for a given stats_test. For all tests apart from PSI, no
                     binning (None) is used. For PSI by default quantilebucketer is used,
                 - `None`: no binning is applied. The test is computed based on original distribution.
 
@@ -247,7 +247,7 @@ class AutoDist(object):
                 - `'QuantileBucketer'`: bins with equal number of elements,
                 - `None`: no binning is applied. Note that not all statistical tests will be performed since some of
                     them require binning strategies.
-                - `'default'`: applies a default binning for a given stats_test. For all tests appart from PSI, no
+                - `'default'`: applies a default binning for a given stats_test. For all tests apart from PSI, no
                     binning (None) is used. For PSI by default quantilebucketer is used.
                 - `'all'`: each binning strategy is used for each statistical test
 

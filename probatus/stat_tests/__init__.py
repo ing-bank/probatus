@@ -19,11 +19,10 @@
 
 
 from .ad import ad
+from .distribution_statistics import AutoDist, DistributionStatistics
 from .es import es
-from .sw import sw
 from .ks import ks
 from .psi import psi
-from .distribution_statistics import DistributionStatistics
-from .distribution_statistics import AutoDist
+from .sw import sw
 
 __all__ = ["ks", "psi", "ad", "es", "sw", "DistributionStatistics", "AutoDist"]

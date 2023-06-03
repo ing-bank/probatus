@@ -18,23 +18,21 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
-import pandas as pd
+import warnings
+from abc import abstractmethod
+
 import numpy as np
+import pandas as pd
 from sklearn.cluster import AgglomerativeClustering
 from sklearn.tree import DecisionTreeClassifier, _tree
 from sklearn.utils.validation import check_is_fitted
-from probatus.utils import (
-    assure_numpy_array,
-    ApproximationWarning,
-    BaseFitComputeClass,
-)
-import warnings
-from abc import abstractmethod
+
+from probatus.utils import ApproximationWarning, BaseFitComputeClass, assure_numpy_array
 
 
 class Bucketer(BaseFitComputeClass):
     """
-    Bucket (bin) some datea.
+    Bucket (bin) some data.
     """
 
     def __repr__(self):
@@ -286,7 +284,7 @@ class QuantileBucketer(Bucketer):
         try:
             out, boundaries = pd.qcut(x, q=bin_count, retbins=True, duplicates="raise")
         except ValueError:
-            # If there are too many duplicate values (assume a lot of filled missings)
+            # If there are too many duplicate values (assume a lot of filled missing)
             # this crashes - the exception drops them.
             # This means that it will return approximate quantile bins
             out, boundaries = pd.qcut(x, q=bin_count, retbins=True, duplicates="drop")
@@ -350,13 +348,13 @@ class TreeBucketer(Bucketer):
         If false, the edges will be set to the minimum and maximum value of the fitted
 
         tree (sklearn.tree.DecisionTreeClassifier): decision tree object defined by the user. By default is None, and
-        it will be constructed using tkhe provided **kwargs
+        it will be constructed using the provided **kwargs
 
         **tree_kwargs: kwargs related to the decision tree.
-            For and extensive list of parameteres, please check the sklearn Decision Tree Classifier documentation
+            For and extensive list of parameters, please check the sklearn Decision Tree Classifier documentation
             https://scikit-learn.org/stable/modules/generated/sklearn.tree.DecisionTreeClassifier.html
 
-            The most relevant parameteres useful for the bucketing, are listed below:
+            The most relevant parameters useful for the bucketing, are listed below:
 
 
                 - criterion : {"gini", "entropy"}, default="gini"

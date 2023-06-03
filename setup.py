@@ -46,6 +46,8 @@ dev_dep = [
     "tabulate>=0.8.7",
     "nbconvert>=6.0.7",
     "pre-commit>=2.7.1",
+    "isort>=5.12.0",
+    "codespell>=2.2.4",
 ]
 
 docs_dep = [

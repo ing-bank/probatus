@@ -52,4 +52,4 @@ repos:
       entry: codespell
       language: system
       types: [python]
-      args: [--ignore-words=spellcheck_ignore.txt, --skip="**.egg-info*"]
+      args: [-L mot, --skip="**.egg-info*"]

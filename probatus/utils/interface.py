@@ -19,6 +19,7 @@
 
 
 from abc import ABC, abstractmethod
+
 from probatus.utils import NotFittedError
 
 

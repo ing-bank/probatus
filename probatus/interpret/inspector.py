@@ -18,13 +18,15 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
-from ..utils import NotFittedError, UnsupportedModelError, BaseFitComputeClass
-import numpy as np
-import pandas as pd
 import copy
 
+import numpy as np
+import pandas as pd
 from sklearn.cluster import KMeans
+
 from probatus.utils import shap_helpers
+
+from ..utils import BaseFitComputeClass, NotFittedError, UnsupportedModelError
 
 
 def return_confusion_metric(y_true, y_score, normalize=False):
@@ -132,7 +134,7 @@ class BaseInspector(BaseFitComputeClass):
             return pd.Series(series, index=index)
         else:
             raise TypeError(
-                "The object should be a pd.Series, a dataframe with one collumn or a 1 dimensional numpy array"
+                "The object should be a pd.Series, a dataframe with one column or a 1 dimensional numpy array"
             )
 
 
@@ -333,7 +335,6 @@ class InspectorShap(BaseInspector):
         self.agg_summary_df = self.aggregate_summary_df(self.summary_df)
 
         if self.hasmultiple_dfs:
-
             self.summary_dfs = [
                 self.create_summary_df(clust, y, pred_proba, normalize=self.normalize_proba)
                 for clust, y, pred_proba in zip(self.clusters_list, self.ys, self.predicted_probas)
@@ -350,12 +351,12 @@ class InspectorShap(BaseInspector):
             - total number of observations in the cluster
             - total number of target 1 in the cluster
             - target 1 rate (ration of target 1 counts/observations)
-            - average predicted probabilitites
+            - average predicted probabilities
             - average confusion
 
-        If multiple eval_sets were passed in the inspect() functions, the output will contain those aggregations as well.
-        The output names will use the sample names provided in the inspect function. Otherwise they will be labelled by
-        the suffix sample_{i}, where i is the index of the sample
+        If multiple eval_sets were passed in the inspect() functions, the output will contain those aggregations as
+            well. The output names will use the sample names provided in the inspect function. Otherwise they will be
+            labelled by the suffix sample_{i}, where i is the index of the sample.
 
         Returns: (pd.DataFrame) with above mentioned aggregations.
         """
@@ -366,7 +367,6 @@ class InspectorShap(BaseInspector):
         out = copy.deepcopy(self.agg_summary_df)
 
         if self.hasmultiple_dfs:
-
             for ix, agg_summary_df in enumerate(self.agg_summary_dfs):
                 if self.set_names is None:
                     sample_suffix = "sample_{}".format(ix + 1)

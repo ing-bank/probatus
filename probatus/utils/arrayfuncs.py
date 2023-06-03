@@ -18,11 +18,13 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
+import numbers
+import warnings
+
 import numpy as np
 import pandas as pd
-import numbers
+
 from probatus.utils import DimensionalityError
-import warnings
 
 
 def check_1d(x):

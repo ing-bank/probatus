@@ -18,20 +18,17 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
-import pandas as pd
-import numpy as np
-from sklearn.model_selection import train_test_split
-from probatus.utils import (
-    preprocess_labels,
-    get_single_scorer,
-    preprocess_data,
-    BaseFitComputePlotClass,
-)
-from probatus.utils.shap_helpers import shap_calc, calculate_shap_importance
-from sklearn.inspection import permutation_importance
-import matplotlib.pyplot as plt
-from shap import summary_plot
 import warnings
+
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+from shap import summary_plot
+from sklearn.inspection import permutation_importance
+from sklearn.model_selection import train_test_split
+
+from probatus.utils import BaseFitComputePlotClass, get_single_scorer, preprocess_data, preprocess_labels
+from probatus.utils.shap_helpers import calculate_shap_importance, shap_calc
 
 
 class BaseResemblanceModel(BaseFitComputePlotClass):
@@ -514,14 +511,14 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
     A possible use case is analysis of whether the train sample differs
         from the test sample, due to e.g. non-stationarity.
 
-    It assigns labels to each sample, 0 to the first sample, 1 to the second. Then, it randomly selects a portion of data
-        to train on. The resulting model tries to distinguish which sample a given test row comes from. This
+    It assigns labels to each sample, 0 to the first sample, 1 to the second. Then, it randomly selects a portion of
+        data to train on. The resulting model tries to distinguish which sample a given test row comes from. This
         provides insights on how distinguishable these samples are and which features contribute to that. The feature
         importance is calculated using SHAP feature importance.
 
     If the model achieves test AUC significantly different than 0.5, it indicates that it is possible to distinguish
-    between the samples, and therefore, the samples differ. Features with a high permutation importance contribute to that
-        effect the most. Thus, their distribution might differ between two samples.
+        between the samples, and therefore, the samples differ. Features with a high permutation importance contribute
+        to that effect the most. Thus, their distribution might differ between two samples.
 
     This class currently works only with the Tree based models.
 

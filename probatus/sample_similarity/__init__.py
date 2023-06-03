@@ -18,11 +18,7 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
-from .resemblance_model import (
-    BaseResemblanceModel,
-    PermutationImportanceResemblance,
-    SHAPImportanceResemblance,
-)
+from .resemblance_model import BaseResemblanceModel, PermutationImportanceResemblance, SHAPImportanceResemblance
 
 __all__ = [
     "BaseResemblanceModel",

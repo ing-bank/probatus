@@ -18,23 +18,25 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
+import warnings
+
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-from probatus.metric_volatility.metric import get_metric
 from joblib import Parallel, delayed
 from tqdm.auto import tqdm
+
+from probatus.metric_volatility.metric import get_metric
+from probatus.metric_volatility.utils import check_sampling_input
+from probatus.stat_tests import DistributionStatistics
 from probatus.utils import (
-    get_scorers,
+    BaseFitComputePlotClass,
     assure_list_of_strings,
     assure_list_values_allowed,
-    BaseFitComputePlotClass,
+    get_scorers,
     preprocess_data,
     preprocess_labels,
 )
-from probatus.metric_volatility.utils import check_sampling_input
-from probatus.stat_tests import DistributionStatistics
-import warnings
 
 
 class BaseVolatilityEstimator(BaseFitComputePlotClass):
