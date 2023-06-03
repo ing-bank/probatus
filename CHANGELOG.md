@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0] - 2023-06
+Improvements in this release:
+- Drop explicit support for python 3.7, add support for 3.11 #206
+- Activate and add pre-commit hooks (isort, codespell) #206
+- Add support for groups in SHAP RFECV #182
+- Bug fix: SHAP RFECV now produces reproducible results every time #197
+- Bug fix: Updated GitHub actions, fixed deprecations #199
+
 ## [1.8.9] - 2022-04-08
 Improvements in this release:
 - Drop explicit support for python 3.6, add 3.10 #177
