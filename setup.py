@@ -19,8 +19,8 @@ base_packages = [
     "joblib>=0.13.2",
     "tqdm>=4.41.0",
     "shap==0.41.0",  # 0.40.0 causes issues in certain plots.
-    "numpy==1.23.0" if sys.version_info < (3, 11) else "numpy>=1.23.0",
-    "numba==0.56.4" if sys.version_info < (3, 11) else "numba>=0.57.0", # wait for SHAP to upgrade numba version.
+    "numpy==1.23.0" if sys.version_info < (3, 11) else "numpy==1.23.2", # wait for SHAP to upgrade.
+    "numba==0.56.4" if sys.version_info < (3, 11) else "numba>=0.57.0", # wait for SHAP to upgrade.
 ]
 
 extra_dep = [
