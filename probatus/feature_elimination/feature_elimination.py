@@ -606,7 +606,7 @@ class ShapRFECV(BaseFitComputePlotClass):
         """
         Checks if fit() method has been run.
 
-        and computes the DataFrame with results of feature elimintation for each round.
+        and computes the DataFrame with results of feature elimination for each round.
 
         Returns:
             (pd.DataFrame):
