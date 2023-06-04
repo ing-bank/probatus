@@ -918,7 +918,7 @@ class EarlyStoppingShapRFECV(ShapRFECV):
                  and [LightGBM](https://lightgbm.readthedocs.io/en/latest/Parameters.html#metric-parameters).
                 Note that `eval_metric` is an argument of the model's fit method and it is different from `scoring`.
         """  # noqa
-        super(EarlyStoppingShapRFECV, self).__init__(
+        super().__init__(
             clf,
             step=step,
             min_features_to_select=min_features_to_select,

@@ -246,7 +246,7 @@ def test_shap_rfe_cols_to_keep(X, y, capsys):
 
     assert report.shape[0] == 2
     reduced_feature_set = set(shap_elimination.get_reduced_features_set(num_features=2))
-    assert reduced_feature_set == set(["col_2", "col_3"])
+    assert reduced_feature_set == {"col_2", "col_3"}
 
     # Check if there is any prints
     out, _ = capsys.readouterr()
@@ -268,7 +268,7 @@ def test_shap_rfe_randomized_search_cols_to_keep(X, y, capsys):
 
     assert report.shape[0] == 2
     reduced_feature_set = set(shap_elimination.get_reduced_features_set(num_features=2))
-    assert reduced_feature_set == set(["col_2", "col_3"])
+    assert reduced_feature_set == {"col_2", "col_3"}
 
     _ = shap_elimination.plot(show=False)
 

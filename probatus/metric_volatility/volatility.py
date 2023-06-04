@@ -231,19 +231,19 @@ class BaseVolatilityEstimator(BaseFitComputePlotClass):
             for metric, row in target_report.iterrows():
                 train, test, delta = self._get_samples_to_plot(metric_name=metric)
 
-                axs[axis_index].hist(train, alpha=0.5, label="Train {}".format(metric), bins=bins)
-                axs[axis_index].hist(test, alpha=0.5, label="Test {}".format(metric), bins=bins)
-                axs[axis_index].set_title("Distributions {}".format(metric))
+                axs[axis_index].hist(train, alpha=0.5, label=f"Train {metric}", bins=bins)
+                axs[axis_index].hist(test, alpha=0.5, label=f"Test {metric}", bins=bins)
+                axs[axis_index].set_title(f"Distributions {metric}")
                 axs[axis_index].legend(loc="upper right")
 
-                axs[axis_index + 1].hist(delta, alpha=0.5, label="Delta {}".format(metric), bins=bins)
-                axs[axis_index + 1].set_title("Distributions delta {}".format(metric))
+                axs[axis_index + 1].hist(delta, alpha=0.5, label=f"Delta {metric}", bins=bins)
+                axs[axis_index + 1].set_title(f"Distributions delta {metric}")
                 axs[axis_index + 1].legend(loc="upper right")
 
                 axis_index += 2
 
             for ax in axs.flat:
-                ax.set(xlabel="{} score".format(metric), ylabel="Results count")
+                ax.set(xlabel=f"{metric} score", ylabel="Results count")
 
             if show:
                 plt.show()
@@ -279,8 +279,8 @@ class BaseVolatilityEstimator(BaseFitComputePlotClass):
         # Get columns which will be filled
         stats_tests_columns = []
         for stats_tests_object in self.stats_tests_objects:
-            stats_tests_columns.append("{} statistic".format(stats_tests_object.statistical_test_name))
-            stats_tests_columns.append("{} p-value".format(stats_tests_object.statistical_test_name))
+            stats_tests_columns.append(f"{stats_tests_object.statistical_test_name} statistic")
+            stats_tests_columns.append(f"{stats_tests_object.statistical_test_name} p-value")
         stats_columns = [
             "train_mean",
             "train_std",

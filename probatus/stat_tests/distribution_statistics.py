@@ -30,7 +30,7 @@ from probatus.stat_tests import ad, es, ks, psi, sw
 from probatus.utils.arrayfuncs import check_numeric_dtypes
 
 
-class DistributionStatistics(object):
+class DistributionStatistics:
     """
     Wrapper that applies a statistical test to compare two distributions.
 
@@ -121,9 +121,7 @@ class DistributionStatistics(object):
 
         # Initialize the statistical test
         if self.statistical_test not in self.statistical_test_dict:
-            raise NotImplementedError(
-                "The statistical test should be one of {}".format(self.statistical_test_dict.keys())
-            )
+            raise NotImplementedError(f"The statistical test should be one of {self.statistical_test_dict.keys()}")
         else:
             self.statistical_test_name = self.statistical_test_dict[self.statistical_test]["name"]
             self._statistical_test_function = self.statistical_test_dict[self.statistical_test]["func"]
@@ -135,7 +133,7 @@ class DistributionStatistics(object):
                 self.binning_strategy = self.statistical_test_dict[self.statistical_test]["default_binning"]
             if self.binning_strategy not in self.binning_strategy_dict:
                 raise NotImplementedError(
-                    "The binning strategy should be one of {}".format(list(self.binning_strategy_dict.keys()))
+                    f"The binning strategy should be one of {list(self.binning_strategy_dict.keys())}"
                 )
             else:
                 binner = self.binning_strategy_dict[self.binning_strategy]
@@ -146,15 +144,15 @@ class DistributionStatistics(object):
         """
         String representation.
         """
-        repr_ = "DistributionStatistics object\n\tstatistical_test: {}".format(self.statistical_test)
+        repr_ = f"DistributionStatistics object\n\tstatistical_test: {self.statistical_test}"
         if self.binning_strategy:
-            repr_ += "\n\tbinning_strategy: {}\n\tbin_count: {}".format(self.binning_strategy, self.bin_count)
+            repr_ += f"\n\tbinning_strategy: {self.binning_strategy}\n\tbin_count: {self.bin_count}"
         else:
             repr_ += "\n\tNo binning applied"
         if self.fitted:
-            repr_ += "\nResults\n\tvalue {}-statistic: {}".format(self.statistical_test, self.statistic)
+            repr_ += f"\nResults\n\tvalue {self.statistical_test}-statistic: {self.statistic}"
         if hasattr(self, "p_value"):
-            repr_ += "\n\tp-value: {}".format(self.p_value)
+            repr_ += f"\n\tp-value: {self.p_value}"
         return repr_
 
     def compute(self, d1, d2, verbose=False):
@@ -199,7 +197,7 @@ class DistributionStatistics(object):
             return self.statistic
 
 
-class AutoDist(object):
+class AutoDist:
     """Apply stat tests and binning strategies.
 
     Class to automatically apply all implemented statistical distribution tests and binning strategies
@@ -287,9 +285,9 @@ class AutoDist(object):
             repr_ += "\n\tAutoDist not fitted"
         if self.fitted:
             repr_ += "\n\tAutoDist fitted"
-        repr_ += "\n\tstatistical_tests: {}".format(self.statistical_tests)
-        repr_ += "\n\tbinning_strategies: {}".format(self.binning_strategies)
-        repr_ += "\n\tbin_count: {}".format(self.bin_count)
+        repr_ += f"\n\tstatistical_tests: {self.statistical_tests}"
+        repr_ += f"\n\tbinning_strategies: {self.binning_strategies}"
+        repr_ += f"\n\tbin_count: {self.bin_count}"
         return repr_
 
     def compute(

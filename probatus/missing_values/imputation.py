@@ -157,7 +157,7 @@ class ImputationSelector(BaseFitComputePlotClass):
         """
         String representation.
         """
-        return "Imputation comparison for {}".format(self.clf.__class__.__name__)
+        return f"Imputation comparison for {self.clf.__class__.__name__}"
 
     def fit(self, X, y, column_names=None):
         """
@@ -278,12 +278,12 @@ class ImputationSelector(BaseFitComputePlotClass):
             return_train_score=True,
         )
         # Calculate the mean of the results.
-        imp_agg_results = dict((k, np.mean(v)) for k, v in imputation_cv_results.items())
+        imp_agg_results = {k: np.mean(v) for k, v in imputation_cv_results.items()}
         imp_agg_results = {"mean_" + str(key): val for key, val in imp_agg_results.items()}
         imp_agg_results["test_score_std"] = np.std(imputation_cv_results["test_score"])
         imp_agg_results["train_score_std"] = np.std(imputation_cv_results["train_score"])
         # Round off all calculations to 3 decimal places
-        imp_agg_results = dict((k, np.round(v, 3)) for k, v in imp_agg_results.items())
+        imp_agg_results = {k: np.round(v, 3) for k, v in imp_agg_results.items()}
         imp_agg_results["strategy"] = strategy
 
         return imp_agg_results
@@ -360,7 +360,7 @@ class ImputationSelector(BaseFitComputePlotClass):
             for rect in rects:
                 width = rect.get_width()
                 ax.annotate(
-                    "{}".format(width),
+                    f"{width}",
                     xy=((width + 0.05 * width), rect.get_y() + rect.get_height() / 2),
                     xytext=(4, 0),  # 4 points horizontal offset
                     textcoords="offset points",

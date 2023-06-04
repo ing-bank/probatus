@@ -63,15 +63,15 @@ class BaseInspector(BaseFitComputeClass):
         if algotype == "kmeans":
             self.clusterer = KMeans(**kwargs)
         else:
-            raise UnsupportedModelError("The algorithm {} is not supported".format(algotype))
+            raise UnsupportedModelError(f"The algorithm {algotype} is not supported")
 
     def __repr__(self):
         """
         String representation.
         """
-        repr_ = "{},\n\t{}".format(self.__class__.__name__, self.algotype)
+        repr_ = f"{self.__class__.__name__},\n\t{self.algotype}"
         if self.fitted:
-            repr_ += "\n\tTotal clusters {}".format(np.unique(self.clusterer.labels_).shape[0])
+            repr_ += f"\n\tTotal clusters {np.unique(self.clusterer.labels_).shape[0]}"
         return repr_
 
     def fit_clusters(self, X):
@@ -167,7 +167,7 @@ class InspectorShap(BaseInspector):
         confusion_metric="proba",
         normalize_probability=False,
         cluster_probability=False,
-        **kwargs
+        **kwargs,
     ):
         """
         Init.
@@ -190,15 +190,15 @@ class InspectorShap(BaseInspector):
 
         if confusion_metric not in ["proba"]:
             # TODO implement the target method
-            raise NotImplementedError("confusion metric {} not supported. See docstrings".format(confusion_metric))
+            raise NotImplementedError(f"confusion metric {confusion_metric} not supported. See docstrings")
 
     def __repr__(self):
         """
         String representation.
         """
-        repr_ = "{},\n\t{}".format(self.__class__.__name__, self.algotype)
+        repr_ = f"{self.__class__.__name__},\n\t{self.algotype}"
         if self.fitted:
-            repr_ += "\n\tTotal clusters {}".format(np.unique(self.clusterer.labels_).shape[0])
+            repr_ += f"\n\tTotal clusters {np.unique(self.clusterer.labels_).shape[0]}"
         return repr_
 
     def init_eval_set_report_variables(self):
@@ -366,7 +366,7 @@ class InspectorShap(BaseInspector):
         if self.hasmultiple_dfs:
             for ix, agg_summary_df in enumerate(self.agg_summary_dfs):
                 if self.set_names is None:
-                    sample_suffix = "sample_{}".format(ix + 1)
+                    sample_suffix = f"sample_{ix + 1}"
                 else:
                     sample_suffix = self.set_names[ix]
 
@@ -375,7 +375,7 @@ class InspectorShap(BaseInspector):
                     agg_summary_df,
                     how="left",
                     on="cluster_id",
-                    suffixes=("", "_{}".format(sample_suffix)),
+                    suffixes=("", f"_{sample_suffix}"),
                 )
 
         self.cluster_report = out

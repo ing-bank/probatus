@@ -75,7 +75,7 @@ class DependencePlotter(BaseFitComputePlotClass):
         """
         Represent string method.
         """
-        return "Shap dependence plotter for {}".format(self.clf.__class__.__name__)
+        return f"Shap dependence plotter for {self.clf.__class__.__name__}"
 
     def fit(self, X, y, column_names=None, class_names=None, precalc_shap=None, **shap_kwargs):
         """
