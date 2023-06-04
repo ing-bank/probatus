@@ -1,14 +1,14 @@
 # Contributing guide
 
-`probatus` aims to provide a set of tools that can speed up common workflows around validating binary classifiers and the data used to train them.
+`Probatus` aims to provide a set of tools that can speed up common workflows around validating binary classifiers and the data used to train them.
 We're very much open to contributions but there are some things to keep in mind:
 
 - Discuss the feature and implementation you want to add on Github before you write a PR for it. On disagreements, maintainer(s) will have the final word.
-- Features need a somewhat general usecase. If the usecase is very niche it will be hard for us to consider maintaining it.
+- Features need a somewhat general use case. If the use case is very niche it will be hard for us to consider maintaining it.
 - If you’re going to add a feature, consider if you could help out in the maintenance of it.
 - When issues or pull requests are not going to be resolved or merged, they should be closed as soon as possible. This is kinder than deciding this after a long period. Our issue tracker should reflect work to be done.
 
-That said, there are many ways to contribute to probatus, including:
+That said, there are many ways to contribute to Probatus, including:
 
 - Contribution to code
 - Improving the documentation

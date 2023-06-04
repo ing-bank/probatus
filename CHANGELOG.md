@@ -7,8 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2.0.0] - 2023-06
 Improvements in this release:
-- Drop explicit support for python 3.7, add support for 3.11 #206
-- Activate and add pre-commit hooks (isort, codespell) #206
+- Drop explicit support for python 3.7, add support for 3.11 #206, #203, #185
+- Activate and add pre-commit hooks (isort, codespell) #205, #206
 - Add support for groups in SHAP RFECV #182
 - Bug fix: SHAP RFECV now produces reproducible results every time (this breaks backwards compatibility) #197
 - Bug fix: Updated GitHub actions, fixed deprecations #199

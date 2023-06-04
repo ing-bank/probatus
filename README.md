@@ -6,7 +6,7 @@
 [![PyPI - Downloads](https://img.shields.io/pypi/dm/probatus)](#)
 ![GitHub contributors](https://img.shields.io/github/contributors/ing-bank/probatus)
 
-# probatus
+# Probatus
 
 ## Overview
 
