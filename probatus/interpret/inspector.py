@@ -142,7 +142,7 @@ class InspectorShap(BaseInspector):
     """
     Class to perform inspection of the model prediction based on Shapley values.
 
-    It uses the calculated Shapley values for the train model to build clusters in the shap space.
+    It uses the calculated Shapley values for the train model to build clusters in the SHAP space.
     For each cluster, an average confusion, average predicted probability and observed rate of a single class is
     calculated.
     Every sub cluster can be retrieved with the function slice_cluster to perform deeper analysis.
@@ -156,12 +156,12 @@ class InspectorShap(BaseInspector):
                 - "proba": it will calculate the confusion metric as the absolute value of the target minus
                     the predicted probability. This provides a continuous measure of confusion, where 0 indicated
                     correct predictions and the closer the number is to 1, the higher the confusion
-            normalize_probability: (boolean) if true, it will normalize the probabilities to the max value when computing
-                the confusion metric
+            normalize_probability: (boolean) if true, it will normalize the probabilities to the max value when
+                computing the confusion metric
             cluster_probabilities: (boolean) if true, uses the model prediction as an input for the cluster prediction
             **kwargs: keyword arguments for the clustering algorithm
 
-    """  # noqa
+    """
 
     def __init__(
         self,
@@ -533,13 +533,13 @@ class InspectorShap(BaseInspector):
             eval_set: (list, default=None). list of tuples in the shape (X,y) containing evaluation samples, for example
                 a test sample, validation sample etc... X corresponds to the feature set of the sample, y corresponds
                 to the targets of the samples
-            sample_names: (list of strings, default=None): list of suffixed for the samples. If none, it will be labelled with
-                sample_{i}, where i corresponds to the index of the sample.
+            sample_names: (list of strings, default=None): list of suffixed for the samples. If none, it will be
+                labelled with sample_{i}, where i corresponds to the index of the sample.
                 List length must match that of eval_set
             **shap_kwargs:  kwargs to pass to the Shapley Tree Explained
 
         Returns:
             (pd.DataFrame) Report with aggregations described in compute() method.
-        """  # noqa
+        """
         self.fit(X, y, eval_set, sample_names, **shap_kwargs)
         return self.compute()

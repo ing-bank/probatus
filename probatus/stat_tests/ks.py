@@ -39,7 +39,7 @@ def ks(d1, d2, verbose=False):
 
     References:
 
-    - [Wikipedia article about the Kolmogorov-Smirnov test](https://en.wikipedia.org/wiki/Kolmogorov%E2%80%93Smirnov_test)
+    - [Wikipedia article about Kolmogorov-Smirnov test](https://en.wikipedia.org/wiki/Kolmogorov%E2%80%93Smirnov_test)
     - [SciPy documentation](https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.ks_2samp.html)
 
     Args:
@@ -52,7 +52,7 @@ def ks(d1, d2, verbose=False):
     Returns:
         float: Kolmogorov-Smirnov test statistic.
         float: p-value of rejecting the null hypothesis (that the two distributions are identical).
-    """  # noqa
+    """
     # Perform data checks
     d1 = assure_numpy_array(d1)
     d2 = assure_numpy_array(d2)

@@ -84,7 +84,7 @@ class ImputationSelector(BaseFitComputePlotClass):
 
     <img src="../img/imputation_comparison.png" width="500" />
 
-    """  # noqa
+    """
 
     def __init__(
         self,
