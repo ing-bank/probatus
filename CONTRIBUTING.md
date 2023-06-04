@@ -38,6 +38,14 @@ We use [pre-commit](https://pre-commit.com/) hooks to ensure code styling. Insta
 pre-commit install
 ```
 
+Now if you install it (which you are encouraged to do), you are encouraged to do the following command before committing your work:
+
+```shell
+pre-commit run --all-files
+```
+
+This will allow you to quickly see if the work you made contains some adaptions that you still might need to make before a pull request is accepted.
+
 ## Standards
 
 - Python 3.8+
