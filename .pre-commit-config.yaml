@@ -1,4 +1,4 @@
-files: ^probatus/
+files: ^probatus/|^tests/
 repos:
   - repo: local
     hooks:

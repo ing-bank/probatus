@@ -1,13 +1,12 @@
-import numpy as np
-import pandas as pd
 import numbers
 
+import numpy as np
+import pandas as pd
 import pytest
-
 from sklearn.datasets import make_classification
 from sklearn.model_selection import train_test_split
 
-from probatus.stat_tests import ks, psi, DistributionStatistics, AutoDist
+from probatus.stat_tests import AutoDist, DistributionStatistics, ks, psi
 
 
 def test_distribution_statistics_base():

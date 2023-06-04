@@ -2,8 +2,6 @@ import os
 
 import pandas as pd
 import pytest
-from probatus.feature_elimination import EarlyStoppingShapRFECV, ShapRFECV
-from probatus.utils import preprocess_labels
 from sklearn.datasets import make_classification
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
@@ -13,6 +11,9 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVC
 from sklearn.tree import DecisionTreeClassifier
+
+from probatus.feature_elimination import EarlyStoppingShapRFECV, ShapRFECV
+from probatus.utils import preprocess_labels
 
 
 @pytest.fixture(scope="function")
@@ -75,10 +76,8 @@ def test_shap_rfe_randomized_search(X, y, capsys):
     clf = DecisionTreeClassifier(max_depth=1)
     param_grid = {"criterion": ["gini"], "min_samples_split": [1, 2]}
     search = RandomizedSearchCV(clf, param_grid, cv=2, n_iter=2)
-    with pytest.warns(None) as record:
-
-        shap_elimination = ShapRFECV(search, step=0.8, cv=2, scoring="roc_auc", n_jobs=4, random_state=1)
-        report = shap_elimination.fit_compute(X, y)
+    shap_elimination = ShapRFECV(search, step=0.8, cv=2, scoring="roc_auc", n_jobs=4, random_state=1)
+    report = shap_elimination.fit_compute(X, y)
 
     assert shap_elimination.fitted
     shap_elimination._check_if_fitted()
@@ -98,18 +97,15 @@ def test_shap_rfe(X, y, sample_weight, capsys):
     Test with ShapRFECV.
     """
     clf = DecisionTreeClassifier(max_depth=1, random_state=1)
-    with pytest.warns(None) as record:
-        shap_elimination = ShapRFECV(
-            clf,
-            random_state=1,
-            step=1,
-            cv=2,
-            scoring="roc_auc",
-            n_jobs=4,
-        )
-        shap_elimination = shap_elimination.fit(
-            X, y, sample_weight=sample_weight, approximate=True, check_additivity=False
-        )
+    shap_elimination = ShapRFECV(
+        clf,
+        random_state=1,
+        step=1,
+        cv=2,
+        scoring="roc_auc",
+        n_jobs=4,
+    )
+    shap_elimination = shap_elimination.fit(X, y, sample_weight=sample_weight, approximate=True, check_additivity=False)
 
     assert shap_elimination.fitted
     shap_elimination._check_if_fitted()
@@ -132,18 +128,17 @@ def test_shap_rfe_group_cv(X, y, groups, sample_weight, capsys):
     """
     clf = DecisionTreeClassifier(max_depth=1, random_state=1)
     cv = StratifiedGroupKFold(n_splits=2, shuffle=True, random_state=1)
-    with pytest.warns(None) as record:
-        shap_elimination = ShapRFECV(
-            clf,
-            random_state=1,
-            step=1,
-            cv=cv,
-            scoring="roc_auc",
-            n_jobs=4,
-        )
-        shap_elimination = shap_elimination.fit(
-            X, y, groups=groups, sample_weight=sample_weight, approximate=True, check_additivity=False
-        )
+    shap_elimination = ShapRFECV(
+        clf,
+        random_state=1,
+        step=1,
+        cv=cv,
+        scoring="roc_auc",
+        n_jobs=4,
+    )
+    shap_elimination = shap_elimination.fit(
+        X, y, groups=groups, sample_weight=sample_weight, approximate=True, check_additivity=False
+    )
 
     assert shap_elimination.fitted
     shap_elimination._check_if_fitted()
@@ -187,9 +182,8 @@ def test_shap_rfe_linear_model(X, y, capsys):
     Test ShapRFECV with linear model.
     """
     clf = LogisticRegression(C=1, random_state=1)
-    with pytest.warns(None) as record:
-        shap_elimination = ShapRFECV(clf, random_state=1, step=1, cv=2, scoring="roc_auc", n_jobs=4)
-        shap_elimination = shap_elimination.fit(X, y)
+    shap_elimination = ShapRFECV(clf, random_state=1, step=1, cv=2, scoring="roc_auc", n_jobs=4)
+    shap_elimination = shap_elimination.fit(X, y)
 
     assert shap_elimination.fitted
     shap_elimination._check_if_fitted()
@@ -211,9 +205,8 @@ def test_shap_rfe_svm(X, y, capsys):
     Test with ShapRFECV with SVM.
     """
     clf = SVC(C=1, kernel="linear", probability=True)
-    with pytest.warns(None) as record:
-        shap_elimination = ShapRFECV(clf, random_state=1, step=1, cv=2, scoring="roc_auc", n_jobs=4)
-        shap_elimination = shap_elimination.fit(X, y)
+    shap_elimination = ShapRFECV(clf, random_state=1, step=1, cv=2, scoring="roc_auc", n_jobs=4)
+    shap_elimination = shap_elimination.fit(X, y)
 
     assert shap_elimination.fitted
     shap_elimination._check_if_fitted()
@@ -235,17 +228,16 @@ def test_shap_rfe_cols_to_keep(X, y, capsys):
     Test for shap_rfe_cv with features to keep parameter.
     """
     clf = DecisionTreeClassifier(max_depth=1, random_state=1)
-    with pytest.warns(None) as record:
-        shap_elimination = ShapRFECV(
-            clf,
-            random_state=1,
-            step=2,
-            cv=2,
-            scoring="roc_auc",
-            n_jobs=4,
-            min_features_to_select=1,
-        )
-        shap_elimination = shap_elimination.fit(X, y, columns_to_keep=["col_2", "col_3"])
+    shap_elimination = ShapRFECV(
+        clf,
+        random_state=1,
+        step=2,
+        cv=2,
+        scoring="roc_auc",
+        n_jobs=4,
+        min_features_to_select=1,
+    )
+    shap_elimination = shap_elimination.fit(X, y, columns_to_keep=["col_2", "col_3"])
 
     assert shap_elimination.fitted
     shap_elimination._check_if_fitted()
@@ -268,10 +260,8 @@ def test_shap_rfe_randomized_search_cols_to_keep(X, y, capsys):
     clf = DecisionTreeClassifier(max_depth=1)
     param_grid = {"criterion": ["gini"], "min_samples_split": [1, 2]}
     search = RandomizedSearchCV(clf, param_grid, cv=2, n_iter=2)
-    with pytest.warns(None) as record:
-
-        shap_elimination = ShapRFECV(search, step=0.8, cv=2, scoring="roc_auc", n_jobs=4, random_state=1)
-        report = shap_elimination.fit_compute(X, y, columns_to_keep=["col_2", "col_3"])
+    shap_elimination = ShapRFECV(search, step=0.8, cv=2, scoring="roc_auc", n_jobs=4, random_state=1)
+    report = shap_elimination.fit_compute(X, y, columns_to_keep=["col_2", "col_3"])
 
     assert shap_elimination.fitted
     shap_elimination._check_if_fitted()
@@ -311,7 +301,11 @@ def test_get_feature_shap_values_per_fold(X, y):
     """
     clf = DecisionTreeClassifier(max_depth=1)
     shap_elimination = ShapRFECV(clf)
-    (shap_values, train_score, test_score,) = shap_elimination._get_feature_shap_values_per_fold(
+    (
+        shap_values,
+        train_score,
+        test_score,
+    ) = shap_elimination._get_feature_shap_values_per_fold(
         X,
         y,
         clf,
@@ -322,6 +316,7 @@ def test_get_feature_shap_values_per_fold(X, y):
     assert test_score == 1
     assert train_score > 0.9
     assert shap_values.shape == (2, 3)
+
 
 def test_shap_rfe_same_features_are_kept_after_each_run():
     """
@@ -366,12 +361,11 @@ def test_shap_rfe_same_features_are_kept_after_each_run():
     report = shap_elimination.fit_compute(X, y, check_additivity=True, seed=SEED)
     # Return the set of features with the best validation accuracy
 
-    kept_features = list(
-        report.iloc[[report["val_metric_mean"].idxmax() - 1]]["features_set"].to_list()[0]
-    )
+    kept_features = list(report.iloc[[report["val_metric_mean"].idxmax() - 1]]["features_set"].to_list()[0])
 
     # Results from the first run
     assert ["f6", "f10", "f12", "f14", "f15", "f17", "f18", "f20"] == kept_features
+
 
 @pytest.mark.skipif(os.environ.get("SKIP_LIGHTGBM") == "true", reason="LightGBM tests disabled")
 def test_complex_dataset(complex_data, complex_lightgbm):
@@ -387,8 +381,8 @@ def test_complex_dataset(complex_data, complex_lightgbm):
     search = RandomizedSearchCV(complex_lightgbm, param_grid, n_iter=1)
 
     shap_elimination = ShapRFECV(clf=search, step=1, cv=10, scoring="roc_auc", n_jobs=3, verbose=50)
-    with pytest.warns(None) as record:
-        report = shap_elimination.fit_compute(X, y)
+
+    report = shap_elimination.fit_compute(X, y)
 
     assert report.shape[0] == X.shape[1]
 
@@ -403,18 +397,17 @@ def test_shap_rfe_early_stopping_lightGBM(complex_data, capsys):
     clf = LGBMClassifier(n_estimators=200, max_depth=3)
     X, y = complex_data
 
-    with pytest.warns(None) as record:
-        shap_elimination = EarlyStoppingShapRFECV(
-            clf,
-            random_state=1,
-            step=1,
-            cv=10,
-            scoring="roc_auc",
-            n_jobs=4,
-            early_stopping_rounds=5,
-            eval_metric="auc",
-        )
-        shap_elimination = shap_elimination.fit(X, y, approximate=False, check_additivity=False)
+    shap_elimination = EarlyStoppingShapRFECV(
+        clf,
+        random_state=1,
+        step=1,
+        cv=10,
+        scoring="roc_auc",
+        n_jobs=4,
+        early_stopping_rounds=5,
+        eval_metric="auc",
+    )
+    shap_elimination = shap_elimination.fit(X, y, approximate=False, check_additivity=False)
 
     assert shap_elimination.fitted
     shap_elimination._check_if_fitted()
@@ -442,18 +435,17 @@ def test_shap_rfe_early_stopping_XGBoost(complex_data, capsys):
     X, y = complex_data
     X["f1_categorical"] = X["f1_categorical"].astype(float)
 
-    with pytest.warns(None) as record:
-        shap_elimination = EarlyStoppingShapRFECV(
-            clf,
-            random_state=1,
-            step=1,
-            cv=10,
-            scoring="roc_auc",
-            n_jobs=4,
-            early_stopping_rounds=5,
-            eval_metric="auc",
-        )
-        shap_elimination = shap_elimination.fit(X, y, approximate=False, check_additivity=False)
+    shap_elimination = EarlyStoppingShapRFECV(
+        clf,
+        random_state=1,
+        step=1,
+        cv=10,
+        scoring="roc_auc",
+        n_jobs=4,
+        early_stopping_rounds=5,
+        eval_metric="auc",
+    )
+    shap_elimination = shap_elimination.fit(X, y, approximate=False, check_additivity=False)
 
     assert shap_elimination.fitted
     shap_elimination._check_if_fitted()
@@ -480,18 +472,17 @@ def test_shap_rfe_early_stopping_CatBoost(complex_data, capsys, catboost_classif
     clf = catboost_classifier_class(random_seed=42)
     X, y = complex_data
 
-    with pytest.warns(None) as record:
-        shap_elimination = EarlyStoppingShapRFECV(
-            clf,
-            random_state=1,
-            step=1,
-            cv=10,
-            scoring="roc_auc",
-            n_jobs=4,
-            early_stopping_rounds=5,
-            eval_metric="auc",
-        )
-        shap_elimination = shap_elimination.fit(X, y, approximate=False, check_additivity=False)
+    shap_elimination = EarlyStoppingShapRFECV(
+        clf,
+        random_state=1,
+        step=1,
+        cv=10,
+        scoring="roc_auc",
+        n_jobs=4,
+        early_stopping_rounds=5,
+        eval_metric="auc",
+    )
+    shap_elimination = shap_elimination.fit(X, y, approximate=False, check_additivity=False)
 
     assert shap_elimination.fitted
     shap_elimination._check_if_fitted()
@@ -522,19 +513,18 @@ def test_shap_rfe_randomized_search_early_stopping_lightGBM(complex_data):
         "max_depth": [3, 4, 5],
     }
     search = RandomizedSearchCV(clf, param_grid, cv=2, n_iter=2)
-    with pytest.warns(None) as record:
-        shap_elimination = EarlyStoppingShapRFECV(
-            search,
-            step=1,
-            cv=10,
-            scoring="roc_auc",
-            early_stopping_rounds=5,
-            eval_metric="auc",
-            n_jobs=4,
-            verbose=50,
-            random_state=1,
-        )
-        report = shap_elimination.fit_compute(X, y)
+    shap_elimination = EarlyStoppingShapRFECV(
+        search,
+        step=1,
+        cv=10,
+        scoring="roc_auc",
+        early_stopping_rounds=5,
+        eval_metric="auc",
+        n_jobs=4,
+        verbose=50,
+        random_state=1,
+    )
+    report = shap_elimination.fit_compute(X, y)
 
     assert shap_elimination.fitted
     shap_elimination._check_if_fitted()
@@ -557,7 +547,11 @@ def test_get_feature_shap_values_per_fold_early_stopping_lightGBM(complex_data):
     y = preprocess_labels(y, y_name="y", index=X.index)
 
     shap_elimination = EarlyStoppingShapRFECV(clf, early_stopping_rounds=5)
-    (shap_values, train_score, test_score,) = shap_elimination._get_feature_shap_values_per_fold(
+    (
+        shap_values,
+        train_score,
+        test_score,
+    ) = shap_elimination._get_feature_shap_values_per_fold(
         X,
         y,
         clf,
@@ -581,7 +575,11 @@ def test_get_feature_shap_values_per_fold_early_stopping_CatBoost(complex_data, 
     y = preprocess_labels(y, y_name="y", index=X.index)
 
     shap_elimination = EarlyStoppingShapRFECV(clf, early_stopping_rounds=5)
-    (shap_values, train_score, test_score,) = shap_elimination._get_feature_shap_values_per_fold(
+    (
+        shap_values,
+        train_score,
+        test_score,
+    ) = shap_elimination._get_feature_shap_values_per_fold(
         X,
         y,
         clf,
@@ -607,7 +605,11 @@ def test_get_feature_shap_values_per_fold_early_stopping_XGBoost(complex_data):
     y = preprocess_labels(y, y_name="y", index=X.index)
 
     shap_elimination = EarlyStoppingShapRFECV(clf, early_stopping_rounds=5)
-    (shap_values, train_score, test_score,) = shap_elimination._get_feature_shap_values_per_fold(
+    (
+        shap_values,
+        train_score,
+        test_score,
+    ) = shap_elimination._get_feature_shap_values_per_fold(
         X,
         y,
         clf,
