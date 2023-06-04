@@ -12,6 +12,7 @@ Improvements in this release:
 - Add support for groups in SHAP RFECV #182
 - Bug fix: SHAP RFECV now produces reproducible results every time (this breaks backwards compatibility) #197
 - Bug fix: Updated GitHub actions, fixed deprecations #199
+- Bug fix: Remove most of the unreliable warning assertion checks #207
 
 ## [1.8.9] - 2022-04-08
 Improvements in this release:
