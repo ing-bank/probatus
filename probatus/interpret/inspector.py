@@ -60,9 +60,6 @@ class BaseInspector(BaseFitComputeClass):
         Init.
         """
         self.algotype = algotype
-        # TODO fix compilatiopn issue on  for hdbscan
-        # if algotype =='dbscan':
-        #     self.clusterer = hdbscan.HDBSCAN(prediction_data=True,**kwargs)
         if algotype == "kmeans":
             self.clusterer = KMeans(**kwargs)
         else:
