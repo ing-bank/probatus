@@ -87,7 +87,7 @@ setuptools.setup(
     author_email="mateusz.garbacz@ing.com",
     license="MIT License",
     packages=setuptools.find_packages(exclude=["tests"]),
-    python_requires=">=3.6",
+    python_requires=">=3.8",
     classifiers=[
         "Intended Audience :: Developers",
         "Intended Audience :: Science/Research",
