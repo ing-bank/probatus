@@ -1,11 +1,12 @@
-from probatus.interpret.inspector import return_confusion_metric, InspectorShap, BaseInspector
-from tests.mocks import MockClusterer, MockModel
 from unittest.mock import patch
-from probatus.utils import NotFittedError, UnsupportedModelError
 
 import numpy as np
 import pandas as pd
 import pytest
+
+from probatus.interpret.inspector import BaseInspector, InspectorShap, return_confusion_metric
+from probatus.utils import NotFittedError, UnsupportedModelError
+from tests.mocks import MockClusterer, MockModel
 
 test_sensitivity = 0.0000000001
 
@@ -725,7 +726,6 @@ def test_after_implementation_completed():
         global_clusters_eval_set,
         global_X_shaps,
     ):
-
         inspector = InspectorShap(model=MockModel(), algotype="kmeans")
         input_eval_set = [(global_Xs[0], global_ys[0]), (global_Xs[1], global_ys[1])]
         input_sample_names = ["set1", "set2"]

@@ -62,7 +62,7 @@ def psi(d1, d2, verbose=False):
         float: Measure of the similarity between d1 & d2. (range 0-inf, with 0 indicating identical
         distributions and > 0.25 indicating significantly different distributions)
         float: p-value for rejecting null hypothesis (that the two distributions are identical)
-    """
+    """  # noqa
     # Perform data checks
     d1 = assure_numpy_array(d1)
     d2 = assure_numpy_array(d2)

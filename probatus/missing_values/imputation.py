@@ -17,20 +17,16 @@
 # IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-from probatus.utils import (
-    preprocess_data,
-    preprocess_labels,
-    BaseFitComputePlotClass,
-    get_single_scorer,
-)
-from sklearn.model_selection import cross_validate
-from sklearn.pipeline import Pipeline
-from sklearn.impute import SimpleImputer
-from sklearn.compose import ColumnTransformer
-from sklearn.preprocessing import OneHotEncoder
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from sklearn.compose import ColumnTransformer
+from sklearn.impute import SimpleImputer
+from sklearn.model_selection import cross_validate
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import OneHotEncoder
+
+from probatus.utils import BaseFitComputePlotClass, get_single_scorer, preprocess_data, preprocess_labels
 
 
 class ImputationSelector(BaseFitComputePlotClass):
@@ -38,7 +34,7 @@ class ImputationSelector(BaseFitComputePlotClass):
     Comparison of various imputation strategies that can be used for imputing missing values.
 
     The aim of this class is to present the model performance based on imputation
-    strategies and a choosen model.
+    strategies and a chosen model.
     For models like XGBoost & LighGBM which have capabilities to handle missing values by default
     the model performance with no imputation will be shown as well.
     The missing values categorical features are imputed with the value `missing` and an missing indicator is
@@ -73,7 +69,7 @@ class ImputationSelector(BaseFitComputePlotClass):
        'KNN' : KNNImputer(n_neighbors=3)}
     #Create a classifier.
     clf = LogisticRegression()
-    #Create the comparision of the imputation strategies.
+    #Create the comparison of the imputation strategies.
     cmp = ImputationSelector(
         clf=clf,
         strategies=strategies,
@@ -86,9 +82,9 @@ class ImputationSelector(BaseFitComputePlotClass):
 
     ```
 
-    <img src="../img/imputation_comparision.png" width="500" />
+    <img src="../img/imputation_comparison.png" width="500" />
 
-    """ # noqa
+    """
 
     def __init__(
         self,
@@ -119,12 +115,14 @@ class ImputationSelector(BaseFitComputePlotClass):
 
             scoring (string, list of strings, probatus.utils.Scorer or list of probatus.utils.Scorers, optional):
                 Metrics for which the score is calculated. It can be either a name or list of names metric names and
-                needs to be aligned with predefined [classification scorers names in sklearn](https://scikit-learn.org/stable/modules/model_evaluation.html).
+                needs to be aligned with predefined
+                [classification scorers names in sklearn](https://scikit-learn.org/stable/modules/model_evaluation.html).
                 Another option is using probatus.utils.Scorer to define a custom metric.
 
             model_na_support (boolean): default False
                 If the classifier supports missing values by default e.g. LightGBM,XGBoost etc.
-                If True an default comparison `No Imputation`  result will be added indicating the model performance without any explict imputation.
+                If True an default comparison `No Imputation`  result will be added indicating the model performance
+                    without any explicit imputation.
                 If False only the provided strategies will be used.
 
             n_jobs (int, optional):
@@ -159,7 +157,7 @@ class ImputationSelector(BaseFitComputePlotClass):
         """
         String representation.
         """
-        return "Imputation comparision for {}".format(self.clf.__class__.__name__)
+        return f"Imputation comparison for {self.clf.__class__.__name__}"
 
     def fit(self, X, y, column_names=None):
         """
@@ -191,7 +189,6 @@ class ImputationSelector(BaseFitComputePlotClass):
         numeric_columns = X.select_dtypes("number").columns
 
         for strategy in self.strategies:
-
             numeric_transformer = Pipeline(steps=[("imputer", self.strategies[strategy])])
 
             categorical_transformer = Pipeline(
@@ -225,7 +222,6 @@ class ImputationSelector(BaseFitComputePlotClass):
         # If model supports missing values by default, then calculate the scores
         # on raw data without any imputation.
         if self.model_na_support:
-
             categorical_transformer = Pipeline(
                 steps=[
                     ("ohe_cat", OneHotEncoder(handle_unknown="ignore")),
@@ -282,12 +278,12 @@ class ImputationSelector(BaseFitComputePlotClass):
             return_train_score=True,
         )
         # Calculate the mean of the results.
-        imp_agg_results = dict((k, np.mean(v)) for k, v in imputation_cv_results.items())
+        imp_agg_results = {k: np.mean(v) for k, v in imputation_cv_results.items()}
         imp_agg_results = {"mean_" + str(key): val for key, val in imp_agg_results.items()}
         imp_agg_results["test_score_std"] = np.std(imputation_cv_results["test_score"])
         imp_agg_results["train_score_std"] = np.std(imputation_cv_results["train_score"])
         # Round off all calculations to 3 decimal places
-        imp_agg_results = dict((k, np.round(v, 3)) for k, v in imp_agg_results.items())
+        imp_agg_results = {k: np.round(v, 3) for k, v in imp_agg_results.items()}
         imp_agg_results["strategy"] = strategy
 
         return imp_agg_results
@@ -364,7 +360,7 @@ class ImputationSelector(BaseFitComputePlotClass):
             for rect in rects:
                 width = rect.get_width()
                 ax.annotate(
-                    "{}".format(width),
+                    f"{width}",
                     xy=((width + 0.05 * width), rect.get_y() + rect.get_height() / 2),
                     xytext=(4, 0),  # 4 points horizontal offset
                     textcoords="offset points",
@@ -393,7 +389,7 @@ class ImputationSelector(BaseFitComputePlotClass):
         _autolabel(test_rect)
 
         ax.set_xlabel(f'{self.scorer.metric_name.replace("_"," ").upper()} Score')
-        ax.set_title("Imputation Techniques Comparision")
+        ax.set_title("Imputation Techniques Comparison")
         ax.set_yticks(y)
         ax.set_yticklabels(imp_methods, rotation=45)
         plt.margins(0.2)

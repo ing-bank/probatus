@@ -7,7 +7,7 @@ def generate_MCAR(df, missing):
 
     Args:
         df: input dataframe where some values will be masked
-        missings: (float or dict)
+        missing: (float or dict)
             - float ( must be a fraction between 0 and 1 - both inclusive), then it will apply this
             fraction of missing values on the whole dataset.
             - dict:

@@ -18,21 +18,22 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+from shap import summary_plot
+from shap.plots._waterfall import waterfall_legacy
+
 from probatus.interpret import DependencePlotter
 from probatus.utils import (
+    BaseFitComputePlotClass,
+    assure_list_of_strings,
+    calculate_shap_importance,
+    get_single_scorer,
     preprocess_data,
     preprocess_labels,
     shap_calc,
-    calculate_shap_importance,
-    BaseFitComputePlotClass,
-    assure_list_of_strings,
-    get_single_scorer,
 )
-import numpy as np
-from shap import summary_plot
-from shap.plots._waterfall import waterfall_legacy
-import matplotlib.pyplot as plt
-import pandas as pd
 
 
 class ShapModelInterpreter(BaseFitComputePlotClass):
@@ -158,7 +159,11 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
             f"Test {self.scorer.metric_name}: {np.round(self.test_score, 3)}."
         )
 
-        (self.shap_values_train, self.expected_value_train, self.tdp_train,) = self._prep_shap_related_variables(
+        (
+            self.shap_values_train,
+            self.expected_value_train,
+            self.tdp_train,
+        ) = self._prep_shap_related_variables(
             clf=self.clf,
             X=self.X_train,
             y=self.y_train,
@@ -168,7 +173,11 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
             **shap_kwargs,
         )
 
-        (self.shap_values_test, self.expected_value_test, self.tdp_test,) = self._prep_shap_related_variables(
+        (
+            self.shap_values_test,
+            self.expected_value_test,
+            self.tdp_test,
+        ) = self._prep_shap_related_variables(
             clf=self.clf,
             X=self.X_test,
             y=self.y_test,

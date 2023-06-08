@@ -1,17 +1,20 @@
+files: ^probatus/|^tests/
 repos:
-  - repo: local
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v3.2.0
     hooks:
-    - id: black
-      name: black
-      entry: black
-      language: python
-      types: [python]
-      language_version: python3
-      args: [--line-length=120]
+    - id: check-case-conflict # Different OSes
+      name: 'Check case conflict: Naming of files is compatible with all OSes'
+    - id: check-docstring-first
+      name: 'Check docstring first: Ensures Docstring present and first'
+    - id: detect-private-key
+      name: 'Detect private key: Prevent commit of env related keys'
+    - id: trailing-whitespace
+      name: 'Trailing whitespace: Remove empty spaces'
   - repo: local
     hooks:
     - id: mypy
-      name: mypy
+      name: 'mypy: Static type checking'
       entry: mypy
       language: system
       types: [python]
@@ -19,11 +22,11 @@ repos:
   - repo: local
     hooks:
     - id: flake8
-      name: flake8
+      name: 'flake8: Check for errors, styling issues and complexity'
       entry: flake8
       language: system
       types: [python]
-      args: [--max-line-length=120, --docstring-convention=google, "--ignore=D100,D104,D202,D212,D200,E203,E731,W293,D412,D417,W503,D411"]
+      args: [--max-line-length, &line_length "120", --docstring-convention=google, "--ignore=D100,D104,D202,D212,D200,E203,E731,W293,D412,D417,W503,D411"]
 # D100 requires all Python files (modules) to have a "public" docstring even if all functions within have a docstring.
 # D104 requires __init__ files to have a docstring
 # D202 No blank lines allowed after function docstring
@@ -36,3 +39,35 @@ repos:
 # E731 do not assign a lambda expression, use a def
 # W293 blank line contains whitespace
 # W503 line break before binary operator (for compatibility with black)
+  - repo: local
+    hooks:
+    - id: isort
+      name: 'isort: Sort file imports'
+      entry: isort
+      language: system
+      types: [python]
+      args: ["--skip", "__init__.py", "--filter-files", "--profile=black", "--line-length", *line_length]
+  - repo: local
+    hooks:
+    - id: codespell
+      name: 'codespell: Check for grammar'
+      entry: codespell
+      language: system
+      types: [python]
+      # Skip the word "mot"
+      args: [-L mot, --skip="**.egg-info*"]
+  - repo: https://github.com/asottile/pyupgrade
+    rev: v3.4.0
+    hooks:
+    - id: pyupgrade
+      name: 'pyupgrade: Updates code to Python 3.8+ code convention'
+      args: ["--py37-plus"]
+  - repo: local
+    hooks:
+    - id: black
+      name: 'black: PEP8 compliant code formatter'
+      entry: black
+      language: python
+      types: [python]
+      language_version: python3
+      args: [--line-length, *line_length]

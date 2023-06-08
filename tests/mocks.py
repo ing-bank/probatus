@@ -1,6 +1,5 @@
 from unittest.mock import Mock
 
-
 # These are shell classes that define the methods of the models that we use. Each of the functions that we use needs
 # To be defined inside these shell classes. Then when we want to write a specific test you need to simply mock.patch
 # the desired functionality. You can also set the return_value to the patched method.

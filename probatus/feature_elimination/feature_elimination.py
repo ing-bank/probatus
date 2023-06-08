@@ -136,7 +136,7 @@ class ShapRFECV(BaseFitComputePlotClass):
             min_features_to_select (int, optional):
                 Minimum number of features to be kept. This is a stopping criterion of the feature elimination. By
                 default the process stops when one feature is left. If columns_to_keep is specified in the fit method,
-                it may overide this parameter to the maximum between length of columns_to_keep the two.
+                it may override this parameter to the maximum between length of columns_to_keep the two.
 
             cv (int, cross-validation generator or an iterable, optional):
                 Determines the cross-validation splitting strategy. Compatible with sklearn
@@ -483,7 +483,7 @@ class ShapRFECV(BaseFitComputePlotClass):
             if all(x in column_names for x in list(X.columns)):
                 pass
             else:
-                raise (ValueError("The column names in parameter columns_to_keep and column_names are not macthing."))
+                raise (ValueError("The column names in parameter columns_to_keep and column_names are not matching."))
 
         # Check that the total number of columns to select is less than total number of columns in the data.
         # only when both parameters are provided.
@@ -530,9 +530,7 @@ class ShapRFECV(BaseFitComputePlotClass):
                 remaining_removeable_features = pd.Series(current_features_set).unique()
             else:
                 # Keeps the original order, while removing duplicate elements
-                remaining_removeable_features = pd.Series(
-                    list(current_features_set) + columns_to_keep
-                ).unique()
+                remaining_removeable_features = pd.Series(list(current_features_set) + columns_to_keep).unique()
 
             current_X = self.X[remaining_removeable_features]
 
@@ -608,7 +606,7 @@ class ShapRFECV(BaseFitComputePlotClass):
         """
         Checks if fit() method has been run.
 
-        and computes the DataFrame with results of feature elimintation for each round.
+        and computes the DataFrame with results of feature elimination for each round.
 
         Returns:
             (pd.DataFrame):
@@ -879,7 +877,7 @@ class EarlyStoppingShapRFECV(ShapRFECV):
             min_features_to_select (int, optional):
                 Minimum number of features to be kept. This is a stopping criterion of the feature elimination. By
                 default the process stops when one feature is left. If columns_to_keep is specified in the fit method,
-                it may overide this parameter to the maximum between length of columns_to_keep the two.
+                it may override this parameter to the maximum between length of columns_to_keep the two.
 
             cv (int, cross-validation generator or an iterable, optional):
                 Determines the cross-validation splitting strategy. Compatible with sklearn
@@ -920,7 +918,7 @@ class EarlyStoppingShapRFECV(ShapRFECV):
                  and [LightGBM](https://lightgbm.readthedocs.io/en/latest/Parameters.html#metric-parameters).
                 Note that `eval_metric` is an argument of the model's fit method and it is different from `scoring`.
         """  # noqa
-        super(EarlyStoppingShapRFECV, self).__init__(
+        super().__init__(
             clf,
             step=step,
             min_features_to_select=min_features_to_select,

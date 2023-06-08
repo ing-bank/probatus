@@ -1,20 +1,20 @@
 # This approach is adapted from, and explained in: https://calmcode.io/docs/epic.html
 
-import pytest
-import matplotlib.pyplot as plt
-import matplotlib
 import os
+from typing import List
+
+import matplotlib
+import matplotlib.pyplot as plt
+import pytest
 
 import probatus.binning
 import probatus.feature_elimination
 import probatus.interpret
 import probatus.metric_volatility
+import probatus.missing_values
 import probatus.sample_similarity
 import probatus.stat_tests
 import probatus.utils
-import probatus.missing_values
-
-from typing import List
 
 # Turn off interactive mode in plots
 plt.ioff()

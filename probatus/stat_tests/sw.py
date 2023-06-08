@@ -18,11 +18,13 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
-import pandas as pd
 import random
-from ..utils import assure_numpy_array
+
+import pandas as pd
 
 from probatus.utils import NotInstalledError
+
+from ..utils import assure_numpy_array
 
 try:
     from scipy import stats
@@ -32,8 +34,9 @@ except ModuleNotFoundError:
 
 def sw(d1, d2, verbose=False):
     """
-    Calculates the Shapiro-Wilk test statistic on 2 distributions,
-    which examines whether deviation from normality of two distributions are significantly different.
+    Calculates the Shapiro-Wilk test statistic on 2 distributions.
+
+    This examines whether deviation from normality of two distributions are significantly different.
 
     References:
 
@@ -71,12 +74,8 @@ def sw(d1, d2, verbose=False):
 
     def ran_delta(n1, n2):
         take_ran = lambda n: random.sample(range(MOT.shape[0]), n)
-        ran_1 = MOT.iloc[
-            take_ran(n1),
-        ]
-        ran_2 = MOT.iloc[
-            take_ran(n2),
-        ]
+        ran_1 = MOT.iloc[take_ran(n1),]
+        ran_2 = MOT.iloc[take_ran(n2),]
         delta_ran = stats.shapiro(ran_1)[0] - stats.shapiro(ran_2)[0]
         return delta_ran
 
@@ -88,7 +87,6 @@ def sw(d1, d2, verbose=False):
     sig_vals = list(collect.quantile(quants))
 
     if verbose:
-
         if delta < sig_vals[0] or delta > sig_vals[1]:
             print("\nShapiro_Difference | Null hypothesis : <delta is not different from zero> REJECTED.")
             print("\nDelta is outside 95% CI -> Distributions very different.")

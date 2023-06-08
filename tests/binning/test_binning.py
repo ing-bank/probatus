@@ -1,8 +1,8 @@
 import numpy as np
 import pytest
-
-from probatus.binning import SimpleBucketer, QuantileBucketer, AgglomerativeBucketer, TreeBucketer, Bucketer
 from sklearn.exceptions import NotFittedError
+
+from probatus.binning import AgglomerativeBucketer, Bucketer, QuantileBucketer, SimpleBucketer, TreeBucketer
 
 
 @pytest.mark.filterwarnings("ignore:")

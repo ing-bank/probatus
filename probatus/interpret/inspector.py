@@ -18,13 +18,15 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
-from ..utils import NotFittedError, UnsupportedModelError, BaseFitComputeClass
-import numpy as np
-import pandas as pd
 import copy
 
+import numpy as np
+import pandas as pd
 from sklearn.cluster import KMeans
+
 from probatus.utils import shap_helpers
+
+from ..utils import BaseFitComputeClass, NotFittedError, UnsupportedModelError
 
 
 def return_confusion_metric(y_true, y_score, normalize=False):
@@ -58,21 +60,18 @@ class BaseInspector(BaseFitComputeClass):
         Init.
         """
         self.algotype = algotype
-        # TODO fix compilatiopn issue on  for hdbscan
-        # if algotype =='dbscan':
-        #     self.clusterer = hdbscan.HDBSCAN(prediction_data=True,**kwargs)
         if algotype == "kmeans":
             self.clusterer = KMeans(**kwargs)
         else:
-            raise UnsupportedModelError("The algorithm {} is not supported".format(algotype))
+            raise UnsupportedModelError(f"The algorithm {algotype} is not supported")
 
     def __repr__(self):
         """
         String representation.
         """
-        repr_ = "{},\n\t{}".format(self.__class__.__name__, self.algotype)
+        repr_ = f"{self.__class__.__name__},\n\t{self.algotype}"
         if self.fitted:
-            repr_ += "\n\tTotal clusters {}".format(np.unique(self.clusterer.labels_).shape[0])
+            repr_ += f"\n\tTotal clusters {np.unique(self.clusterer.labels_).shape[0]}"
         return repr_
 
     def fit_clusters(self, X):
@@ -132,7 +131,7 @@ class BaseInspector(BaseFitComputeClass):
             return pd.Series(series, index=index)
         else:
             raise TypeError(
-                "The object should be a pd.Series, a dataframe with one collumn or a 1 dimensional numpy array"
+                "The object should be a pd.Series, a dataframe with one column or a 1 dimensional numpy array"
             )
 
 
@@ -140,7 +139,7 @@ class InspectorShap(BaseInspector):
     """
     Class to perform inspection of the model prediction based on Shapley values.
 
-    It uses the calculated Shapley values for the train model to build clusters in the shap space.
+    It uses the calculated Shapley values for the train model to build clusters in the SHAP space.
     For each cluster, an average confusion, average predicted probability and observed rate of a single class is
     calculated.
     Every sub cluster can be retrieved with the function slice_cluster to perform deeper analysis.
@@ -154,12 +153,12 @@ class InspectorShap(BaseInspector):
                 - "proba": it will calculate the confusion metric as the absolute value of the target minus
                     the predicted probability. This provides a continuous measure of confusion, where 0 indicated
                     correct predictions and the closer the number is to 1, the higher the confusion
-            normalize_probability: (boolean) if true, it will normalize the probabilities to the max value when computing
-                the confusion metric
+            normalize_probability: (boolean) if true, it will normalize the probabilities to the max value when
+                computing the confusion metric
             cluster_probabilities: (boolean) if true, uses the model prediction as an input for the cluster prediction
             **kwargs: keyword arguments for the clustering algorithm
 
-    """  # noqa
+    """
 
     def __init__(
         self,
@@ -168,7 +167,7 @@ class InspectorShap(BaseInspector):
         confusion_metric="proba",
         normalize_probability=False,
         cluster_probability=False,
-        **kwargs
+        **kwargs,
     ):
         """
         Init.
@@ -191,15 +190,15 @@ class InspectorShap(BaseInspector):
 
         if confusion_metric not in ["proba"]:
             # TODO implement the target method
-            raise NotImplementedError("confusion metric {} not supported. See docstrings".format(confusion_metric))
+            raise NotImplementedError(f"confusion metric {confusion_metric} not supported. See docstrings")
 
     def __repr__(self):
         """
         String representation.
         """
-        repr_ = "{},\n\t{}".format(self.__class__.__name__, self.algotype)
+        repr_ = f"{self.__class__.__name__},\n\t{self.algotype}"
         if self.fitted:
-            repr_ += "\n\tTotal clusters {}".format(np.unique(self.clusterer.labels_).shape[0])
+            repr_ += f"\n\tTotal clusters {np.unique(self.clusterer.labels_).shape[0]}"
         return repr_
 
     def init_eval_set_report_variables(self):
@@ -333,7 +332,6 @@ class InspectorShap(BaseInspector):
         self.agg_summary_df = self.aggregate_summary_df(self.summary_df)
 
         if self.hasmultiple_dfs:
-
             self.summary_dfs = [
                 self.create_summary_df(clust, y, pred_proba, normalize=self.normalize_proba)
                 for clust, y, pred_proba in zip(self.clusters_list, self.ys, self.predicted_probas)
@@ -350,12 +348,12 @@ class InspectorShap(BaseInspector):
             - total number of observations in the cluster
             - total number of target 1 in the cluster
             - target 1 rate (ration of target 1 counts/observations)
-            - average predicted probabilitites
+            - average predicted probabilities
             - average confusion
 
-        If multiple eval_sets were passed in the inspect() functions, the output will contain those aggregations as well.
-        The output names will use the sample names provided in the inspect function. Otherwise they will be labelled by
-        the suffix sample_{i}, where i is the index of the sample
+        If multiple eval_sets were passed in the inspect() functions, the output will contain those aggregations as
+            well. The output names will use the sample names provided in the inspect function. Otherwise they will be
+            labelled by the suffix sample_{i}, where i is the index of the sample.
 
         Returns: (pd.DataFrame) with above mentioned aggregations.
         """
@@ -366,10 +364,9 @@ class InspectorShap(BaseInspector):
         out = copy.deepcopy(self.agg_summary_df)
 
         if self.hasmultiple_dfs:
-
             for ix, agg_summary_df in enumerate(self.agg_summary_dfs):
                 if self.set_names is None:
-                    sample_suffix = "sample_{}".format(ix + 1)
+                    sample_suffix = f"sample_{ix + 1}"
                 else:
                     sample_suffix = self.set_names[ix]
 
@@ -378,7 +375,7 @@ class InspectorShap(BaseInspector):
                     agg_summary_df,
                     how="left",
                     on="cluster_id",
-                    suffixes=("", "_{}".format(sample_suffix)),
+                    suffixes=("", f"_{sample_suffix}"),
                 )
 
         self.cluster_report = out
@@ -533,13 +530,13 @@ class InspectorShap(BaseInspector):
             eval_set: (list, default=None). list of tuples in the shape (X,y) containing evaluation samples, for example
                 a test sample, validation sample etc... X corresponds to the feature set of the sample, y corresponds
                 to the targets of the samples
-            sample_names: (list of strings, default=None): list of suffixed for the samples. If none, it will be labelled with
-                sample_{i}, where i corresponds to the index of the sample.
+            sample_names: (list of strings, default=None): list of suffixed for the samples. If none, it will be
+                labelled with sample_{i}, where i corresponds to the index of the sample.
                 List length must match that of eval_set
             **shap_kwargs:  kwargs to pass to the Shapley Tree Explained
 
         Returns:
             (pd.DataFrame) Report with aggregations described in compute() method.
-        """  # noqa
+        """
         self.fit(X, y, eval_set, sample_names, **shap_kwargs)
         return self.compute()

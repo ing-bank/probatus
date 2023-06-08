@@ -18,11 +18,12 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
-import pandas as pd
 import numpy as np
-from probatus.utils import assure_numpy_array
-from probatus.metric_volatility.utils import sample_data
+import pandas as pd
 from sklearn.model_selection import train_test_split
+
+from probatus.metric_volatility.utils import sample_data
+from probatus.utils import assure_numpy_array
 
 
 def get_metric(
@@ -81,7 +82,8 @@ def get_metric(
 
     Returns:
         (pd.Dataframe):
-            Dataframe with results for a given model trained. Rows indicate the metric measured and columns ther results
+            Dataframe with results for a given model trained. Rows indicate the metric measured and columns their
+                results.
     """
 
     if not (isinstance(X, np.ndarray) or isinstance(X, pd.DataFrame)):

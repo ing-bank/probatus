@@ -1,4 +1,6 @@
 import os
+import sys
+import platform
 
 import setuptools
 
@@ -9,6 +11,18 @@ def read(fname):
     """
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
 
+def python_ver():
+    """
+    Returns the python version as a string. e.g.: "3.8"
+    """
+    return str(sys.version_info.major) + "." + str(sys.version_info.minor)
+
+def system():
+    """
+    Returns the system os as a string. e.g.: "darwin"
+    """
+    return platform.system().lower()
+
 
 base_packages = [
     "scikit-learn>=0.22.2",
@@ -18,15 +32,14 @@ base_packages = [
     "joblib>=0.13.2",
     "tqdm>=4.41.0",
     "shap==0.41.0",  # 0.40.0 causes issues in certain plots.
-    "numpy==1.23.0",
-    "numba==0.56.4", # wait for SHAP to upgrade numba version.
+    "numpy==1.23.2" if python_ver() == "3.11" else "numpy==1.23.0", # wait for SHAP to upgrade.
+    "numba==0.57.0" if python_ver() == "3.11" else "numba>=0.56.4", # wait for SHAP to upgrade.
 ]
 
 extra_dep = [
     "lightgbm>=3.3.0",
     # https://github.com/catboost/catboost/issues/2371
-    "catboost>=1.1,<1.2 ; python_version == '3.8' and sys_platform == 'darwin'",
-    "catboost>=1.0.0",
+    "catboost<1.2" if python_ver() == "3.8" and system() == "darwin" else "catboost>=1.1",
     "xgboost>=1.5.0",
     "scipy>=1.4.0",
 ]
@@ -46,6 +59,8 @@ dev_dep = [
     "tabulate>=0.8.7",
     "nbconvert>=6.0.7",
     "pre-commit>=2.7.1",
+    "isort>=5.12.0",
+    "codespell>=2.2.4",
 ]
 
 docs_dep = [
@@ -64,7 +79,7 @@ docs_dep = [
 
 setuptools.setup(
     name="probatus",
-    version="1.8.9",
+    version="2.0.0",
     description="Validation of binary classifiers and data used to develop them",
     long_description=read("README.md"),
     long_description_content_type="text/markdown",
@@ -72,15 +87,15 @@ setuptools.setup(
     author_email="mateusz.garbacz@ing.com",
     license="MIT License",
     packages=setuptools.find_packages(exclude=["tests"]),
-    python_requires=">=3.6",
+    python_requires=">=3.8",
     classifiers=[
         "Intended Audience :: Developers",
         "Intended Audience :: Science/Research",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
         "Topic :: Scientific/Engineering",
         "Topic :: Scientific/Engineering :: Artificial Intelligence",
         "License :: OSI Approved :: MIT License",
