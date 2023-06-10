@@ -301,11 +301,7 @@ def test_get_feature_shap_values_per_fold(X, y):
     """
     clf = DecisionTreeClassifier(max_depth=1)
     shap_elimination = ShapRFECV(clf)
-    (
-        shap_values,
-        train_score,
-        test_score,
-    ) = shap_elimination._get_feature_shap_values_per_fold(
+    (shap_values, train_score, test_score,) = shap_elimination._get_feature_shap_values_per_fold(
         X,
         y,
         clf,
@@ -547,11 +543,7 @@ def test_get_feature_shap_values_per_fold_early_stopping_lightGBM(complex_data):
     y = preprocess_labels(y, y_name="y", index=X.index)
 
     shap_elimination = EarlyStoppingShapRFECV(clf, early_stopping_rounds=5)
-    (
-        shap_values,
-        train_score,
-        test_score,
-    ) = shap_elimination._get_feature_shap_values_per_fold(
+    (shap_values, train_score, test_score,) = shap_elimination._get_feature_shap_values_per_fold(
         X,
         y,
         clf,
@@ -575,11 +567,7 @@ def test_get_feature_shap_values_per_fold_early_stopping_CatBoost(complex_data, 
     y = preprocess_labels(y, y_name="y", index=X.index)
 
     shap_elimination = EarlyStoppingShapRFECV(clf, early_stopping_rounds=5)
-    (
-        shap_values,
-        train_score,
-        test_score,
-    ) = shap_elimination._get_feature_shap_values_per_fold(
+    (shap_values, train_score, test_score,) = shap_elimination._get_feature_shap_values_per_fold(
         X,
         y,
         clf,
@@ -605,11 +593,7 @@ def test_get_feature_shap_values_per_fold_early_stopping_XGBoost(complex_data):
     y = preprocess_labels(y, y_name="y", index=X.index)
 
     shap_elimination = EarlyStoppingShapRFECV(clf, early_stopping_rounds=5)
-    (
-        shap_values,
-        train_score,
-        test_score,
-    ) = shap_elimination._get_feature_shap_values_per_fold(
+    (shap_values, train_score, test_score,) = shap_elimination._get_feature_shap_values_per_fold(
         X,
         y,
         clf,
