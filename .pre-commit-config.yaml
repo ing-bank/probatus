@@ -14,11 +14,16 @@ repos:
     rev: 1.7.0
     hooks:
     - id: nbqa-ruff
+      name: 'ruff nb: Check for errors, styling issues and complexity'
     - id: nbqa-mypy
+      name: 'mypy nb: Static type checking'
     - id: nbqa-isort
+      name: 'isort nb: Sort file imports'
     - id: nbqa-pyupgrade
+      name: 'pyupgrade nb: Updates code to Python 3.8+ code convention'
       args: [&py_version --py37-plus]
     - id: nbqa-black
+      name: 'black nb: PEP8 compliant code formatter'
   - repo: local
     hooks:
     - id: mypy
