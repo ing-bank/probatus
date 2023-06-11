@@ -85,7 +85,7 @@ all = [
 ]
 
 [tool.setuptools.packages.find]
-exclude = ["tests"]
+exclude = ["tests", "notebooks", "docs"]
 
 [tool.nbqa.addopts]
 # E402: Ignores imports not at the top of file for IPYNB since this makes copy-pasting easier.
