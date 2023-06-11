@@ -74,12 +74,8 @@ def sw(d1, d2, verbose=False):
 
     def ran_delta(n1, n2):
         take_ran = lambda n: random.sample(range(MOT.shape[0]), n)
-        ran_1 = MOT.iloc[
-            take_ran(n1),
-        ]
-        ran_2 = MOT.iloc[
-            take_ran(n2),
-        ]
+        ran_1 = MOT.iloc[take_ran(n1),]
+        ran_2 = MOT.iloc[take_ran(n2),]
         delta_ran = stats.shapiro(ran_1)[0] - stats.shapiro(ran_2)[0]
         return delta_ran
 

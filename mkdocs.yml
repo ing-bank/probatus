@@ -53,7 +53,7 @@ plugins:
       enable_default_jupyter_cell_styling: true
       enable_default_pandas_dataframe_styling: true
 
-copyright: Copyright &copy; 2020 ING Bank N.V.
+copyright: Copyright &copy; 2023 ING Bank N.V.
 
 theme:
   name: material

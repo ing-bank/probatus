@@ -159,7 +159,11 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
             f"Test {self.scorer.metric_name}: {np.round(self.test_score, 3)}."
         )
 
-        (self.shap_values_train, self.expected_value_train, self.tdp_train,) = self._prep_shap_related_variables(
+        (
+            self.shap_values_train,
+            self.expected_value_train,
+            self.tdp_train,
+        ) = self._prep_shap_related_variables(
             clf=self.clf,
             X=self.X_train,
             y=self.y_train,
@@ -169,7 +173,11 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
             **shap_kwargs,
         )
 
-        (self.shap_values_test, self.expected_value_test, self.tdp_test,) = self._prep_shap_related_variables(
+        (
+            self.shap_values_test,
+            self.expected_value_test,
+            self.tdp_test,
+        ) = self._prep_shap_related_variables(
             clf=self.clf,
             X=self.X_test,
             y=self.y_test,
