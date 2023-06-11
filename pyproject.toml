@@ -130,7 +130,3 @@ skip = "**.egg-info*"
 
 [tool.black]
 line-length = 120
-
-
-
-
