@@ -17,6 +17,8 @@ nav:
     - Multivariate Sample Similarity: tutorials/nb_sample_similarity.ipynb
     - Univariate Sample Similarity: tutorials/nb_distribution_statistics.ipynb
     - Custom Scoring Metrics: tutorials/nb_custom_scoring.ipynb
+    - Binning options: tutorials/nb_binning.ipynb
+    - Explain Shapley Values: tutorials/nb_shap_dependence.ipynb
   - HowTo:
     - Reproduce the results: howto/reproducibility.ipynb
     - Work with grouped data: howto/grouped_data.ipynb
@@ -33,21 +35,22 @@ nav:
       - ShapRFECV vs sklearn RFECV: discussion/nb_rfecv_vs_shaprfecv.ipynb
       - Contributing: discussion/contributing.md
 
+watch:
+  - probatus
 
 plugins:
   - mkdocstrings:
       handlers:
           python:
-            selection:
-              inherited_members: true
-              filters:
-                - "!^Base"
-                - "!^_"  # exlude all members starting with _
-                - "^__init__$"  # but always include __init__ modules and methods
-            rendering:
-              show_root_toc_entry: false
-      watch:
-        - probatus
+            options:
+              selection:
+                inherited_members: true
+                filters:
+                  - "!^Base"
+                  - "!^_"  # exlude all members starting with _
+                  - "^__init__$"  # but always include __init__ modules and methods
+              rendering:
+                show_root_toc_entry: false
   - search
   - mknotebooks:
       enable_default_jupyter_cell_styling: true

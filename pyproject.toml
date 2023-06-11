@@ -81,6 +81,7 @@ all = [
     "mkdocstrings>=0.13.6",
     "mkdocs-print-site-plugin>=0.8.2",
     "mkdocs-markdownextradata-plugin>=0.1.9",
+    "mkdocstrings-python>=1.1.2",
 ]
 
 [tool.setuptools.packages.find]
