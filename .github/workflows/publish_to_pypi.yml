@@ -27,8 +27,8 @@ jobs:
         TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
         TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
       run: |
-        pip3 install --upgrade wheel twine
-        python3 setup.py sdist bdist_wheel
+        pip3 install --upgrade wheel twine build
+        python -m build
         twine upload dist/*
     - name: Deploy mkdocs site
       run: |
