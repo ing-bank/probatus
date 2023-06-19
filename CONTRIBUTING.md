@@ -23,7 +23,7 @@ Starting out with open source? See the guide [How to Contribute to Open Source](
 Development install:
 
 ```shell
-pip install -e 'probatus[all]'
+pip install -e '.[all]'
 ```
 
 Unit testing:
