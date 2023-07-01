@@ -18,22 +18,21 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
-import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
-from shap import summary_plot
-from shap.plots._waterfall import waterfall_legacy
-
 from probatus.interpret import DependencePlotter
 from probatus.utils import (
-    BaseFitComputePlotClass,
-    assure_list_of_strings,
-    calculate_shap_importance,
-    get_single_scorer,
     preprocess_data,
     preprocess_labels,
     shap_calc,
+    calculate_shap_importance,
+    BaseFitComputePlotClass,
+    assure_list_of_strings,
+    get_single_scorer,
 )
+import numpy as np
+from shap import summary_plot
+from shap.plots._waterfall import waterfall_legacy
+import matplotlib.pyplot as plt
+import pandas as pd
 
 
 class ShapModelInterpreter(BaseFitComputePlotClass):
@@ -106,7 +105,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
         self.scorer = get_single_scorer(scoring)
         self.verbose = verbose
 
-    def fit(self, X_train, X_test, y_train, y_test, column_names=None, class_names=None, **shap_kwargs):
+    def fit(self, X_train, X_test, y_train, y_test, column_names=None, class_names=None, shap_variance_penalty=False, **shap_kwargs):
         """
         Fits the object and calculates the shap values for the provided datasets.
 
@@ -129,6 +128,9 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
             class_names (None, or list of str, optional):
                 List of class names e.g. ['neg', 'pos']. If none, the default ['Negative Class', 'Positive Class'] are
                 used.
+
+            shap_variance_penalty (bool, optional):
+                Enable penalty on features with higher variance in underlying shap values
 
             **shap_kwargs:
                 keyword arguments passed to
@@ -159,11 +161,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
             f"Test {self.scorer.metric_name}: {np.round(self.test_score, 3)}."
         )
 
-        (
-            self.shap_values_train,
-            self.expected_value_train,
-            self.tdp_train,
-        ) = self._prep_shap_related_variables(
+        (self.shap_values_train, self.expected_value_train, self.tdp_train,) = self._prep_shap_related_variables(
             clf=self.clf,
             X=self.X_train,
             y=self.y_train,
@@ -173,11 +171,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
             **shap_kwargs,
         )
 
-        (
-            self.shap_values_test,
-            self.expected_value_test,
-            self.tdp_test,
-        ) = self._prep_shap_related_variables(
+        (self.shap_values_test, self.expected_value_test, self.tdp_test,) = self._prep_shap_related_variables(
             clf=self.clf,
             X=self.X_test,
             y=self.y_test,
@@ -232,7 +226,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
         )
         return shap_values, expected_value, tdp
 
-    def compute(self, return_scores=False):
+    def compute(self, return_scores=False, shap_variance_penalty=False):
         """
         Computes the DataFrame that presents the importance of each feature.
 
@@ -241,6 +235,9 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
                 Flag indicating whether the method should return the train and test score of the model, together with
                 the model interpretation report. If true, the output of this method is a tuple of DataFrame, float,
                 float.
+
+            shap_variance_penalty (bool, optional):
+                Enable penalty on features with higher variance in underlying shap values
 
         Returns:
             (pd.DataFrame or tuple(pd.DataFrame, float, float)):
@@ -251,11 +248,11 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
 
         # Compute SHAP importance
         self.importance_df_train = calculate_shap_importance(
-            self.shap_values_train, self.column_names, output_columns_suffix="_train"
+            self.shap_values_train, self.column_names, output_columns_suffix="_train", shap_variance_penalty=shap_variance_penalty
         )
 
         self.importance_df_test = calculate_shap_importance(
-            self.shap_values_test, self.column_names, output_columns_suffix="_test"
+            self.shap_values_test, self.column_names, output_columns_suffix="_test", shap_variance_penalty=shap_variance_penalty
         )
 
         # Concatenate the train and test, sort by test set importance and reorder the columns
@@ -265,6 +262,8 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
             [
                 "mean_abs_shap_value_test",
                 "mean_abs_shap_value_train",
+                "penalized_mean_abs_shap_value_test",
+                "penalized_mean_abs_shap_value_train",
                 "mean_shap_value_test",
                 "mean_shap_value_train",
             ]
@@ -284,6 +283,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
         column_names=None,
         class_names=None,
         return_scores=False,
+        shap_variance_penalty=False,
         **shap_kwargs,
     ):
         """
@@ -318,6 +318,9 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
                 the output of this method is a tuple of DataFrame, float,
                 float.
 
+            shap_variance_penalty (bool, optional):
+                Enable penalty on features with higher variance in underlying shap values
+
             **shap_kwargs:
                 keyword arguments passed to
                 [shap.Explainer](https://shap.readthedocs.io/en/latest/generated/shap.Explainer.html#shap.Explainer).
@@ -337,6 +340,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
             y_test=y_test,
             column_names=column_names,
             class_names=class_names,
+            shap_variance_penalty=shap_variance_penalty,
             **shap_kwargs,
         )
         return self.compute()

@@ -136,7 +136,7 @@ class ShapRFECV(BaseFitComputePlotClass):
             min_features_to_select (int, optional):
                 Minimum number of features to be kept. This is a stopping criterion of the feature elimination. By
                 default the process stops when one feature is left. If columns_to_keep is specified in the fit method,
-                it may override this parameter to the maximum between length of columns_to_keep the two.
+                it may overide this parameter to the maximum between length of columns_to_keep the two.
 
             cv (int, cross-validation generator or an iterable, optional):
                 Determines the cross-validation splitting strategy. Compatible with sklearn
@@ -405,7 +405,7 @@ class ShapRFECV(BaseFitComputePlotClass):
         sample_weight=None,
         columns_to_keep=None,
         column_names=None,
-        groups=None,
+        shap_variance_penalty=False,
         **shap_kwargs,
     ):
         """
@@ -444,11 +444,8 @@ class ShapRFECV(BaseFitComputePlotClass):
                 feature names. If not provided the existing feature names are used or default feature names are
                 generated.
 
-            groups (pd.Series, np.ndarray, list, optional):
-                array-like of shape (n_samples,)
-                Group labels for the samples used while splitting the dataset into train/test set.
-                Only used in conjunction with a "Group" `cv` instance.
-                (e.g. `sklearn.model_selection.GroupKFold`).
+            shap_variance_penalty (bool, optional):
+                Enable penalty on features with higher variance in underlying shap values
 
             **shap_kwargs:
                 keyword arguments passed to
@@ -483,7 +480,7 @@ class ShapRFECV(BaseFitComputePlotClass):
             if all(x in column_names for x in list(X.columns)):
                 pass
             else:
-                raise (ValueError("The column names in parameter columns_to_keep and column_names are not matching."))
+                raise (ValueError("The column names in parameter columns_to_keep and column_names are not macthing."))
 
         # Check that the total number of columns to select is less than total number of columns in the data.
         # only when both parameters are provided.
@@ -526,12 +523,9 @@ class ShapRFECV(BaseFitComputePlotClass):
             # Get current dataset info
             current_features_set = remaining_features
             if columns_to_keep is None:
-                # Keeps the original order, while removing duplicate elements
-                remaining_removeable_features = pd.Series(current_features_set).unique()
+                remaining_removeable_features = list(set(current_features_set))
             else:
-                # Keeps the original order, while removing duplicate elements
-                remaining_removeable_features = pd.Series(list(current_features_set) + columns_to_keep).unique()
-
+                remaining_removeable_features = list(set(current_features_set) | set(columns_to_keep))
             current_X = self.X[remaining_removeable_features]
 
             # Set seed for results reproducibility
@@ -556,7 +550,7 @@ class ShapRFECV(BaseFitComputePlotClass):
                     sample_weight=sample_weight,
                     **shap_kwargs,
                 )
-                for train_index, val_index in self.cv.split(current_X, self.y, groups)
+                for train_index, val_index in self.cv.split(current_X, self.y)
             )
 
             shap_values = np.vstack([current_result[0] for current_result in results_per_fold])
@@ -565,19 +559,13 @@ class ShapRFECV(BaseFitComputePlotClass):
 
             # Calculate the shap features with remaining features and features to keep.
 
-            shap_importance_df = calculate_shap_importance(shap_values, remaining_removeable_features)
+            shap_importance_df = calculate_shap_importance(shap_values, remaining_removeable_features, shap_variance_penalty=shap_variance_penalty)
 
             # Get features to remove
             features_to_remove = self._get_current_features_to_remove(
                 shap_importance_df, columns_to_keep=columns_to_keep
             )
-            # Ensures the order of the first list is kept as it was originally,
-            # while removing elements which are present in both lists.
-            remaining_features = np.setdiff1d(
-                pd.Series(current_features_set).unique(),
-                pd.Series(features_to_remove).unique(),
-                assume_unique=True,
-            )
+            remaining_features = list(set(current_features_set) - set(features_to_remove))
 
             # Report results
             self._report_current_results(
@@ -606,7 +594,7 @@ class ShapRFECV(BaseFitComputePlotClass):
         """
         Checks if fit() method has been run.
 
-        and computes the DataFrame with results of feature elimination for each round.
+        and computes the DataFrame with results of feature elimintation for each round.
 
         Returns:
             (pd.DataFrame):
@@ -616,7 +604,7 @@ class ShapRFECV(BaseFitComputePlotClass):
 
         return self.report_df
 
-    def fit_compute(self, X, y, sample_weight=None, columns_to_keep=None, column_names=None, **shap_kwargs):
+    def fit_compute(self, X, y, sample_weight=None, columns_to_keep=None, column_names=None, shap_variance_penalty=False, **shap_kwargs):
         """
         Fits the object with the provided data.
 
@@ -652,6 +640,9 @@ class ShapRFECV(BaseFitComputePlotClass):
                 feature names. If not provided the existing feature names are used or default feature names are
                 generated.
 
+            shap_variance_penalty (bool, optional):
+                Enable penalty on features with higher variance in underlying shap values
+
             **shap_kwargs:
                 keyword arguments passed to
                 [shap.Explainer](https://shap.readthedocs.io/en/latest/generated/shap.Explainer.html#shap.Explainer).
@@ -670,6 +661,7 @@ class ShapRFECV(BaseFitComputePlotClass):
             sample_weight=sample_weight,
             columns_to_keep=columns_to_keep,
             column_names=column_names,
+            shap_variance_penalty=shap_variance_penalty,
             **shap_kwargs,
         )
         return self.compute()
@@ -877,7 +869,7 @@ class EarlyStoppingShapRFECV(ShapRFECV):
             min_features_to_select (int, optional):
                 Minimum number of features to be kept. This is a stopping criterion of the feature elimination. By
                 default the process stops when one feature is left. If columns_to_keep is specified in the fit method,
-                it may override this parameter to the maximum between length of columns_to_keep the two.
+                it may overide this parameter to the maximum between length of columns_to_keep the two.
 
             cv (int, cross-validation generator or an iterable, optional):
                 Determines the cross-validation splitting strategy. Compatible with sklearn
@@ -918,7 +910,7 @@ class EarlyStoppingShapRFECV(ShapRFECV):
                  and [LightGBM](https://lightgbm.readthedocs.io/en/latest/Parameters.html#metric-parameters).
                 Note that `eval_metric` is an argument of the model's fit method and it is different from `scoring`.
         """  # noqa
-        super().__init__(
+        super(EarlyStoppingShapRFECV, self).__init__(
             clf,
             step=step,
             min_features_to_select=min_features_to_select,
@@ -994,6 +986,7 @@ class EarlyStoppingShapRFECV(ShapRFECV):
             "X": X_train,
             "y": y_train,
             "eval_set": [(X_val, y_val)],
+            "eval_metric": self.eval_metric,
             "callbacks": [early_stopping(self.early_stopping_rounds, first_metric_only=True)],
         }
         if self.verbose >= 100:
@@ -1047,6 +1040,8 @@ class EarlyStoppingShapRFECV(ShapRFECV):
             "X": X_train,
             "y": y_train,
             "eval_set": [(X_val, y_val)],
+            "eval_metric": self.eval_metric,
+            "early_stopping_rounds": self.early_stopping_rounds,
         }
         if sample_weight is not None:
             fit_params["sample_weight"] = sample_weight.iloc[train_index]
@@ -1097,6 +1092,7 @@ class EarlyStoppingShapRFECV(ShapRFECV):
         fit_params = {
             "X": Pool(X_train, y_train, cat_features=cat_features),
             "eval_set": Pool(X_val, y_val, cat_features=cat_features),
+            "early_stopping_rounds": self.early_stopping_rounds,
             # Evaluation metric should be passed during initialization
         }
         if sample_weight is not None:
@@ -1248,32 +1244,6 @@ class EarlyStoppingShapRFECV(ShapRFECV):
             train_index=train_index,
             val_index=val_index,
         )
-
-        # Due to deprecation issues (compatibility with Sklearn) set some params
-        # like below, instead of through fit().
-        try:
-            from lightgbm import LGBMModel
-
-            if isinstance(clf, LGBMModel):
-                clf.set_params(eval_metric=self.eval_metric)
-        except ImportError:
-            pass
-
-        try:
-            from xgboost.sklearn import XGBModel
-
-            if isinstance(clf, XGBModel):
-                clf.set_params(eval_metric=self.eval_metric, early_stopping_rounds=self.early_stopping_rounds)
-        except ImportError:
-            pass
-
-        try:
-            from catboost import CatBoost
-
-            if isinstance(clf, CatBoost):
-                clf.set_params(early_stopping_rounds=self.early_stopping_rounds)
-        except ImportError:
-            pass
 
         # Train the model
         clf = clf.fit(**fit_params)
