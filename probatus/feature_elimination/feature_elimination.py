@@ -406,6 +406,7 @@ class ShapRFECV(BaseFitComputePlotClass):
         columns_to_keep=None,
         column_names=None,
         groups=None,
+        shap_variance_penalty=False
         **shap_kwargs,
     ):
         """
@@ -449,6 +450,9 @@ class ShapRFECV(BaseFitComputePlotClass):
                 Group labels for the samples used while splitting the dataset into train/test set.
                 Only used in conjunction with a "Group" `cv` instance.
                 (e.g. `sklearn.model_selection.GroupKFold`).
+
+            shap_variance_penalty (bool, optional):
+                Enable penalty on features with higher variance in underlying shap values
 
             **shap_kwargs:
                 keyword arguments passed to
@@ -565,7 +569,9 @@ class ShapRFECV(BaseFitComputePlotClass):
 
             # Calculate the shap features with remaining features and features to keep.
 
-            shap_importance_df = calculate_shap_importance(shap_values, remaining_removeable_features)
+            shap_importance_df = calculate_shap_importance(
+                shap_values, remaining_removeable_features,
+                shap_variance_penalty=shap_variance_penalty)
 
             # Get features to remove
             features_to_remove = self._get_current_features_to_remove(
@@ -616,7 +622,8 @@ class ShapRFECV(BaseFitComputePlotClass):
 
         return self.report_df
 
-    def fit_compute(self, X, y, sample_weight=None, columns_to_keep=None, column_names=None, **shap_kwargs):
+    def fit_compute(self, X, y, sample_weight=None, columns_to_keep=None, column_names=None,
+                    shap_variance_penalty=False, **shap_kwargs):
         """
         Fits the object with the provided data.
 
@@ -652,6 +659,9 @@ class ShapRFECV(BaseFitComputePlotClass):
                 feature names. If not provided the existing feature names are used or default feature names are
                 generated.
 
+            shap_variance_penalty (bool, optional):
+                Enable penalty on features with higher variance in underlying shap values
+
             **shap_kwargs:
                 keyword arguments passed to
                 [shap.Explainer](https://shap.readthedocs.io/en/latest/generated/shap.Explainer.html#shap.Explainer).
@@ -670,6 +680,7 @@ class ShapRFECV(BaseFitComputePlotClass):
             sample_weight=sample_weight,
             columns_to_keep=columns_to_keep,
             column_names=column_names,
+            shap_variance_penalty=shap_variance_penalty,
             **shap_kwargs,
         )
         return self.compute()
