@@ -107,7 +107,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
         self.verbose = verbose
 
     def fit(self, X_train, X_test, y_train, y_test, column_names=None, class_names=None,
-            shap_variance_penalty=False, **shap_kwargs):
+            shap_variance_penalty_factor=None, **shap_kwargs):
         """
         Fits the object and calculates the shap values for the provided datasets.
 
@@ -131,8 +131,11 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
                 List of class names e.g. ['neg', 'pos']. If none, the default ['Negative Class', 'Positive Class'] are
                 used.
 
-            shap_variance_penalty (bool, optional):
-                Enable penalty on features with higher variance in underlying shap values
+            shap_variance_penalty_factor (int or float, optional):
+                Apply aggregation penalty when computing average of shap values for a given feature.
+                Results in a preference for features that have smaller standard deviation of shap
+                values (more coherent shap importance). Recommend value 0.5 - 1.0.
+                Formula: penalized_shap_mean = (mean_shap - (std_shap * shap_variance_penalty_factor))
 
             **shap_kwargs:
                 keyword arguments passed to
@@ -236,7 +239,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
         )
         return shap_values, expected_value, tdp
 
-    def compute(self, return_scores=False, shap_variance_penalty=False):
+    def compute(self, return_scores=False, shap_variance_penalty_factor=None):
         """
         Computes the DataFrame that presents the importance of each feature.
 
@@ -246,8 +249,11 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
                 the model interpretation report. If true, the output of this method is a tuple of DataFrame, float,
                 float.
 
-            shap_variance_penalty (bool, optional):
-                Enable penalty on features with higher variance in underlying shap values
+            shap_variance_penalty_factor (int or float, optional):
+                Apply aggregation penalty when computing average of shap values for a given feature.
+                Results in a preference for features that have smaller standard deviation of shap
+                values (more coherent shap importance). Recommend value 0.5 - 1.0.
+                Formula: penalized_shap_mean = (mean_shap - (std_shap * shap_variance_penalty_factor))
 
         Returns:
             (pd.DataFrame or tuple(pd.DataFrame, float, float)):
@@ -258,11 +264,13 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
 
         # Compute SHAP importance
         self.importance_df_train = calculate_shap_importance(
-            self.shap_values_train, self.column_names, output_columns_suffix="_train", shap_variance_penalty=shap_variance_penalty
+            self.shap_values_train, self.column_names, output_columns_suffix="_train",
+            shap_variance_penalty_factor=shap_variance_penalty_factor
         )
 
         self.importance_df_test = calculate_shap_importance(
-            self.shap_values_test, self.column_names, output_columns_suffix="_test", shap_variance_penalty=shap_variance_penalty
+            self.shap_values_test, self.column_names, output_columns_suffix="_test",
+            shap_variance_penalty_factor=shap_variance_penalty_factor
         )
 
         # Concatenate the train and test, sort by test set importance and reorder the columns
@@ -293,7 +301,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
         column_names=None,
         class_names=None,
         return_scores=False,
-        shap_variance_penalty=False,
+        shap_variance_penalty_factor=None,
         **shap_kwargs,
     ):
         """
@@ -328,8 +336,11 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
                 the output of this method is a tuple of DataFrame, float,
                 float.
 
-            shap_variance_penalty (bool, optional):
-                Enable penalty on features with higher variance in underlying shap values
+            shap_variance_penalty_factor (int or float, optional):
+                Apply aggregation penalty when computing average of shap values for a given feature.
+                Results in a preference for features that have smaller standard deviation of shap
+                values (more coherent shap importance). Recommend value 0.5 - 1.0.
+                Formula: penalized_shap_mean = (mean_shap - (std_shap * shap_variance_penalty_factor))
 
             **shap_kwargs:
                 keyword arguments passed to
@@ -350,10 +361,10 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
             y_test=y_test,
             column_names=column_names,
             class_names=class_names,
-            shap_variance_penalty=shap_variance_penalty,
+            shap_variance_penalty_factor=shap_variance_penalty_factor,
             **shap_kwargs,
         )
-        return self.compute()
+        return self.compute(shap_variance_penalty_factor=shap_variance_penalty_factor)
 
     def plot(self, plot_type, target_set="test", target_columns=None, samples_index=None, show=True, **plot_kwargs):
         """
