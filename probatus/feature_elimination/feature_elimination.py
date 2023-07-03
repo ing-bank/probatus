@@ -504,12 +504,15 @@ class ShapRFECV(BaseFitComputePlotClass):
         # Check shap_variance_penalty_factor has acceptable value
         if shap_variance_penalty_factor is None:
             _shap_variance_penalty_factor = 0
-        elif (isinstance(shap_variance_penalty_factor, float) or
-              isinstance(shap_variance_penalty_factor, int)) and shap_variance_penalty_factor >= 0:
+        elif (
+            isinstance(shap_variance_penalty_factor, float) or isinstance(shap_variance_penalty_factor, int)
+        ) and shap_variance_penalty_factor >= 0:
             _shap_variance_penalty_factor = shap_variance_penalty_factor
         else:
-            warnings.warn("shap_variance_penalty_factor must be an int or float and be > 0. "
-                          "Setting shap_variance_penalty_factor = 0")
+            warnings.warn(
+                "shap_variance_penalty_factor must be an int or float and be > 0. "
+                "Setting shap_variance_penalty_factor = 0"
+            )
             _shap_variance_penalty_factor = 0
 
         self.X, self.column_names = preprocess_data(X, X_name="X", column_names=column_names, verbose=self.verbose)
@@ -583,10 +586,9 @@ class ShapRFECV(BaseFitComputePlotClass):
 
             # Calculate the shap features with remaining features and features to keep.
 
-
             shap_importance_df = calculate_shap_importance(
-                shap_values, remaining_removeable_features,
-                shap_variance_penalty_factor=_shap_variance_penalty_factor)
+                shap_values, remaining_removeable_features, shap_variance_penalty_factor=_shap_variance_penalty_factor
+            )
 
             # Get features to remove
             features_to_remove = self._get_current_features_to_remove(
@@ -637,8 +639,16 @@ class ShapRFECV(BaseFitComputePlotClass):
 
         return self.report_df
 
-    def fit_compute(self, X, y, sample_weight=None, columns_to_keep=None, column_names=None,
-                    shap_variance_penalty_factor=None, **shap_kwargs):
+    def fit_compute(
+        self,
+        X,
+        y,
+        sample_weight=None,
+        columns_to_keep=None,
+        column_names=None,
+        shap_variance_penalty_factor=None,
+        **shap_kwargs,
+    ):
         """
         Fits the object with the provided data.
 

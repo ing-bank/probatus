@@ -106,8 +106,17 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
         self.scorer = get_single_scorer(scoring)
         self.verbose = verbose
 
-    def fit(self, X_train, X_test, y_train, y_test, column_names=None, class_names=None,
-            shap_variance_penalty_factor=None, **shap_kwargs):
+    def fit(
+        self,
+        X_train,
+        X_test,
+        y_train,
+        y_test,
+        column_names=None,
+        class_names=None,
+        shap_variance_penalty_factor=None,
+        **shap_kwargs,
+    ):
         """
         Fits the object and calculates the shap values for the provided datasets.
 
@@ -264,13 +273,17 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
 
         # Compute SHAP importance
         self.importance_df_train = calculate_shap_importance(
-            self.shap_values_train, self.column_names, output_columns_suffix="_train",
-            shap_variance_penalty_factor=shap_variance_penalty_factor
+            self.shap_values_train,
+            self.column_names,
+            output_columns_suffix="_train",
+            shap_variance_penalty_factor=shap_variance_penalty_factor,
         )
 
         self.importance_df_test = calculate_shap_importance(
-            self.shap_values_test, self.column_names, output_columns_suffix="_test",
-            shap_variance_penalty_factor=shap_variance_penalty_factor
+            self.shap_values_test,
+            self.column_names,
+            output_columns_suffix="_test",
+            shap_variance_penalty_factor=shap_variance_penalty_factor,
         )
 
         # Concatenate the train and test, sort by test set importance and reorder the columns
