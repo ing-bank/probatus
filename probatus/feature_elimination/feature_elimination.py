@@ -674,7 +674,7 @@ class ShapRFECV(BaseFitComputePlotClass):
         )
         return self.compute()
 
-    def get_reduced_features_set(self, num_features):
+    def get_reduced_features_set(self, num_features, standard_error_threshold=1.0):
         """
         Gets the features set after the feature elimination process, for a given number of features.
 
@@ -688,15 +688,106 @@ class ShapRFECV(BaseFitComputePlotClass):
         """
         self._check_if_fitted()
 
-        if num_features not in self.report_df.num_features.tolist():
-            raise (
-                ValueError(
-                    f"The provided number of features has not been achieved at any stage of the process. "
-                    f"You can select one of the following: {self.report_df.num_features.tolist()}"
-                )
+        if isinstance(num_features, str):
+            best_num_features = self._get_best_num_features(
+                best_method=num_features, standard_error_threshold=standard_error_threshold
             )
+            return self.report_df[self.report_df.num_features == best_num_features]["features_set"].values[0]
+
+        elif isinstance(num_features, int):
+            if num_features not in self.report_df.num_features.tolist():
+                raise (
+                    ValueError(
+                        f"The provided number of features has not been achieved at any stage of the process. "
+                        f"You can select one of the following: {self.report_df.num_features.tolist()}"
+                    )
+                )
+            else:
+                return self.report_df[self.report_df.num_features == num_features]["features_set"].values[0]
+
         else:
-            return self.report_df[self.report_df.num_features == num_features]["features_set"].values[0]
+            raise ValueError(
+                "Parameter num_features can be of type int, or of type str with"
+                "possible values of 'best', 'best_coherent' or 'best_parsimonious'"
+            )
+
+    def _get_best_num_features(self, best_method, standard_error_threshold=1.0):
+        """
+        Helper function to identify the best number of features to select as per some automatic
+        feature selection strategy. Strategies supported are:
+            1. best: strictly selects the num_features with the highest model score.
+            2. best_coherent: For iterations that are within standard_error_threshold of the highest
+            score, select the iteration with the lowest standard deviation of model score.
+            3. best_parsimonious: For iterations that are within standard_error_threshold of the
+            highest score, select the iteration with the fewest features.
+
+        :param best_method: One of "best", "best_coherent", "best_parsimonious".
+        :param standard_error_threshold: numeric value greater than zero.
+        :return: num_features as per automatic feature selection strategy selected.
+        """
+
+        self._check_if_fitted()
+        shap_report = self.report_df.copy()
+
+        if (isinstance(standard_error_threshold, float) or isinstance(standard_error_threshold, int)) is not True:
+            raise ValueError("Parameter standard_error_threshold must be int or float")
+        elif standard_error_threshold < 0:
+            raise ValueError("Parameter standard_error_threshold must be >= zero.")
+
+        if best_method == "best":
+            shap_report["eval_metric"] = shap_report["val_metric_mean"]
+            best_iteration_idx = shap_report["eval_metric"].argmax()
+            best_num_features = shap_report["num_features"].iloc[best_iteration_idx]
+
+        elif best_method == "best_coherent":
+            shap_report["eval_metric"] = (
+                shap_report["val_metric_mean"] - shap_report["val_metric_std"] * standard_error_threshold
+            )
+            best_iteration_idx = shap_report["eval_metric"].argmax()
+            # Find standard error threshold above which we want to focus
+            best_val_metric_threshold = shap_report["eval_metric"].iloc[best_iteration_idx]
+            # Drop iterations with val_metric below threshold
+            shap_report = shap_report[shap_report["val_metric_mean"] > best_val_metric_threshold]
+            # Get iteration with smallest val_metric_std
+            best_std_iteration_idx = shap_report["val_metric_std"].argmin()
+            best_num_features = shap_report["num_features"].iloc[best_std_iteration_idx]
+
+        elif best_method == "best_coherent":
+            shap_report["eval_metric"] = (
+                shap_report["val_metric_mean"] - shap_report["val_metric_std"] * standard_error_threshold
+            )
+            best_iteration_idx = shap_report["eval_metric"].argmax()
+            # Find standard error threshold above which we want to focus
+            best_val_metric_threshold = shap_report["eval_metric"].iloc[best_iteration_idx]
+            # Drop iterations with val_metric below threshold
+            shap_report = shap_report[shap_report["val_metric_mean"] > best_val_metric_threshold]
+            # Get iteration with smallest val_metric_std
+            best_std_iteration_idx = shap_report["val_metric_std"].argmin()
+            best_num_features = shap_report["num_features"].iloc[best_std_iteration_idx]
+
+        elif best_method == "best_parsimonious":
+            shap_report["eval_metric"] = (
+                shap_report["val_metric_mean"] - shap_report["val_metric_std"] * standard_error_threshold
+            )
+            best_iteration_idx = shap_report["eval_metric"].argmax()
+            # Find standard error threshold above which we want to focus
+            best_val_metric_threshold = shap_report["eval_metric"].iloc[best_iteration_idx]
+            # Drop iterations with val_metric below threshold
+            shap_report = shap_report[shap_report["val_metric_mean"] > best_val_metric_threshold]
+            # Get iteration with smallest num_features
+            best_parsimonious_iteration_idx = shap_report["num_features"].argmin()
+            best_num_features = shap_report["num_features"].iloc[best_parsimonious_iteration_idx]
+
+        else:
+            raise ValueError(
+                "The parameter best_method can take values of 'best', 'best_coherent' " "or 'best_parsimonious'"
+            )
+
+        # Log shap_report for users who want to inspect / debug
+        if self.verbose > 50:
+            print(shap_report)
+
+        return best_num_features
 
     def plot(self, show=True, **figure_kwargs):
         """
