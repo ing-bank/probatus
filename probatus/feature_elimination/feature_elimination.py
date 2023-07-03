@@ -674,13 +674,28 @@ class ShapRFECV(BaseFitComputePlotClass):
         )
         return self.compute()
 
-    def get_reduced_features_set(self, num_features, standard_error_threshold=1.0):
+    def get_reduced_features_set(self, num_features, standard_error_threshold=1.0, return_type="feature_names"):
         """
         Gets the features set after the feature elimination process, for a given number of features.
 
         Args:
-            num_features (int):
-                Number of features in the reduced features set.
+            num_features (int or str):
+                If int: Number of features in the reduced features set.
+                If str: One of the following automatic num feature selection methods supported:
+                    1. best: strictly selects the num_features with the highest model score.
+                    2. best_coherent: For iterations that are within standard_error_threshold of the highest
+                    score, select the iteration with the lowest standard deviation of model score.
+                    3. best_parsimonious: For iterations that are within standard_error_threshold of the
+                    highest score, select the iteration with the fewest features.
+
+            standard_error_threshold (float):
+                If num_features is 'best_coherent' or 'best_parsimonious', this parameter is used.
+
+            return_type:
+                Accepts possible values of 'feature_names', 'support' or 'ranking'. These are defined as:
+                    1. feature_names: returns column names
+                    2. support: returns boolean mask
+                    3. ranking: returns numeric ranking of features
 
         Returns:
             (list of str):
@@ -692,18 +707,22 @@ class ShapRFECV(BaseFitComputePlotClass):
             best_num_features = self._get_best_num_features(
                 best_method=num_features, standard_error_threshold=standard_error_threshold
             )
-            return self.report_df[self.report_df.num_features == best_num_features]["features_set"].values[0]
+            if return_type == "feature_names":
+                return self._get_feature_names(best_num_features)
+            elif return_type == "support":
+                feature_names_selected = self._get_feature_names(best_num_features)
+                return self._get_feature_support(feature_names_selected)
+            elif return_type == "ranking":
+                pass
 
         elif isinstance(num_features, int):
-            if num_features not in self.report_df.num_features.tolist():
-                raise (
-                    ValueError(
-                        f"The provided number of features has not been achieved at any stage of the process. "
-                        f"You can select one of the following: {self.report_df.num_features.tolist()}"
-                    )
-                )
-            else:
-                return self.report_df[self.report_df.num_features == num_features]["features_set"].values[0]
+            if return_type == "feature_names":
+                return self._get_feature_names(num_features)
+            elif return_type == "support":
+                feature_names_selected = self._get_feature_names(num_features)
+                return self._get_feature_support(feature_names_selected)
+            elif return_type == "ranking":
+                pass
 
         else:
             raise ValueError(
@@ -721,9 +740,16 @@ class ShapRFECV(BaseFitComputePlotClass):
             3. best_parsimonious: For iterations that are within standard_error_threshold of the
             highest score, select the iteration with the fewest features.
 
-        :param best_method: One of "best", "best_coherent", "best_parsimonious".
-        :param standard_error_threshold: numeric value greater than zero.
-        :return: num_features as per automatic feature selection strategy selected.
+        Args:
+            best_method:
+                Automatic best feature selection strategy. One of "best", "best_coherent", "best_parsimonious".
+
+            standard_error_threshold:
+                Parameter used if best_method is 'best_coherent' or 'best_parsimonious'. Numeric value greater than zero.
+
+        Returns:
+            (int)
+                num_features as per automatic feature selection strategy selected.
         """
 
         self._check_if_fitted()
@@ -788,6 +814,47 @@ class ShapRFECV(BaseFitComputePlotClass):
             print(shap_report)
 
         return best_num_features
+
+    def _get_feature_names(self, num_features):
+        """
+        Helper function that takes num_features and returns list of column/feature names.
+
+        Args:
+            num_features (int):
+                Represents the top N features to get the column names for.
+
+        Returns:
+            (list of feature names)
+                List of the names of the features representing top num_features
+        """
+        self._check_if_fitted()
+        if num_features not in self.report_df.num_features.tolist():
+            raise (
+                ValueError(
+                    f"The provided number of features has not been achieved at any stage of the process. "
+                    f"You can select one of the following: {self.report_df.num_features.tolist()}"
+                )
+            )
+        else:
+            return self.report_df[self.report_df.num_features == num_features]["features_set"].values[0]
+
+    def _get_feature_support(self, feature_names_selected):
+        """
+        Helper function that takes feature_names_selected and returns a boolean mask representing the features selected.
+
+        Args:
+            feature_names_selected (list):
+                Represents the top N feature names to get the boolean mask for.
+
+        Returns:
+            (list of bools)
+                Boolean mask representing the features selected.
+        """
+        support = [True if c in feature_names_selected else False for c in self.column_names]
+        return support
+
+    def _get_feature_ranking(self, num_features):
+        pass
 
     def plot(self, show=True, **figure_kwargs):
         """
