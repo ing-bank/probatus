@@ -225,4 +225,7 @@ def calculate_shap_importance(shap_values, columns, output_columns_suffix="", sh
 
     importance_df = importance_df.sort_values(f"penalized_mean_abs_shap_value{output_columns_suffix}", ascending=False)
 
+    # Drop penalized column
+    importance_df = importance_df.drop(columns=[f"penalized_mean_abs_shap_value{output_columns_suffix}"])
+
     return importance_df
