@@ -741,11 +741,11 @@ class ShapRFECV(BaseFitComputePlotClass):
             highest score, select the iteration with the fewest features.
 
         Args:
-            best_method:
+            best_method (str):
                 Automatic best feature selection strategy. One of "best", "best_coherent" or
                 "best_parsimonious".
 
-            standard_error_threshold:
+            standard_error_threshold (float):
                 Parameter used if best_method is 'best_coherent' or 'best_parsimonious'.
                 Numeric value greater than zero.
 
@@ -795,7 +795,7 @@ class ShapRFECV(BaseFitComputePlotClass):
 
         else:
             raise ValueError(
-                "The parameter best_method can take values of 'best', 'best_coherent' " "or 'best_parsimonious'"
+                "The parameter best_method can take values of 'best', 'best_coherent' or 'best_parsimonious'"
             )
 
         # Log shap_report for users who want to inspect / debug
@@ -806,7 +806,7 @@ class ShapRFECV(BaseFitComputePlotClass):
 
     def _get_feature_names(self, num_features):
         """
-        Helper function that takes num_features and returns list of column/feature names.
+        Helper function that takes num_features and returns the associated list of column/feature names.
 
         Args:
             num_features (int):
@@ -829,11 +829,12 @@ class ShapRFECV(BaseFitComputePlotClass):
 
     def _get_feature_support(self, feature_names_selected):
         """
-        Helper function that takes feature_names_selected and returns a boolean mask representing the features selected.
+        Helper function that takes feature_names_selected and returns a boolean mask representing the columns
+        that were selected by the RFECV method.
 
         Args:
             feature_names_selected (list):
-                Represents the top N feature names to get the boolean mask for.
+                Represents the top N features to get the column names for.
 
         Returns:
             (list of bools)
@@ -842,7 +843,16 @@ class ShapRFECV(BaseFitComputePlotClass):
         support = [True if c in feature_names_selected else False for c in self.column_names]
         return support
 
-    def _get_feature_ranking(self, num_features):
+    def _get_feature_ranking(self):
+        """
+        Returns the feature ranking, such that ranking_[i] corresponds to the ranking position
+        of the i-th feature. Selected (i.e., estimated best) features are assigned rank 1.
+
+        Returns:
+            (list of bools)
+                Boolean mask representing the features selected.
+        """
+
         # Need to align on the correct definition of ranking here.
         pass
 
