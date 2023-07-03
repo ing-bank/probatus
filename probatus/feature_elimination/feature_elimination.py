@@ -742,10 +742,12 @@ class ShapRFECV(BaseFitComputePlotClass):
 
         Args:
             best_method:
-                Automatic best feature selection strategy. One of "best", "best_coherent", "best_parsimonious".
+                Automatic best feature selection strategy. One of "best", "best_coherent" or
+                "best_parsimonious".
 
             standard_error_threshold:
-                Parameter used if best_method is 'best_coherent' or 'best_parsimonious'. Numeric value greater than zero.
+                Parameter used if best_method is 'best_coherent' or 'best_parsimonious'.
+                Numeric value greater than zero.
 
         Returns:
             (int)
@@ -854,6 +856,7 @@ class ShapRFECV(BaseFitComputePlotClass):
         return support
 
     def _get_feature_ranking(self, num_features):
+        # Need to align on the correct definition of ranking here.
         pass
 
     def plot(self, show=True, **figure_kwargs):
