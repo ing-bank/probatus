@@ -293,8 +293,6 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
             [
                 "mean_abs_shap_value_test",
                 "mean_abs_shap_value_train",
-                "penalized_mean_abs_shap_value_test",
-                "penalized_mean_abs_shap_value_train",
                 "mean_shap_value_test",
                 "mean_shap_value_train",
             ]
