@@ -713,7 +713,7 @@ class ShapRFECV(BaseFitComputePlotClass):
                 feature_names_selected = self._get_feature_names(best_num_features)
                 return self._get_feature_support(feature_names_selected)
             elif return_type == "ranking":
-                pass
+                return self._get_feature_ranking()
 
         elif isinstance(num_features, int):
             if return_type == "feature_names":
@@ -722,7 +722,7 @@ class ShapRFECV(BaseFitComputePlotClass):
                 feature_names_selected = self._get_feature_names(num_features)
                 return self._get_feature_support(feature_names_selected)
             elif return_type == "ranking":
-                pass
+                return self._get_feature_ranking()
 
         else:
             raise ValueError(
@@ -853,8 +853,23 @@ class ShapRFECV(BaseFitComputePlotClass):
                 Boolean mask representing the features selected.
         """
 
-        # Need to align on the correct definition of ranking here.
-        pass
+        flipped_report_df = self.report_df.iloc[::-1]
+
+        # Some features are not eliminated. All have importance of zero (highest importance)
+        features_not_eliminated = flipped_report_df["features_set"].iloc[0]
+        features_not_eliminated_dict = {v: 0 for v in features_not_eliminated}
+
+        # Eliminated features are ranked by shap importance
+        features_eliminated = np.concatenate(flipped_report_df["eliminated_features"].to_numpy())
+        features_eliminated_dict = {int(v): k + 1 for (k, v) in enumerate(features_eliminated)}
+
+        # Combine dicts with rank info
+        features_eliminated_dict.update(features_not_eliminated_dict)
+
+        # Get ranking per the order of columns
+        ranking = [features_eliminated_dict[c] for c in self.column_names]
+
+        return ranking
 
     def plot(self, show=True, **figure_kwargs):
         """
