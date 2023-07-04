@@ -775,7 +775,7 @@ class ShapRFECV(BaseFitComputePlotClass):
             # Find standard error threshold above which we want to focus
             best_val_metric_threshold = shap_report["eval_metric"].iloc[best_iteration_idx]
             # Drop iterations with val_metric below threshold
-            shap_report = shap_report[shap_report["val_metric_mean"] > best_val_metric_threshold]
+            shap_report = shap_report[shap_report["val_metric_mean"] >= best_val_metric_threshold]
             # Get iteration with smallest val_metric_std
             best_std_iteration_idx = shap_report["val_metric_std"].argmin()
             best_num_features = shap_report["num_features"].iloc[best_std_iteration_idx]
@@ -788,7 +788,7 @@ class ShapRFECV(BaseFitComputePlotClass):
             # Find standard error threshold above which we want to focus
             best_val_metric_threshold = shap_report["eval_metric"].iloc[best_iteration_idx]
             # Drop iterations with val_metric below threshold
-            shap_report = shap_report[shap_report["val_metric_mean"] > best_val_metric_threshold]
+            shap_report = shap_report[shap_report["val_metric_mean"] >= best_val_metric_threshold]
             # Get iteration with smallest num_features
             best_parsimonious_iteration_idx = shap_report["num_features"].argmin()
             best_num_features = shap_report["num_features"].iloc[best_parsimonious_iteration_idx]
