@@ -74,7 +74,7 @@ def test_shap_rfe_randomized_search(X, y, capsys):
     Test with RandomizedSearchCV.
     """
     clf = DecisionTreeClassifier(max_depth=1)
-    param_grid = {"criterion": ["gini"], "min_samples_split": [1, 2]}
+    param_grid = {"criterion": ["gini"], "min_samples_split": [2, 4]}
     search = RandomizedSearchCV(clf, param_grid, cv=2, n_iter=2)
     shap_elimination = ShapRFECV(search, step=0.8, cv=2, scoring="roc_auc", n_jobs=4, random_state=1)
     report = shap_elimination.fit_compute(X, y)
@@ -258,7 +258,7 @@ def test_shap_rfe_randomized_search_cols_to_keep(X, y, capsys):
     Test with ShapRFECV with column to keep param.
     """
     clf = DecisionTreeClassifier(max_depth=1)
-    param_grid = {"criterion": ["gini"], "min_samples_split": [1, 2]}
+    param_grid = {"criterion": ["gini"], "min_samples_split": [2, 4]}
     search = RandomizedSearchCV(clf, param_grid, cv=2, n_iter=2)
     shap_elimination = ShapRFECV(search, step=0.8, cv=2, scoring="roc_auc", n_jobs=4, random_state=1)
     report = shap_elimination.fit_compute(X, y, columns_to_keep=["col_2", "col_3"])
@@ -365,6 +365,32 @@ def test_shap_rfe_same_features_are_kept_after_each_run():
 
     # Results from the first run
     assert ["f6", "f10", "f12", "f14", "f15", "f17", "f18", "f20"] == kept_features
+
+
+def test_shap_rfe_penalty_factor(X, y):
+    """
+    Test ShapRFECV with shap_variance_penalty_factor
+    """
+    clf = DecisionTreeClassifier(max_depth=1, random_state=1)
+    shap_elimination = ShapRFECV(
+        clf,
+        random_state=1,
+        step=1,
+        cv=2,
+        scoring="roc_auc",
+        n_jobs=1,
+    )
+    shap_elimination = shap_elimination.fit(
+        X, y, shap_variance_penalty_factor=1.0, approximate=True, check_additivity=False
+    )
+
+    assert shap_elimination.fitted
+    shap_elimination._check_if_fitted()
+
+    report = shap_elimination.compute()
+
+    assert report.shape[0] == 3
+    assert shap_elimination.get_reduced_features_set(1) == ["col_1"]
 
 
 @pytest.mark.skipif(os.environ.get("SKIP_LIGHTGBM") == "true", reason="LightGBM tests disabled")
