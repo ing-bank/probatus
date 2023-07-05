@@ -674,13 +674,28 @@ class ShapRFECV(BaseFitComputePlotClass):
         )
         return self.compute()
 
-    def get_reduced_features_set(self, num_features):
+    def get_reduced_features_set(self, num_features, standard_error_threshold=1.0, return_type="feature_names"):
         """
         Gets the features set after the feature elimination process, for a given number of features.
 
         Args:
-            num_features (int):
-                Number of features in the reduced features set.
+            num_features (int or str):
+                If int: Number of features in the reduced features set.
+                If str: One of the following automatic num feature selection methods supported:
+                    1. best: strictly selects the num_features with the highest model score.
+                    2. best_coherent: For iterations that are within standard_error_threshold of the highest
+                    score, select the iteration with the lowest standard deviation of model score.
+                    3. best_parsimonious: For iterations that are within standard_error_threshold of the
+                    highest score, select the iteration with the fewest features.
+
+            standard_error_threshold (float):
+                If num_features is 'best_coherent' or 'best_parsimonious', this parameter is used.
+
+            return_type:
+                Accepts possible values of 'feature_names', 'support' or 'ranking'. These are defined as:
+                    1. feature_names: returns column names
+                    2. support: returns boolean mask
+                    3. ranking: returns numeric ranking of features
 
         Returns:
             (list of str):
@@ -688,6 +703,120 @@ class ShapRFECV(BaseFitComputePlotClass):
         """
         self._check_if_fitted()
 
+        if isinstance(num_features, str):
+            best_num_features = self._get_best_num_features(
+                best_method=num_features, standard_error_threshold=standard_error_threshold
+            )
+            if return_type == "feature_names":
+                return self._get_feature_names(best_num_features)
+            elif return_type == "support":
+                feature_names_selected = self._get_feature_names(best_num_features)
+                return self._get_feature_support(feature_names_selected)
+            elif return_type == "ranking":
+                return self._get_feature_ranking()
+
+        elif isinstance(num_features, int):
+            if return_type == "feature_names":
+                return self._get_feature_names(num_features)
+            elif return_type == "support":
+                feature_names_selected = self._get_feature_names(num_features)
+                return self._get_feature_support(feature_names_selected)
+            elif return_type == "ranking":
+                return self._get_feature_ranking()
+
+        else:
+            raise ValueError(
+                "Parameter num_features can be of type int, or of type str with"
+                "possible values of 'best', 'best_coherent' or 'best_parsimonious'"
+            )
+
+    def _get_best_num_features(self, best_method, standard_error_threshold=1.0):
+        """
+        Helper function to identify the best number of features to select as per some automatic
+        feature selection strategy. Strategies supported are:
+            1. best: strictly selects the num_features with the highest model score.
+            2. best_coherent: For iterations that are within standard_error_threshold of the highest
+            score, select the iteration with the lowest standard deviation of model score.
+            3. best_parsimonious: For iterations that are within standard_error_threshold of the
+            highest score, select the iteration with the fewest features.
+
+        Args:
+            best_method (str):
+                Automatic best feature selection strategy. One of "best", "best_coherent" or
+                "best_parsimonious".
+
+            standard_error_threshold (float):
+                Parameter used if best_method is 'best_coherent' or 'best_parsimonious'.
+                Numeric value greater than zero.
+
+        Returns:
+            (int)
+                num_features as per automatic feature selection strategy selected.
+        """
+
+        self._check_if_fitted()
+        shap_report = self.report_df.copy()
+
+        if (isinstance(standard_error_threshold, float) or isinstance(standard_error_threshold, int)) is not True:
+            raise ValueError("Parameter standard_error_threshold must be int or float")
+        elif standard_error_threshold < 0:
+            raise ValueError("Parameter standard_error_threshold must be >= zero.")
+
+        if best_method == "best":
+            shap_report["eval_metric"] = shap_report["val_metric_mean"]
+            best_iteration_idx = shap_report["eval_metric"].argmax()
+            best_num_features = shap_report["num_features"].iloc[best_iteration_idx]
+
+        elif best_method == "best_coherent":
+            shap_report["eval_metric"] = (
+                shap_report["val_metric_mean"] - shap_report["val_metric_std"] * standard_error_threshold
+            )
+            best_iteration_idx = shap_report["eval_metric"].argmax()
+            # Find standard error threshold above which we want to focus
+            best_val_metric_threshold = shap_report["eval_metric"].iloc[best_iteration_idx]
+            # Drop iterations with val_metric below threshold
+            shap_report = shap_report[shap_report["val_metric_mean"] >= best_val_metric_threshold]
+            # Get iteration with smallest val_metric_std
+            best_std_iteration_idx = shap_report["val_metric_std"].argmin()
+            best_num_features = shap_report["num_features"].iloc[best_std_iteration_idx]
+
+        elif best_method == "best_parsimonious":
+            shap_report["eval_metric"] = (
+                shap_report["val_metric_mean"] - shap_report["val_metric_std"] * standard_error_threshold
+            )
+            best_iteration_idx = shap_report["eval_metric"].argmax()
+            # Find standard error threshold above which we want to focus
+            best_val_metric_threshold = shap_report["eval_metric"].iloc[best_iteration_idx]
+            # Drop iterations with val_metric below threshold
+            shap_report = shap_report[shap_report["val_metric_mean"] >= best_val_metric_threshold]
+            # Get iteration with smallest num_features
+            best_parsimonious_iteration_idx = shap_report["num_features"].argmin()
+            best_num_features = shap_report["num_features"].iloc[best_parsimonious_iteration_idx]
+
+        else:
+            raise ValueError(
+                "The parameter best_method can take values of 'best', 'best_coherent' or 'best_parsimonious'"
+            )
+
+        # Log shap_report for users who want to inspect / debug
+        if self.verbose > 50:
+            print(shap_report)
+
+        return best_num_features
+
+    def _get_feature_names(self, num_features):
+        """
+        Helper function that takes num_features and returns the associated list of column/feature names.
+
+        Args:
+            num_features (int):
+                Represents the top N features to get the column names for.
+
+        Returns:
+            (list of feature names)
+                List of the names of the features representing top num_features
+        """
+        self._check_if_fitted()
         if num_features not in self.report_df.num_features.tolist():
             raise (
                 ValueError(
@@ -697,6 +826,50 @@ class ShapRFECV(BaseFitComputePlotClass):
             )
         else:
             return self.report_df[self.report_df.num_features == num_features]["features_set"].values[0]
+
+    def _get_feature_support(self, feature_names_selected):
+        """
+        Helper function that takes feature_names_selected and returns a boolean mask representing the columns
+        that were selected by the RFECV method.
+
+        Args:
+            feature_names_selected (list):
+                Represents the top N features to get the column names for.
+
+        Returns:
+            (list of bools)
+                Boolean mask representing the features selected.
+        """
+        support = [True if col in feature_names_selected else False for col in self.column_names]
+        return support
+
+    def _get_feature_ranking(self):
+        """
+        Returns the feature ranking, such that ranking_[i] corresponds to the ranking position
+        of the i-th feature. Selected (i.e., estimated best) features are assigned rank 1.
+
+        Returns:
+            (list of bools)
+                Boolean mask representing the features selected.
+        """
+
+        flipped_report_df = self.report_df.iloc[::-1]
+
+        # Some features are not eliminated. All have importance of zero (highest importance)
+        features_not_eliminated = flipped_report_df["features_set"].iloc[0]
+        features_not_eliminated_dict = {v: 0 for v in features_not_eliminated}
+
+        # Eliminated features are ranked by shap importance
+        features_eliminated = np.concatenate(flipped_report_df["eliminated_features"].to_numpy())
+        features_eliminated_dict = {int(v): k + 1 for (k, v) in enumerate(features_eliminated)}
+
+        # Combine dicts with rank info
+        features_eliminated_dict.update(features_not_eliminated_dict)
+
+        # Get ranking per the order of columns
+        ranking = [features_eliminated_dict[col] for col in self.column_names]
+
+        return ranking
 
     def plot(self, show=True, **figure_kwargs):
         """
