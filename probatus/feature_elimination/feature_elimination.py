@@ -840,7 +840,7 @@ class ShapRFECV(BaseFitComputePlotClass):
             (list of bools)
                 Boolean mask representing the features selected.
         """
-        support = [True if c in feature_names_selected else False for c in self.column_names]
+        support = [True if col in feature_names_selected else False for col in self.column_names]
         return support
 
     def _get_feature_ranking(self):
