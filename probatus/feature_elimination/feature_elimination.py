@@ -867,7 +867,7 @@ class ShapRFECV(BaseFitComputePlotClass):
         features_eliminated_dict.update(features_not_eliminated_dict)
 
         # Get ranking per the order of columns
-        ranking = [features_eliminated_dict[c] for c in self.column_names]
+        ranking = [features_eliminated_dict[col] for col in self.column_names]
 
         return ranking
 
