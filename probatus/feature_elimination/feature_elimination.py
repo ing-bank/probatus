@@ -510,8 +510,7 @@ class ShapRFECV(BaseFitComputePlotClass):
             _shap_variance_penalty_factor = shap_variance_penalty_factor
         else:
             warnings.warn(
-                "shap_variance_penalty_factor must be an int or float and be > 0. "
-                "Setting shap_variance_penalty_factor = 0"
+                "shap_variance_penalty_factor must be None, int or float. " "Setting shap_variance_penalty_factor = 0"
             )
             _shap_variance_penalty_factor = 0
 
