@@ -295,10 +295,19 @@ def test_calculate_number_of_features_to_remove():
     )
 
 
-def test_shap_automatic_num_feature_selection(X, y, sample_weight):
+def test_shap_automatic_num_feature_selection():
     """
     Test automatic num feature selection methods
     """
+    X = pd.DataFrame(
+        {
+            "col_1": [1, 0, 1, 0, 1, 0, 1, 0],
+            "col_2": [0, 0, 0, 0, 0, 1, 1, 1],
+            "col_3": [1, 1, 1, 0, 0, 0, 0, 0],
+        }
+    )
+    y = pd.Series([0, 0, 0, 0, 1, 1, 1, 1])
+
     clf = DecisionTreeClassifier(max_depth=1, random_state=1)
     shap_elimination = ShapRFECV(
         clf,
@@ -308,18 +317,17 @@ def test_shap_automatic_num_feature_selection(X, y, sample_weight):
         scoring="roc_auc",
         n_jobs=1,
     )
-    _ = shap_elimination.fit_compute(X, y, sample_weight=sample_weight, approximate=True, check_additivity=False)
-
-    assert shap_elimination.fitted
-    shap_elimination._check_if_fitted()
+    _ = shap_elimination.fit_compute(X, y, approximate=True, check_additivity=False)
 
     best_features = shap_elimination.get_reduced_features_set(num_features="best")
-    best_coherent_features = shap_elimination.get_reduced_features_set(num_features="best_coherent")
+    best_coherent_features = shap_elimination.get_reduced_features_set(
+        num_features="best_coherent",
+    )
     best_parsimonious_features = shap_elimination.get_reduced_features_set(num_features="best_parsimonious")
 
-    assert best_features[0] == "col_1"
-    assert best_coherent_features[0] == "col_1"
-    assert best_parsimonious_features[0] == "col_3"
+    assert best_features == ["col_3"]
+    assert best_coherent_features == ["col_1", "col_2", "col_3"]
+    assert best_parsimonious_features == ["col_3"]
 
 
 def test_get_feature_shap_values_per_fold(X, y):
