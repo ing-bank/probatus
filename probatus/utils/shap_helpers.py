@@ -156,7 +156,7 @@ def shap_to_df(model, X, precalc_shap=None, **kwargs):
         raise NotImplementedError("X must be a dataframe or a 2d array")
 
 
-def calculate_shap_importance(shap_values, columns, output_columns_suffix=""):
+def calculate_shap_importance(shap_values, columns, output_columns_suffix="", shap_variance_penalty_factor=None):
     """
     Returns the average shapley value for each column of the dataframe, as well as the average absolute shap value.
 
@@ -170,6 +170,12 @@ def calculate_shap_importance(shap_values, columns, output_columns_suffix=""):
         output_columns_suffix (str, optional):
             Suffix to be added at the end of column names in the output.
 
+        shap_variance_penalty_factor (int or float, optional):
+            Apply aggregation penalty when computing average of shap values for a given feature.
+            Results in a preference for features that have smaller standard deviation of shap
+            values (more coherent shap importance). Recommend value 0.5 - 1.0.
+            Formula: penalized_shap_mean = (mean_shap - (std_shap * shap_variance_penalty_factor))
+
     Returns:
         (pd.DataFrame):
             Mean absolute shap values and Mean shap values of features.
@@ -179,11 +185,28 @@ def calculate_shap_importance(shap_values, columns, output_columns_suffix=""):
     shap_abs_mean = np.mean(np.abs(shap_values), axis=0)
     shap_mean = np.mean(shap_values, axis=0)
 
+    if shap_variance_penalty_factor is None:
+        _shap_variance_penalty_factor = 0
+    elif (
+        isinstance(shap_variance_penalty_factor, float) or isinstance(shap_variance_penalty_factor, int)
+    ) and shap_variance_penalty_factor >= 0:
+        _shap_variance_penalty_factor = shap_variance_penalty_factor
+    else:
+        warnings.warn(
+            "shap_variance_penalty_factor must be None, int or float. " "Setting shap_variance_penalty_factor = 0"
+        )
+        _shap_variance_penalty_factor = 0
+
+    penalized_shap_abs_mean = np.mean(np.abs(shap_values), axis=0) - (
+        np.std(np.abs(shap_values), axis=0) * _shap_variance_penalty_factor
+    )
+
     # Prepare importance values in a handy df
     importance_df = pd.DataFrame(
         {
             f"mean_abs_shap_value{output_columns_suffix}": shap_abs_mean.tolist(),
             f"mean_shap_value{output_columns_suffix}": shap_mean.tolist(),
+            f"penalized_mean_abs_shap_value{output_columns_suffix}": penalized_shap_abs_mean.tolist(),
         },
         index=columns,
     )
@@ -195,7 +218,13 @@ def calculate_shap_importance(shap_values, columns, output_columns_suffix=""):
     importance_df[f"mean_shap_value{output_columns_suffix}"] = importance_df[
         f"mean_shap_value{output_columns_suffix}"
     ].astype(float)
+    importance_df[f"penalized_mean_abs_shap_value{output_columns_suffix}"] = importance_df[
+        f"penalized_mean_abs_shap_value{output_columns_suffix}"
+    ].astype(float)
 
-    importance_df = importance_df.sort_values(f"mean_abs_shap_value{output_columns_suffix}", ascending=False)
+    importance_df = importance_df.sort_values(f"penalized_mean_abs_shap_value{output_columns_suffix}", ascending=False)
+
+    # Drop penalized column
+    importance_df = importance_df.drop(columns=[f"penalized_mean_abs_shap_value{output_columns_suffix}"])
 
     return importance_df

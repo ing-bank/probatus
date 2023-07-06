@@ -406,6 +406,7 @@ class ShapRFECV(BaseFitComputePlotClass):
         columns_to_keep=None,
         column_names=None,
         groups=None,
+        shap_variance_penalty_factor=None,
         **shap_kwargs,
     ):
         """
@@ -450,6 +451,12 @@ class ShapRFECV(BaseFitComputePlotClass):
                 Only used in conjunction with a "Group" `cv` instance.
                 (e.g. `sklearn.model_selection.GroupKFold`).
 
+            shap_variance_penalty_factor (int or float, optional):
+                Apply aggregation penalty when computing average of shap values for a given feature.
+                Results in a preference for features that have smaller standard deviation of shap
+                values (more coherent shap importance). Recommend value 0.5 - 1.0.
+                Formula: penalized_shap_mean = (mean_shap - (std_shap * shap_variance_penalty_factor))
+
             **shap_kwargs:
                 keyword arguments passed to
                 [shap.Explainer](https://shap.readthedocs.io/en/latest/generated/shap.Explainer.html#shap.Explainer).
@@ -493,6 +500,19 @@ class ShapRFECV(BaseFitComputePlotClass):
                     "Minimum features to select is greater than number of features."
                     "Lower the value for min_features_to_select or number of columns in columns_to_keep"
                 )
+
+        # Check shap_variance_penalty_factor has acceptable value
+        if shap_variance_penalty_factor is None:
+            _shap_variance_penalty_factor = 0
+        elif (
+            isinstance(shap_variance_penalty_factor, float) or isinstance(shap_variance_penalty_factor, int)
+        ) and shap_variance_penalty_factor >= 0:
+            _shap_variance_penalty_factor = shap_variance_penalty_factor
+        else:
+            warnings.warn(
+                "shap_variance_penalty_factor must be None, int or float. " "Setting shap_variance_penalty_factor = 0"
+            )
+            _shap_variance_penalty_factor = 0
 
         self.X, self.column_names = preprocess_data(X, X_name="X", column_names=column_names, verbose=self.verbose)
         self.y = preprocess_labels(y, y_name="y", index=self.X.index, verbose=self.verbose)
@@ -565,7 +585,9 @@ class ShapRFECV(BaseFitComputePlotClass):
 
             # Calculate the shap features with remaining features and features to keep.
 
-            shap_importance_df = calculate_shap_importance(shap_values, remaining_removeable_features)
+            shap_importance_df = calculate_shap_importance(
+                shap_values, remaining_removeable_features, shap_variance_penalty_factor=_shap_variance_penalty_factor
+            )
 
             # Get features to remove
             features_to_remove = self._get_current_features_to_remove(
@@ -616,7 +638,16 @@ class ShapRFECV(BaseFitComputePlotClass):
 
         return self.report_df
 
-    def fit_compute(self, X, y, sample_weight=None, columns_to_keep=None, column_names=None, **shap_kwargs):
+    def fit_compute(
+        self,
+        X,
+        y,
+        sample_weight=None,
+        columns_to_keep=None,
+        column_names=None,
+        shap_variance_penalty_factor=None,
+        **shap_kwargs,
+    ):
         """
         Fits the object with the provided data.
 
@@ -652,6 +683,12 @@ class ShapRFECV(BaseFitComputePlotClass):
                 feature names. If not provided the existing feature names are used or default feature names are
                 generated.
 
+            shap_variance_penalty_factor (int or float, optional):
+                Apply aggregation penalty when computing average of shap values for a given feature.
+                Results in a preference for features that have smaller standard deviation of shap
+                values (more coherent shap importance). Recommend value 0.5 - 1.0.
+                Formula: penalized_shap_mean = (mean_shap - (std_shap * shap_variance_penalty_factor))
+
             **shap_kwargs:
                 keyword arguments passed to
                 [shap.Explainer](https://shap.readthedocs.io/en/latest/generated/shap.Explainer.html#shap.Explainer).
@@ -670,6 +707,7 @@ class ShapRFECV(BaseFitComputePlotClass):
             sample_weight=sample_weight,
             columns_to_keep=columns_to_keep,
             column_names=column_names,
+            shap_variance_penalty_factor=shap_variance_penalty_factor,
             **shap_kwargs,
         )
         return self.compute()

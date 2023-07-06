@@ -402,6 +402,29 @@ def test_shap_rfe_same_features_are_kept_after_each_run():
     assert ["f6", "f10", "f12", "f14", "f15", "f17", "f18", "f20"] == kept_features
 
 
+def test_shap_rfe_penalty_factor(X, y):
+    """
+    Test ShapRFECV with shap_variance_penalty_factor
+    """
+    clf = DecisionTreeClassifier(max_depth=1, random_state=1)
+    shap_elimination = ShapRFECV(
+        clf,
+        random_state=1,
+        step=1,
+        cv=2,
+        scoring="roc_auc",
+        n_jobs=1,
+    )
+    shap_elimination = shap_elimination.fit(
+        X, y, shap_variance_penalty_factor=1.0, approximate=True, check_additivity=False
+    )
+
+    report = shap_elimination.compute()
+
+    assert report.shape[0] == 3
+    assert shap_elimination.get_reduced_features_set(1) == ["col_1"]
+
+
 @pytest.mark.skipif(os.environ.get("SKIP_LIGHTGBM") == "true", reason="LightGBM tests disabled")
 def test_complex_dataset(complex_data, complex_lightgbm):
     """
