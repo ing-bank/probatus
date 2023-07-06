@@ -3,9 +3,10 @@ import os
 import numpy as np
 import pandas as pd
 import pytest
-from probatus.interpret import ShapModelInterpreter
 from sklearn.linear_model import LogisticRegression
 from sklearn.tree import DecisionTreeClassifier
+
+from probatus.interpret import ShapModelInterpreter
 
 
 @pytest.fixture(scope="function")
@@ -244,18 +245,15 @@ def test_shap_interpret_complex_data(complex_data_split, complex_fitted_lightgbm
     X_train, X_test, y_train, y_test = complex_data_split
 
     shap_interpret = ShapModelInterpreter(complex_fitted_lightgbm, verbose=50)
-    with pytest.warns(None) as record:
-        importance_df = shap_interpret.fit_compute(
-            X_train, X_test, y_train, y_test, class_names=class_names, approximate=False, check_additivity=False
-        )
+    importance_df = shap_interpret.fit_compute(
+        X_train, X_test, y_train, y_test, class_names=class_names, approximate=False, check_additivity=False
+    )
 
     # Check parameters
     assert shap_interpret.fitted
     shap_interpret._check_if_fitted
 
     assert shap_interpret.class_names == class_names
-    assert len(record) > 4
-
     assert importance_df.shape[0] == X_train.shape[1]
 
     # Check if plots work for such dataset

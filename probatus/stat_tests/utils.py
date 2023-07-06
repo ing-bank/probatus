@@ -33,7 +33,7 @@ def verbose_p_vals(func):
         stat, pvalue = func(*args, **kwargs)
 
         if "verbose" in kwargs and kwargs["verbose"] is True:
-            print("\n{}: pvalue =".format(test_name), pvalue)
+            print(f"\n{test_name}: pvalue =", pvalue)
             if pvalue < 0.01:
                 print(
                     "\n{}: Null hypothesis rejected with 99% confidence. Distributions very different.".format(
@@ -41,7 +41,7 @@ def verbose_p_vals(func):
                     )
                 )
             elif pvalue < 0.05:
-                print("\n{}: Null hypothesis rejected with 95% confidence. Distributions different.".format(test_name))
+                print(f"\n{test_name}: Null hypothesis rejected with 95% confidence. Distributions different.")
             else:
                 print(
                     "\n{}: Null hypothesis cannot be rejected. Distributions not statistically different.".format(

@@ -27,7 +27,6 @@ from .volatility import (
 )
 from .utils import sample_data, check_sampling_input
 
-
 __all__ = [
     "get_metric",
     "BaseVolatilityEstimator",

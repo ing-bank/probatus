@@ -25,8 +25,9 @@ try:
 except ModuleNotFoundError:
     stats = NotInstalledError("scipy", "extras")
 
-from ..utils import assure_numpy_array
 from probatus.stat_tests.utils import verbose_p_vals
+
+from ..utils import assure_numpy_array
 
 
 @verbose_p_vals
@@ -38,7 +39,7 @@ def ks(d1, d2, verbose=False):
 
     References:
 
-    - [Wikipedia article about the Kolmogorov-Smirnov test](https://en.wikipedia.org/wiki/Kolmogorov%E2%80%93Smirnov_test)
+    - [Wikipedia article about Kolmogorov-Smirnov test](https://en.wikipedia.org/wiki/Kolmogorov%E2%80%93Smirnov_test)
     - [SciPy documentation](https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.ks_2samp.html)
 
     Args:

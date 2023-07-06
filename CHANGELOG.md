@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.1] - 2023-06
+Improvements in this release:
+- Update pre-commit hooks & add validation for jupyter notebooks # 213
+- Fix the docs deployment #211
+
+## [2.0.0] - 2023-06
+Improvements in this release:
+- Drop explicit support for python 3.7, add support for 3.11 #206, #203, #185
+- Activate and add pre-commit hooks (isort, codespell) #205, #206
+- Add support for groups in SHAP RFECV #182
+- Bug fix: SHAP RFECV now produces reproducible results every time (this breaks backwards compatibility) #197
+- Bug fix: Updated GitHub actions, fixed deprecations #199
+- Bug fix: Remove most of the unreliable warning assertion checks #207
+
 ## [1.8.9] - 2022-04-08
 Improvements in this release:
 - Drop explicit support for python 3.6, add 3.10 #177
@@ -51,7 +65,7 @@ Improvements in this release:
 - Fix issue with categorical features in SHAP #138
 - Missing values handled by AutoDist #126
 - Fix issue with missing histogram in DependencePlot #137
-  
+
 ## [1.8.0] - 2021-04-14
 Improvements in this release:
 - Implemented EarlyStoppingShapRFECV #108
@@ -64,13 +78,13 @@ Improvements in this release:
 - Unit tests are run daily #113
 - TreeBucketer has been refactored #124
 - Fixes to failing test pipeline #120
-- Improving language in docs #109, #107 
+- Improving language in docs #109, #107
 
 ## [1.7.0] - 2021-03-16
 Improvements in this release:
 - Create a comparison of imputation strategies #86
 - Added support for passing check_additivity argument #103
-- Range of code styling issues fixed, based on precommit config #100 
+- Range of code styling issues fixed, based on precommit config #100
 - Renamed TreeDependencePlotter to DependencePlotter and exposed the docs #94
 - Enable instalation of extra dependencies #97
 - Added how to notebook to ensure reproducibility #99
@@ -99,13 +113,13 @@ Improvements in this release:
 ## [1.5.1] - 2020-12-04
 
 Various improvements to the consistency and usability of the package
-- Unit test docstring and notebooks #41 
-- Unified scoring metric within probatus #27 
-- Improve docstrings consistency documentation #25 
-- Implemented unified interface #24 
+- Unit test docstring and notebooks #41
+- Unified scoring metric within probatus #27
+- Improve docstrings consistency documentation #25
+- Implemented unified interface #24
 - Added images to API docs documentation #23
 - Added verbose parameter to ShapRFECV #21
-- Make API more consistent #19 
+- Make API more consistent #19
     - Set model parameter name to clf across probatus
     - Set default random_state to None
     - Ensure that verbose is used consistently in probatus
@@ -178,11 +192,11 @@ Various improvements to the consistency and usability of the package
 
 - Added CHANGELOG.md
 
-### Changed 
+### Changed
 
 - Renamed to probatus
 - Improved testing by adding pyflakes to CI
-- probatus.metric_uncertainty.VolatilityEstimation is now deterministic, added random_state parameter 
+- probatus.metric_uncertainty.VolatilityEstimation is now deterministic, added random_state parameter
 
 ## [0.1.0] - 2019-09-21
 

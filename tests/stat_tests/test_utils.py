@@ -1,6 +1,6 @@
 import numpy as np
 
-from probatus.stat_tests import ks, es
+from probatus.stat_tests import es, ks
 
 
 def test_verbosity_true_(capsys):

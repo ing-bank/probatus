@@ -1,22 +1,24 @@
-from probatus.metric_volatility import (
-    BaseVolatilityEstimator,
-    TrainTestVolatility,
-    SplitSeedVolatility,
-    BootstrappedVolatility,
-    get_metric,
-    sample_data,
-    check_sampling_input,
-)
-from sklearn.tree import DecisionTreeClassifier
-import pytest
+import os
+from unittest.mock import patch
+
+import matplotlib
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from unittest.mock import patch
+import pytest
+from sklearn.tree import DecisionTreeClassifier
+
+from probatus.metric_volatility import (
+    BaseVolatilityEstimator,
+    BootstrappedVolatility,
+    SplitSeedVolatility,
+    TrainTestVolatility,
+    check_sampling_input,
+    get_metric,
+    sample_data,
+)
 from probatus.stat_tests.distribution_statistics import DistributionStatistics
-from probatus.utils import Scorer, NotFittedError
-import os
-import matplotlib.pyplot as plt
-import matplotlib
+from probatus.utils import NotFittedError, Scorer
 
 # Turn off interactive mode in plots
 plt.ioff()
@@ -202,7 +204,6 @@ def test_plot(report, mock_model, iterations_train, iterations_test, iterations_
             "_get_samples_to_plot",
             return_value=(iterations_train, iterations_test, iterations_delta),
         ) as mock_get_samples:
-
             vol = BaseVolatilityEstimator(mock_model)
             vol.fitted = True
 
@@ -234,7 +235,7 @@ def test_create_report(mock_model, iteration_results, report):
     vol.iterations_results = iteration_results
 
     vol._create_report()
-    pd.testing.assert_frame_equal(vol.report, report, check_less_precise=3)
+    pd.testing.assert_frame_equal(vol.report, report, atol=1e-3)
 
 
 def test_compute_mean_std_from_runs(mock_model, iteration_results):
@@ -289,7 +290,6 @@ def test_fit_train_test_sample_seed(mock_model, X_df, y_series, iteration_result
                 "probatus.metric_volatility.volatility.get_metric",
                 side_effect=[iteration_results.iloc[[0]], iteration_results.iloc[[1]], iteration_results.iloc[[2]]],
             ):
-
                 vol.fit(X_df, y_series)
 
                 mock_base_fit.assert_called_once()

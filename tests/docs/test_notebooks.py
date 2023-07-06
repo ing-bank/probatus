@@ -1,7 +1,8 @@
 # This approach is adapted from, and explained in: https://calmcode.io/docs/epic.html
 
-import pytest
 import os
+
+import pytest
 
 # Turn off interactive mode in plots
 

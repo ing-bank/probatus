@@ -2,7 +2,6 @@ name: Development
 on:
   # Trigger the workflow on push or pull request,
   # but only for the main branch
-
   push:
     branches:
       - main
@@ -24,27 +23,42 @@ jobs:
           - build: windows
             os: windows-latest
             SKIP_LIGHTGBM: False
-        python-version: [3.7, 3.8, 3.9, "3.10"]
+        python-version: [3.8, 3.9, "3.10", "3.11"]
     steps:
     - uses: actions/checkout@master
-    - name: Setup Python  
+
+    - name: Get latest CMake and Ninja
+      uses: lukka/get-cmake@latest
+      with:
+        cmakeVersion: latest
+        ninjaVersion: latest
+
+    - name: Setup Python
       uses: actions/setup-python@master
       with:
         python-version: ${{ matrix.python-version }}
 
-    - name: Install dependencies
+    - name: Install Python dependencies
       env:
         SKIP_LIGHTGBM: ${{ matrix.SKIP_LIGHTGBM }}
       run: |
         pip3 install --upgrade setuptools pip
         pip3 install ".[all]"
-    - name: Run unit tests and linters
+
+    - name: Run linters
+      env:
+        SKIP_LIGHTGBM: ${{ matrix.SKIP_LIGHTGBM }}
+      run: |
+        pre-commit install
+        pre-commit run --all-files
+
+    - name: Run (unit) tests
       env:
         SKIP_LIGHTGBM: ${{ matrix.SKIP_LIGHTGBM }}
       run: |
         pytest --cov=probatus/binning --cov=probatus/metric_volatility --cov=probatus/missing_values --cov=probatus/sample_similarity --cov=probatus/stat_tests --cov=probatus/utils --cov=probatus/interpret/ --ignore==tests/interpret/test_inspector.py --cov-report=xml
         pyflakes probatus
-        mypy probatus --ignore-missing-imports
+
     - name: Upload coverage to Codecov
       if: github.ref == 'refs/heads/main'
       uses: codecov/codecov-action@v1

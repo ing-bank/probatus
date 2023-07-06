@@ -25,8 +25,9 @@ try:
 except ModuleNotFoundError:
     stats = NotInstalledError("scipy", "extras")
 
-from ..utils import assure_numpy_array
 from probatus.stat_tests.utils import verbose_p_vals
+
+from ..utils import assure_numpy_array
 
 
 @verbose_p_vals

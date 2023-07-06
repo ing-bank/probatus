@@ -1,8 +1,8 @@
 import numpy as np
 import pandas as pd
-from probatus.stat_tests import ks, psi, es, ad, sw
 
 from probatus.binning import binning
+from probatus.stat_tests import ad, es, ks, psi, sw
 
 
 def test_psi_returns_zero():

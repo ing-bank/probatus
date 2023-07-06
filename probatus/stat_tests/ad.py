@@ -18,9 +18,10 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
-from ..utils import assure_numpy_array
 from probatus.stat_tests.utils import verbose_p_vals
 from probatus.utils import NotInstalledError
+
+from ..utils import assure_numpy_array
 
 try:
     from scipy import stats

@@ -1,13 +1,14 @@
-import pytest
+import os
 
+import matplotlib
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import pytest
 from sklearn.ensemble import RandomForestClassifier
+
 from probatus.interpret.shap_dependence import DependencePlotter
 from probatus.utils.exceptions import NotFittedError
-import os
-import matplotlib.pyplot as plt
-import matplotlib
 
 # Turn off interactive mode in plots
 plt.ioff()
@@ -119,7 +120,7 @@ def test_fit_complex(complex_data_split, complex_fitted_lightgbm):
     pd.testing.assert_series_equal(plotter.y, pd.Series(y_test, index=X_test.index))
     assert plotter.fitted is True
 
-    # Check if plotting doesnt cause errors
+    # Check if plotting does not cause errors
     for binning in ["simple", "agglomerative", "quantile"]:
         _ = plotter.plot(feature="f2_missing", type_binning=binning, show=False)
 

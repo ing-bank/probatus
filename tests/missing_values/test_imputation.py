@@ -1,13 +1,15 @@
 # Code to test the imputation strategies.
-from probatus.missing_values.imputation import ImputationSelector
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.linear_model import LogisticRegression
-from sklearn.experimental import enable_iterative_imputer  # noqa
-from sklearn.impute import KNNImputer, SimpleImputer, IterativeImputer
-import pandas as pd
-import numpy as np
-import pytest
 import os
+
+import numpy as np
+import pandas as pd
+import pytest
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.experimental import enable_iterative_imputer  # noqa
+from sklearn.impute import IterativeImputer, KNNImputer, SimpleImputer
+from sklearn.linear_model import LogisticRegression
+
+from probatus.missing_values.imputation import ImputationSelector
 
 
 @pytest.fixture(scope="function")

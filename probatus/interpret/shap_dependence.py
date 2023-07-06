@@ -18,16 +18,12 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
-import pandas as pd
-import numpy as np
 import matplotlib.pyplot as plt
-from probatus.binning import SimpleBucketer, AgglomerativeBucketer, QuantileBucketer
-from probatus.utils import (
-    BaseFitComputePlotClass,
-    shap_to_df,
-    preprocess_data,
-    preprocess_labels,
-)
+import numpy as np
+import pandas as pd
+
+from probatus.binning import AgglomerativeBucketer, QuantileBucketer, SimpleBucketer
+from probatus.utils import BaseFitComputePlotClass, preprocess_data, preprocess_labels, shap_to_df
 
 
 class DependencePlotter(BaseFitComputePlotClass):
@@ -79,7 +75,7 @@ class DependencePlotter(BaseFitComputePlotClass):
         """
         Represent string method.
         """
-        return "Shap dependence plotter for {}".format(self.clf.__class__.__name__)
+        return f"Shap dependence plotter for {self.clf.__class__.__name__}"
 
     def fit(self, X, y, column_names=None, class_names=None, precalc_shap=None, **shap_kwargs):
         """
@@ -222,7 +218,7 @@ class DependencePlotter(BaseFitComputePlotClass):
         if type_binning not in ["simple", "agglomerative", "quantile"]:
             raise ValueError("Select one of the following binning methods: 'simple', 'agglomerative', 'quantile'")
         if (alpha < 0) or (alpha > 1):
-            raise ValueError("alpha must be a float value betwee 0 and 1")
+            raise ValueError("alpha must be a float value between 0 and 1")
 
         self.min_q, self.max_q, self.alpha = min_q, max_q, alpha
 

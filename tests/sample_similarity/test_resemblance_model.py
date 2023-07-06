@@ -1,15 +1,16 @@
-from probatus.sample_similarity import BaseResemblanceModel, SHAPImportanceResemblance, PermutationImportanceResemblance
-from probatus.utils import NotFittedError
+import os
 
-import pytest
+import matplotlib
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.linear_model import LogisticRegression
-import os
+import pytest
 from pandas.api.types import is_numeric_dtype
-import matplotlib.pyplot as plt
-import matplotlib
+from sklearn.linear_model import LogisticRegression
+from sklearn.tree import DecisionTreeClassifier
+
+from probatus.sample_similarity import BaseResemblanceModel, PermutationImportanceResemblance, SHAPImportanceResemblance
+from probatus.utils import NotFittedError
 
 # Turn off interactive mode in plots
 plt.ioff()
