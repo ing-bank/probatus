@@ -656,7 +656,7 @@ class ShapRFECV(BaseFitComputePlotClass):
         Fits the object with the provided data.
 
         The algorithm starts with the entire dataset, and then sequentially
-             eliminates features. If sklearn compatible search CV is passed as model e.g.
+             eliminates features. If sklearn compatible search CV is passed as clf e.g.
              [GridSearchCV](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.GridSearchCV.html),
              [RandomizedSearchCV](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.RandomizedSearchCV.html)
              or [BayesSearchCV](https://scikit-optimize.github.io/stable/modules/generated/skopt.BayesSearchCV.html),
@@ -1031,11 +1031,11 @@ class EarlyStoppingShapRFECV(ShapRFECV):
     X = pd.DataFrame(X, columns=feature_names)
 
     # Prepare model
-    model = LGBMClassifier(n_estimators=200, max_depth=3)
+    clf = LGBMClassifier(n_estimators=200, max_depth=3)
 
     # Run feature elimination
     shap_elimination = EarlyStoppingShapRFECV(
-        model=model, step=0.2, cv=10, scoring='roc_auc', early_stopping_rounds=10, n_jobs=3)
+        clf=clf, step=0.2, cv=10, scoring='roc_auc', early_stopping_rounds=10, n_jobs=3)
     report = shap_elimination.fit_compute(X, y)
 
     # Make plots
@@ -1065,7 +1065,7 @@ class EarlyStoppingShapRFECV(ShapRFECV):
         This method initializes the class.
 
         Args:
-            model (sklearn compatible classifier or regressor, sklearn compatible search CV e.g. GridSearchCV, RandomizedSearchCV or BayesSearchCV):
+            clf (sklearn compatible classifier or regressor, sklearn compatible search CV e.g. GridSearchCV, RandomizedSearchCV or BayesSearchCV):
                 A model that will be optimized and trained at each round of features elimination. The model must
                 support early stopping of training, which is the case for XGBoost and LightGBM, for example. The
                 recommended model is [LGBMClassifier](https://lightgbm.readthedocs.io/en/latest/pythonapi/lightgbm.LGBMClassifier.html),
