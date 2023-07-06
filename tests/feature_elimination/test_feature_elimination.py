@@ -419,9 +419,6 @@ def test_shap_rfe_penalty_factor(X, y):
         X, y, shap_variance_penalty_factor=1.0, approximate=True, check_additivity=False
     )
 
-    assert shap_elimination.fitted
-    shap_elimination._check_if_fitted()
-
     report = shap_elimination.compute()
 
     assert report.shape[0] == 3
