@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2023-07
+Improvements in this release:
+- Make ShapRFECV return matplotfigure (instead of axis) #222
+- Add option for penalty on shap calculation to distinguish features with similar shap performance # 213
+- Implement automatic feature selection #220
+
 ## [2.0.1] - 2023-06
 Improvements in this release:
 - Update pre-commit hooks & add validation for jupyter notebooks # 213

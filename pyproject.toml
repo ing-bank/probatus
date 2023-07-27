@@ -4,12 +4,12 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "probatus"
-version = "2.0.1"
+version = "2.1.0"
 requires-python= ">=3.8"
 description = "Validation of binary classifiers and data used to develop them"
 readme = { file = "README.md", content-type = "text/markdown" }
 authors = [
-    { name = "ING Bank N.V.", email = "mateusz.garbacz@ing.com" }
+    { name = "ING Bank N.V.", email = "reinier.koops@ing.com" }
 ]
 license = { file = "LICENCE" }
 classifiers = [
