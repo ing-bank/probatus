@@ -18,3 +18,4 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 name = "probatus"
+__version__ = "2.1.1"

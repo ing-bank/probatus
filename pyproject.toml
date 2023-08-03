@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "probatus"
-version = "2.1.0"
+dynamic = ["version"]
 requires-python= ">=3.8"
 description = "Validation of binary classifiers and data used to develop them"
 readme = { file = "README.md", content-type = "text/markdown" }
@@ -32,11 +32,7 @@ dependencies = [
     "scipy>=1.4.0",
     "joblib>=0.13.2",
     "tqdm>=4.41.0",
-    "shap==0.41.0",  # 0.40.0 causes issues in certain plots.
-    "numpy==1.23.2 ; python_version == '3.11'", # wait for SHAP to upgrade.
-    "numpy==1.23.0 ; python_version < '3.11'", # wait for SHAP to upgrade.
-    "numba==0.57.0 ; python_version == '3.11'", # wait for SHAP to upgrade.
-    "numba>=0.56.4 ; python_version < '3.11'", # wait for SHAP to upgrade.
+    "shap==0.42.1",
 ]
 
 [project.urls]
@@ -46,14 +42,15 @@ Repository = "https://github.com/ing-bank/probatus.git"
 Changelog = "https://github.com/ing-bank/probatus/blob/main/CHANGELOG.md"
 
 [project.optional-dependencies]
-all = [
+extra_dep = [
     "lightgbm>=3.3.0",
     # https://github.com/catboost/catboost/issues/2371
     "catboost<1.2 ; python_version == '3.8'",
     "catboost>=1.1 ; python_version != '3.8'",
     "xgboost>=1.5.0",
     "scipy>=1.4.0",
-    # Dev dependencies
+]
+dev_dep = [
     "black>=19.10b0",
     "pre-commit>=2.5.0",
     "mypy>=0.770",
@@ -69,7 +66,8 @@ all = [
     "isort>=5.12.0",
     "codespell>=2.2.4",
     "ruff>=0.0.272",
-    # Doc dependencies
+]
+docs_dep = [
     "mkdocs-material>=6.1.0",
     "mkdocs-git-revision-date-localized-plugin>=0.7.2",
     "mkdocs-git-authors-plugin>=0.3.2",
@@ -83,9 +81,14 @@ all = [
     "mkdocs-markdownextradata-plugin>=0.1.9",
     "mkdocstrings-python>=1.1.2",
 ]
+extras = ["probatus[extra_dep]"]
+all = ["probatus[extra_dep,dev_dep,docs_dep]"]
 
 [tool.setuptools.packages.find]
 exclude = ["tests", "notebooks", "docs"]
+
+[tool.setuptools.dynamic]
+version = {attr = "probatus.__version__"}
 
 [tool.nbqa.addopts]
 # E402: Ignores imports not at the top of file for IPYNB since this makes copy-pasting easier.
