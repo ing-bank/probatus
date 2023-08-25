@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import pytest
+from packaging import version
 
 from probatus.utils import (
     DimensionalityError,
@@ -104,10 +105,16 @@ def test_check_1d_array():
     """
     x = np.array([1, 2, 3])
     assert check_1d(x)
-    y = np.array([[1, 2], [1, 2, 3]])
+    if version.parse(np.__version__) < version.parse("1.24.0"):
+        y = np.array([[1, 2], [1, 2, 3]])
+    else:
+        y = np.array([[1, 2], [1, 2, 3]], dtype=object)
     with pytest.raises(DimensionalityError):
         assert check_1d(y)
-    y = np.array([0, [1, 2, 3]])
+    if version.parse(np.__version__) < version.parse("1.24.0"):
+        y = np.array([0, [1, 2, 3]])
+    else:
+        y = np.array([0, [1, 2, 3]], dtype=object)
     with pytest.raises(DimensionalityError):
         assert check_1d(y)
 

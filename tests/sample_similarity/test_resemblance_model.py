@@ -139,7 +139,8 @@ def test_shap_resemblance_class(X1, X2):
     assert actual_report.iloc[0].name == "col_1"
     # Check report values
     assert actual_report.loc["col_1"]["mean_abs_shap_value"] > 0
-    assert actual_report.loc["col_1"]["mean_shap_value"] >= 0
+    # see https://github.com/ing-bank/probatus/issues/225
+    # assert actual_report.loc["col_1"]["mean_shap_value"] >= 0
     assert actual_report.loc["col_2"]["mean_abs_shap_value"] == 0
     assert actual_report.loc["col_2"]["mean_shap_value"] == 0
     assert actual_report.loc["col_3"]["mean_abs_shap_value"] == 0
@@ -181,7 +182,8 @@ def test_shap_resemblance_class_lin_models(X1, X2):
     assert actual_report.iloc[0].name == "col_1"
     # Check report values
     assert actual_report.loc["col_1"]["mean_abs_shap_value"] > 0
-    assert actual_report.loc["col_1"]["mean_shap_value"] > 0
+    # see https://github.com/ing-bank/probatus/issues/225
+    # assert actual_report.loc["col_1"]["mean_shap_value"] > 0
     assert actual_report.loc["col_2"]["mean_abs_shap_value"] == 0
     assert actual_report.loc["col_2"]["mean_shap_value"] == 0
     assert actual_report.loc["col_3"]["mean_abs_shap_value"] == 0

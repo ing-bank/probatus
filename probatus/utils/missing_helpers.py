@@ -30,9 +30,9 @@ def generate_MCAR(df, missing):
 
     df = df.copy()
 
-    if type(missing) == float and missing <= 1 and missing >= 0:
+    if isinstance(missing, float) and missing <= 1 and missing >= 0:
         df = df.mask(np.random.random(df.shape) < missing)
-    elif type(missing) == dict:
+    elif isinstance(missing, dict):
         for k, v in missing.items():
             df[k] = df[k].mask(np.random.random(df.shape[0]) < v)
 
