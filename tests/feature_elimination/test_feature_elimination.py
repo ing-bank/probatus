@@ -325,9 +325,9 @@ def test_shap_automatic_num_feature_selection():
     )
     best_parsimonious_features = shap_elimination.get_reduced_features_set(num_features="best_parsimonious")
 
-    assert best_features == ["col_3"]
+    assert best_features == ["col_2"]
     assert best_coherent_features == ["col_1", "col_2", "col_3"]
-    assert best_parsimonious_features == ["col_3"]
+    assert best_parsimonious_features == ["col_2"]
 
 
 def test_get_feature_shap_values_per_fold(X, y):
@@ -399,7 +399,7 @@ def test_shap_rfe_same_features_are_kept_after_each_run():
     kept_features = list(report.iloc[[report["val_metric_mean"].idxmax() - 1]]["features_set"].to_list()[0])
 
     # Results from the first run
-    assert ["f6", "f10", "f12", "f14", "f15", "f17", "f18", "f20"] == kept_features
+    assert ["f2", "f3", "f6", "f10", "f11", "f12", "f13", "f14", "f15", "f17", "f18", "f19", "f20"] == kept_features
 
 
 def test_shap_rfe_penalty_factor(X, y):

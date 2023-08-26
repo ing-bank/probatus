@@ -32,11 +32,9 @@ dependencies = [
     "scipy>=1.4.0",
     "joblib>=0.13.2",
     "tqdm>=4.41.0",
-    "shap==0.41.0",  # 0.40.0 causes issues in certain plots.
-    "numpy==1.23.2 ; python_version == '3.11'", # wait for SHAP to upgrade.
-    "numpy==1.23.0 ; python_version < '3.11'", # wait for SHAP to upgrade.
-    "numba==0.57.0 ; python_version == '3.11'", # wait for SHAP to upgrade.
-    "numba>=0.56.4 ; python_version < '3.11'", # wait for SHAP to upgrade.
+    "shap>=0.41.0",
+    "numpy>=1.23.2",
+    "numba>=0.57.0",
 ]
 
 [project.urls]
