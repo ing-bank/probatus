@@ -1,47 +1,31 @@
-# This approach is adapted from, and explained in: https://calmcode.io/docs/epic.html
-
 import os
+from pathlib import Path
+from typing import List, Set
 
 import pytest
+import nbformat
+from nbconvert.preprocessors import ExecutePreprocessor
 
-# Turn off interactive mode in plots
+FAILING_NOTEBOOKS: Set[str] = {
+    "nb_shap_dependence.ipynb",
+    "nb_shap_variance_penalty_and_results_comparison.ipynb",
+    "nb_rfecv_vs_shaprfecv.ipynb",
+}
 
-plots_disable = "import matplotlib \n" "import matplotlib.pyplot as plt \n" "plt.ioff() \n" "matplotlib.use('Agg') \n"
-NOTEBOOKS_PATH = "./docs/tutorials/"
+PATH_NOTEBOOKS: List[str] = [str(path) for path in Path("docs").glob("*/*.ipynb")]
 
-NOTEBOOKS_TO_TEST_LGBM = [
-    "./docs/tutorials/nb_shap_feature_elimination",
-    "./docs/tutorials/nb_imputation_comparision",
-    "./docs/discussion/nb_rfecv_vs_shaprfecv.ipynb",
-]
-
-NOTEBOOKS_TO_TEST = [
-    "./docs/tutorials/nb_binning",
-    "./docs/tutorials/nb_custom_scoring",
-    "./docs/tutorials/nb_distribution_statistics",
-    "./docs/tutorials/nb_metric_volatility",
-    "./docs/tutorials/nb_sample_similarity",
-    "./docs/tutorials/nb_shap_model_interpreter" "./docs/howto/reproducibility",
-]
+skip_all_notebook_tests = not bool(os.environ.get("TEST_NOTEBOOKS"))  # Turn on tests by setting TEST_NOTEBOOKS = 1
 
 
-def execute_notebook_test(notebook_name):
-    """
-    Execute a notebook.
-    """
-    notebook_path = notebook_name + ".ipynb"
+@pytest.mark.parametrize("notebook_path", PATH_NOTEBOOKS)
+@pytest.mark.skipif(skip_all_notebook_tests, reason="Skip notebook tests if TEST_NOTEBOOK isn't set")
+def test_notebook(notebook_path: str) -> None:
+    """Run a notebook and check no exception is raised."""
+    if Path(notebook_path).name in FAILING_NOTEBOOKS:
+        pytest.skip(f"NEEDS FIXING! - Notebook {notebook_path} is either failing or taking too long to run.")
 
-    code_to_execute = os.popen(
-        f"jupyter nbconvert --to script --execute --stdout --PythonExporter.exclude_markdown=True {notebook_path}"
-    ).read()
-    _ = os.popen(f"python3 -c {plots_disable + code_to_execute}").read()
+    with open(notebook_path) as f:
+        nb = nbformat.read(f, as_version=4)
 
-
-@pytest.mark.parametrize("notebook_name", NOTEBOOKS_TO_TEST_LGBM)
-@pytest.mark.skipif(os.environ.get("SKIP_LIGHTGBM") == "true", reason="LightGBM tests disabled")
-@pytest.mark.skip(reason="GitHub pipelines are failing on these tests. Could not find a solution for now.")
-def test_jupyter_notebook_lgbm(notebook_name):
-    """
-    Test a notebook.
-    """
-    execute_notebook_test(notebook_name)
+    ep = ExecutePreprocessor(timeout=180, kernel_name="python3")
+    ep.preprocess(nb, {"metadata": {"path": str(Path(notebook_path).parent)}})
