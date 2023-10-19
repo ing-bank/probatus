@@ -16,13 +16,13 @@ jobs:
         include:
           - build: macos
             os: macos-latest
-            TEST_NOTEBOOKS: False
+            SKIP_LIGHTGBM: True
           - build: ubuntu
             os: ubuntu-latest
-            TEST_NOTEBOOKS: True
+            SKIP_LIGHTGBM: False
           - build: windows
             os: windows-latest
-            TEST_NOTEBOOKS: True
+            SKIP_LIGHTGBM: False
         python-version: [3.8, 3.9, "3.10", "3.11"]
     steps:
     - uses: actions/checkout@master
@@ -40,21 +40,22 @@ jobs:
 
     - name: Install Python dependencies
       env:
-        TEST_NOTEBOOKS: ${{ matrix.TEST_NOTEBOOKS }}
+        SKIP_LIGHTGBM: ${{ matrix.SKIP_LIGHTGBM }}
       run: |
         pip3 install --upgrade setuptools pip
         pip3 install ".[all]"
 
     - name: Run linters
       env:
-        TEST_NOTEBOOKS: ${{ matrix.TEST_NOTEBOOKS }}
+        SKIP_LIGHTGBM: ${{ matrix.SKIP_LIGHTGBM }}
       run: |
         pre-commit install
         pre-commit run --all-files
 
     - name: Run (unit) tests
       env:
-        TEST_NOTEBOOKS: ${{ matrix.TEST_NOTEBOOKS }}
+        SKIP_LIGHTGBM: ${{ matrix.SKIP_LIGHTGBM }}
+        TEST_NOTEBOOKS: 1
       run: |
         pytest --cov=probatus/binning --cov=probatus/metric_volatility --cov=probatus/missing_values --cov=probatus/sample_similarity --cov=probatus/stat_tests --cov=probatus/utils --cov=probatus/interpret/ --ignore==tests/interpret/test_inspector.py --cov-report=xml
         pyflakes probatus
