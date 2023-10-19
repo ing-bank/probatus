@@ -5,12 +5,10 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "probatus"
 version = "2.1.1"
-requires-python= ">=3.8"
+requires-python = ">=3.8"
 description = "Validation of binary classifiers and data used to develop them"
 readme = { file = "README.md", content-type = "text/markdown" }
-authors = [
-    { name = "ING Bank N.V.", email = "reinier.koops@ing.com" }
-]
+authors = [{ name = "ING Bank N.V.", email = "reinier.koops@ing.com" }]
 license = { file = "LICENCE" }
 classifiers = [
     "Intended Audience :: Developers",
@@ -32,7 +30,7 @@ dependencies = [
     "scipy>=1.4.0",
     "joblib>=0.13.2",
     "tqdm>=4.41.0",
-    "shap==0.42.1",
+    "shap>=0.41.0,<0.43.0",
     "numpy>=1.23.2",
     "numba>=0.57.0",
 ]
@@ -110,8 +108,29 @@ line-length = 120
 # E203
 # E731 do not assign a lambda expression, use a def
 # W293 blank line contains whitespace
-ignore = ["D100", "D104", "D202", "D212", "D200", "E203", "E731", "W293", "D412", "D417", "D411", "RUF100"]
-extend-exclude = ["docs", "mkdocs.yml", ".github", "*md", "LICENCE", ".pre-commit-config.yaml", ".gitignore"]
+ignore = [
+    "D100",
+    "D104",
+    "D202",
+    "D212",
+    "D200",
+    "E203",
+    "E731",
+    "W293",
+    "D412",
+    "D417",
+    "D411",
+    "RUF100",
+]
+extend-exclude = [
+    "docs",
+    "mkdocs.yml",
+    ".github",
+    "*md",
+    "LICENCE",
+    ".pre-commit-config.yaml",
+    ".gitignore",
+]
 force-exclude = true
 
 [tool.ruff.pydocstyle]
