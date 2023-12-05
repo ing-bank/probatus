@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from joblib import Parallel, delayed
-from sklearn.base import clone, is_classifier
+from sklearn.base import clone, is_classifier, is_regressor
 from sklearn.model_selection import check_cv
 from sklearn.model_selection._search import BaseSearchCV
 
@@ -115,7 +115,7 @@ class ShapRFECV(BaseFitComputePlotClass):
         This method initializes the class.
 
         Args:
-            clf (binary classifier, sklearn compatible search CV e.g. GridSearchCV, RandomizedSearchCV or BayesSearchCV):
+            clf (classifier, sklearn compatible search CV e.g. GridSearchCV, RandomizedSearchCV or BayesSearchCV):
                 A model that will be optimized and trained at each round of feature elimination. The recommended model
                 is [LGBMClassifier](https://lightgbm.readthedocs.io/en/latest/pythonapi/lightgbm.LGBMClassifier.html),
                 because it by default handles the missing values and categorical variables. This parameter also supports
@@ -354,9 +354,9 @@ class ShapRFECV(BaseFitComputePlotClass):
                 Dataset used in CV.
 
             y (pd.Series):
-                Binary labels for X.
+                Labels for X.
 
-            clf (binary classifier):
+            clf (classifier):
                 Model to be fitted on the train folds.
 
             train_index (np.array):
@@ -426,7 +426,7 @@ class ShapRFECV(BaseFitComputePlotClass):
                 Provided dataset.
 
             y (pd.Series):
-                Binary labels for X.
+                Labels for X.
 
             sample_weight (pd.Series, np.ndarray, list, optional):
                 array-like of shape (n_samples,) - only use if the model you're using supports
@@ -579,7 +579,11 @@ class ShapRFECV(BaseFitComputePlotClass):
                 for train_index, val_index in self.cv.split(current_X, self.y, groups)
             )
 
-            shap_values = np.vstack([current_result[0] for current_result in results_per_fold])
+            if self.y.nunique() == 2 or is_regressor(current_clf):
+                shap_values = np.vstack([current_result[0] for current_result in results_per_fold])
+            else:  # multi-class case
+                shap_values = np.hstack([current_result[0] for current_result in results_per_fold])
+
             scores_train = [current_result[1] for current_result in results_per_fold]
             scores_val = [current_result[2] for current_result in results_per_fold]
 
@@ -666,7 +670,7 @@ class ShapRFECV(BaseFitComputePlotClass):
                 Provided dataset.
 
             y (pd.Series):
-                Binary labels for X.
+                Labels for X.
 
             sample_weight (pd.Series, np.ndarray, list, optional):
                 array-like of shape (n_samples,) - only use if the model you're using supports
@@ -1060,7 +1064,7 @@ class EarlyStoppingShapRFECV(ShapRFECV):
         This method initializes the class.
 
         Args:
-            clf (binary classifier, sklearn compatible search CV e.g. GridSearchCV, RandomizedSearchCV or BayesSearchCV):
+            clf (sklearn compatible classifier or regressor, sklearn compatible search CV e.g. GridSearchCV, RandomizedSearchCV or BayesSearchCV):
                 A model that will be optimized and trained at each round of features elimination. The model must
                 support early stopping of training, which is the case for XGBoost and LightGBM, for example. The
                 recommended model is [LGBMClassifier](https://lightgbm.readthedocs.io/en/latest/pythonapi/lightgbm.LGBMClassifier.html),
@@ -1171,13 +1175,13 @@ class EarlyStoppingShapRFECV(ShapRFECV):
                 Train Dataset used in CV.
 
             y_train (pd.Series):
-                Train Binary labels for X.
+                Train labels for X.
 
             X_val (pd.DataFrame):
                 Validation Dataset used in CV.
 
             y_val (pd.Series):
-                Validation Binary labels for X.
+                Validation labels for X.
 
             sample_weight (pd.Series, np.ndarray, list, optional):
                 array-like of shape (n_samples,) - only use if the model you're using supports
@@ -1226,13 +1230,13 @@ class EarlyStoppingShapRFECV(ShapRFECV):
                 Train Dataset used in CV.
 
             y_train (pd.Series):
-                Train Binary labels for X.
+                Train labels for X.
 
             X_val (pd.DataFrame):
                 Validation Dataset used in CV.
 
             y_val (pd.Series):
-                Validation Binary labels for X.
+                Validation labels for X.
 
             sample_weight (pd.Series, np.ndarray, list, optional):
                 array-like of shape (n_samples,) - only use if the model you're using supports
@@ -1274,13 +1278,13 @@ class EarlyStoppingShapRFECV(ShapRFECV):
                 Train Dataset used in CV.
 
             y_train (pd.Series):
-                Train Binary labels for X.
+                Train labels for X.
 
             X_val (pd.DataFrame):
                 Validation Dataset used in CV.
 
             y_val (pd.Series):
-                Validation Binary labels for X.
+                Validation labels for X.
 
             sample_weight (pd.Series, np.ndarray, list, optional):
                 array-like of shape (n_samples,) - only use if the model you're using supports
@@ -1320,20 +1324,20 @@ class EarlyStoppingShapRFECV(ShapRFECV):
         """Get the fit parameters for the specified classifier.
 
         Args:
-            clf (binary classifier):
+            clf (classifier):
                 Model to be fitted on the train folds.
 
             X_train (pd.DataFrame):
                 Train Dataset used in CV.
 
             y_train (pd.Series):
-                Train Binary labels for X.
+                Train labels for X.
 
             X_val (pd.DataFrame):
                 Validation Dataset used in CV.
 
             y_val (pd.Series):
-                Validation Binary labels for X.
+                Validation labels for X.
 
             sample_weight (pd.Series, np.ndarray, list, optional):
                 array-like of shape (n_samples,) - only use if the model you're using supports
@@ -1407,7 +1411,16 @@ class EarlyStoppingShapRFECV(ShapRFECV):
 
         raise ValueError("Model type not supported")
 
-    def _get_feature_shap_values_per_fold(self, X, y, clf, train_index, val_index, sample_weight=None, **shap_kwargs):
+    def _get_feature_shap_values_per_fold(
+        self,
+        X,
+        y,
+        clf,
+        train_index,
+        val_index,
+        sample_weight=None,
+        **shap_kwargs,
+    ):
         """
         This function calculates the shap values on validation set, and Train and Val score.
 
@@ -1416,7 +1429,7 @@ class EarlyStoppingShapRFECV(ShapRFECV):
                 Dataset used in CV.
 
             y (pd.Series):
-                Binary labels for X.
+                Labels for X.
 
             sample_weight (pd.Series, np.ndarray, list, optional):
                 array-like of shape (n_samples,) - only use if the model you're using supports
@@ -1425,8 +1438,8 @@ class EarlyStoppingShapRFECV(ShapRFECV):
                 Note that they're only used for fitting of  the model, not during evaluation of metrics.
                 If not provided, then each sample is given unit weight.
 
-            clf (binary classifier):
-                Model to be fitted on the train folds.
+            clf:
+                Classifier to be fitted on the train folds.
 
             train_index (np.array):
                 Positions of train folds samples.
@@ -1444,7 +1457,6 @@ class EarlyStoppingShapRFECV(ShapRFECV):
             (np.array, float, float):
                 Tuple with the results: Shap Values on validation fold, train score, validation score.
         """
-
         X_train, X_val = X.iloc[train_index, :], X.iloc[val_index, :]
         y_train, y_val = y.iloc[train_index], y.iloc[val_index]
 

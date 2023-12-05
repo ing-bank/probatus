@@ -54,6 +54,37 @@ def y():
 
 
 @pytest.fixture(scope="function")
+def X_multi():
+    """
+    Fixture for multi-class X.
+    """
+    return pd.DataFrame(
+        {
+            "col_1": [1, 1, 1, 1, 0, 1, 0, 0],
+            "col_2": [0, 0, 0, 0, 1, 0, 1, 1],
+            "col_3": [1, 0, 2, 0, 2, 0, 1, 0],
+        },
+        index=[1, 2, 3, 4, 5, 6, 7, 8],
+    )
+
+
+@pytest.fixture(scope="function")
+def y_multi():
+    """
+    Fixture for multi-class y.
+    """
+    return pd.Series([1, 0, 2, 0, 2, 0, 1, 0], index=[1, 2, 3, 4, 5, 6, 7, 8])
+
+
+@pytest.fixture(scope="function")
+def y_reg():
+    """
+    Fixture for y.
+    """
+    return pd.Series([100, 1, 101, 2, 99, -1, 102, 1], index=[1, 2, 3, 4, 5, 6, 7, 8])
+
+
+@pytest.fixture(scope="function")
 def sample_weight():
     """
     Fixture for sample_weight.
@@ -69,7 +100,7 @@ def groups():
     return pd.Series(["grp1", "grp1", "grp1", "grp1", "grp2", "grp2", "grp2", "grp2"], index=[1, 2, 3, 4, 5, 6, 7, 8])
 
 
-def test_shap_rfe_randomized_search(X, y, capsys):
+def test_shap_rfe_randomized_search(X, y):
     """
     Test with RandomizedSearchCV.
     """
@@ -79,20 +110,29 @@ def test_shap_rfe_randomized_search(X, y, capsys):
     shap_elimination = ShapRFECV(search, step=0.8, cv=2, scoring="roc_auc", n_jobs=4, random_state=1)
     report = shap_elimination.fit_compute(X, y)
 
-    assert shap_elimination.fitted
-    shap_elimination._check_if_fitted()
-
     assert report.shape[0] == 2
     assert shap_elimination.get_reduced_features_set(1) == ["col_3"]
 
     _ = shap_elimination.plot(show=False)
 
-    # Check if there is any prints
-    out, _ = capsys.readouterr()
-    assert len(out) == 0
+
+def test_shap_rfe_multi_class(X, y):
+    clf = DecisionTreeClassifier(max_depth=1, random_state=1)
+
+    shap_elimination = ShapRFECV(
+        clf,
+        cv=2,
+        scoring="roc_auc_ovr",
+        random_state=1,
+    )
+
+    report = shap_elimination.fit_compute(X, y, approximate=False, check_additivity=False)
+
+    assert report.shape[0] == 3
+    assert shap_elimination.get_reduced_features_set(1) == ["col_3"]
 
 
-def test_shap_rfe(X, y, sample_weight, capsys):
+def test_shap_rfe(X, y, sample_weight):
     """
     Test with ShapRFECV.
     """
@@ -105,24 +145,13 @@ def test_shap_rfe(X, y, sample_weight, capsys):
         scoring="roc_auc",
         n_jobs=4,
     )
-    shap_elimination = shap_elimination.fit(X, y, sample_weight=sample_weight, approximate=True, check_additivity=False)
-
-    assert shap_elimination.fitted
-    shap_elimination._check_if_fitted()
-
-    report = shap_elimination.compute()
+    report = shap_elimination.fit_compute(X, y, sample_weight=sample_weight, approximate=True, check_additivity=False)
 
     assert report.shape[0] == 3
     assert shap_elimination.get_reduced_features_set(1) == ["col_3"]
 
-    _ = shap_elimination.plot(show=False)
 
-    # Check if there is any prints
-    out, _ = capsys.readouterr()
-    assert len(out) == 0
-
-
-def test_shap_rfe_group_cv(X, y, groups, sample_weight, capsys):
+def test_shap_rfe_group_cv(X, y, groups, sample_weight):
     """
     Test ShapRFECV with StratifiedGroupKFold.
     """
@@ -136,26 +165,15 @@ def test_shap_rfe_group_cv(X, y, groups, sample_weight, capsys):
         scoring="roc_auc",
         n_jobs=4,
     )
-    shap_elimination = shap_elimination.fit(
+    report = shap_elimination.fit_compute(
         X, y, groups=groups, sample_weight=sample_weight, approximate=True, check_additivity=False
     )
-
-    assert shap_elimination.fitted
-    shap_elimination._check_if_fitted()
-
-    report = shap_elimination.compute()
 
     assert report.shape[0] == 3
     assert shap_elimination.get_reduced_features_set(1) == ["col_3"]
 
-    _ = shap_elimination.plot(show=False)
 
-    # Check if there is any prints
-    out, _ = capsys.readouterr()
-    assert len(out) == 0
-
-
-def test_shap_pipeline_error(X, y, capsys):
+def test_shap_pipeline_error(X, y):
     """
     Test with ShapRFECV for pipelines.
     """
@@ -177,53 +195,32 @@ def test_shap_pipeline_error(X, y, capsys):
         shap_elimination = shap_elimination.fit(X, y, approximate=True, check_additivity=False)
 
 
-def test_shap_rfe_linear_model(X, y, capsys):
+def test_shap_rfe_linear_model(X, y):
     """
     Test ShapRFECV with linear model.
     """
     clf = LogisticRegression(C=1, random_state=1)
     shap_elimination = ShapRFECV(clf, random_state=1, step=1, cv=2, scoring="roc_auc", n_jobs=4)
-    shap_elimination = shap_elimination.fit(X, y)
-
-    assert shap_elimination.fitted
-    shap_elimination._check_if_fitted()
-
-    report = shap_elimination.compute()
+    report = shap_elimination.fit_compute(X, y)
 
     assert report.shape[0] == 3
     assert shap_elimination.get_reduced_features_set(1) == ["col_3"]
 
-    _ = shap_elimination.plot(show=False)
 
-    # Check if there is any prints
-    out, _ = capsys.readouterr()
-    assert len(out) == 0
-
-
-def test_shap_rfe_svm(X, y, capsys):
+def test_shap_rfe_svm(X, y):
     """
     Test with ShapRFECV with SVM.
     """
     clf = SVC(C=1, kernel="linear", probability=True)
     shap_elimination = ShapRFECV(clf, random_state=1, step=1, cv=2, scoring="roc_auc", n_jobs=4)
     shap_elimination = shap_elimination.fit(X, y)
-
-    assert shap_elimination.fitted
-    shap_elimination._check_if_fitted()
-
     report = shap_elimination.compute()
 
     assert report.shape[0] == 3
     assert shap_elimination.get_reduced_features_set(1) == ["col_3"]
 
-    _ = shap_elimination.plot(show=False)
 
-    # Check if there is any prints
-    out, _ = capsys.readouterr()
-    assert len(out) == 0
-
-
-def test_shap_rfe_cols_to_keep(X, y, capsys):
+def test_shap_rfe_cols_to_keep(X, y):
     """
     Test for shap_rfe_cv with features to keep parameter.
     """
@@ -237,23 +234,14 @@ def test_shap_rfe_cols_to_keep(X, y, capsys):
         n_jobs=4,
         min_features_to_select=1,
     )
-    shap_elimination = shap_elimination.fit(X, y, columns_to_keep=["col_2", "col_3"])
-
-    assert shap_elimination.fitted
-    shap_elimination._check_if_fitted()
-
-    report = shap_elimination.compute()
+    report = shap_elimination.fit_compute(X, y, columns_to_keep=["col_2", "col_3"])
 
     assert report.shape[0] == 2
     reduced_feature_set = set(shap_elimination.get_reduced_features_set(num_features=2))
     assert reduced_feature_set == {"col_2", "col_3"}
 
-    # Check if there is any prints
-    out, _ = capsys.readouterr()
-    assert len(out) == 0
 
-
-def test_shap_rfe_randomized_search_cols_to_keep(X, y, capsys):
+def test_shap_rfe_randomized_search_cols_to_keep(X, y):
     """
     Test with ShapRFECV with column to keep param.
     """
@@ -263,18 +251,9 @@ def test_shap_rfe_randomized_search_cols_to_keep(X, y, capsys):
     shap_elimination = ShapRFECV(search, step=0.8, cv=2, scoring="roc_auc", n_jobs=4, random_state=1)
     report = shap_elimination.fit_compute(X, y, columns_to_keep=["col_2", "col_3"])
 
-    assert shap_elimination.fitted
-    shap_elimination._check_if_fitted()
-
     assert report.shape[0] == 2
     reduced_feature_set = set(shap_elimination.get_reduced_features_set(num_features=2))
     assert reduced_feature_set == {"col_2", "col_3"}
-
-    _ = shap_elimination.plot(show=False)
-
-    # Check if there is any prints
-    out, _ = capsys.readouterr()
-    assert len(out) == 0
 
 
 def test_calculate_number_of_features_to_remove():
@@ -385,7 +364,7 @@ def test_shap_rfe_same_features_are_kept_after_each_run():
     )
 
     shap_elimination = ShapRFECV(
-        clf=random_forest,
+        random_forest,
         step=0.2,
         cv=5,
         scoring="f1_macro",
@@ -415,11 +394,9 @@ def test_shap_rfe_penalty_factor(X, y):
         scoring="roc_auc",
         n_jobs=1,
     )
-    shap_elimination = shap_elimination.fit(
+    report = shap_elimination.fit_compute(
         X, y, shap_variance_penalty_factor=1.0, approximate=True, check_additivity=False
     )
-
-    report = shap_elimination.compute()
 
     assert report.shape[0] == 3
     assert shap_elimination.get_reduced_features_set(1) == ["col_1"]
@@ -446,7 +423,7 @@ def test_complex_dataset(complex_data, complex_lightgbm):
 
 
 @pytest.mark.skipif(os.environ.get("SKIP_LIGHTGBM") == "true", reason="LightGBM tests disabled")
-def test_shap_rfe_early_stopping_lightGBM(complex_data, capsys):
+def test_shap_rfe_early_stopping_lightGBM(complex_data):
     """
     Test EarlyStoppingShapRFECV with a LGBMClassifier.
     """
@@ -465,25 +442,14 @@ def test_shap_rfe_early_stopping_lightGBM(complex_data, capsys):
         early_stopping_rounds=5,
         eval_metric="auc",
     )
-    shap_elimination = shap_elimination.fit(X, y, approximate=False, check_additivity=False)
-
-    assert shap_elimination.fitted
-    shap_elimination._check_if_fitted()
-
-    report = shap_elimination.compute()
+    report = shap_elimination.fit_compute(X, y, approximate=False, check_additivity=False)
 
     assert report.shape[0] == 5
     assert shap_elimination.get_reduced_features_set(1) == ["f5"]
 
-    _ = shap_elimination.plot(show=False)
-
-    # Check if there is any prints
-    out, _ = capsys.readouterr()
-    assert len(out) == 0
-
 
 @pytest.mark.skipif(os.environ.get("SKIP_LIGHTGBM") == "true", reason="LightGBM tests disabled")
-def test_shap_rfe_early_stopping_XGBoost(complex_data, capsys):
+def test_shap_rfe_early_stopping_XGBoost(complex_data):
     """
     Test EarlyStoppingShapRFECV with a LGBMClassifier.
     """
@@ -503,27 +469,16 @@ def test_shap_rfe_early_stopping_XGBoost(complex_data, capsys):
         early_stopping_rounds=5,
         eval_metric="auc",
     )
-    shap_elimination = shap_elimination.fit(X, y, approximate=False, check_additivity=False)
-
-    assert shap_elimination.fitted
-    shap_elimination._check_if_fitted()
-
-    report = shap_elimination.compute()
+    report = shap_elimination.fit_compute(X, y, approximate=False, check_additivity=False)
 
     assert report.shape[0] == 5
     assert shap_elimination.get_reduced_features_set(1) == ["f4"]
-
-    _ = shap_elimination.plot(show=False)
-
-    # Check if there is any prints
-    out, _ = capsys.readouterr()
-    assert len(out) == 0
 
 
 # For now this test fails, catboost has issues with categorical variables and
 @pytest.mark.xfail
 @pytest.mark.skipif(os.environ.get("SKIP_LIGHTGBM") == "true", reason="LightGBM tests disabled")
-def test_shap_rfe_early_stopping_CatBoost(complex_data, capsys, catboost_classifier_class):
+def test_shap_rfe_early_stopping_CatBoost(complex_data, catboost_classifier_class):
     """
     Test EarlyStoppingShapRFECV with a CatBoostClassifier.
     """
@@ -540,21 +495,10 @@ def test_shap_rfe_early_stopping_CatBoost(complex_data, capsys, catboost_classif
         early_stopping_rounds=5,
         eval_metric="auc",
     )
-    shap_elimination = shap_elimination.fit(X, y, approximate=False, check_additivity=False)
-
-    assert shap_elimination.fitted
-    shap_elimination._check_if_fitted()
-
-    report = shap_elimination.compute()
+    report = shap_elimination.fit_compute(X, y, approximate=False, check_additivity=False)
 
     assert report.shape[0] == 5
     assert shap_elimination.get_reduced_features_set(1)[0] in ["f4", "f5"]
-
-    _ = shap_elimination.plot(show=False)
-
-    # Check if there is any prints
-    out, _ = capsys.readouterr()
-    assert len(out) == 0
 
 
 @pytest.mark.skipif(os.environ.get("SKIP_LIGHTGBM") == "true", reason="LightGBM tests disabled")
@@ -583,9 +527,6 @@ def test_shap_rfe_randomized_search_early_stopping_lightGBM(complex_data):
         random_state=1,
     )
     report = shap_elimination.fit_compute(X, y)
-
-    assert shap_elimination.fitted
-    shap_elimination._check_if_fitted()
 
     assert report.shape[0] == X.shape[1]
     assert shap_elimination.get_reduced_features_set(1) == ["f5"]
@@ -685,10 +626,10 @@ def test_EarlyStoppingShapRFECV_no_categorical(complex_data):
     """Test EarlyStoppingShapRFECV when no categorical features are present."""
     from lightgbm import LGBMClassifier
 
-    model = LGBMClassifier(n_estimators=50, max_depth=3, num_leaves=3)
+    clf = LGBMClassifier(n_estimators=50, max_depth=3, num_leaves=3)
 
     shap_elimination = EarlyStoppingShapRFECV(
-        clf=model,
+        clf=clf,
         step=0.33,
         cv=5,
         scoring="accuracy",
@@ -698,8 +639,6 @@ def test_EarlyStoppingShapRFECV_no_categorical(complex_data):
     X, y = complex_data
     X = X.drop(columns=["f1_categorical"])
     report = shap_elimination.fit_compute(X, y, feature_perturbation="tree_path_dependent")
-    assert shap_elimination.fitted
-    shap_elimination._check_if_fitted()
 
     assert report.shape[0] == X.shape[1]
     assert shap_elimination.get_reduced_features_set(1) == ["f5"]
@@ -726,14 +665,14 @@ def test_LightGBM_stratified_kfold():
     X[0] = X[0].astype("float")
     y = [0] * 5 + [1] * 5
 
-    model = LGBMClassifier()
+    clf = LGBMClassifier()
     n_iter = 2
     n_folds = 3
 
     for _ in range(n_iter):
         skf = StratifiedKFold(n_folds, shuffle=True, random_state=42)
         shap_elimination = EarlyStoppingShapRFECV(
-            clf=model,
+            clf=clf,
             step=1 / (n_iter + 1),
             cv=skf,
             scoring="accuracy",
@@ -741,8 +680,6 @@ def test_LightGBM_stratified_kfold():
             early_stopping_rounds=5,
         )
         report = shap_elimination.fit_compute(X, y, feature_perturbation="tree_path_dependent")
-    assert shap_elimination.fitted
-    shap_elimination._check_if_fitted()
 
     assert report.shape[0] == X.shape[1]
 

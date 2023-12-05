@@ -181,10 +181,6 @@ def calculate_shap_importance(shap_values, columns, output_columns_suffix="", sh
             Mean absolute shap values and Mean shap values of features.
 
     """
-    # Find average shap importance for neg and pos class
-    shap_abs_mean = np.mean(np.abs(shap_values), axis=0)
-    shap_mean = np.mean(shap_values, axis=0)
-
     if shap_variance_penalty_factor is None:
         _shap_variance_penalty_factor = 0
     elif (
@@ -197,9 +193,19 @@ def calculate_shap_importance(shap_values, columns, output_columns_suffix="", sh
         )
         _shap_variance_penalty_factor = 0
 
-    penalized_shap_abs_mean = np.mean(np.abs(shap_values), axis=0) - (
-        np.std(np.abs(shap_values), axis=0) * _shap_variance_penalty_factor
-    )
+    if np.ndim(shap_values) > 2:  # multi-class case
+        shap_abs_mean = np.mean(np.sum(np.abs(shap_values), axis=0), axis=0)
+        shap_mean = np.mean(np.sum(shap_values, axis=0), axis=0)
+        penalized_shap_abs_mean = np.mean(np.sum(np.abs(shap_values), axis=0), axis=0) - (
+            np.std(np.sum(np.abs(shap_values), axis=0), axis=0) * _shap_variance_penalty_factor
+        )
+    else:
+        # Find average shap importance for neg and pos class
+        shap_abs_mean = np.mean(np.abs(shap_values), axis=0)
+        shap_mean = np.mean(shap_values, axis=0)
+        penalized_shap_abs_mean = np.mean(np.abs(shap_values), axis=0) - (
+            np.std(np.abs(shap_values), axis=0) * _shap_variance_penalty_factor
+        )
 
     # Prepare importance values in a handy df
     importance_df = pd.DataFrame(
