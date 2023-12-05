@@ -115,6 +115,7 @@ def test_shap_rfe_randomized_search(X, y):
 
     _ = shap_elimination.plot(show=False)
 
+
 def test_shap_rfe_multi_class(X, y):
     clf = DecisionTreeClassifier(max_depth=1, random_state=1)
 
