@@ -931,7 +931,7 @@ class ShapRFECV(BaseFitComputePlotClass):
         """
         x_ticks = list(reversed(self.report_df["num_features"].tolist()))
 
-        plt.figure(**figure_kwargs)
+        fig = plt.figure(**figure_kwargs)
 
         plt.plot(
             self.report_df["num_features"],
@@ -961,14 +961,13 @@ class ShapRFECV(BaseFitComputePlotClass):
         plt.ylabel(f"Performance {self.scorer.metric_name}")
         plt.title("Backwards Feature Elimination using SHAP & CV")
         plt.legend(loc="lower left")
-        ax = plt.gca()
-        ax.invert_xaxis()
-        ax.set_xticks(x_ticks)
+        fig.axes[0].invert_xaxis()
+        fig.axes[0].set_xticks(x_ticks)
         if show:
             plt.show()
         else:
             plt.close()
-        return ax
+        return fig
 
 
 class EarlyStoppingShapRFECV(ShapRFECV):

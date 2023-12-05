@@ -55,6 +55,7 @@ jobs:
     - name: Run (unit) tests
       env:
         SKIP_LIGHTGBM: ${{ matrix.SKIP_LIGHTGBM }}
+        TEST_NOTEBOOKS: 1
       run: |
         pytest --cov=probatus/binning --cov=probatus/metric_volatility --cov=probatus/missing_values --cov=probatus/sample_similarity --cov=probatus/stat_tests --cov=probatus/utils --cov=probatus/interpret/ --ignore==tests/interpret/test_inspector.py --cov-report=xml
         pyflakes probatus

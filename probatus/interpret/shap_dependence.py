@@ -253,7 +253,7 @@ class DependencePlotter(BaseFitComputePlotClass):
             (matplotlib.pyplot.axes):
                 Axes on which plot is drawn.
         """
-        if type(feature) is int:
+        if isinstance(feature, int):
             feature = self.column_names[feature]
 
         X, y, shap_val = self._get_X_y_shap_with_q_cut(feature=feature)
@@ -293,7 +293,7 @@ class DependencePlotter(BaseFitComputePlotClass):
         x, y, shap_val = self._get_X_y_shap_with_q_cut(feature=feature)
 
         # Create bins if not explicitly supplied
-        if type(bins) is int:
+        if isinstance(bins, int):
             if type_binning == "simple":
                 counts, bins = SimpleBucketer.simple_bins(x, bins)
             elif type_binning == "agglomerative":
