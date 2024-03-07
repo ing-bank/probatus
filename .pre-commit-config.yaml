@@ -34,16 +34,14 @@ repos:
   - repo: local
     hooks:
     - id: ruff
-      name: 'ruff: Check for errors, styling issues and complexity'
+      name: 'Ruff: Check for errors, styling issues and complexity, and fixes issues if possible (including import order)'
       entry: ruff
       language: system
-  - repo: local
-    hooks:
-    - id: isort
-      name: 'isort: Sort file imports'
-      entry: isort
+      args: [ --fix ]
+    - id: ruff-format
+      name: 'Ruff: format code in line with PEP8'
+      entry: ruff format
       language: system
-      types: [python]
   - repo: local
     hooks:
     - id: codespell
@@ -58,11 +56,3 @@ repos:
     - id: pyupgrade
       name: 'pyupgrade: Updates code to Python 3.8+ code convention'
       args: [*py_version]
-  - repo: local
-    hooks:
-    - id: black
-      name: 'black: PEP8 compliant code formatter'
-      entry: black
-      language: python
-      types: [python]
-      language_version: python3
