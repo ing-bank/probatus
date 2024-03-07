@@ -1,4 +1,4 @@
-site_name: Probatus Docs
+site_name: Probatus
 
 repo_url: https://github.com/ing-bank/probatus/
 site_url: https://ing-bank.github.io/probatus/
@@ -7,38 +7,12 @@ site_author: ING Bank N. V.
 
 use_directory_urls: false
 
-nav:
-  - Home: index.md
-  - Tutorials:
-    - ShapRFECV - Recursive Feature Elimination using SHAP importance: tutorials/nb_shap_feature_elimination.ipynb
-    - Tree-based & Linear Model Interpretation with SHAP: tutorials/nb_shap_model_interpreter.ipynb
-    - Imputation Strategy Comparison : tutorials/nb_imputation_comparison.ipynb
-    - Model Metrics Volatility: tutorials/nb_metric_volatility.ipynb
-    - Multivariate Sample Similarity: tutorials/nb_sample_similarity.ipynb
-    - Univariate Sample Similarity: tutorials/nb_distribution_statistics.ipynb
-    - Custom Scoring Metrics: tutorials/nb_custom_scoring.ipynb
-    - Binning options: tutorials/nb_binning.ipynb
-    - Explain Shapley Values: tutorials/nb_shap_dependence.ipynb
-  - HowTo:
-    - Reproduce the results: howto/reproducibility.ipynb
-    - Work with grouped data: howto/grouped_data.ipynb
-  - API:
-    - probatus.feature_elimination: api/feature_elimination.md
-    - probatus.interpret: api/model_interpret.md
-    - probatus.metric_volatility: api/metric_volatility.md
-    - probatus.missing_values : api/imputation_selector.md
-    - probatus.sample_similarity: api/sample_similarity.md
-    - probatus.stat_tests: api/stat_tests.md
-    - probatus.utils: api/utils.md
-  - Discussion:
-      - Vision: discussion/vision.md
-      - ShapRFECV vs sklearn RFECV: discussion/nb_rfecv_vs_shaprfecv.ipynb
-      - Contributing: discussion/contributing.md
-
 watch:
-  - probatus
+- probatus
 
 plugins:
+  - mkdocs-jupyter
+  - search
   - mkdocstrings:
       handlers:
           python:
@@ -51,12 +25,6 @@ plugins:
                   - "^__init__$"  # but always include __init__ modules and methods
               rendering:
                 show_root_toc_entry: false
-  - search
-  - mknotebooks:
-      enable_default_jupyter_cell_styling: true
-      enable_default_pandas_dataframe_styling: true
-
-copyright: Copyright &copy; 2023 ING Bank N.V.
 
 theme:
   name: material
@@ -72,16 +40,4 @@ theme:
     primary: deep orange
     accent: indigo
 
-
-markdown_extensions:
-  - codehilite
-  - pymdownx.highlight
-  - pymdownx.inlinehilite
-  - pymdownx.superfences
-  - pymdownx.details
-  - pymdownx.tabbed
-  - pymdownx.snippets
-  - pymdownx.highlight:
-      use_pygments: true
-  - toc:
-      permalink: true
+copyright: Copyright &copy; ING Bank N.V.
