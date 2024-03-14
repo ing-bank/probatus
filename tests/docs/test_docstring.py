@@ -7,13 +7,9 @@ import matplotlib
 import matplotlib.pyplot as plt
 import pytest
 
-import probatus.binning
 import probatus.feature_elimination
 import probatus.interpret
-import probatus.metric_volatility
-import probatus.missing_values
 import probatus.sample_similarity
-import probatus.stat_tests
 import probatus.utils
 
 # Turn off interactive mode in plots
@@ -21,22 +17,12 @@ plt.ioff()
 matplotlib.use("Agg")
 
 CLASSES_TO_TEST = [
-    probatus.binning.SimpleBucketer,
-    probatus.binning.AgglomerativeBucketer,
-    probatus.binning.QuantileBucketer,
-    probatus.binning.TreeBucketer,
     probatus.feature_elimination.ShapRFECV,
     probatus.interpret.DependencePlotter,
     probatus.interpret.ShapModelInterpreter,
-    probatus.metric_volatility.TrainTestVolatility,
-    probatus.metric_volatility.BootstrappedVolatility,
-    probatus.metric_volatility.SplitSeedVolatility,
     probatus.sample_similarity.SHAPImportanceResemblance,
     probatus.sample_similarity.PermutationImportanceResemblance,
-    probatus.stat_tests.DistributionStatistics,
-    probatus.stat_tests.AutoDist,
     probatus.utils.Scorer,
-    probatus.missing_values.ImputationSelector,
 ]
 
 CLASSES_TO_TEST_LGBM = [

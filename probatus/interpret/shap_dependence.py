@@ -21,8 +21,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from sklearn.preprocessing import KBinsDiscretizer
 
-from probatus.binning import AgglomerativeBucketer, QuantileBucketer, SimpleBucketer
 from probatus.utils import BaseFitComputePlotClass, preprocess_data, preprocess_labels, shap_to_df
 
 
@@ -46,7 +46,7 @@ class DependencePlotter(BaseFitComputePlotClass):
     bdp = DependencePlotter(clf)
     shap_values = bdp.fit_compute(X, y)
 
-    bdp.plot(feature=2, type_binning='simple')
+    bdp.plot(feature=2)
     ```
 
     <img src="../img/model_interpret_dep.png"/>
@@ -171,7 +171,6 @@ class DependencePlotter(BaseFitComputePlotClass):
         feature,
         figsize=(15, 10),
         bins=10,
-        type_binning="simple",
         show=True,
         min_q=0,
         max_q=1,
@@ -189,9 +188,6 @@ class DependencePlotter(BaseFitComputePlotClass):
 
             bins (int or list[float]):
                 Number of bins or boundaries of bins (supplied in list) for target-rate plot.
-
-            type_binning ({'simple', 'agglomerative', 'quantile'}):
-                Type of binning to be used in target-rate plot (see :mod:`binning` for more information).
 
             show (bool, optional):
                 If True, the plots are showed to the user, otherwise they are not shown. Not showing plot can be useful,
@@ -215,8 +211,6 @@ class DependencePlotter(BaseFitComputePlotClass):
             raise ValueError("min_q must be smaller than max_q")
         if feature not in self.X.columns:
             raise ValueError("Feature not recognized")
-        if type_binning not in ["simple", "agglomerative", "quantile"]:
-            raise ValueError("Select one of the following binning methods: 'simple', 'agglomerative', 'quantile'")
         if (alpha < 0) or (alpha > 1):
             raise ValueError("alpha must be a float value between 0 and 1")
 
@@ -227,7 +221,7 @@ class DependencePlotter(BaseFitComputePlotClass):
         ax2 = plt.subplot2grid((3, 1), (2, 0))
 
         self._dependence_plot(feature=feature, ax=ax1)
-        self._target_rate_plot(feature=feature, bins=bins, type_binning=type_binning, ax=ax2)
+        self._target_rate_plot(feature=feature, bins=bins, ax=ax2)
 
         ax2.set_xlim(ax1.get_xlim())
 
@@ -268,7 +262,7 @@ class DependencePlotter(BaseFitComputePlotClass):
 
         return ax
 
-    def _target_rate_plot(self, feature, bins=10, type_binning="simple", ax=None):
+    def _target_rate_plot(self, feature, bins=10, ax=None):
         """
         Plots the distributions of the specific features, as well as the target rate as function of the feature.
 
@@ -278,9 +272,6 @@ class DependencePlotter(BaseFitComputePlotClass):
 
             bins (int or list[float]), optional:
                 Number of bins or boundaries of desired bins in list.
-
-            type_binning ({'simple', 'agglomerative', 'quantile'}, optional):
-                Type of binning strategy used to create bins.
 
             ax (matplotlib.pyplot.axes, optional):
                 Optional axis on which to draw plot.
@@ -294,12 +285,11 @@ class DependencePlotter(BaseFitComputePlotClass):
 
         # Create bins if not explicitly supplied
         if isinstance(bins, int):
-            if type_binning == "simple":
-                counts, bins = SimpleBucketer.simple_bins(x, bins)
-            elif type_binning == "agglomerative":
-                counts, bins = AgglomerativeBucketer.agglomerative_clustering_binning(x, bins)
-            elif type_binning == "quantile":
-                counts, bins = QuantileBucketer.quantile_bins(x, bins)
+            simple_binner = KBinsDiscretizer(n_bins=bins, encode="ordinal", strategy="uniform").fit(
+                np.array(x).reshape(-1, 1)
+            )
+            bins = simple_binner.bin_edges_[0]
+            bins[0], bins[-1] = -np.inf, np.inf
 
         # Determine bin for datapoints
         bins[-1] = bins[-1] + 1
