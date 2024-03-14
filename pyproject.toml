@@ -98,6 +98,10 @@ pretty = true
 
 [tool.ruff]
 line-length = 120
+extend-exclude = ["docs", "mkdocs.yml", ".github", "*md", "LICENCE", ".pre-commit-config.yaml", ".gitignore"]
+force-exclude = true
+
+[tool.ruff.lint]
 # D100 requires all Python files (modules) to have a "public" docstring even if all functions within have a docstring.
 # D104 requires __init__ files to have a docstring
 # D202 No blank lines allowed after function docstring
@@ -110,10 +114,8 @@ line-length = 120
 # E731 do not assign a lambda expression, use a def
 # W293 blank line contains whitespace
 ignore = ["D100", "D104", "D202", "D212", "D200", "E203", "E731", "W293", "D412", "D417", "D411", "RUF100"]
-extend-exclude = ["docs", "mkdocs.yml", ".github", "*md", "LICENCE", ".pre-commit-config.yaml", ".gitignore"]
-force-exclude = true
 
-[tool.ruff.pydocstyle]
+[tool.ruff.lint.pydocstyle]
 convention = "google"
 
 [tool.isort]
