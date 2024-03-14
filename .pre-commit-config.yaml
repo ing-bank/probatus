@@ -37,7 +37,7 @@ repos:
       name: 'Ruff: Check for errors, styling issues and complexity, and fixes issues if possible (including import order)'
       entry: ruff
       language: system
-      args: [ --fix ]
+      args: [ --fix, --no-cache ]
     - id: ruff-format
       name: 'Ruff: format code in line with PEP8'
       entry: ruff format
