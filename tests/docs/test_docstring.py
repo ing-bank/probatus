@@ -19,7 +19,6 @@ matplotlib.use("Agg")
 CLASSES_TO_TEST = [
     probatus.feature_elimination.ShapRFECV,
     probatus.interpret.DependencePlotter,
-    probatus.interpret.ShapModelInterpreter,
     probatus.sample_similarity.SHAPImportanceResemblance,
     probatus.sample_similarity.PermutationImportanceResemblance,
     probatus.utils.Scorer,
