@@ -105,7 +105,7 @@ def test_shap_rfe_randomized_search(X, y):
     Test with RandomizedSearchCV.
     """
     clf = DecisionTreeClassifier(max_depth=1)
-    param_grid = {"criterion": ["gini"], "min_samples_split": [1, 2]}
+    param_grid = {"criterion": ["gini"], "min_samples_split": [2, 3]}
     search = RandomizedSearchCV(clf, param_grid, cv=2, n_iter=2)
     shap_elimination = ShapRFECV(search, step=0.8, cv=2, scoring="roc_auc", n_jobs=4, random_state=1)
     report = shap_elimination.fit_compute(X, y)
@@ -246,7 +246,7 @@ def test_shap_rfe_randomized_search_cols_to_keep(X, y):
     Test with ShapRFECV with column to keep param.
     """
     clf = DecisionTreeClassifier(max_depth=1)
-    param_grid = {"criterion": ["gini"], "min_samples_split": [1, 2]}
+    param_grid = {"criterion": ["gini"], "min_samples_split": [2, 3]}
     search = RandomizedSearchCV(clf, param_grid, cv=2, n_iter=2)
     shap_elimination = ShapRFECV(search, step=0.8, cv=2, scoring="roc_auc", n_jobs=4, random_state=1)
     report = shap_elimination.fit_compute(X, y, columns_to_keep=["col_2", "col_3"])

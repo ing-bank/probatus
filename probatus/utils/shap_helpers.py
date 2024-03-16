@@ -22,8 +22,11 @@ import warnings
 
 import numpy as np
 import pandas as pd
+from fasttreeshap import TreeExplainer as FasttreeSHAPTreeExplainer
+from fasttreeshap.explainers._tree import Tree as FasttreeSHAPTree
 from shap import Explainer
-from shap.explainers._tree import Tree
+from shap import TreeExplainer as SHAPTreeExplainer
+from shap import explainers, maskers
 from shap.utils import sample
 from sklearn.pipeline import Pipeline
 
@@ -59,10 +62,15 @@ def shap_calc(
             - 51 - 100 - shows other warnings and prints
             - above 100 - presents all prints and all warnings (including SHAP warnings).
 
-         approximate (boolean):
+        random_state (int, optional):
+            Random state set at for sampling mask of explainer. If it is None, the
+            results will not be exactly reproducible. For reproducible results set it to
+            an integer.
+
+        approximate (boolean):
             if True uses shap approximations - less accurate, but very fast. It applies to tree-based explainers only.
 
-         check_additivity (boolean):
+        check_additivity (boolean):
             if False SHAP will disable the additivity check for tree-based models.
 
         **shap_kwargs: kwargs of the shap.Explainer
@@ -72,6 +80,7 @@ def shap_calc(
             shapley_values for the model, optionally also returns the explainer.
 
     """
+    # TODO: Add random state parameter
     if isinstance(model, Pipeline):
         raise (
             TypeError(
@@ -85,28 +94,41 @@ def shap_calc(
         if verbose <= 100:
             warnings.simplefilter("ignore")
 
-        # For tree explainers, do not pass masker when feature_perturbation is
-        # tree_path_dependent, or when X contains categorical features
-        # related to issue:
-        # https://github.com/slundberg/shap/issues/480
-        if shap_kwargs.get("feature_perturbation") == "tree_path_dependent" or X.select_dtypes("category").shape[1] > 0:
-            # Calculate Shap values.
-            explainer = Explainer(model, **shap_kwargs)
-        else:
-            # Create the background data,required for non tree based models.
-            # A single datapoint can passed as mask
-            # (https://github.com/slundberg/shap/issues/955#issuecomment-569837201)
-            if X.shape[0] < sample_size:
-                sample_size = int(np.ceil(X.shape[0] * 0.2))
-            else:
-                pass
-            mask = sample(X, sample_size)
-            explainer = Explainer(model, masker=mask, **shap_kwargs)
+        # -----
+        # # For tree explainers, do not pass masker when feature_perturbation is
+        # # tree_path_dependent, or when X contains categorical features
+        # # related to issue:
+        # # https://github.com/slundberg/shap/issues/480
+        # if shap_kwargs.get("feature_perturbation") == "tree_path_dependent" or X.select_dtypes("category").shape[1] > 0:
+        #     # Calculate Shap values.
+        #     explainer = Explainer(model, **shap_kwargs)
+        # else:
+        #     # Create the background data,required for non tree based models.
+        #     # A single datapoint can passed as mask
+        #     # (https://github.com/slundberg/shap/issues/955#issuecomment-569837201)
+        #     if X.shape[0] < sample_size:
+        #         sample_size = int(np.ceil(X.shape[0] * 0.2))
+        #     else:
+        #         pass
+        #     mask = sample(X, sample_size)
+        #     explainer = Explainer(model, masker=mask, **shap_kwargs)
+        # -----
+        # Determine Explainer for optimization purposes
+        # TODO: Add random state parameter
+        explainer = _set_explainer(model, X, sample_size, **shap_kwargs)
+        # -----
 
         # For tree-explainers allow for using check_additivity and approximate arguments
-        if isinstance(explainer, Tree):
-            # Calculate Shap values
-            shap_values = explainer.shap_values(X, check_additivity=check_additivity, approximate=approximate)
+        if isinstance(explainer, FasttreeSHAPTree):
+            # FasttreeSHAP contains a bug related to categorical variables with Lightgbm (this is fixed in SHAP).
+            # However we want to make use of the FasttreeSHAP speedup when possible. Thus we end up with this
+            # try-except.
+            try:
+                # Calculate Shap values
+                shap_values = explainer.shap_values(X, check_additivity=check_additivity, approximate=approximate)
+            except ValueError:
+                explainer = SHAPTreeExplainer(model, **shap_kwargs)
+                shap_values = explainer.shap_values(X, check_additivity=check_additivity, approximate=approximate)
         else:
             # Calculate Shap values
             shap_values = explainer.shap_values(X)
@@ -234,3 +256,81 @@ def calculate_shap_importance(shap_values, columns, output_columns_suffix="", sh
     importance_df = importance_df.drop(columns=[f"penalized_mean_abs_shap_value{output_columns_suffix}"])
 
     return importance_df
+
+
+def _set_explainer(model, X, sample_size, **shap_kwargs):
+    # TODO: Add random state parameter
+    # For tree explainers, do not pass masker when feature_perturbation is
+    # tree_path_dependent, or when X contains categorical features
+    # related to issue:
+    # https://github.com/slundberg/shap/issues/480
+    if shap_kwargs.get("feature_perturbation") == "tree_path_dependent" or X.select_dtypes("category").shape[1] > 0:
+        explainer = _override_explainer(model, **shap_kwargs)
+    else:
+        # Create the background data,required for non tree based models.
+        # A single datapoint can passed as mask
+        # (https://github.com/slundberg/shap/issues/955#issuecomment-569837201)
+        if X.shape[0] < sample_size:
+            sample_size = int(np.ceil(X.shape[0] * 0.2))
+        else:
+            pass
+        mask = sample(X, sample_size)  # TODO: Set random state
+        explainer = Explainer(model, masker=mask, **shap_kwargs)
+
+    return explainer
+
+
+def _override_explainer(model, **shap_kwargs):
+    # Determine the algorithm before its automatically assigned by "Explainer" so we
+    # can override it with fasttreeshap if it selects "tree".
+    if (shap_kwargs.get("algorithm") == "auto") or (shap_kwargs.get("algorithm") is None):
+        shap_kwargs["algorithm"] = _determine_auto_algorithm(model)
+
+    if shap_kwargs.get("algorithm") == "tree":
+        if shap_kwargs.get("fasttreeshap_version"):
+            shap_kwargs["algorithm"] = shap_kwargs.get("fasttreeshap_version")
+            explainer = FasttreeSHAPTreeExplainer(model, **shap_kwargs)
+        else:
+            shap_kwargs["algorithm"] = "auto"
+            explainer = FasttreeSHAPTreeExplainer(model, **shap_kwargs)
+    else:
+        # Calculate Shap values.
+        explainer = Explainer(model, **shap_kwargs)
+
+    return explainer
+
+
+def _determine_auto_algorithm(model, mask=None):
+    # use implementation-aware methods if possible
+    if explainers.Linear.supports_model_with_masker(model, mask):
+        algorithm = "linear"
+    elif explainers.Tree.supports_model_with_masker(model, mask):
+        algorithm = "tree"
+    elif explainers.Additive.supports_model_with_masker(model, mask):
+        algorithm = "additive"
+
+    # otherwise use a model agnostic method
+    elif callable(model):
+        if issubclass(type(mask), maskers.Independent):
+            if mask.shape[1] <= 10:
+                algorithm = "exact"
+            else:
+                algorithm = "permutation"
+        elif issubclass(type(mask), maskers.Partition):
+            if mask.shape[1] <= 32:
+                algorithm = "exact"
+            else:
+                algorithm = "permutation"
+        elif (getattr(mask, "text_data", False) or getattr(mask, "image_data", False)) and hasattr(mask, "clustering"):
+            algorithm = "partition"
+        else:
+            algorithm = "permutation"
+
+    # if we get here then we don't know how to handle what was given to us
+    else:
+        raise TypeError(
+            "The passed model is not callable and cannot be analyzed directly with the given masker! Model: "
+            + str(model)
+        )
+
+    return algorithm

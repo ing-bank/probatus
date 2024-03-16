@@ -35,6 +35,7 @@ dependencies = [
     "shap>=0.41.0,<0.43.0",
     "numpy>=1.23.2",
     "numba>=0.57.0",
+    "fasttreeshap>=0.1.6",
 ]
 
 [project.urls]

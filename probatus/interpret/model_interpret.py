@@ -236,7 +236,11 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
 
         # For sklearn models the expected values consists of two elements (negative_class and positive_class)
         if isinstance(expected_value, list) or isinstance(expected_value, np.ndarray):
-            expected_value = expected_value[1]
+            if len(expected_value) == 1:
+                expected_value = expected_value[0]
+            else:
+                # Take positive value class
+                expected_value = expected_value[1]
 
         # Initialize tree dependence plotter
         tdp = DependencePlotter(clf, verbose=verbose).fit(

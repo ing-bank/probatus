@@ -588,7 +588,6 @@ class ShapRFECV(BaseFitComputePlotClass):
             scores_val = [current_result[2] for current_result in results_per_fold]
 
             # Calculate the shap features with remaining features and features to keep.
-
             shap_importance_df = calculate_shap_importance(
                 shap_values, remaining_removeable_features, shap_variance_penalty_factor=_shap_variance_penalty_factor
             )
