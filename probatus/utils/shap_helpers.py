@@ -114,7 +114,7 @@ def shap_calc(
 
             # From SHAP version 0.43+ https://github.com/shap/shap/pull/3121 required to
             # get the second dimension of calculated Shap values.
-            if len(shap_values.shape) == 3:
+            if not isinstance(shap_values, list) and len(shap_values.shape) == 3:
                 shap_values = shap_values[:, :, 1]
         else:
             # Calculate Shap values
