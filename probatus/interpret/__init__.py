@@ -18,8 +18,7 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
-from .inspector import InspectorShap
 from .shap_dependence import DependencePlotter
 from .model_interpret import ShapModelInterpreter
 
-__all__ = ["InspectorShap", "DependencePlotter", "ShapModelInterpreter"]
+__all__ = ["DependencePlotter", "ShapModelInterpreter"]

@@ -28,5 +28,4 @@ The main principles that drive development of `Probatus` are the following
 
 ## The Roadmap
 
-The following [issue](https://github.com/ing-bank/Probatus/issues/93) keeps track of the features coming to Probatus.
 We are open to new ideas, so if you can think of a feature that fits the vision, make an [issue](https://github.com/ing-bank/Probatus/issues) and help us further develop this package.

@@ -121,8 +121,7 @@ def test_fit_complex(complex_data_split, complex_fitted_lightgbm):
     assert plotter.fitted is True
 
     # Check if plotting does not cause errors
-    for binning in ["simple", "agglomerative", "quantile"]:
-        _ = plotter.plot(feature="f2_missing", type_binning=binning, show=False)
+    _ = plotter.plot(feature="f2_missing", show=False)
 
 
 def test_get_X_y_shap_with_q_cut_normal(X_y, clf):
@@ -182,8 +181,7 @@ def test_plot_normal(X_y, clf):
     Test.
     """
     plotter = DependencePlotter(clf).fit(X_y[0], X_y[1])
-    for binning in ["simple", "agglomerative", "quantile"]:
-        _ = plotter.plot(feature=0, type_binning=binning)
+    _ = plotter.plot(feature=0)
 
 
 def test_plot_class_names(X_y, clf):
@@ -202,8 +200,8 @@ def test_plot_input(X_y, clf):
     plotter = DependencePlotter(clf).fit(X_y[0], X_y[1])
     with pytest.raises(ValueError):
         plotter.plot(feature="not a feature")
-    with pytest.raises(ValueError):
-        plotter.plot(feature=0, type_binning=5)
+    with pytest.raises(TypeError):
+        plotter.plot(feature=0, bins=5.0)
     with pytest.raises(ValueError):
         plotter.plot(feature=0, min_q=1, max_q=0)
 

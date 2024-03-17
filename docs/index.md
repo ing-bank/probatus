@@ -1,5 +1,3 @@
-# Welcome to probatus documentation!
-
 <img src="img/logo_large.png" width=190 align="right">
 
 **Probatus** is a Python library that allows to analyse binary classification models as well as the data used to develop them.

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "probatus"
-version = "2.1.1"
+version = "3.0.0"
 requires-python= ">=3.8"
 description = "Validation of binary classifiers and data used to develop them"
 readme = { file = "README.md", content-type = "text/markdown" }
@@ -44,14 +44,9 @@ Repository = "https://github.com/ing-bank/probatus.git"
 Changelog = "https://github.com/ing-bank/probatus/blob/main/CHANGELOG.md"
 
 [project.optional-dependencies]
-all = [
-    "lightgbm>=3.3.0",
-    # https://github.com/catboost/catboost/issues/2371
-    "catboost<1.2 ; python_version == '3.8'",
-    "catboost>=1.1 ; python_version != '3.8'",
-    "xgboost>=1.5.0",
-    "scipy>=1.4.0",
-    # Dev dependencies
+
+
+dev = [
     "black>=19.10b0",
     "pre-commit>=2.5.0",
     "mypy>=0.770",
@@ -66,21 +61,25 @@ all = [
     "pre-commit>=2.7.1",
     "isort>=5.12.0",
     "codespell>=2.2.4",
-    "ruff>=0.0.272",
-    # Doc dependencies
-    "mkdocs-material>=6.1.0",
-    "mkdocs-git-revision-date-localized-plugin>=0.7.2",
-    "mkdocs-git-authors-plugin>=0.3.2",
-    "mkdocs-table-reader-plugin>=0.4.1",
-    "mkdocs-enumerate-headings-plugin>=0.4.3",
-    "mkdocs-awesome-pages-plugin>=2.4.0",
-    "mkdocs-minify-plugin>=0.3.0",
-    "mknotebooks>=0.6.2",
-    "mkdocstrings>=0.13.6",
-    "mkdocs-print-site-plugin>=0.8.2",
-    "mkdocs-markdownextradata-plugin>=0.1.9",
-    "mkdocstrings-python>=1.1.2",
+    "ruff>=0.2.2",
 ]
+docs = [
+    "mkdocs>=1.5.3",
+    "mkdocs-jupyter>=0.24.3",
+    "mkdocs-material>=9.5.13",
+    "mkdocstrings>=0.24.1",
+    "mkdocstrings-python>=1.8.0",
+]
+extras = [
+    "lightgbm>=3.3.0",
+    # https://github.com/catboost/catboost/issues/2371
+    "catboost<1.2 ; python_version == '3.8'",
+    "catboost>=1.1 ; python_version != '3.8'",
+    "xgboost>=1.5.0",
+    "scipy>=1.4.0",
+]
+# Separating these allow for more install flexibility.
+all = ["probatus[dev,docs,extras]"]
 
 [tool.setuptools.packages.find]
 exclude = ["tests", "notebooks", "docs"]
@@ -99,6 +98,10 @@ pretty = true
 
 [tool.ruff]
 line-length = 120
+extend-exclude = ["docs", "mkdocs.yml", ".github", "*md", "LICENCE", ".pre-commit-config.yaml", ".gitignore"]
+force-exclude = true
+
+[tool.ruff.lint]
 # D100 requires all Python files (modules) to have a "public" docstring even if all functions within have a docstring.
 # D104 requires __init__ files to have a docstring
 # D202 No blank lines allowed after function docstring
@@ -111,10 +114,8 @@ line-length = 120
 # E731 do not assign a lambda expression, use a def
 # W293 blank line contains whitespace
 ignore = ["D100", "D104", "D202", "D212", "D200", "E203", "E731", "W293", "D412", "D417", "D411", "RUF100"]
-extend-exclude = ["docs", "mkdocs.yml", ".github", "*md", "LICENCE", ".pre-commit-config.yaml", ".gitignore"]
-force-exclude = true
 
-[tool.ruff.pydocstyle]
+[tool.ruff.lint.pydocstyle]
 convention = "google"
 
 [tool.isort]
