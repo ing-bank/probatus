@@ -23,9 +23,6 @@ import warnings
 import numpy as np
 import pandas as pd
 from shap import Explainer
-
-# from shap.explainers._tree import Tree
-
 from shap.explainers import TreeExplainer
 from shap.utils import sample
 from sklearn.pipeline import Pipeline
@@ -70,7 +67,7 @@ def shap_calc(
         approximate (boolean):
             if True uses shap approximations - less accurate, but very fast. It applies to tree-based explainers only.
 
-         check_additivity (boolean):
+        check_additivity (boolean):
             if False SHAP will disable the additivity check for tree-based models.
 
         **shap_kwargs: kwargs of the shap.Explainer
