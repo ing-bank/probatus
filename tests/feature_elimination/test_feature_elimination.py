@@ -370,13 +370,30 @@ def test_shap_rfe_same_features_are_kept_after_each_run():
         random_state=SEED,
     )
 
-    report = shap_elimination.fit_compute(X, y, check_additivity=True, seed=SEED)
+    report = shap_elimination.fit_compute(X, y, check_additivity=True)
     # Return the set of features with the best validation accuracy
 
     kept_features = list(report.iloc[[report["val_metric_mean"].idxmax() - 1]]["features_set"].to_list()[0])
 
     # Results from the first run
-    assert ["f2", "f3", "f6", "f10", "f11", "f12", "f13", "f14", "f15", "f17", "f18", "f19", "f20"] == kept_features
+    assert [
+        "f1",
+        "f2",
+        "f3",
+        "f5",
+        "f6",
+        "f10",
+        "f11",
+        "f12",
+        "f13",
+        "f14",
+        "f15",
+        "f16",
+        "f17",
+        "f18",
+        "f19",
+        "f20",
+    ] == kept_features
 
 
 def test_shap_rfe_penalty_factor(X, y):

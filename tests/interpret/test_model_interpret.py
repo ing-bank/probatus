@@ -95,7 +95,7 @@ def test_shap_interpret(fitted_tree, X_train, y_train, X_test, y_test, expected_
     """
     class_names = ["neg", "pos"]
 
-    shap_interpret = ShapModelInterpreter(fitted_tree)
+    shap_interpret = ShapModelInterpreter(fitted_tree, random_state=0)
     shap_interpret.fit(X_train, X_test, y_train, y_test, class_names=class_names)
 
     # Check parameters
@@ -143,7 +143,7 @@ def test_shap_interpret_lin_models(
     """
     class_names = ["neg", "pos"]
 
-    shap_interpret = ShapModelInterpreter(fitted_lin)
+    shap_interpret = ShapModelInterpreter(fitted_lin, random_state=0)
     shap_interpret.fit(X_train, X_test, y_train, y_test, class_names=class_names)
 
     # Check parameters
@@ -192,7 +192,7 @@ def test_shap_interpret_fit_compute_lin_models(
     """
     class_names = ["neg", "pos"]
 
-    shap_interpret = ShapModelInterpreter(fitted_lin)
+    shap_interpret = ShapModelInterpreter(fitted_lin, random_state=0)
     importance_df = shap_interpret.fit_compute(X_train, X_test, y_train, y_test, class_names=class_names)
     importance_df = importance_df.round(2)
 
@@ -218,7 +218,7 @@ def test_shap_interpret_fit_compute(fitted_tree, X_train, y_train, X_test, y_tes
     """
     class_names = ["neg", "pos"]
 
-    shap_interpret = ShapModelInterpreter(fitted_tree)
+    shap_interpret = ShapModelInterpreter(fitted_tree, random_state=0)
     importance_df = shap_interpret.fit_compute(X_train, X_test, y_train, y_test, class_names=class_names)
 
     # Check parameters
@@ -244,7 +244,7 @@ def test_shap_interpret_complex_data(complex_data_split, complex_fitted_lightgbm
     class_names = ["neg", "pos"]
     X_train, X_test, y_train, y_test = complex_data_split
 
-    shap_interpret = ShapModelInterpreter(complex_fitted_lightgbm, verbose=50)
+    shap_interpret = ShapModelInterpreter(complex_fitted_lightgbm, verbose=50, random_state=0)
     importance_df = shap_interpret.fit_compute(
         X_train, X_test, y_train, y_test, class_names=class_names, approximate=False, check_additivity=False
     )
