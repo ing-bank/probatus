@@ -1,6 +1,7 @@
 import warnings
 
 import matplotlib.pyplot as plt
+from loguru import logger
 import numpy as np
 import pandas as pd
 from loguru import logger

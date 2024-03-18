@@ -8,6 +8,7 @@ from loguru import logger
 from sklearn.base import clone, is_classifier, is_regressor
 from sklearn.model_selection import check_cv
 from sklearn.model_selection._search import BaseSearchCV
+from loguru import logger
 
 from probatus.utils import (
     BaseFitComputePlotClass,
