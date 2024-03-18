@@ -64,9 +64,8 @@ class DependencePlotter(BaseFitComputePlotClass):
                 Controls verbosity of the output:
 
                 - 0 - neither prints nor warnings are shown
-                - 1 - 50 - only most important warnings regarding data properties are shown (excluding SHAP warnings)
-                - 51 - 100 - shows most important warnings, prints of the feature removal process
-                - above 100 - presents all prints and all warnings (including SHAP warnings).
+                - 1 - only most important warnings
+                - 2 - shows all prints and all warnings.
 
             random_state (int, optional):
                 Random state set for the nr of samples. If it is None, the results will not be reproducible. For

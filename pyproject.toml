@@ -37,6 +37,7 @@ dependencies = [
     "shap>=0.43.0 ; python_version != '3.8'",
     "numpy>=1.23.2",
     "numba>=0.57.0",
+    "loguru>=0.7.2",
 ]
 
 [project.urls]
