@@ -179,6 +179,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
             class_names=self.class_names,
             verbose=self.verbose,
             random_state=self.random_state,
+            random_state=self.random_state,
             **shap_kwargs,
         )
 
