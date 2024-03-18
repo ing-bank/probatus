@@ -5,7 +5,6 @@ import pytest
 from sklearn.datasets import make_classification
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import get_scorer
 from sklearn.model_selection import RandomizedSearchCV, StratifiedGroupKFold, StratifiedKFold
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
@@ -314,7 +313,7 @@ def test_get_feature_shap_values_per_fold(X, y):
     Test with ShapRFECV with features per fold.
     """
     clf = DecisionTreeClassifier(max_depth=1)
-    shap_elimination = ShapRFECV(clf)
+    shap_elimination = ShapRFECV(clf, scoring="roc_auc")
     (
         shap_values,
         train_score,
@@ -325,7 +324,6 @@ def test_get_feature_shap_values_per_fold(X, y):
         clf,
         train_index=[2, 3, 4, 5, 6, 7],
         val_index=[0, 1],
-        scorer=get_scorer("roc_auc"),
     )
     assert test_score == 1
     assert train_score > 0.9
@@ -545,7 +543,7 @@ def test_get_feature_shap_values_per_fold_early_stopping_lightGBM(complex_data):
     X, y = complex_data
     y = preprocess_labels(y, y_name="y", index=X.index)
 
-    shap_elimination = EarlyStoppingShapRFECV(clf, early_stopping_rounds=5)
+    shap_elimination = EarlyStoppingShapRFECV(clf, early_stopping_rounds=5, scoring="roc_auc")
     (
         shap_values,
         train_score,
@@ -556,7 +554,6 @@ def test_get_feature_shap_values_per_fold_early_stopping_lightGBM(complex_data):
         clf,
         train_index=list(range(5, 50)),
         val_index=[0, 1, 2, 3, 4],
-        scorer=get_scorer("roc_auc"),
     )
     assert test_score > 0.6
     assert train_score > 0.6
@@ -573,7 +570,7 @@ def test_get_feature_shap_values_per_fold_early_stopping_CatBoost(complex_data, 
     X["f1_categorical"] = X["f1_categorical"].astype(str).astype("category")
     y = preprocess_labels(y, y_name="y", index=X.index)
 
-    shap_elimination = EarlyStoppingShapRFECV(clf, early_stopping_rounds=5)
+    shap_elimination = EarlyStoppingShapRFECV(clf, early_stopping_rounds=5, scoring="roc_auc")
     (
         shap_values,
         train_score,
@@ -584,7 +581,6 @@ def test_get_feature_shap_values_per_fold_early_stopping_CatBoost(complex_data, 
         clf,
         train_index=list(range(5, 50)),
         val_index=[0, 1, 2, 3, 4],
-        scorer=get_scorer("roc_auc"),
     )
     assert test_score > 0
     assert train_score > 0.6
@@ -603,7 +599,7 @@ def test_get_feature_shap_values_per_fold_early_stopping_XGBoost(complex_data):
     X["f1_categorical"] = X["f1_categorical"].astype(float)
     y = preprocess_labels(y, y_name="y", index=X.index)
 
-    shap_elimination = EarlyStoppingShapRFECV(clf, early_stopping_rounds=5)
+    shap_elimination = EarlyStoppingShapRFECV(clf, early_stopping_rounds=5, scoring="roc_auc")
     (
         shap_values,
         train_score,
@@ -614,7 +610,6 @@ def test_get_feature_shap_values_per_fold_early_stopping_XGBoost(complex_data):
         clf,
         train_index=list(range(5, 50)),
         val_index=[0, 1, 2, 3, 4],
-        scorer=get_scorer("roc_auc"),
     )
     assert test_score > 0
     assert train_score > 0.6
