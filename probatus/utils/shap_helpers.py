@@ -33,6 +33,7 @@ def shap_calc(
     X,
     return_explainer=False,
     verbose=0,
+    random_state=None,
     sample_size=100,
     approximate=False,
     check_additivity=True,
@@ -59,7 +60,11 @@ def shap_calc(
             - 51 - 100 - shows other warnings and prints
             - above 100 - presents all prints and all warnings (including SHAP warnings).
 
-         approximate (boolean):
+        random_state (int, optional):
+            Random state set for the nr of samples. If it is None, the results will not be reproducible. For
+            reproducible results set it to an integer.
+
+        approximate (boolean):
             if True uses shap approximations - less accurate, but very fast. It applies to tree-based explainers only.
 
          check_additivity (boolean):
@@ -100,7 +105,7 @@ def shap_calc(
                 sample_size = int(np.ceil(X.shape[0] * 0.2))
             else:
                 pass
-            mask = sample(X, sample_size)
+            mask = sample(X, sample_size, random_state=random_state)
             explainer = Explainer(model, masker=mask, **shap_kwargs)
 
         # For tree-explainers allow for using check_additivity and approximate arguments

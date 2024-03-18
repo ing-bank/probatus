@@ -80,7 +80,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
     <img src="../img/model_interpret_sample.png" width="320" />
     """
 
-    def __init__(self, clf, scoring="roc_auc", verbose=0):
+    def __init__(self, clf, scoring="roc_auc", verbose=0, random_state=None):
         """
         Initializes the class.
 
@@ -101,10 +101,15 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
                 - 1 - 50 - only most important warnings
                 - 51 - 100 - shows other warnings and prints
                 - above 100 - presents all prints and all warnings (including SHAP warnings).
+
+            random_state (int, optional):
+                Random state set for the nr of samples. If it is None, the results will not be reproducible. For
+                reproducible results set it to an integer.
         """
         self.clf = clf
         self.scorer = get_single_scorer(scoring)
         self.verbose = verbose
+        self.random_state = random_state
 
     def fit(
         self,
@@ -186,6 +191,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
             column_names=self.column_names,
             class_names=self.class_names,
             verbose=self.verbose,
+            random_state=self.random_state,
             **shap_kwargs,
         )
 
@@ -200,6 +206,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
             column_names=self.column_names,
             class_names=self.class_names,
             verbose=self.verbose,
+            random_state=self.random_state,
             **shap_kwargs,
         )
 
@@ -212,6 +219,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
         y,
         approximate=False,
         verbose=0,
+        random_state=None,
         column_names=None,
         class_names=None,
         **shap_kwargs,
@@ -228,6 +236,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
             X,
             approximate=approximate,
             verbose=verbose,
+            random_state=random_state,
             return_explainer=True,
             **shap_kwargs,
         )

@@ -630,7 +630,9 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
         """
         super().fit(X1=X1, X2=X2, column_names=column_names, class_names=class_names)
 
-        self.shap_values_test = shap_calc(self.clf, self.X_test, verbose=self.verbose, **shap_kwargs)
+        self.shap_values_test = shap_calc(
+            self.clf, self.X_test, verbose=self.verbose, random_state=self.random_state, **shap_kwargs
+        )
         self.report = calculate_shap_importance(self.shap_values_test, self.column_names)
         return self
 

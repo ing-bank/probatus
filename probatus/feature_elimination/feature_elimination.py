@@ -395,7 +395,7 @@ class ShapRFECV(BaseFitComputePlotClass):
         score_val = self.scorer.scorer(clf, X_val, y_val)
 
         # Compute SHAP values
-        shap_values = shap_calc(clf, X_val, verbose=self.verbose, **shap_kwargs)
+        shap_values = shap_calc(clf, X_val, verbose=self.verbose, random_state=self.random_state, **shap_kwargs)
         return shap_values, score_train, score_val
 
     def fit(
@@ -1505,5 +1505,5 @@ class EarlyStoppingShapRFECV(ShapRFECV):
         score_val = self.scorer.scorer(clf, X_val, y_val)
 
         # Compute SHAP values
-        shap_values = shap_calc(clf, X_val, verbose=self.verbose, **shap_kwargs)
+        shap_values = shap_calc(clf, X_val, verbose=self.verbose, random_state=self.random_state, **shap_kwargs)
         return shap_values, score_train, score_val
