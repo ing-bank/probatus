@@ -23,7 +23,7 @@ import warnings
 import numpy as np
 import pandas as pd
 from shap import Explainer
-from shap.explainers._tree import Tree
+from shap.explainers import TreeExplainer
 from shap.utils import sample
 from sklearn.pipeline import Pipeline
 
@@ -59,10 +59,10 @@ def shap_calc(
             - 51 - 100 - shows other warnings and prints
             - above 100 - presents all prints and all warnings (including SHAP warnings).
 
-         approximate (boolean):
+        approximate (boolean):
             if True uses shap approximations - less accurate, but very fast. It applies to tree-based explainers only.
 
-         check_additivity (boolean):
+        check_additivity (boolean):
             if False SHAP will disable the additivity check for tree-based models.
 
         **shap_kwargs: kwargs of the shap.Explainer
@@ -104,9 +104,13 @@ def shap_calc(
             explainer = Explainer(model, masker=mask, **shap_kwargs)
 
         # For tree-explainers allow for using check_additivity and approximate arguments
-        if isinstance(explainer, Tree):
-            # Calculate Shap values
+        if isinstance(explainer, TreeExplainer):
             shap_values = explainer.shap_values(X, check_additivity=check_additivity, approximate=approximate)
+
+            # From SHAP version 0.43+ https://github.com/shap/shap/pull/3121 required to
+            # get the second dimension of calculated Shap values.
+            if not isinstance(shap_values, list) and len(shap_values.shape) == 3:
+                shap_values = shap_values[:, :, 1]
         else:
             # Calculate Shap values
             shap_values = explainer.shap_values(X)
