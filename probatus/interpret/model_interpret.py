@@ -98,9 +98,8 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
                 Controls verbosity of the output:
 
                 - 0 - neither prints nor warnings are shown
-                - 1 - 50 - only most important warnings
-                - 51 - 100 - shows other warnings and prints
-                - above 100 - presents all prints and all warnings (including SHAP warnings).
+                - 1 - only most important warnings
+                - 2 - shows all prints and all warnings.
 
             random_state (int, optional):
                 Random state set for the nr of samples. If it is None, the results will not be reproducible. For

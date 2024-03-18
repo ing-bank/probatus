@@ -21,6 +21,7 @@
 import warnings
 
 import matplotlib.pyplot as plt
+from loguru import logger
 import numpy as np
 import pandas as pd
 from shap import summary_plot
@@ -76,9 +77,8 @@ class BaseResemblanceModel(BaseFitComputePlotClass):
                 Controls verbosity of the output:
 
                 - 0 - neither prints nor warnings are shown
-                - 1 - 50 - only most important warnings
-                - 51 - 100 - shows other warnings and prints
-                - above 100 - presents all prints and all warnings (including SHAP warnings).
+                - 1 - only most important warnings
+                - 2 - shows all prints and all warnings.
 
             random_state (int, optional):
                 Random state set at each round of feature elimination. If it is None, the results will not be
@@ -178,8 +178,8 @@ class BaseResemblanceModel(BaseFitComputePlotClass):
             f"Train {self.scorer.metric_name}: {np.round(self.train_score, 3)},\n"
             f"Test {self.scorer.metric_name}: {np.round(self.test_score, 3)}."
         )
-        if self.verbose > 50:
-            print(f"Finished model training: \n{self.results_text}")
+        if self.verbose > 1:
+            logger.info(f"Finished model training: \n{self.results_text}")
 
         if self.verbose > 0:
             if self.train_score > self.test_score:
@@ -343,9 +343,8 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
                 Controls verbosity of the output:
 
                 - 0 - neither prints nor warnings are shown
-                - 1 - 50 - only most important warnings
-                - 51 - 100 - shows other warnings and prints
-                - above 100 - presents all prints and all warnings (including SHAP warnings).
+                - 1 - only most important warnings
+                - 2 - shows all prints and all warnings.
 
             random_state (int, optional):
                 Random state set at each round of feature elimination. If it is None, the results will not be
@@ -572,9 +571,8 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
                 Controls verbosity of the output:
 
                 - 0 - neither prints nor warnings are shown
-                - 1 - 50 - only most important warnings
-                - 51 - 100 - shows other warnings and prints
-                - above 100 - presents all prints and all warnings (including SHAP warnings).
+                - 1 - only most important warnings
+                - 2 - shows all prints and all warnings.
 
             random_state (int, optional):
                 Random state set at each round of feature elimination. If it is None, the results will not be

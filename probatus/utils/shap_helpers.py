@@ -55,10 +55,9 @@ def shap_calc(
         verbose (int, optional):
             Controls verbosity of the output:
 
-            - 0 - nether prints nor warnings are shown
-            - 1 - 50 - only most important warnings
-            - 51 - 100 - shows other warnings and prints
-            - above 100 - presents all prints and all warnings (including SHAP warnings).
+            - 0 - neither prints nor warnings are shown
+            - 1 - only most important warnings
+            - 2 - shows all prints and all warnings.
 
         random_state (int, optional):
             Random state set for the nr of samples. If it is None, the results will not be reproducible. For
@@ -87,7 +86,7 @@ def shap_calc(
         )
     # Suppress warnings regarding XGboost and Lightgbm models.
     with warnings.catch_warnings():
-        if verbose <= 100:
+        if verbose <= 1:
             warnings.simplefilter("ignore")
 
         # For tree explainers, do not pass masker when feature_perturbation is

@@ -71,13 +71,13 @@ def expected_shap_vals():
 
 
 @pytest.fixture(scope="function")
-def clf(X_y):
+def clf(X_y, random_state):
     """
     Fixture.
     """
     X, y = X_y
 
-    model = RandomForestClassifier(random_state=42, n_estimators=10, max_depth=5)
+    model = RandomForestClassifier(random_state=random_state, n_estimators=10, max_depth=5)
 
     model.fit(X, y)
     return model
@@ -97,22 +97,22 @@ def expected_feat_importances():
     )
 
 
-def test_not_fitted(clf):
+def test_not_fitted(clf, random_state):
     """
     Test.
     """
-    plotter = DependencePlotter(clf)
+    plotter = DependencePlotter(clf, random_state)
     assert plotter.fitted is False
 
 
 @pytest.mark.skipif(os.environ.get("SKIP_LIGHTGBM") == "true", reason="LightGBM tests disabled")
-def test_fit_complex(complex_data_split, complex_fitted_lightgbm):
+def test_fit_complex(complex_data_split, complex_fitted_lightgbm, random_state):
     """
     Test.
     """
-    X_train, X_test, y_train, y_test = complex_data_split
+    _, X_test, _, y_test = complex_data_split
 
-    plotter = DependencePlotter(complex_fitted_lightgbm)
+    plotter = DependencePlotter(complex_fitted_lightgbm, random_state=random_state)
 
     plotter.fit(X_test, y_test)
 
@@ -124,23 +124,23 @@ def test_fit_complex(complex_data_split, complex_fitted_lightgbm):
     _ = plotter.plot(feature="f2_missing", show=False)
 
 
-def test_get_X_y_shap_with_q_cut_normal(X_y, clf):
+def test_get_X_y_shap_with_q_cut_normal(X_y, clf, random_state):
     """
     Test.
     """
     X, y = X_y
 
-    plotter = DependencePlotter(clf).fit(X, y)
+    plotter = DependencePlotter(clf, random_state).fit(X, y)
     plotter.min_q, plotter.max_q = 0, 1
 
-    X_cut, y_cut, shap_val = plotter._get_X_y_shap_with_q_cut(0)
+    X_cut, y_cut, _ = plotter._get_X_y_shap_with_q_cut(0)
     assert np.isclose(X[0], X_cut).all()
     assert y.equals(y_cut)
 
     plotter.min_q = 0.2
     plotter.max_q = 0.8
 
-    X_cut, y_cut, shap_val = plotter._get_X_y_shap_with_q_cut(0)
+    X_cut, y_cut, _ = plotter._get_X_y_shap_with_q_cut(0)
     assert np.isclose(
         X_cut,
         [
@@ -158,46 +158,46 @@ def test_get_X_y_shap_with_q_cut_normal(X_y, clf):
     assert np.equal(y_cut.values, [1, 0, 0, 1, 1, 0, 0, 0, 0]).all()
 
 
-def test_get_X_y_shap_with_q_cut_unfitted(clf):
+def test_get_X_y_shap_with_q_cut_unfitted(clf, random_state):
     """
     Test.
     """
-    plotter = DependencePlotter(clf)
+    plotter = DependencePlotter(clf, random_state)
     with pytest.raises(NotFittedError):
         plotter._get_X_y_shap_with_q_cut(0)
 
 
-def test_get_X_y_shap_with_q_cut_input(X_y, clf):
+def test_get_X_y_shap_with_q_cut_input(X_y, clf, random_state):
     """
     Test.
     """
-    plotter = DependencePlotter(clf).fit(X_y[0], X_y[1])
+    plotter = DependencePlotter(clf, random_state).fit(X_y[0], X_y[1])
     with pytest.raises(ValueError):
         plotter._get_X_y_shap_with_q_cut("not a feature")
 
 
-def test_plot_normal(X_y, clf):
+def test_plot_normal(X_y, clf, random_state):
     """
     Test.
     """
-    plotter = DependencePlotter(clf).fit(X_y[0], X_y[1])
+    plotter = DependencePlotter(clf, random_state).fit(X_y[0], X_y[1])
     _ = plotter.plot(feature=0)
 
 
-def test_plot_class_names(X_y, clf):
+def test_plot_class_names(X_y, clf, random_state):
     """
     Test.
     """
-    plotter = DependencePlotter(clf).fit(X_y[0], X_y[1], class_names=["a", "b"])
+    plotter = DependencePlotter(clf, random_state).fit(X_y[0], X_y[1], class_names=["a", "b"])
     _ = plotter.plot(feature=0)
     assert plotter.class_names == ["a", "b"]
 
 
-def test_plot_input(X_y, clf):
+def test_plot_input(X_y, clf, random_state):
     """
     Test.
     """
-    plotter = DependencePlotter(clf).fit(X_y[0], X_y[1])
+    plotter = DependencePlotter(clf, random_state).fit(X_y[0], X_y[1])
     with pytest.raises(ValueError):
         plotter.plot(feature="not a feature")
     with pytest.raises(TypeError):
@@ -206,9 +206,9 @@ def test_plot_input(X_y, clf):
         plotter.plot(feature=0, min_q=1, max_q=0)
 
 
-def test__repr__(clf):
+def test__repr__(clf, random_state):
     """
     Test string representation.
     """
-    plotter = DependencePlotter(clf)
+    plotter = DependencePlotter(clf, random_state)
     assert str(plotter) == "Shap dependence plotter for RandomForestClassifier"

@@ -189,9 +189,9 @@ def preprocess_data(X, X_name=None, column_names=None, verbose=0):
             Controls verbosity of the output:
 
             - 0 - neither prints nor warnings are shown
-            - 1 - 50 - only most important warnings regarding data properties are shown (excluding SHAP warnings)
-            - 51 - 100 - shows most important warnings, prints of the feature removal process
-            - above 100 - presents all prints and all warnings (including SHAP warnings).
+            - 1 - only most important warnings
+            - 2 - shows all prints and all warnings.
+
 
     Returns:
         (pd.DataFrame):
@@ -255,9 +255,8 @@ def preprocess_labels(y, y_name=None, index=None, verbose=0):
         Controls verbosity of the output:
 
         - 0 - neither prints nor warnings are shown
-        - 1 - 50 - only most important warnings regarding data properties are shown (excluding SHAP warnings)
-        - 51 - 100 - shows most important warnings, prints of the feature removal process
-        - above 100 - presents all prints and all warnings (including SHAP warnings).
+        - 1 - only most important warnings
+        - 2 - shows all prints and all warnings.
 
     Returns:
         (pd.Series):

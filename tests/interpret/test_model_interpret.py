@@ -3,8 +3,6 @@ import os
 import numpy as np
 import pandas as pd
 import pytest
-from sklearn.linear_model import LogisticRegression
-from sklearn.tree import DecisionTreeClassifier
 
 from probatus.interpret import ShapModelInterpreter
 
@@ -42,19 +40,19 @@ def y_test():
 
 
 @pytest.fixture(scope="function")
-def fitted_tree(X_train, y_train):
+def fitted_tree(X_train, y_train, decision_tree_classifier):
     """
     Fixture.
     """
-    return DecisionTreeClassifier(max_depth=1, random_state=1).fit(X_train, y_train)
+    return decision_tree_classifier.fit(X_train, y_train)
 
 
 @pytest.fixture(scope="function")
-def fitted_lin(X_train, y_train):
+def fitted_lin(X_train, y_train, logistic_regression):
     """
     Fixture.
     """
-    return LogisticRegression(random_state=1).fit(X_train, y_train)
+    return logistic_regression.fit(X_train, y_train)
 
 
 @pytest.fixture(scope="function")
@@ -89,13 +87,13 @@ def expected_feature_importance_lin_models():
     )
 
 
-def test_shap_interpret(fitted_tree, X_train, y_train, X_test, y_test, expected_feature_importance):
+def test_shap_interpret(fitted_tree, X_train, y_train, X_test, y_test, expected_feature_importance, random_state):
     """
     Test.
     """
     class_names = ["neg", "pos"]
 
-    shap_interpret = ShapModelInterpreter(fitted_tree, random_state=0)
+    shap_interpret = ShapModelInterpreter(fitted_tree, random_state=random_state)
     shap_interpret.fit(X_train, X_test, y_train, y_test, class_names=class_names)
 
     # Check parameters
@@ -136,14 +134,14 @@ def test_shap_interpret(fitted_tree, X_train, y_train, X_test, y_test, expected_
 
 
 def test_shap_interpret_lin_models(
-    fitted_lin, X_train, y_train, X_test, y_test, expected_feature_importance_lin_models
+    fitted_lin, X_train, y_train, X_test, y_test, expected_feature_importance_lin_models, random_state
 ):
     """
     Test.
     """
     class_names = ["neg", "pos"]
 
-    shap_interpret = ShapModelInterpreter(fitted_lin, random_state=0)
+    shap_interpret = ShapModelInterpreter(fitted_lin, random_state=random_state)
     shap_interpret.fit(X_train, X_test, y_train, y_test, class_names=class_names)
 
     # Check parameters
@@ -160,6 +158,8 @@ def test_shap_interpret_lin_models(
 
     importance_df, train_auc, test_auc = shap_interpret.compute(return_scores=True)
     importance_df = importance_df.round(2)
+
+    print(importance_df)
 
     pd.testing.assert_frame_equal(expected_feature_importance_lin_models, importance_df)
     assert train_auc == 1
@@ -185,14 +185,14 @@ def test_shap_interpret_lin_models(
 
 
 def test_shap_interpret_fit_compute_lin_models(
-    fitted_lin, X_train, y_train, X_test, y_test, expected_feature_importance_lin_models
+    fitted_lin, X_train, y_train, X_test, y_test, expected_feature_importance_lin_models, random_state
 ):
     """
     Test.
     """
     class_names = ["neg", "pos"]
 
-    shap_interpret = ShapModelInterpreter(fitted_lin, random_state=0)
+    shap_interpret = ShapModelInterpreter(fitted_lin, random_state=random_state)
     importance_df = shap_interpret.fit_compute(X_train, X_test, y_train, y_test, class_names=class_names)
     importance_df = importance_df.round(2)
 
@@ -212,13 +212,15 @@ def test_shap_interpret_fit_compute_lin_models(
     pd.testing.assert_frame_equal(expected_feature_importance_lin_models, importance_df)
 
 
-def test_shap_interpret_fit_compute(fitted_tree, X_train, y_train, X_test, y_test, expected_feature_importance):
+def test_shap_interpret_fit_compute(
+    fitted_tree, X_train, y_train, X_test, y_test, expected_feature_importance, random_state
+):
     """
     Test.
     """
     class_names = ["neg", "pos"]
 
-    shap_interpret = ShapModelInterpreter(fitted_tree, random_state=0)
+    shap_interpret = ShapModelInterpreter(fitted_tree, random_state=random_state)
     importance_df = shap_interpret.fit_compute(X_train, X_test, y_train, y_test, class_names=class_names)
 
     # Check parameters
@@ -237,14 +239,14 @@ def test_shap_interpret_fit_compute(fitted_tree, X_train, y_train, X_test, y_tes
 
 
 @pytest.mark.skipif(os.environ.get("SKIP_LIGHTGBM") == "true", reason="LightGBM tests disabled")
-def test_shap_interpret_complex_data(complex_data_split, complex_fitted_lightgbm):
+def test_shap_interpret_complex_data(complex_data_split, complex_fitted_lightgbm, random_state):
     """
     Test lightgbm.
     """
     class_names = ["neg", "pos"]
     X_train, X_test, y_train, y_test = complex_data_split
 
-    shap_interpret = ShapModelInterpreter(complex_fitted_lightgbm, verbose=50, random_state=0)
+    shap_interpret = ShapModelInterpreter(complex_fitted_lightgbm, verbose=1, random_state=random_state)
     importance_df = shap_interpret.fit_compute(
         X_train, X_test, y_train, y_test, class_names=class_names, approximate=False, check_additivity=False
     )

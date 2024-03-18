@@ -6,8 +6,6 @@ import numpy as np
 import pandas as pd
 import pytest
 from pandas.api.types import is_numeric_dtype
-from sklearn.linear_model import LogisticRegression
-from sklearn.tree import DecisionTreeClassifier
 
 from probatus.sample_similarity import BaseResemblanceModel, PermutationImportanceResemblance, SHAPImportanceResemblance
 from probatus.utils import NotFittedError
@@ -33,12 +31,11 @@ def X2():
     return pd.DataFrame({"col_1": [0, 0, 0, 0], "col_2": [0, 0, 0, 0], "col_3": [0, 0, 0, 0]}, index=[1, 2, 3, 4])
 
 
-def test_base_class(X1, X2):
+def test_base_class(X1, X2, decision_tree_classifier, random_state):
     """
     Test.
     """
-    clf = DecisionTreeClassifier(max_depth=1, random_state=1)
-    rm = BaseResemblanceModel(clf, test_prc=0.5, n_jobs=1, random_state=42)
+    rm = BaseResemblanceModel(decision_tree_classifier, test_prc=0.5, n_jobs=1, random_state=random_state)
 
     # Before fit it should raise an exception
     with pytest.raises(NotFittedError) as _:
@@ -73,13 +70,12 @@ def test_base_class(X1, X2):
         rm.plot()
 
 
-def test_base_class_lin_models(X1, X2):
+def test_base_class_lin_models(X1, X2, logistic_regression, random_state):
     """
     Test.
     """
     # Test class BaseResemblanceModel for linear models.
-    clf = LogisticRegression()
-    rm = BaseResemblanceModel(clf, test_prc=0.5, n_jobs=1, random_state=42)
+    rm = BaseResemblanceModel(logistic_regression, test_prc=0.5, n_jobs=1, random_state=random_state)
 
     # Before fit it should raise an exception
     with pytest.raises(NotFittedError) as _:
@@ -114,12 +110,11 @@ def test_base_class_lin_models(X1, X2):
         rm.plot()
 
 
-def test_shap_resemblance_class(X1, X2):
+def test_shap_resemblance_class(X1, X2, decision_tree_classifier, random_state):
     """
     Test.
     """
-    clf = DecisionTreeClassifier(max_depth=1, random_state=1)
-    rm = SHAPImportanceResemblance(clf, test_prc=0.5, n_jobs=1, random_state=42)
+    rm = SHAPImportanceResemblance(decision_tree_classifier, test_prc=0.5, n_jobs=1, random_state=random_state)
 
     # Before fit it should raise an exception
     with pytest.raises(NotFittedError) as _:
@@ -154,13 +149,12 @@ def test_shap_resemblance_class(X1, X2):
     rm.plot(plot_type="dot")
 
 
-def test_shap_resemblance_class_lin_models(X1, X2):
+def test_shap_resemblance_class_lin_models(X1, X2, logistic_regression, random_state):
     """
     Test.
     """
     # Test SHAP Resemblance Model for linear models.
-    clf = LogisticRegression()
-    rm = SHAPImportanceResemblance(clf, test_prc=0.5, n_jobs=1, random_state=42)
+    rm = SHAPImportanceResemblance(logistic_regression, test_prc=0.5, n_jobs=1, random_state=random_state)
 
     # Before fit it should raise an exception
     with pytest.raises(NotFittedError) as _:
@@ -198,7 +192,7 @@ def test_shap_resemblance_class_lin_models(X1, X2):
 
 
 @pytest.mark.skipif(os.environ.get("SKIP_LIGHTGBM") == "true", reason="LightGBM tests disabled")
-def test_shap_resemblance_class2(complex_data, complex_lightgbm):
+def test_shap_resemblance_class2(complex_data, complex_lightgbm, random_state):
     """
     Test.
     """
@@ -206,7 +200,9 @@ def test_shap_resemblance_class2(complex_data, complex_lightgbm):
     X2 = X1.copy()
     X2["f4"] = X2["f4"] + 100
 
-    rm = SHAPImportanceResemblance(complex_lightgbm, scoring="accuracy", test_prc=0.5, n_jobs=1, random_state=42)
+    rm = SHAPImportanceResemblance(
+        complex_lightgbm, scoring="accuracy", test_prc=0.5, n_jobs=1, random_state=random_state
+    )
 
     # Before fit it should raise an exception
     with pytest.raises(NotFittedError) as _:
@@ -242,12 +238,13 @@ def test_shap_resemblance_class2(complex_data, complex_lightgbm):
     rm.plot(plot_type="dot", show=False)
 
 
-def test_permutation_resemblance_class(X1, X2):
+def test_permutation_resemblance_class(X1, X2, decision_tree_classifier, random_state):
     """
     Test.
     """
-    clf = DecisionTreeClassifier(max_depth=1, random_state=1)
-    rm = PermutationImportanceResemblance(clf, test_prc=0.5, n_jobs=1, random_state=42, iterations=20)
+    rm = PermutationImportanceResemblance(
+        decision_tree_classifier, test_prc=0.5, n_jobs=1, random_state=random_state, iterations=20
+    )
 
     # Before fit it should raise an exception
     with pytest.raises(NotFittedError) as _:
@@ -280,12 +277,11 @@ def test_permutation_resemblance_class(X1, X2):
     assert size[0] == 10 and size[1] == 10
 
 
-def test_base_class_same_data(X1):
+def test_base_class_same_data(X1, decision_tree_classifier, random_state):
     """
     Test.
     """
-    clf = DecisionTreeClassifier(max_depth=1, random_state=1)
-    rm = BaseResemblanceModel(clf, test_prc=0.5, n_jobs=1, random_state=42)
+    rm = BaseResemblanceModel(decision_tree_classifier, test_prc=0.5, n_jobs=1, random_state=random_state)
 
     actual_report, train_score, test_score = rm.fit_compute(X1, X1, return_scores=True)
 
