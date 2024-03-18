@@ -123,7 +123,8 @@ class DependencePlotter(BaseFitComputePlotClass):
             self.X,
             precalc_shap=precalc_shap,
             verbose=self.verbose,
-            random_state=self.random_state**shap_kwargs,
+            random_state=self.random_state,
+            **shap_kwargs,
         )
 
         self.fitted = True
