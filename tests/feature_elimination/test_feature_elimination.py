@@ -2,6 +2,7 @@ import os
 
 import pandas as pd
 import pytest
+from lightgbm import LGBMClassifier
 from sklearn.datasets import make_classification
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
@@ -9,8 +10,6 @@ from sklearn.model_selection import RandomizedSearchCV, StratifiedGroupKFold, St
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVC
-
-from lightgbm import LGBMClassifier
 from xgboost import XGBClassifier
 
 from probatus.feature_elimination import EarlyStoppingShapRFECV, ShapRFECV
