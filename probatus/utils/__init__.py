@@ -36,7 +36,7 @@ from ._utils import (
     assure_list_values_allowed,
 )
 from .plots import plot_distributions_of_feature
-from .interface import BaseFitComputeClass, BaseFitComputePlotClass
+from .base_class_interface import BaseFitComputeClass, BaseFitComputePlotClass
 
 __all__ = [
     "NotFittedError",

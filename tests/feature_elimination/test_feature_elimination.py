@@ -56,6 +56,13 @@ def groups():
     return pd.Series(["grp1", "grp1", "grp1", "grp1", "grp2", "grp2", "grp2", "grp2"], index=[1, 2, 3, 4, 5, 6, 7, 8])
 
 
+@pytest.fixture(scope="function")
+def XGBoost_classifier(random_state):
+    """This fixture allows to reuse the import of the XGBClassifier class across different tests."""
+    model = XGBClassifier(n_estimators=200, max_depth=3, random_state=random_state)
+    return model
+
+
 def test_shap_rfe_randomized_search(X, y, randomized_search_decision_tree_classifier, random_state):
     """
     Test with RandomizedSearchCV.
@@ -387,7 +394,7 @@ def test_shap_rfe_early_stopping_lightGBM(complex_data, random_state):
     """
     Test EarlyStoppingShapRFECV with a LGBMClassifier.
     """
-    clf = LGBMClassifier(n_estimators=200, max_depth=3)
+    clf = LGBMClassifier(n_estimators=200, max_depth=3, random_state=random_state)
     X, y = complex_data
 
     shap_elimination = EarlyStoppingShapRFECV(
@@ -407,16 +414,15 @@ def test_shap_rfe_early_stopping_lightGBM(complex_data, random_state):
 
 
 @pytest.mark.skipif(os.environ.get("SKIP_LIGHTGBM") == "true", reason="LightGBM tests disabled")
-def test_shap_rfe_early_stopping_XGBoost(complex_data, random_state):
+def test_shap_rfe_early_stopping_XGBoost(XGBoost_classifier, complex_data, random_state):
     """
     Test EarlyStoppingShapRFECV with a LGBMClassifier.
     """
-    clf = XGBClassifier(n_estimators=200, max_depth=3, random_state=random_state)
     X, y = complex_data
     X["f1_categorical"] = X["f1_categorical"].astype(float)
 
     shap_elimination = EarlyStoppingShapRFECV(
-        clf,
+        XGBoost_classifier,
         random_state=random_state,
         step=1,
         cv=10,
@@ -431,14 +437,12 @@ def test_shap_rfe_early_stopping_XGBoost(complex_data, random_state):
     assert shap_elimination.get_reduced_features_set(1) == ["f4"]
 
 
-# For now this test fails, catboost has issues with categorical variables and
-@pytest.mark.xfail
 @pytest.mark.skipif(os.environ.get("SKIP_LIGHTGBM") == "true", reason="LightGBM tests disabled")
-def test_shap_rfe_early_stopping_CatBoost(complex_data, catboost_classifier, random_state):
+def test_shap_rfe_early_stopping_CatBoost(complex_data_with_categorical, catboost_classifier, random_state):
     """
     Test EarlyStoppingShapRFECV with a CatBoostClassifier.
     """
-    X, y = complex_data
+    X, y = complex_data_with_categorical
 
     shap_elimination = EarlyStoppingShapRFECV(
         catboost_classifier,
@@ -516,12 +520,13 @@ def test_get_feature_shap_values_per_fold_early_stopping_lightGBM(complex_data, 
 
 
 @pytest.mark.skipif(os.environ.get("SKIP_LIGHTGBM") == "true", reason="LightGBM tests disabled")
-def test_get_feature_shap_values_per_fold_early_stopping_CatBoost(complex_data, catboost_classifier, random_state):
+def test_get_feature_shap_values_per_fold_early_stopping_CatBoost(
+    complex_data_with_categorical, catboost_classifier, random_state
+):
     """
     Test with ShapRFECV with features per fold.
     """
-    X, y = complex_data
-    X["f1_categorical"] = X["f1_categorical"].astype(str).astype("category")
+    X, y = complex_data_with_categorical
     y = preprocess_labels(y, y_name="y", index=X.index)
 
     shap_elimination = EarlyStoppingShapRFECV(
@@ -544,17 +549,15 @@ def test_get_feature_shap_values_per_fold_early_stopping_CatBoost(complex_data, 
 
 
 @pytest.mark.skipif(os.environ.get("SKIP_LIGHTGBM") == "true", reason="LightGBM tests disabled")
-def test_get_feature_shap_values_per_fold_early_stopping_XGBoost(complex_data, random_state):
+def test_get_feature_shap_values_per_fold_early_stopping_XGBoost(XGBoost_classifier, complex_data, random_state):
     """
     Test with ShapRFECV with features per fold.
     """
-    clf = XGBClassifier(n_estimators=200, max_depth=3, random_state=random_state)
     X, y = complex_data
-    X["f1_categorical"] = X["f1_categorical"].astype(float)
     y = preprocess_labels(y, y_name="y", index=X.index)
 
     shap_elimination = EarlyStoppingShapRFECV(
-        clf, early_stopping_rounds=5, scoring="roc_auc", random_state=random_state
+        XGBoost_classifier, early_stopping_rounds=5, scoring="roc_auc", random_state=random_state
     )
     (
         shap_values,
@@ -563,7 +566,7 @@ def test_get_feature_shap_values_per_fold_early_stopping_XGBoost(complex_data, r
     ) = shap_elimination._get_feature_shap_values_per_fold(
         X,
         y,
-        clf,
+        XGBoost_classifier,
         train_index=list(range(5, 50)),
         val_index=[0, 1, 2, 3, 4],
     )

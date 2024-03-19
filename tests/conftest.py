@@ -7,7 +7,7 @@ from sklearn.datasets import make_classification
 from sklearn.model_selection import train_test_split
 from sklearn.tree import DecisionTreeClassifier
 from catboost import CatBoostClassifier
-import lightgbm
+from lightgbm import LGBMClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import RandomizedSearchCV
 
@@ -79,8 +79,15 @@ def complex_data(random_state):
         n_clusters_per_class=1,
     )
     X = pd.DataFrame(X, columns=feature_names)
-    X["f1_categorical"] = X["f1_categorical"].astype("category")
     X.loc[0:10, "f2_missing"] = np.nan
+    return X, y
+
+
+@pytest.fixture(scope="function")
+def complex_data_with_categorical(complex_data):
+    X, y = complex_data
+    X["f1_categorical"] = X["f1_categorical"].astype(str).astype("category")
+
     return X, y
 
 
@@ -95,19 +102,27 @@ def complex_data_split(complex_data, random_state_42):
 
 
 @pytest.fixture(scope="function")
+def complex_data_split_with_categorical(complex_data_split):
+    X_train, X_test, y_train, y_test = complex_data_split
+    X_train["f1_categorical"] = X_train["f1_categorical"].astype(str).astype("category")
+    X_test["f1_categorical"] = X_test["f1_categorical"].astype(str).astype("category")
+
+    return X_train, X_test, y_train, y_test
+
+
+@pytest.fixture(scope="function")
 def complex_lightgbm(random_state_42):
     """This fixture allows to reuse the import of the LGBMClassifier class across different tests."""
-    model = lightgbm.LGBMClassifier(max_depth=5, num_leaves=11, class_weight="balanced", random_state=random_state_42)
+    model = LGBMClassifier(max_depth=5, num_leaves=11, class_weight="balanced", random_state=random_state_42)
     return model
 
 
 @pytest.fixture(scope="function")
-def complex_fitted_lightgbm(complex_data_split, complex_lightgbm):
+def complex_fitted_lightgbm(complex_data_split_with_categorical, complex_lightgbm):
     """
     Fixture.
     """
-    X_train, _, y_train, _ = complex_data_split
-    X_train["f1_categorical"] = X_train["f1_categorical"].astype("category")
+    X_train, _, y_train, _ = complex_data_split_with_categorical
 
     return complex_lightgbm.fit(X_train, y_train)
 
@@ -139,3 +154,51 @@ def logistic_regression(random_state):
     """This fixture allows to reuse the import of the DecisionTreeClassifier class across different tests."""
     model = LogisticRegression(random_state=random_state)
     return model
+
+
+@pytest.fixture(scope="function")
+def X_train():
+    """
+    Fixture.
+    """
+    return pd.DataFrame({"col_1": [1, 1, 1, 1], "col_2": [0, 0, 0, 0], "col_3": [1, 0, 1, 0]}, index=[1, 2, 3, 4])
+
+
+@pytest.fixture(scope="function")
+def y_train():
+    """
+    Fixture.
+    """
+    return pd.Series([1, 0, 1, 0], index=[1, 2, 3, 4])
+
+
+@pytest.fixture(scope="function")
+def X_test():
+    """
+    Fixture.
+    """
+    return pd.DataFrame({"col_1": [1, 1, 1, 1], "col_2": [0, 0, 0, 0], "col_3": [1, 0, 1, 0]}, index=[5, 6, 7, 8])
+
+
+@pytest.fixture(scope="function")
+def y_test():
+    """
+    Fixture.
+    """
+    return pd.Series([0, 0, 1, 0], index=[5, 6, 7, 8])
+
+
+@pytest.fixture(scope="function")
+def fitted_logistic_regression(X_train, y_train, logistic_regression):
+    """
+    Fixture.
+    """
+    return logistic_regression.fit(X_train, y_train)
+
+
+@pytest.fixture(scope="function")
+def fitted_tree(X_train, y_train, decision_tree_classifier):
+    """
+    Fixture.
+    """
+    return decision_tree_classifier.fit(X_train, y_train)
