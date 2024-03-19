@@ -8,7 +8,6 @@ import pytest
 from pandas.api.types import is_numeric_dtype
 
 from probatus.sample_similarity import BaseResemblanceModel, PermutationImportanceResemblance, SHAPImportanceResemblance
-from probatus.utils import NotFittedError
 
 # Turn off interactive mode in plots
 plt.ioff()
@@ -37,14 +36,7 @@ def test_base_class(X1, X2, decision_tree_classifier, random_state):
     """
     rm = BaseResemblanceModel(decision_tree_classifier, test_prc=0.5, n_jobs=1, random_state=random_state)
 
-    # Before fit it should raise an exception
-    with pytest.raises(NotFittedError) as _:
-        rm._check_if_fitted()
-
     actual_report, train_score, test_score = rm.fit_compute(X1, X2, return_scores=True)
-
-    # After the fit this should not raise any error
-    rm._check_if_fitted()
 
     assert train_score == 1
     assert test_score == 1
@@ -77,14 +69,7 @@ def test_base_class_lin_models(X1, X2, logistic_regression, random_state):
     # Test class BaseResemblanceModel for linear models.
     rm = BaseResemblanceModel(logistic_regression, test_prc=0.5, n_jobs=1, random_state=random_state)
 
-    # Before fit it should raise an exception
-    with pytest.raises(NotFittedError) as _:
-        rm._check_if_fitted()
-
     actual_report, train_score, test_score = rm.fit_compute(X1, X2, return_scores=True)
-
-    # After the fit this should not raise any error
-    rm._check_if_fitted()
 
     assert train_score == 1
     assert test_score == 1
@@ -116,14 +101,7 @@ def test_shap_resemblance_class(X1, X2, decision_tree_classifier, random_state):
     """
     rm = SHAPImportanceResemblance(decision_tree_classifier, test_prc=0.5, n_jobs=1, random_state=random_state)
 
-    # Before fit it should raise an exception
-    with pytest.raises(NotFittedError) as _:
-        rm._check_if_fitted()
-
     actual_report, train_score, test_score = rm.fit_compute(X1, X2, return_scores=True)
-
-    # After the fit this should not raise any error
-    rm._check_if_fitted()
 
     assert train_score == 1
     assert test_score == 1
@@ -134,8 +112,7 @@ def test_shap_resemblance_class(X1, X2, decision_tree_classifier, random_state):
     assert actual_report.iloc[0].name == "col_1"
     # Check report values
     assert actual_report.loc["col_1"]["mean_abs_shap_value"] > 0
-    # see https://github.com/ing-bank/probatus/issues/225
-    # assert actual_report.loc["col_1"]["mean_shap_value"] >= 0
+    assert actual_report.loc["col_1"]["mean_shap_value"] < 0
     assert actual_report.loc["col_2"]["mean_abs_shap_value"] == 0
     assert actual_report.loc["col_2"]["mean_shap_value"] == 0
     assert actual_report.loc["col_3"]["mean_abs_shap_value"] == 0
@@ -156,16 +133,9 @@ def test_shap_resemblance_class_lin_models(X1, X2, logistic_regression, random_s
     # Test SHAP Resemblance Model for linear models.
     rm = SHAPImportanceResemblance(logistic_regression, test_prc=0.5, n_jobs=1, random_state=random_state)
 
-    # Before fit it should raise an exception
-    with pytest.raises(NotFittedError) as _:
-        rm._check_if_fitted()
-
     actual_report, train_score, test_score = rm.fit_compute(
         X1, X2, return_scores=True, approximate=True, check_additivity=False
     )
-
-    # After the fit this should not raise any error
-    rm._check_if_fitted()
 
     assert train_score == 1
     assert test_score == 1
@@ -176,8 +146,7 @@ def test_shap_resemblance_class_lin_models(X1, X2, logistic_regression, random_s
     assert actual_report.iloc[0].name == "col_1"
     # Check report values
     assert actual_report.loc["col_1"]["mean_abs_shap_value"] > 0
-    # see https://github.com/ing-bank/probatus/issues/225
-    # assert actual_report.loc["col_1"]["mean_shap_value"] > 0
+    assert actual_report.loc["col_1"]["mean_shap_value"] < 0
     assert actual_report.loc["col_2"]["mean_abs_shap_value"] == 0
     assert actual_report.loc["col_2"]["mean_shap_value"] == 0
     assert actual_report.loc["col_3"]["mean_abs_shap_value"] == 0
@@ -192,11 +161,11 @@ def test_shap_resemblance_class_lin_models(X1, X2, logistic_regression, random_s
 
 
 @pytest.mark.skipif(os.environ.get("SKIP_LIGHTGBM") == "true", reason="LightGBM tests disabled")
-def test_shap_resemblance_class2(complex_data, complex_lightgbm, random_state):
+def test_shap_resemblance_class2(complex_data_with_categorical, complex_lightgbm, random_state):
     """
     Test.
     """
-    X1, _ = complex_data
+    X1, _ = complex_data_with_categorical
     X2 = X1.copy()
     X2["f4"] = X2["f4"] + 100
 
@@ -204,19 +173,12 @@ def test_shap_resemblance_class2(complex_data, complex_lightgbm, random_state):
         complex_lightgbm, scoring="accuracy", test_prc=0.5, n_jobs=1, random_state=random_state
     )
 
-    # Before fit it should raise an exception
-    with pytest.raises(NotFittedError) as _:
-        rm._check_if_fitted()
-
     actual_report, train_score, test_score = rm.fit_compute(X1, X2, return_scores=True, class_names=["a", "b"])
 
     # Check if the X and y within the rm have correct types
     assert rm.X["f1_categorical"].dtype.name == "category"
     for num_column in ["f2_missing", "f3_static", "f4", "f5"]:
         assert is_numeric_dtype(rm.X[num_column])
-
-    # After the fit this should not raise any error
-    rm._check_if_fitted()
 
     assert train_score == pytest.approx(1, 0.05)
     assert test_score == pytest.approx(1, 0.05)
@@ -246,14 +208,7 @@ def test_permutation_resemblance_class(X1, X2, decision_tree_classifier, random_
         decision_tree_classifier, test_prc=0.5, n_jobs=1, random_state=random_state, iterations=20
     )
 
-    # Before fit it should raise an exception
-    with pytest.raises(NotFittedError) as _:
-        rm._check_if_fitted()
-
     actual_report, train_score, test_score = rm.fit_compute(X1, X2, return_scores=True)
-
-    # After the fit this should not raise any error
-    rm._check_if_fitted()
 
     assert train_score == 1
     assert test_score == 1
