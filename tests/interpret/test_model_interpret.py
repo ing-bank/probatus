@@ -103,8 +103,6 @@ def test_shap_interpret_lin_models(
     importance_df, train_auc, test_auc = shap_interpret.compute(return_scores=True)
     importance_df = importance_df.round(2)
 
-    print(importance_df)
-
     pd.testing.assert_frame_equal(expected_feature_importance_lin_models, importance_df)
     assert train_auc == 1
     assert test_auc == pytest.approx(0.833, 0.01)
