@@ -1,8 +1,8 @@
 name: Cron Test Dependencies
 
 # Controls when the action will run.
-# Every week at 4:05
-# See https://crontab.guru/#5 4 * * 0
+# Every month at 4:05
+# See https://crontab.guru/#5 4 1 * 0
 on:
   schedule:
     - cron: "5 4 * * 0"
