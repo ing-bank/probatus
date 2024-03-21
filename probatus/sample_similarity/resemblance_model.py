@@ -7,6 +7,7 @@ from loguru import logger
 from shap import summary_plot
 from sklearn.inspection import permutation_importance
 from sklearn.model_selection import train_test_split
+from sklearn.metrics import get_scorer
 
 from probatus.utils import BaseFitComputePlotClass, preprocess_data, preprocess_labels, get_single_scorer
 from probatus.utils.shap_helpers import calculate_shap_importance, shap_calc
@@ -70,7 +71,8 @@ class BaseResemblanceModel(BaseFitComputePlotClass):
         self.n_jobs = n_jobs
         self.random_state = random_state
         self.verbose = verbose
-        self.scorer = get_single_scorer(scoring)
+        self.scoring = scoring  # (str) name of the metric
+        self.scorer = get_scorer(scoring)
 
     def _init_output_variables(self):
         """
@@ -151,12 +153,12 @@ class BaseResemblanceModel(BaseFitComputePlotClass):
         )
         self.model.fit(self.X_train, self.y_train)
 
-        self.train_score = np.round(self.scorer.score(self.model, self.X_train, self.y_train), 3)
-        self.test_score = np.round(self.scorer.score(self.model, self.X_test, self.y_test), 3)
+        self.train_score = np.round(self.scorer(self.model, self.X_train, self.y_train), 3)
+        self.test_score = np.round(self.scorer(self.model, self.X_test, self.y_test), 3)
 
         self.results_text = (
-            f"Train {self.scorer.metric_name}: {np.round(self.train_score, 3)},\n"
-            f"Test {self.scorer.metric_name}: {np.round(self.test_score, 3)}."
+            f"Train {self.scoring}: {np.round(self.train_score, 3)},\n"
+            f"Test {self.scoring}: {np.round(self.test_score, 3)}."
         )
         if self.verbose > 1:
             logger.info(f"Finished model training: \n{self.results_text}")
@@ -164,7 +166,7 @@ class BaseResemblanceModel(BaseFitComputePlotClass):
         if self.verbose > 0:
             if self.train_score > self.test_score:
                 warnings.warn(
-                    f"Train {self.scorer.metric_name} > Test {self.scorer.metric_name}, which might indicate "
+                    f"Train {self.scoring} > Test {self.scoring}, which might indicate "
                     f"an overfit. \n Strong overfit might lead to misleading conclusions when analysing "
                     f"feature importance. Consider retraining with more regularization applied to the model."
                 )
@@ -384,7 +386,7 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
             self.model,
             self.X_test,
             self.y_test,
-            scoring=self.scorer.scorer,
+            scoring=self.scorer,
             n_repeats=self.iterations,
             n_jobs=self.n_jobs,
         )

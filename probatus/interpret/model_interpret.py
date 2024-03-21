@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from sklearn.metrics import get_scorer
 from shap import summary_plot
 from shap.plots._waterfall import waterfall_legacy
 
@@ -86,7 +87,8 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
                 reproducible results set it to an integer.
         """
         self.model = model
-        self.scorer = get_single_scorer(scoring)
+        self.scoring = scoring  # (str) name of the metric
+        self.scorer = get_scorer(scoring)
         self.verbose = verbose
         self.random_state = random_state
 
@@ -144,12 +146,12 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
             self.class_names = ["Negative Class", "Positive Class"]
 
         # Calculate Metrics
-        self.train_score = self.scorer.score(self.model, self.X_train, self.y_train)
-        self.test_score = self.scorer.score(self.model, self.X_test, self.y_test)
+        self.train_score = self.scorer(self.model, self.X_train, self.y_train)
+        self.test_score = self.scorer(self.model, self.X_test, self.y_test)
 
         self.results_text = (
-            f"Train {self.scorer.metric_name}: {np.round(self.train_score, 3)},\n"
-            f"Test {self.scorer.metric_name}: {np.round(self.test_score, 3)}."
+            f"Train {self.scoring}: {np.round(self.train_score, 3)},\n"
+            f"Test {self.scoring}: {np.round(self.test_score, 3)}."
         )
 
         (

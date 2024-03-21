@@ -21,7 +21,6 @@ CLASSES_TO_TEST = [
     probatus.interpret.DependencePlotter,
     probatus.sample_similarity.SHAPImportanceResemblance,
     probatus.sample_similarity.PermutationImportanceResemblance,
-    probatus.utils.Scorer,
 ]
 
 CLASSES_TO_TEST_LGBM = [

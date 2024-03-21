@@ -8,6 +8,8 @@ from loguru import logger
 from sklearn.base import clone, is_classifier, is_regressor
 from sklearn.model_selection import check_cv
 from sklearn.model_selection._search import BaseSearchCV
+from sklearn.metrics import get_scorer
+from lightgbm import early_stopping, log_evaluation
 
 from probatus.utils import (
     BaseFitComputePlotClass,
@@ -144,7 +146,7 @@ class ShapRFECV(BaseFitComputePlotClass):
                 [cv parameter](https://scikit-learn.org/stable/modules/generated/sklearn.feature_selection.RFECV.html).
                 If None, then cv of 5 is used.
 
-            scoring (string or probatus.utils.Scorer, optional):
+            scoring (string or sklearn Scorer, optional):
                 Metric for which the model performance is calculated. It can be either a metric name aligned with predefined
                 [classification scorers names in sklearn](https://scikit-learn.org/stable/modules/model_evaluation.html).
 
@@ -332,6 +334,7 @@ class ShapRFECV(BaseFitComputePlotClass):
         Returns:
             (ShapRFECV): Fitted object.
         """
+        # TODO: Simplify implementation & refactor
         # Set seed for results reproducibility
         if self.random_state is not None:
             np.random.seed(self.random_state)
@@ -903,6 +906,10 @@ class ShapRFECV(BaseFitComputePlotClass):
         # Assuming 'features_set' contains the list of feature names for the row
         return matching_rows.iloc[0]["features_set"]
 
+        # Assuming 'features_set' contains the list of feature names for the row
+        return matching_rows.iloc[0]["features_set"]
+
+    @staticmethod
     def _get_feature_support(self, feature_names_selected):
         """
         Helper function that takes feature_names_selected and returns a boolean mask representing the columns
