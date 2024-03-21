@@ -1,5 +1,4 @@
-from .exceptions import NotFittedError, UnsupportedModelError
-from .scoring import Scorer, get_scorers, get_single_scorer
+from .exceptions import NotFittedError
 from .arrayfuncs import (
     assure_pandas_df,
     assure_pandas_series,
@@ -12,10 +11,7 @@ from .base_class_interface import BaseFitComputeClass, BaseFitComputePlotClass
 
 __all__ = [
     "NotFittedError",
-    "UnsupportedModelError",
-    "Scorer",
     "assure_pandas_df",
-    "get_scorers",
     "assure_list_of_strings",
     "shap_calc",
     "shap_to_df",
@@ -25,5 +21,4 @@ __all__ = [
     "preprocess_labels",
     "BaseFitComputeClass",
     "BaseFitComputePlotClass",
-    "get_single_scorer",
 ]
