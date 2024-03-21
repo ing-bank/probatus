@@ -8,7 +8,7 @@ assignees: ''
 ---
 
 ## Description
-Please provide a summary of the changes you are proposing with this Pull Request. Include the motivation and context. Highlight any key changes. If this PR fixes an open issue, include "Fixes #issue_number" so the issue gets closed automatically when the PR is merged.
+Please provide a summary of the changes you are proposing with this Pull Request. Include the motivation and context. Highlight any key changes. If this PR fixes an open issue, mention the #issue_number" in this PR.
 
 ## Type of change
 Please delete options that are not relevant.
