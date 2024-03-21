@@ -15,20 +15,14 @@ def assure_pandas_df(x, column_names=None):
         pandas DataFrame
     """
     if isinstance(x, pd.DataFrame):
-        # Check if column_names are passed correctly
         if column_names is not None:
             x.columns = column_names
-        return x
-    elif any(
-        [
-            isinstance(x, np.ndarray),
-            isinstance(x, pd.core.series.Series),
-            isinstance(x, list),
-        ]
-    ):
-        return pd.DataFrame(x, columns=column_names)
+    elif isinstance(x, (np.ndarray, pd.Series, list)):
+        x = pd.DataFrame(x, columns=column_names)
     else:
         raise TypeError("Please supply a list, numpy array, pandas Series or pandas DataFrame")
+
+    return x
 
 
 def assure_pandas_series(x, index=None):
@@ -42,7 +36,7 @@ def assure_pandas_series(x, index=None):
         pandas Series
     """
     if isinstance(x, pd.Series):
-        if isinstance(index, list) or isinstance(index, np.ndarray):
+        if isinstance(index, (list, np.ndarray)):
             index = pd.Index(index)
         current_x_index = pd.Index(x.index.values)
         if current_x_index.equals(index):
@@ -55,7 +49,7 @@ def assure_pandas_series(x, index=None):
             # If indexes have different values, overwrite
             x.index = index
             return x
-    elif any([isinstance(x, np.ndarray), isinstance(x, list)]):
+    elif any([isinstance(x, (np.ndarray, list))]):
         return pd.Series(x, index=index)
     else:
         raise TypeError("Please supply a list, numpy array, pandas Series")
@@ -92,40 +86,36 @@ def preprocess_data(X, X_name=None, column_names=None, verbose=0):
         (pd.DataFrame):
             Preprocessed dataset.
     """
-    if X_name is None:
-        X_name = "X"
+    X_name = "X" if X_name is None else X_name
 
     # Make sure that X is a pd.DataFrame with correct column names
     X = assure_pandas_df(X, column_names=column_names)
 
-    # Warn if missing
-    columns_with_missing = [column for column in X.columns if X[column].isnull().values.any()]
-    if len(columns_with_missing) > 0:
-        if verbose > 0:
+    if verbose > 0:
+        # Warn if missing
+        columns_with_missing = X.columns[X.isnull().any()].tolist()
+        if columns_with_missing:
             warnings.warn(
                 f"The following variables in {X_name} contains missing values {columns_with_missing}. "
                 f"Make sure to impute missing or apply a model that handles them automatically."
             )
 
-    # Warn if categorical features and change to category
-    indices_categorical_features = [
-        column[0] for column in enumerate(X.dtypes) if column[1].name in ["category", "object"]
-    ]
-    categorical_features = list(X.columns[indices_categorical_features])
+        # Warn if categorical features and change to category
+        categorical_features = X.select_dtypes(include=["category", "object"]).columns.tolist()
+        # Set categorical features type to category
+        if categorical_features:
+            if verbose > 0:
+                warnings.warn(
+                    f"The following variables in {X_name} contains categorical variables: "
+                    f"{categorical_features}. Make sure to use a model that handles them automatically or "
+                    f"encode them into numerical variables."
+                )
 
-    # Set categorical features type to category
-    if len(categorical_features) > 0:
-        if verbose > 0:
-            warnings.warn(
-                f"The following variables in {X_name} contains categorical variables: "
-                f"{categorical_features}. Make sure to use a model that handles them automatically or "
-                f"encode them into numerical variables."
-            )
+    # Ensure category dtype, to enable models e.g. LighGBM, handle them automatically
+    object_columns = X.select_dtypes(include=["object"]).columns
+    if not object_columns.empty:
+        X[object_columns] = X[object_columns].astype("category")
 
-        # Ensure category dtype, to enable models e.g. LighGBM, handle them automatically
-        for categorical_feature in categorical_features:
-            if X[categorical_feature].dtype.name == "object":
-                X[categorical_feature] = X[categorical_feature].astype("category")
     return X, X.columns.tolist()
 
 
@@ -157,8 +147,7 @@ def preprocess_labels(y, y_name=None, index=None, verbose=0):
         (pd.Series):
             Labels in the form of pd.Series.
     """
-    if y_name is None:
-        y_name = "y"
+    y_name = "y" if y_name is None else y_name
 
     # Make sure that y is a series with correct index
     y = assure_pandas_series(y, index=index)
