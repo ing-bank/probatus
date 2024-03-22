@@ -8,8 +8,6 @@ from loguru import logger
 from sklearn.base import clone, is_classifier, is_regressor
 from sklearn.model_selection import check_cv
 from sklearn.model_selection._search import BaseSearchCV
-from sklearn.metrics import get_scorer
-from lightgbm import early_stopping, log_evaluation
 
 from probatus.utils import (
     BaseFitComputePlotClass,
@@ -17,6 +15,7 @@ from probatus.utils import (
     calculate_shap_importance,
     preprocess_data,
     preprocess_labels,
+    get_single_scorer,
     shap_calc,
 )
 
@@ -145,7 +144,7 @@ class ShapRFECV(BaseFitComputePlotClass):
                 [cv parameter](https://scikit-learn.org/stable/modules/generated/sklearn.feature_selection.RFECV.html).
                 If None, then cv of 5 is used.
 
-            scoring (string or sklearn Scorer, optional):
+            scoring (string or probatus.utils.Scorer, optional):
                 Metric for which the model performance is calculated. It can be either a metric name aligned with predefined
                 [classification scorers names in sklearn](https://scikit-learn.org/stable/modules/model_evaluation.html).
 
@@ -170,8 +169,7 @@ class ShapRFECV(BaseFitComputePlotClass):
         self.step = self.validate_step(step)
         self.min_features_to_select = self.validate_min_features(min_features_to_select)
         self.cv = cv
-        self.scoring = scoring  # (str) name of the metric
-        self.scorer = get_scorer(scoring)
+        self.scorer = get_single_scorer(scoring)
         self.n_jobs = n_jobs
         self.verbose = verbose
         self.random_state = random_state
@@ -380,8 +378,8 @@ class ShapRFECV(BaseFitComputePlotClass):
             model = model.fit(X_train, y_train)
 
         # Score the model
-        score_train = self.scorer(model, X_train, y_train)
-        score_val = self.scorer(model, X_val, y_val)
+        score_train = self.scorer.score(model, X_train, y_train)
+        score_val = self.scorer.score(model, X_val, y_val)
 
         # Compute SHAP values
         shap_values = shap_calc(model, X_val, verbose=self.verbose, random_state=self.random_state, **shap_kwargs)
@@ -937,7 +935,7 @@ class ShapRFECV(BaseFitComputePlotClass):
         )
 
         plt.xlabel("Number of features")
-        plt.ylabel(f"Performance {self.scoring}")
+        plt.ylabel(f"Performance {self.scorer.metric_name}")
         plt.title("Backwards Feature Elimination using SHAP & CV")
         plt.legend(loc="lower left")
         fig.axes[0].invert_xaxis()
@@ -1176,6 +1174,8 @@ class EarlyStoppingShapRFECV(ShapRFECV):
         Returns:
             dict: fit parameters
         """
+        from lightgbm import early_stopping, log_evaluation
+
         fit_params = {
             "X": X_train,
             "y": y_train,
@@ -1476,8 +1476,8 @@ class EarlyStoppingShapRFECV(ShapRFECV):
         model = model.fit(**fit_params)
 
         # Score the model
-        score_train = self.scorer(model, X_train, y_train)
-        score_val = self.scorer(model, X_val, y_val)
+        score_train = self.scorer.score(model, X_train, y_train)
+        score_val = self.scorer.score(model, X_val, y_val)
 
         # Compute SHAP values
         shap_values = shap_calc(model, X_val, verbose=self.verbose, random_state=self.random_state, **shap_kwargs)
