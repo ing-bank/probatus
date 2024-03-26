@@ -499,6 +499,7 @@ def test_get_feature_shap_values_per_fold_early_stopping_lightGBM(complex_data, 
     X, y = complex_data
     y = preprocess_labels(y, y_name="y", index=X.index)
 
+
     shap_elimination = EarlyStoppingShapRFECV(
         clf, early_stopping_rounds=5, scoring="roc_auc", random_state=random_state
     )
@@ -527,6 +528,7 @@ def test_get_feature_shap_values_per_fold_early_stopping_CatBoost(
     """
     X, y = complex_data_with_categorical
     y = preprocess_labels(y, y_name="y", index=X.index)
+
 
     shap_elimination = EarlyStoppingShapRFECV(
         catboost_classifier, early_stopping_rounds=5, scoring="roc_auc", random_state=random_state
