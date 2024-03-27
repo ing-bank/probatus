@@ -34,7 +34,7 @@ dependencies = [
     "joblib>=0.13.2",
     "tqdm>=4.41.0",
     "shap==0.43.0 ; python_version == '3.8'",
-    "shap>=0.43.0 ; python_version != '3.8'",
+    "shap==0.44.1; python_version != '3.8'",
     "numpy>=1.23.2",
     "numba>=0.57.0",
 ]
@@ -77,7 +77,7 @@ extras = [
     # https://github.com/catboost/catboost/issues/2371
     "catboost<1.2 ; python_version == '3.8'",
     "catboost>=1.1 ; python_version != '3.8'",
-    "xgboost>=1.5.0",
+    "xgboost>=2.0.2",
     "scipy>=1.4.0",
 ]
 # Separating these allow for more install flexibility.
