@@ -167,6 +167,21 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
             **shap_kwargs,
         )
 
+        (
+            self.shap_values_test,
+            self.expected_value_test,
+            self.tdp_test,
+        ) = self._prep_shap_related_variables(
+            model=self.model,
+            X=self.X_test,
+            y=self.y_test,
+            column_names=self.column_names,
+            class_names=self.class_names,
+            verbose=self.verbose,
+            random_state=self.random_state,
+            **shap_kwargs,
+        )
+
         self.fitted = True
 
     @staticmethod
