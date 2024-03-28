@@ -8,8 +8,6 @@ from loguru import logger
 from sklearn.base import clone, is_classifier, is_regressor
 from sklearn.model_selection import check_cv
 from sklearn.model_selection._search import BaseSearchCV
-from sklearn.metrics import get_scorer
-from lightgbm import early_stopping, log_evaluation
 
 from probatus.utils import (
     BaseFitComputePlotClass,
@@ -146,7 +144,7 @@ class ShapRFECV(BaseFitComputePlotClass):
                 [cv parameter](https://scikit-learn.org/stable/modules/generated/sklearn.feature_selection.RFECV.html).
                 If None, then cv of 5 is used.
 
-            scoring (string or sklearn Scorer, optional):
+            scoring (string or probatus.utils.Scorer, optional):
                 Metric for which the model performance is calculated. It can be either a metric name aligned with predefined
                 [classification scorers names in sklearn](https://scikit-learn.org/stable/modules/model_evaluation.html).
 

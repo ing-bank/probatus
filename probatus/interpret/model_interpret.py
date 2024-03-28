@@ -1,7 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from sklearn.metrics import get_scorer
 from shap import summary_plot
 from shap.plots._waterfall import waterfall_legacy
 
@@ -87,8 +86,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
                 reproducible results set it to an integer.
         """
         self.model = model
-        self.scoring = scoring  # (str) name of the metric
-        self.scorer = get_scorer(scoring)
+        self.scorer = get_single_scorer(scoring)
         self.verbose = verbose
         self.random_state = random_state
 
@@ -146,12 +144,12 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
             self.class_names = ["Negative Class", "Positive Class"]
 
         # Calculate Metrics
-        self.train_score = self.scorer(self.model, self.X_train, self.y_train)
-        self.test_score = self.scorer(self.model, self.X_test, self.y_test)
+        self.train_score = self.scorer.score(self.model, self.X_train, self.y_train)
+        self.test_score = self.scorer.score(self.model, self.X_test, self.y_test)
 
         self.results_text = (
-            f"Train {self.scoring}: {np.round(self.train_score, 3)},\n"
-            f"Test {self.scoring}: {np.round(self.test_score, 3)}."
+            f"Train {self.scorer.metric_name}: {np.round(self.train_score, 3)},\n"
+            f"Test {self.scorer.metric_name}: {np.round(self.test_score, 3)}."
         )
 
         (
@@ -165,22 +163,6 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
             column_names=self.column_names,
             class_names=self.class_names,
             verbose=self.verbose,
-            random_state=self.random_state,
-            **shap_kwargs,
-        )
-
-        (
-            self.shap_values_test,
-            self.expected_value_test,
-            self.tdp_test,
-        ) = self._prep_shap_related_variables(
-            model=self.model,
-            X=self.X_test,
-            y=self.y_test,
-            column_names=self.column_names,
-            class_names=self.class_names,
-            verbose=self.verbose,
-            random_state=self.random_state,
             random_state=self.random_state,
             **shap_kwargs,
         )
