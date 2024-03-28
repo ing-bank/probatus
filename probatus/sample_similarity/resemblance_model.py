@@ -1,29 +1,9 @@
-# Copyright (c) 2020 ING Bank N.V.
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy of
-# this software and associated documentation files (the "Software"), to deal in
-# the Software without restriction, including without limitation the rights to
-# use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
-# the Software, and to permit persons to whom the Software is furnished to do so,
-# subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
-# FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
-# COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
-# IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
-# CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
-
 import warnings
 
 import matplotlib.pyplot as plt
-from loguru import logger
 import numpy as np
 import pandas as pd
+from loguru import logger
 from shap import summary_plot
 from sklearn.inspection import permutation_importance
 from sklearn.model_selection import train_test_split
@@ -46,7 +26,7 @@ class BaseResemblanceModel(BaseFitComputePlotClass):
 
     def __init__(
         self,
-        clf,
+        model,
         scoring="roc_auc",
         test_prc=0.25,
         n_jobs=1,
@@ -57,8 +37,8 @@ class BaseResemblanceModel(BaseFitComputePlotClass):
         Initializes the class.
 
         Args:
-            clf (model object):
-                Binary classification model or pipeline.
+            model (model object):
+                Regression or classification model or pipeline.
 
             scoring (string or probatus.utils.Scorer, optional):
                 Metric for which the model performance is calculated. It can be either a metric name aligned with
@@ -85,7 +65,7 @@ class BaseResemblanceModel(BaseFitComputePlotClass):
                 reproducible and in random search at each iteration a different hyperparameters might be tested. For
                 reproducible results set it to an integer.
         """  # noqa
-        self.clf = clf
+        self.model = model
         self.test_prc = test_prc
         self.n_jobs = n_jobs
         self.random_state = random_state
@@ -169,10 +149,10 @@ class BaseResemblanceModel(BaseFitComputePlotClass):
             shuffle=True,
             stratify=self.y,
         )
-        self.clf.fit(self.X_train, self.y_train)
+        self.model.fit(self.X_train, self.y_train)
 
-        self.train_score = np.round(self.scorer.score(self.clf, self.X_train, self.y_train), 3)
-        self.test_score = np.round(self.scorer.score(self.clf, self.X_test, self.y_test), 3)
+        self.train_score = np.round(self.scorer.score(self.model, self.X_train, self.y_train), 3)
+        self.test_score = np.round(self.scorer.score(self.model, self.X_test, self.y_test), 3)
 
         self.results_text = (
             f"Train {self.scorer.metric_name}: {np.round(self.train_score, 3)},\n"
@@ -297,8 +277,8 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
     from probatus.sample_similarity import PermutationImportanceResemblance
     X1, _ = make_classification(n_samples=100, n_features=5)
     X2, _ = make_classification(n_samples=100, n_features=5, shift=0.5)
-    clf = RandomForestClassifier(max_depth=2)
-    perm = PermutationImportanceResemblance(clf)
+    model = RandomForestClassifier(max_depth=2)
+    perm = PermutationImportanceResemblance(model)
     feature_importance = perm.fit_compute(X1, X2)
     perm.plot()
     ```
@@ -307,7 +287,7 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
 
     def __init__(
         self,
-        clf,
+        model,
         iterations=100,
         scoring="roc_auc",
         test_prc=0.25,
@@ -319,8 +299,8 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
         Initializes the class.
 
         Args:
-            clf (model object):
-                Binary classification model or pipeline.
+            model (model object):
+                Regression or classification model or pipeline.
 
             iterations (int, optional):
                 Number of iterations performed to calculate permutation importance. By default 100 iterations per
@@ -352,7 +332,7 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
                 reproducible results set it to integer.
         """  # noqa
         super().__init__(
-            clf=clf,
+            model=model,
             scoring=scoring,
             test_prc=test_prc,
             n_jobs=n_jobs,
@@ -401,7 +381,7 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
         super().fit(X1=X1, X2=X2, column_names=column_names, class_names=class_names)
 
         permutation_result = permutation_importance(
-            self.clf,
+            self.model,
             self.X_test,
             self.y_test,
             scoring=self.scorer.scorer,
@@ -528,8 +508,8 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
     from probatus.sample_similarity import SHAPImportanceResemblance
     X1, _ = make_classification(n_samples=100, n_features=5)
     X2, _ = make_classification(n_samples=100, n_features=5, shift=0.5)
-    clf = RandomForestClassifier(max_depth=2)
-    rm = SHAPImportanceResemblance(clf)
+    model = RandomForestClassifier(max_depth=2)
+    rm = SHAPImportanceResemblance(model)
     feature_importance = rm.fit_compute(X1, X2)
     rm.plot()
     ```
@@ -540,7 +520,7 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
 
     def __init__(
         self,
-        clf,
+        model,
         scoring="roc_auc",
         test_prc=0.25,
         n_jobs=1,
@@ -551,8 +531,8 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
         Initializes the class.
 
         Args:
-            clf (model object):
-                Binary classification model or pipeline.
+            model (model object):
+                Regression or classification model or pipeline.
 
             scoring (string or probatus.utils.Scorer, optional):
                 Metric for which the model performance is calculated. It can be either a metric name aligned with
@@ -580,7 +560,7 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
                 reproducible results set it to integer.
         """  # noqa
         super().__init__(
-            clf=clf,
+            model=model,
             scoring=scoring,
             test_prc=test_prc,
             n_jobs=n_jobs,
@@ -629,7 +609,7 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
         super().fit(X1=X1, X2=X2, column_names=column_names, class_names=class_names)
 
         self.shap_values_test = shap_calc(
-            self.clf, self.X_test, verbose=self.verbose, random_state=self.random_state, **shap_kwargs
+            self.model, self.X_test, verbose=self.verbose, random_state=self.random_state, **shap_kwargs
         )
         self.report = calculate_shap_importance(self.shap_values_test, self.column_names)
         return self

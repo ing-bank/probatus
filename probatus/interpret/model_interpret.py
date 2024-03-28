@@ -1,23 +1,3 @@
-# Copyright (c) 2020 ING Bank N.V.
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy of
-# this software and associated documentation files (the "Software"), to deal in
-# the Software without restriction, including without limitation the rights to
-# use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
-# the Software, and to permit persons to whom the Software is furnished to do so,
-# subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
-# FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
-# COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
-# IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
-# CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
-
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -60,11 +40,11 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
     # Prepare and fit model. Remember about class_weight="balanced" or an equivalent.
-    clf = RandomForestClassifier(class_weight='balanced', n_estimators = 100, max_depth=2, random_state=0)
-    clf.fit(X_train, y_train)
+    model = RandomForestClassifier(class_weight='balanced', n_estimators = 100, max_depth=2, random_state=0)
+    model.fit(X_train, y_train)
 
     # Train ShapModelInterpreter
-    shap_interpreter = ShapModelInterpreter(clf)
+    shap_interpreter = ShapModelInterpreter(model)
     feature_importance = shap_interpreter.fit_compute(X_train, X_test, y_train, y_test)
 
     # Make plots
@@ -80,12 +60,12 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
     <img src="../img/model_interpret_sample.png" width="320" />
     """
 
-    def __init__(self, clf, scoring="roc_auc", verbose=0, random_state=None):
+    def __init__(self, model, scoring="roc_auc", verbose=0, random_state=None):
         """
         Initializes the class.
 
         Args:
-            clf (binary classifier):
+            model (classifier or regressor):
                 Model fitted on X_train.
 
             scoring (string or probatus.utils.Scorer, optional):
@@ -105,7 +85,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
                 Random state set for the nr of samples. If it is None, the results will not be reproducible. For
                 reproducible results set it to an integer.
         """
-        self.clf = clf
+        self.model = model
         self.scorer = get_single_scorer(scoring)
         self.verbose = verbose
         self.random_state = random_state
@@ -118,7 +98,6 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
         y_test,
         column_names=None,
         class_names=None,
-        shap_variance_penalty_factor=None,
         **shap_kwargs,
     ):
         """
@@ -132,10 +111,10 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
                 Dataframe containing test data.
 
             y_train (pd.Series):
-                Series of binary labels for train data.
+                Series of labels for train data.
 
             y_test (pd.Series):
-                Series of binary labels for test data.
+                Series of labels for test data.
 
             column_names (None, or list of str, optional):
                 List of feature names for the dataset. If None, then column names from the X_train dataframe are used.
@@ -143,12 +122,6 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
             class_names (None, or list of str, optional):
                 List of class names e.g. ['neg', 'pos']. If none, the default ['Negative Class', 'Positive Class'] are
                 used.
-
-            shap_variance_penalty_factor (int or float, optional):
-                Apply aggregation penalty when computing average of shap values for a given feature.
-                Results in a preference for features that have smaller standard deviation of shap
-                values (more coherent shap importance). Recommend value 0.5 - 1.0.
-                Formula: penalized_shap_mean = (mean_shap - (std_shap * shap_variance_penalty_factor))
 
             **shap_kwargs:
                 keyword arguments passed to
@@ -171,8 +144,8 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
             self.class_names = ["Negative Class", "Positive Class"]
 
         # Calculate Metrics
-        self.train_score = self.scorer.score(self.clf, self.X_train, self.y_train)
-        self.test_score = self.scorer.score(self.clf, self.X_test, self.y_test)
+        self.train_score = self.scorer.score(self.model, self.X_train, self.y_train)
+        self.test_score = self.scorer.score(self.model, self.X_test, self.y_test)
 
         self.results_text = (
             f"Train {self.scorer.metric_name}: {np.round(self.train_score, 3)},\n"
@@ -184,7 +157,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
             self.expected_value_train,
             self.tdp_train,
         ) = self._prep_shap_related_variables(
-            clf=self.clf,
+            model=self.model,
             X=self.X_train,
             y=self.y_train,
             column_names=self.column_names,
@@ -199,7 +172,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
             self.expected_value_test,
             self.tdp_test,
         ) = self._prep_shap_related_variables(
-            clf=self.clf,
+            model=self.model,
             X=self.X_test,
             y=self.y_test,
             column_names=self.column_names,
@@ -213,7 +186,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
 
     @staticmethod
     def _prep_shap_related_variables(
-        clf,
+        model,
         X,
         y,
         approximate=False,
@@ -231,7 +204,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
                 Shap values, expected value of the explainer, and fitted TreeDependencePlotter for a given dataset.
         """
         shap_values, explainer = shap_calc(
-            clf,
+            model,
             X,
             approximate=approximate,
             verbose=verbose,
@@ -247,7 +220,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
             expected_value = expected_value[1]
 
         # Initialize tree dependence plotter
-        tdp = DependencePlotter(clf, verbose=verbose).fit(
+        tdp = DependencePlotter(model, verbose=verbose).fit(
             X,
             y,
             column_names=column_names,
@@ -334,10 +307,10 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
                 Dataframe containing test data.
 
             y_train (pd.Series):
-                Series of binary labels for train data.
+                Series of labels for train data.
 
             y_test (pd.Series):
-                Series of binary labels for test data.
+                Series of labels for test data.
 
             column_names (None, or list of str, optional):
                 List of feature names for the dataset.
@@ -380,10 +353,9 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
             y_test=y_test,
             column_names=column_names,
             class_names=class_names,
-            shap_variance_penalty_factor=shap_variance_penalty_factor,
             **shap_kwargs,
         )
-        return self.compute(shap_variance_penalty_factor=shap_variance_penalty_factor)
+        return self.compute(return_scores=return_scores, shap_variance_penalty_factor=shap_variance_penalty_factor)
 
     def plot(self, plot_type, target_set="test", target_columns=None, samples_index=None, show=True, **plot_kwargs):
         """

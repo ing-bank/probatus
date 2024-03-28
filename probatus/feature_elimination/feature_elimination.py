@@ -4,10 +4,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from joblib import Parallel, delayed
+from loguru import logger
 from sklearn.base import clone, is_classifier, is_regressor
 from sklearn.model_selection import check_cv
 from sklearn.model_selection._search import BaseSearchCV
-from loguru import logger
 
 from probatus.utils import (
     BaseFitComputePlotClass,
@@ -46,7 +46,7 @@ class ShapRFECV(BaseFitComputePlotClass):
         [GridSearchCV](https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.LassoCV.html),
         [RandomizedSearchCV](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.RandomizedSearchCV.html?highlight=randomized#sklearn.model_selection.RandomizedSearchCV), or
         [BayesSearchCV](https://scikit-optimize.github.io/stable/modules/generated/skopt.BayesSearchCV.html), which
-        needs to be passed as the `clf`. Thanks to this you can perform hyperparameter optimization at each step of
+        needs to be passed as the `model`. Thanks to this you can perform hyperparameter optimization at each step of
         the feature elimination. Lastly, it supports categorical features (object and category dtype) and missing values
         in the data, as long as the model supports them.
 
@@ -77,18 +77,18 @@ class ShapRFECV(BaseFitComputePlotClass):
 
 
     # Prepare model and parameter search space
-    clf = RandomForestClassifier(max_depth=5, class_weight='balanced')
+    model = RandomForestClassifier(max_depth=5, class_weight='balanced')
 
     param_grid = {
         'n_estimators': [5, 7, 10],
         'min_samples_leaf': [3, 5, 7, 10],
     }
-    search = RandomizedSearchCV(clf, param_grid)
+    search = RandomizedSearchCV(model, param_grid)
 
 
     # Run feature elimination
     shap_elimination = ShapRFECV(
-        clf=search, step=0.2, cv=10, scoring='roc_auc', n_jobs=3)
+        model=search, step=0.2, cv=10, scoring='roc_auc', n_jobs=3)
     report = shap_elimination.fit_compute(X, y)
 
     # Make plots
@@ -103,7 +103,7 @@ class ShapRFECV(BaseFitComputePlotClass):
 
     def __init__(
         self,
-        clf,
+        model,
         step=1,
         min_features_to_select=1,
         cv=None,
@@ -116,7 +116,7 @@ class ShapRFECV(BaseFitComputePlotClass):
         This method initializes the class.
 
         Args:
-            clf (classifier, sklearn compatible search CV e.g. GridSearchCV, RandomizedSearchCV or BayesSearchCV):
+            model (classifier or regressor, sklearn compatible search CV e.g. GridSearchCV, RandomizedSearchCV or BayesSearchCV):
                 A model that will be optimized and trained at each round of feature elimination. The recommended model
                 is [LGBMClassifier](https://lightgbm.readthedocs.io/en/latest/pythonapi/lightgbm.LGBMClassifier.html),
                 because it by default handles the missing values and categorical variables. This parameter also supports
@@ -165,11 +165,12 @@ class ShapRFECV(BaseFitComputePlotClass):
                 reproducible and in random search at each iteration a different hyperparameters might be tested. For
                 reproducible results set it to an integer.
         """  # noqa
-        self.clf = clf
-        if isinstance(self.clf, BaseSearchCV):
-            self.search_clf = True
+        # TODO: Add a check for models which are not supported.
+        self.model = model
+        if isinstance(self.model, BaseSearchCV):
+            self.search_model = True
         else:
-            self.search_clf = False
+            self.search_model = False
 
         if (isinstance(step, int) or isinstance(step, float)) and step > 0:
             self.step = step
@@ -340,7 +341,7 @@ class ShapRFECV(BaseFitComputePlotClass):
         self,
         X,
         y,
-        clf,
+        model,
         train_index,
         val_index,
         sample_weight=None,
@@ -356,7 +357,7 @@ class ShapRFECV(BaseFitComputePlotClass):
             y (pd.Series):
                 Labels for X.
 
-            clf (classifier):
+            model (classifier or regressor):
                 Model to be fitted on the train folds.
 
             train_index (np.array):
@@ -386,16 +387,16 @@ class ShapRFECV(BaseFitComputePlotClass):
         y_train, y_val = y.iloc[train_index], y.iloc[val_index]
 
         if sample_weight is not None:
-            clf = clf.fit(X_train, y_train, sample_weight=sample_weight.iloc[train_index])
+            model = model.fit(X_train, y_train, sample_weight=sample_weight.iloc[train_index])
         else:
-            clf = clf.fit(X_train, y_train)
+            model = model.fit(X_train, y_train)
 
         # Score the model
-        score_train = self.scorer.scorer(clf, X_train, y_train)
-        score_val = self.scorer.scorer(clf, X_val, y_val)
+        score_train = self.scorer.scorer(model, X_train, y_train)
+        score_val = self.scorer.scorer(model, X_val, y_val)
 
         # Compute SHAP values
-        shap_values = shap_calc(clf, X_val, verbose=self.verbose, random_state=self.random_state, **shap_kwargs)
+        shap_values = shap_calc(model, X_val, verbose=self.verbose, random_state=self.random_state, **shap_kwargs)
         return shap_values, score_train, score_val
 
     def fit(
@@ -413,7 +414,7 @@ class ShapRFECV(BaseFitComputePlotClass):
         Fits the object with the provided data.
 
         The algorithm starts with the entire dataset, and then sequentially
-             eliminates features. If sklearn compatible search CV is passed as clf e.g.
+             eliminates features. If sklearn compatible search CV is passed as model e.g.
              [GridSearchCV](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.GridSearchCV.html),
              [RandomizedSearchCV](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.RandomizedSearchCV.html)
              or [BayesSearchCV](https://scikit-optimize.github.io/stable/modules/generated/skopt.BayesSearchCV.html),
@@ -522,7 +523,7 @@ class ShapRFECV(BaseFitComputePlotClass):
                     "sample_weight is passed only to the fit method of the model, not the evaluation metrics."
                 )
             sample_weight = assure_pandas_series(sample_weight, index=self.X.index)
-        self.cv = check_cv(self.cv, self.y, classifier=is_classifier(self.clf))
+        self.cv = check_cv(self.cv, self.y, classifier=is_classifier(self.model))
 
         remaining_features = current_features_set = self.column_names
         round_number = 0
@@ -559,18 +560,18 @@ class ShapRFECV(BaseFitComputePlotClass):
                 np.random.seed(self.random_state)
 
             # Optimize parameters
-            if self.search_clf:
-                current_search_clf = clone(self.clf).fit(current_X, self.y)
-                current_clf = current_search_clf.estimator.set_params(**current_search_clf.best_params_)
+            if self.search_model:
+                current_search_model = clone(self.model).fit(current_X, self.y)
+                current_model = current_search_model.estimator.set_params(**current_search_model.best_params_)
             else:
-                current_clf = clone(self.clf)
+                current_model = clone(self.model)
 
             # Perform CV to estimate feature importance with SHAP
             results_per_fold = Parallel(n_jobs=self.n_jobs)(
                 delayed(self._get_feature_shap_values_per_fold)(
                     X=current_X,
                     y=self.y,
-                    clf=current_clf,
+                    model=current_model,
                     train_index=train_index,
                     val_index=val_index,
                     sample_weight=sample_weight,
@@ -579,7 +580,7 @@ class ShapRFECV(BaseFitComputePlotClass):
                 for train_index, val_index in self.cv.split(current_X, self.y, groups)
             )
 
-            if self.y.nunique() == 2 or is_regressor(current_clf):
+            if self.y.nunique() == 2 or is_regressor(current_model):
                 shap_values = np.vstack([current_result[0] for current_result in results_per_fold])
             else:  # multi-class case
                 shap_values = np.hstack([current_result[0] for current_result in results_per_fold])
@@ -656,7 +657,7 @@ class ShapRFECV(BaseFitComputePlotClass):
         Fits the object with the provided data.
 
         The algorithm starts with the entire dataset, and then sequentially
-             eliminates features. If sklearn compatible search CV is passed as clf e.g.
+             eliminates features. If sklearn compatible search CV is passed as model e.g.
              [GridSearchCV](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.GridSearchCV.html),
              [RandomizedSearchCV](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.RandomizedSearchCV.html)
              or [BayesSearchCV](https://scikit-optimize.github.io/stable/modules/generated/skopt.BayesSearchCV.html),
@@ -768,7 +769,7 @@ class ShapRFECV(BaseFitComputePlotClass):
 
         else:
             raise ValueError(
-                "Parameter num_features can be of type int, or of type str with"
+                "Parameter num_features can be of type int, or of type str with "
                 "possible values of 'best', 'best_coherent' or 'best_parsimonious'"
             )
 
@@ -984,7 +985,7 @@ class EarlyStoppingShapRFECV(ShapRFECV):
         the training speed, by skipping the training of trees that do not improve the scoring metric any further,
         which is particularly useful when the training dataset is large.
 
-    Note that if the classifier is a hyperparameter search model is used, the early stopping parameter is passed only
+    Note that if the regressor or classifier is a hyperparameter search model is used, the early stopping parameter is passed only
         to the fit method of the model duiring the Shapley values estimation step, and not for the hyperparameter
         search step.
         Early stopping can be seen as a type of regularization of the optimal number of trees. Therefore you can use
@@ -1030,11 +1031,11 @@ class EarlyStoppingShapRFECV(ShapRFECV):
     X = pd.DataFrame(X, columns=feature_names)
 
     # Prepare model
-    clf = LGBMClassifier(n_estimators=200, max_depth=3)
+    model = LGBMClassifier(n_estimators=200, max_depth=3)
 
     # Run feature elimination
     shap_elimination = EarlyStoppingShapRFECV(
-        clf=clf, step=0.2, cv=10, scoring='roc_auc', early_stopping_rounds=10, n_jobs=3)
+        model=model, step=0.2, cv=10, scoring='roc_auc', early_stopping_rounds=10, n_jobs=3)
     report = shap_elimination.fit_compute(X, y)
 
     # Make plots
@@ -1049,7 +1050,7 @@ class EarlyStoppingShapRFECV(ShapRFECV):
 
     def __init__(
         self,
-        clf,
+        model,
         step=1,
         min_features_to_select=1,
         cv=None,
@@ -1064,7 +1065,7 @@ class EarlyStoppingShapRFECV(ShapRFECV):
         This method initializes the class.
 
         Args:
-            clf (sklearn compatible classifier or regressor, sklearn compatible search CV e.g. GridSearchCV, RandomizedSearchCV or BayesSearchCV):
+            model (sklearn compatible classifier or regressor, sklearn compatible search CV e.g. GridSearchCV, RandomizedSearchCV or BayesSearchCV):
                 A model that will be optimized and trained at each round of features elimination. The model must
                 support early stopping of training, which is the case for XGBoost and LightGBM, for example. The
                 recommended model is [LGBMClassifier](https://lightgbm.readthedocs.io/en/latest/pythonapi/lightgbm.LGBMClassifier.html),
@@ -1132,7 +1133,7 @@ class EarlyStoppingShapRFECV(ShapRFECV):
                 Note that `eval_metric` is an argument of the model's fit method and it is different from `scoring`.
         """  # noqa
         super().__init__(
-            clf,
+            model,
             step=step,
             min_features_to_select=min_features_to_select,
             cv=cv,
@@ -1142,7 +1143,7 @@ class EarlyStoppingShapRFECV(ShapRFECV):
             random_state=random_state,
         )
 
-        if self.search_clf:
+        if self.search_model:
             if self.verbose > 0:
                 warnings.warn(
                     "Early stopping will be used only during Shapley value"
@@ -1196,7 +1197,7 @@ class EarlyStoppingShapRFECV(ShapRFECV):
                 Positions of validation fold samples.
 
         Raises:
-            ValueError: if the clf is not supported.
+            ValueError: if the model is not supported.
 
         Returns:
             dict: fit parameters
@@ -1252,7 +1253,7 @@ class EarlyStoppingShapRFECV(ShapRFECV):
                 Positions of validation fold samples.
 
         Raises:
-            ValueError: if the clf is not supported.
+            ValueError: if the model is not supported.
 
         Returns:
             dict: fit parameters
@@ -1300,7 +1301,7 @@ class EarlyStoppingShapRFECV(ShapRFECV):
                 Positions of validation fold samples.
 
         Raises:
-            ValueError: if the clf is not supported.
+            ValueError: if the model is not supported.
 
         Returns:
             dict: fit parameters
@@ -1319,12 +1320,12 @@ class EarlyStoppingShapRFECV(ShapRFECV):
         return fit_params
 
     def _get_fit_params(
-        self, clf, X_train, y_train, X_val, y_val, sample_weight=None, train_index=None, val_index=None
+        self, model, X_train, y_train, X_val, y_val, sample_weight=None, train_index=None, val_index=None
     ):
-        """Get the fit parameters for the specified classifier.
+        """Get the fit parameters for the specified classifier or regressor.
 
         Args:
-            clf (classifier):
+            model (classifier or regressor):
                 Model to be fitted on the train folds.
 
             X_train (pd.DataFrame):
@@ -1353,7 +1354,7 @@ class EarlyStoppingShapRFECV(ShapRFECV):
                 Positions of validation fold samples.
 
         Raises:
-            ValueError: if the clf is not supported.
+            ValueError: if the model is not supported.
 
         Returns:
             dict: fit parameters
@@ -1364,7 +1365,7 @@ class EarlyStoppingShapRFECV(ShapRFECV):
         try:
             from lightgbm import LGBMModel
 
-            if isinstance(clf, LGBMModel):
+            if isinstance(model, LGBMModel):
                 return self._get_fit_params_lightGBM(
                     X_train=X_train,
                     y_train=y_train,
@@ -1380,7 +1381,7 @@ class EarlyStoppingShapRFECV(ShapRFECV):
         try:
             from xgboost.sklearn import XGBModel
 
-            if isinstance(clf, XGBModel):
+            if isinstance(model, XGBModel):
                 return self._get_fit_params_XGBoost(
                     X_train=X_train,
                     y_train=y_train,
@@ -1396,7 +1397,7 @@ class EarlyStoppingShapRFECV(ShapRFECV):
         try:
             from catboost import CatBoost
 
-            if isinstance(clf, CatBoost):
+            if isinstance(model, CatBoost):
                 return self._get_fit_params_CatBoost(
                     X_train=X_train,
                     y_train=y_train,
@@ -1415,7 +1416,7 @@ class EarlyStoppingShapRFECV(ShapRFECV):
         self,
         X,
         y,
-        clf,
+        model,
         train_index,
         val_index,
         sample_weight=None,
@@ -1438,8 +1439,8 @@ class EarlyStoppingShapRFECV(ShapRFECV):
                 Note that they're only used for fitting of  the model, not during evaluation of metrics.
                 If not provided, then each sample is given unit weight.
 
-            clf:
-                Classifier to be fitted on the train folds.
+            model:
+                Classifier or regressor to be fitted on the train folds.
 
             train_index (np.array):
                 Positions of train folds samples.
@@ -1461,7 +1462,7 @@ class EarlyStoppingShapRFECV(ShapRFECV):
         y_train, y_val = y.iloc[train_index], y.iloc[val_index]
 
         fit_params = self._get_fit_params(
-            clf=clf,
+            model=model,
             X_train=X_train,
             y_train=y_train,
             X_val=X_val,
@@ -1476,34 +1477,34 @@ class EarlyStoppingShapRFECV(ShapRFECV):
         try:
             from lightgbm import LGBMModel
 
-            if isinstance(clf, LGBMModel):
-                clf.set_params(eval_metric=self.eval_metric)
+            if isinstance(model, LGBMModel):
+                model.set_params(eval_metric=self.eval_metric)
         except ImportError:
             pass
 
         try:
             from xgboost.sklearn import XGBModel
 
-            if isinstance(clf, XGBModel):
-                clf.set_params(eval_metric=self.eval_metric, early_stopping_rounds=self.early_stopping_rounds)
+            if isinstance(model, XGBModel):
+                model.set_params(eval_metric=self.eval_metric, early_stopping_rounds=self.early_stopping_rounds)
         except ImportError:
             pass
 
         try:
             from catboost import CatBoost
 
-            if isinstance(clf, CatBoost):
-                clf.set_params(early_stopping_rounds=self.early_stopping_rounds)
+            if isinstance(model, CatBoost):
+                model.set_params(early_stopping_rounds=self.early_stopping_rounds)
         except ImportError:
             pass
 
         # Train the model
-        clf = clf.fit(**fit_params)
+        model = model.fit(**fit_params)
 
         # Score the model
-        score_train = self.scorer.scorer(clf, X_train, y_train)
-        score_val = self.scorer.scorer(clf, X_val, y_val)
+        score_train = self.scorer.scorer(model, X_train, y_train)
+        score_val = self.scorer.scorer(model, X_val, y_val)
 
         # Compute SHAP values
-        shap_values = shap_calc(clf, X_val, verbose=self.verbose, random_state=self.random_state, **shap_kwargs)
+        shap_values = shap_calc(model, X_val, verbose=self.verbose, random_state=self.random_state, **shap_kwargs)
         return shap_values, score_train, score_val
