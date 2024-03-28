@@ -52,7 +52,7 @@ class DependencePlotter(BaseFitComputePlotClass):
     <img src="../img/model_interpret_dep.png"/>
     """
 
-    def __init__(self, clf, verbose=0):
+    def __init__(self, clf, verbose=0, random_state=None):
         """
         Initializes the class.
 
@@ -64,12 +64,16 @@ class DependencePlotter(BaseFitComputePlotClass):
                 Controls verbosity of the output:
 
                 - 0 - neither prints nor warnings are shown
-                - 1 - 50 - only most important warnings regarding data properties are shown (excluding SHAP warnings)
-                - 51 - 100 - shows most important warnings, prints of the feature removal process
-                - above 100 - presents all prints and all warnings (including SHAP warnings).
+                - 1 - only most important warnings
+                - 2 - shows all prints and all warnings.
+
+            random_state (int, optional):
+                Random state set for the nr of samples. If it is None, the results will not be reproducible. For
+                reproducible results set it to an integer.
         """
         self.clf = clf
         self.verbose = verbose
+        self.random_state = random_state
 
     def __repr__(self):
         """
@@ -113,7 +117,14 @@ class DependencePlotter(BaseFitComputePlotClass):
         if self.class_names is None:
             self.class_names = ["Negative Class", "Positive Class"]
 
-        self.shap_vals_df = shap_to_df(self.clf, self.X, precalc_shap=precalc_shap, verbose=self.verbose, **shap_kwargs)
+        self.shap_vals_df = shap_to_df(
+            self.clf,
+            self.X,
+            precalc_shap=precalc_shap,
+            verbose=self.verbose,
+            random_state=self.random_state,
+            **shap_kwargs,
+        )
 
         self.fitted = True
         return self

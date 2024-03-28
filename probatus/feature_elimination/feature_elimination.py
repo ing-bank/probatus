@@ -7,6 +7,7 @@ from joblib import Parallel, delayed
 from sklearn.base import clone, is_classifier, is_regressor
 from sklearn.model_selection import check_cv
 from sklearn.model_selection._search import BaseSearchCV
+from loguru import logger
 
 from probatus.utils import (
     BaseFitComputePlotClass,
@@ -156,9 +157,8 @@ class ShapRFECV(BaseFitComputePlotClass):
                 Controls verbosity of the output:
 
                 - 0 - neither prints nor warnings are shown
-                - 1 - 50 - only most important warnings
-                - 51 - 100 - shows other warnings and prints
-                - above 100 - presents all prints and all warnings (including SHAP warnings).
+                - 1 - only most important warnings
+                - 2 - shows all prints and all warnings.
 
             random_state (int, optional):
                 Random state set at each round of feature elimination. If it is None, the results will not be
@@ -395,7 +395,7 @@ class ShapRFECV(BaseFitComputePlotClass):
         score_val = self.scorer.scorer(clf, X_val, y_val)
 
         # Compute SHAP values
-        shap_values = shap_calc(clf, X_val, verbose=self.verbose, **shap_kwargs)
+        shap_values = shap_calc(clf, X_val, verbose=self.verbose, random_state=self.random_state, **shap_kwargs)
         return shap_values, score_train, score_val
 
     def fit(
@@ -537,7 +537,7 @@ class ShapRFECV(BaseFitComputePlotClass):
             self.min_features_to_select = 0
             # This ensures that, if columns_to_keep is provided ,
             # the last features remaining are only the columns_to_keep.
-            if self.verbose > 50:
+            if self.verbose > 1:
                 warnings.warn(f"Minimum features to select : {stopping_criteria}")
 
         while len(current_features_set) > stopping_criteria:
@@ -615,8 +615,8 @@ class ShapRFECV(BaseFitComputePlotClass):
                 val_metric_mean=np.mean(scores_val),
                 val_metric_std=np.std(scores_val),
             )
-            if self.verbose > 50:
-                print(
+            if self.verbose > 1:
+                logger.info(
                     f"Round: {round_number}, Current number of features: {len(current_features_set)}, "
                     f'Current performance: Train {self.report_df.loc[round_number]["train_metric_mean"]} '
                     f'+/- {self.report_df.loc[round_number]["train_metric_std"]}, CV Validation '
@@ -841,8 +841,8 @@ class ShapRFECV(BaseFitComputePlotClass):
             )
 
         # Log shap_report for users who want to inspect / debug
-        if self.verbose > 50:
-            print(shap_report)
+        if self.verbose > 1:
+            logger.info(shap_report)
 
         return best_num_features
 
@@ -1110,10 +1110,9 @@ class EarlyStoppingShapRFECV(ShapRFECV):
             verbose (int, optional):
                 Controls verbosity of the output:
 
-                - 0 - nether prints nor warnings are shown
-                - 1 - 50 - only most important warnings
-                - 51 - 100 - shows other warnings and prints
-                - above 100 - presents all prints and all warnings (including SHAP warnings).
+                - 0 - neither prints nor warnings are shown
+                - 1 - only most important warnings
+                - 2 - shows all prints and all warnings.
 
             random_state (int, optional):
                 Random state set at each round of feature elimination. If it is None, the results will not be
@@ -1210,7 +1209,8 @@ class EarlyStoppingShapRFECV(ShapRFECV):
             "eval_set": [(X_val, y_val)],
             "callbacks": [early_stopping(self.early_stopping_rounds, first_metric_only=True)],
         }
-        if self.verbose >= 100:
+
+        if self.verbose >= 2:
             fit_params["callbacks"].append(log_evaluation(1))
         else:
             fit_params["callbacks"].append(log_evaluation(0))
@@ -1505,5 +1505,5 @@ class EarlyStoppingShapRFECV(ShapRFECV):
         score_val = self.scorer.scorer(clf, X_val, y_val)
 
         # Compute SHAP values
-        shap_values = shap_calc(clf, X_val, verbose=self.verbose, **shap_kwargs)
+        shap_values = shap_calc(clf, X_val, verbose=self.verbose, random_state=self.random_state, **shap_kwargs)
         return shap_values, score_train, score_val

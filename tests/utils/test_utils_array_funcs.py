@@ -225,15 +225,15 @@ def test_preprocess_labels():
     y1 = pd.Series([1, 0, 1, 0, 1])
     index_1 = np.array([5, 4, 3, 2, 1])
 
-    y1_output = preprocess_labels(y1, y_name="y1", index=index_1, verbose=150)
+    y1_output = preprocess_labels(y1, y_name="y1", index=index_1, verbose=2)
     pd.testing.assert_series_equal(y1_output, pd.Series([1, 0, 1, 0, 1], index=index_1))
 
     y2 = [False, False, False, False, False]
-    y2_output = preprocess_labels(y2, y_name="y2", verbose=150)
+    y2_output = preprocess_labels(y2, y_name="y2", verbose=2)
     pd.testing.assert_series_equal(y2_output, pd.Series(y2))
 
     y3 = np.array([0, 1, 2, 3, 4])
-    y3_output = preprocess_labels(y3, y_name="y3", verbose=150)
+    y3_output = preprocess_labels(y3, y_name="y3", verbose=2)
     pd.testing.assert_series_equal(y3_output, pd.Series(y3))
 
     y4 = pd.Series(["2", "1", "3", "2", "1"])
@@ -252,9 +252,7 @@ def test_preprocess_data():
     X1_expected_output = pd.DataFrame({"1": ["a", "b", "c"], "2": [1, np.nan, 2], "3": [1, 2, 3]})
 
     X1_expected_output["1"] = X1_expected_output["1"].astype("category")
-    X1_output, output_column_names_X1 = preprocess_data(
-        X1, X_name="X1", column_names=target_column_names_X1, verbose=150
-    )
+    X1_output, output_column_names_X1 = preprocess_data(X1, X_name="X1", column_names=target_column_names_X1, verbose=2)
     assert target_column_names_X1 == output_column_names_X1
     pd.testing.assert_frame_equal(X1_output, X1_expected_output)
 
@@ -262,7 +260,7 @@ def test_preprocess_data():
 
     target_column_names_X1 = [0, 1, 2]
     X2_expected_output = pd.DataFrame(X2, columns=target_column_names_X1)
-    X2_output, output_column_names_X2 = preprocess_data(X2, X_name="X2", column_names=None, verbose=150)
+    X2_output, output_column_names_X2 = preprocess_data(X2, X_name="X2", column_names=None, verbose=2)
 
     assert target_column_names_X1 == output_column_names_X2
     pd.testing.assert_frame_equal(X2_output, X2_expected_output)
