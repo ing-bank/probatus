@@ -65,6 +65,12 @@ dev = [
     "isort>=5.12.0",
     "codespell>=2.2.4",
     "ruff>=0.2.2",
+    "lightgbm>=3.3.0",
+    # https://github.com/catboost/catboost/issues/2371
+    "catboost>=1.2 ; python_version != '3.8'",
+    "catboost<1.2 ; python_version == '3.8'",
+    "xgboost>=1.5.0",
+    "scipy>=1.4.0",
 ]
 docs = [
     "mkdocs>=1.5.3",
@@ -73,16 +79,9 @@ docs = [
     "mkdocstrings>=0.24.1",
     "mkdocstrings-python>=1.8.0",
 ]
-extras = [
-    "lightgbm>=3.3.0",
-    # https://github.com/catboost/catboost/issues/2371
-    "catboost<1.2 ; python_version == '3.8'",
-    "catboost>=1.1 ; python_version != '3.8'",
-    "xgboost>=1.5.0",
-    "scipy>=1.4.0",
-]
+
 # Separating these allow for more install flexibility.
-all = ["probatus[dev,docs,extras]"]
+all = ["probatus[dev,docs]"]
 
 [tool.setuptools.packages.find]
 exclude = ["tests", "notebooks", "docs"]
