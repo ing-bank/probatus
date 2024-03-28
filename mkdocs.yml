@@ -2,7 +2,7 @@ site_name: Probatus
 
 repo_url: https://github.com/ing-bank/probatus/
 site_url: https://ing-bank.github.io/probatus/
-site_description: Validation of binary classifiers and data used to develop them
+site_description: Validation of regressors and classifiers and data used to develop them
 site_author: ING Bank N. V.
 
 use_directory_urls: false
