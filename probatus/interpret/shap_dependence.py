@@ -1,23 +1,3 @@
-# Copyright (c) 2020 ING Bank N.V.
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy of
-# this software and associated documentation files (the "Software"), to deal in
-# the Software without restriction, including without limitation the rights to
-# use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
-# the Software, and to permit persons to whom the Software is furnished to do so,
-# subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
-# FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
-# COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
-# IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
-# CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
-
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -42,8 +22,8 @@ class DependencePlotter(BaseFitComputePlotClass):
     from probatus.interpret import DependencePlotter
 
     X, y = make_classification(n_samples=15, n_features=3, n_informative=3, n_redundant=0, random_state=42)
-    clf = RandomForestClassifier().fit(X, y)
-    bdp = DependencePlotter(clf)
+    model = RandomForestClassifier().fit(X, y)
+    bdp = DependencePlotter(model)
     shap_values = bdp.fit_compute(X, y)
 
     bdp.plot(feature=2)
@@ -52,13 +32,13 @@ class DependencePlotter(BaseFitComputePlotClass):
     <img src="../img/model_interpret_dep.png"/>
     """
 
-    def __init__(self, clf, verbose=0, random_state=None):
+    def __init__(self, model, verbose=0, random_state=None):
         """
         Initializes the class.
 
         Args:
-            clf (model object):
-                Binary classification model or pipeline.
+            model (model object):
+                regression or classification model or pipeline.
 
             verbose (int, optional):
                 Controls verbosity of the output:
@@ -71,7 +51,7 @@ class DependencePlotter(BaseFitComputePlotClass):
                 Random state set for the nr of samples. If it is None, the results will not be reproducible. For
                 reproducible results set it to an integer.
         """
-        self.clf = clf
+        self.model = model
         self.verbose = verbose
         self.random_state = random_state
 
@@ -79,7 +59,7 @@ class DependencePlotter(BaseFitComputePlotClass):
         """
         Represent string method.
         """
-        return f"Shap dependence plotter for {self.clf.__class__.__name__}"
+        return f"Shap dependence plotter for {self.model.__class__.__name__}"
 
     def fit(self, X, y, column_names=None, class_names=None, precalc_shap=None, **shap_kwargs):
         """
@@ -118,7 +98,7 @@ class DependencePlotter(BaseFitComputePlotClass):
             self.class_names = ["Negative Class", "Positive Class"]
 
         self.shap_vals_df = shap_to_df(
-            self.clf,
+            self.model,
             self.X,
             precalc_shap=precalc_shap,
             verbose=self.verbose,
@@ -151,7 +131,7 @@ class DependencePlotter(BaseFitComputePlotClass):
                 Provided dataset.
 
             y (pd.Series):
-                Binary labels for X.
+                Labels for X.
 
             column_names (None, or list of str, optional):
                 List of feature names for the dataset. If None, then column names from the X_train dataframe are used.

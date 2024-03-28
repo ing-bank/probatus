@@ -1,5 +1,3 @@
-import os
-
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
@@ -160,7 +158,6 @@ def test_shap_resemblance_class_lin_models(X1, X2, logistic_regression, random_s
     rm.plot(plot_type="dot")
 
 
-@pytest.mark.skipif(os.environ.get("SKIP_LIGHTGBM") == "true", reason="LightGBM tests disabled")
 def test_shap_resemblance_class2(complex_data_with_categorical, complex_lightgbm, random_state):
     """
     Test.

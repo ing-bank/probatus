@@ -1,6 +1,6 @@
 # Contributing guide
 
-`Probatus` aims to provide a set of tools that can speed up common workflows around validating binary classifiers and the data used to train them.
+`Probatus` aims to provide a set of tools that can speed up common workflows around validating regressors & classifiers and the data used to train them.
 We're very much open to contributions but there are some things to keep in mind:
 
 - Discuss the feature and implementation you want to add on Github before you write a PR for it. On disagreements, maintainer(s) will have the final word.
