@@ -332,7 +332,6 @@ class ShapRFECV(BaseFitComputePlotClass):
         Returns:
             (ShapRFECV): Fitted object.
         """
-        # TODO: Simplify implementation & refactor
         # Set seed for results reproducibility
         if self.random_state is not None:
             np.random.seed(self.random_state)
@@ -900,9 +899,6 @@ class ShapRFECV(BaseFitComputePlotClass):
                 f"The provided number of features has not been achieved at any stage of the process. "
                 f"You can select one of the following: {valid_nums}"
             )
-
-        # Assuming 'features_set' contains the list of feature names for the row
-        return matching_rows.iloc[0]["features_set"]
 
         # Assuming 'features_set' contains the list of feature names for the row
         return matching_rows.iloc[0]["features_set"]
