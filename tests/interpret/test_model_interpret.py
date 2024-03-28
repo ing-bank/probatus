@@ -7,9 +7,6 @@ from probatus.interpret import ShapModelInterpreter
 
 @pytest.fixture(scope="function")
 def expected_feature_importance():
-    """
-    Fixture.
-    """
     return pd.DataFrame(
         {
             "mean_abs_shap_value_test": [0.5, 0.0, 0.0],
@@ -23,9 +20,6 @@ def expected_feature_importance():
 
 @pytest.fixture(scope="function")
 def expected_feature_importance_lin_models():
-    """
-    Test.
-    """
     return pd.DataFrame(
         {
             "mean_abs_shap_value_test": [0.4, 0.0, 0.0],
@@ -38,9 +32,6 @@ def expected_feature_importance_lin_models():
 
 
 def test_shap_interpret(fitted_tree, X_train, y_train, X_test, y_test, expected_feature_importance, random_state):
-    """
-    Test.
-    """
     class_names = ["neg", "pos"]
 
     shap_interpret = ShapModelInterpreter(fitted_tree, random_state=random_state)
@@ -82,9 +73,6 @@ def test_shap_interpret(fitted_tree, X_train, y_train, X_test, y_test, expected_
 def test_shap_interpret_lin_models(
     fitted_logistic_regression, X_train, y_train, X_test, y_test, expected_feature_importance_lin_models, random_state
 ):
-    """
-    Test.
-    """
     class_names = ["neg", "pos"]
 
     shap_interpret = ShapModelInterpreter(fitted_logistic_regression, random_state=random_state)
@@ -127,9 +115,6 @@ def test_shap_interpret_lin_models(
 def test_shap_interpret_fit_compute_lin_models(
     fitted_logistic_regression, X_train, y_train, X_test, y_test, expected_feature_importance_lin_models, random_state
 ):
-    """
-    Test.
-    """
     class_names = ["neg", "pos"]
 
     shap_interpret = ShapModelInterpreter(fitted_logistic_regression, random_state=random_state)
@@ -151,9 +136,6 @@ def test_shap_interpret_fit_compute_lin_models(
 def test_shap_interpret_fit_compute(
     fitted_tree, X_train, y_train, X_test, y_test, expected_feature_importance, random_state
 ):
-    """
-    Test.
-    """
     class_names = ["neg", "pos"]
 
     shap_interpret = ShapModelInterpreter(fitted_tree, random_state=random_state)
@@ -171,9 +153,6 @@ def test_shap_interpret_fit_compute(
 
 
 def test_shap_interpret_complex_data(complex_data_split_with_categorical, complex_fitted_lightgbm, random_state):
-    """
-    Test lightgbm.
-    """
     class_names = ["neg", "pos"]
     X_train, X_test, y_train, y_test = complex_data_split_with_categorical
 

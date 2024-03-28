@@ -7,51 +7,33 @@ from probatus.utils import assure_pandas_df, preprocess_data, preprocess_labels
 
 @pytest.fixture(scope="function")
 def expected_df_2d():
-    """
-    Fixture.
-    """
     return pd.DataFrame({0: [1, 2], 1: [2, 3], 2: [3, 4]})
 
 
 @pytest.fixture(scope="function")
 def expected_df():
-    """
-    Fixture.
-    """
     return pd.DataFrame({0: [1, 2, 3]})
 
 
 def test_assure_pandas_df_list(expected_df):
-    """
-    Test.
-    """
     x = [1, 2, 3]
     x_df = assure_pandas_df(x)
     pd.testing.assert_frame_equal(x_df, expected_df)
 
 
 def test_assure_pandas_df_list_of_lists(expected_df_2d):
-    """
-    Test.
-    """
     x = [[1, 2, 3], [2, 3, 4]]
     x_df = assure_pandas_df(x)
     pd.testing.assert_frame_equal(x_df, expected_df_2d)
 
 
 def test_assure_pandas_df_series(expected_df):
-    """
-    Test.
-    """
     x = pd.Series([1, 2, 3])
     x_df = assure_pandas_df(x)
     pd.testing.assert_frame_equal(x_df, expected_df)
 
 
 def test_assure_pandas_df_array(expected_df, expected_df_2d):
-    """
-    Test.
-    """
     x = np.array([[1, 2, 3], [2, 3, 4]], dtype="int64")
     x_df = assure_pandas_df(x)
     pd.testing.assert_frame_equal(x_df, expected_df_2d)
@@ -62,18 +44,12 @@ def test_assure_pandas_df_array(expected_df, expected_df_2d):
 
 
 def test_assure_pandas_df_df(expected_df_2d):
-    """
-    Test.
-    """
     x = pd.DataFrame([[1, 2, 3], [2, 3, 4]])
     x_df = assure_pandas_df(x)
     pd.testing.assert_frame_equal(x_df, expected_df_2d)
 
 
 def test_assure_pandas_df_types():
-    """
-    Test.
-    """
     with pytest.raises(TypeError):
         assure_pandas_df("Test")
     with pytest.raises(TypeError):
@@ -81,9 +57,6 @@ def test_assure_pandas_df_types():
 
 
 def test_preprocess_labels():
-    """
-    Test.
-    """
     y1 = pd.Series([1, 0, 1, 0, 1])
     index_1 = np.array([5, 4, 3, 2, 1])
 
@@ -105,9 +78,6 @@ def test_preprocess_labels():
 
 
 def test_preprocess_data():
-    """
-    Test.
-    """
     X1 = pd.DataFrame({"cat": ["a", "b", "c"], "missing": [1, np.nan, 2], "num_1": [1, 2, 3]})
 
     target_column_names_X1 = ["1", "2", "3"]

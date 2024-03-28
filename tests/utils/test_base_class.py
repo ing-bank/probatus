@@ -4,9 +4,6 @@ from probatus.utils import NotFittedError
 
 
 def test_fitted_exception(fitted_tree, X_train, y_train, X_test, y_test, random_state):
-    """
-    Test if fitted works..
-    """
     class_names = ["neg", "pos"]
 
     shap_interpret = ShapModelInterpreter(fitted_tree, random_state=random_state)
@@ -24,9 +21,6 @@ def test_fitted_exception(fitted_tree, X_train, y_train, X_test, y_test, random_
 
 @pytest.mark.xfail
 def test_fitted_exception_is_raised(fitted_tree, random_state):
-    """
-    Test if fitted works fails when not fitted.
-    """
     shap_interpret = ShapModelInterpreter(fitted_tree, random_state=random_state)
 
     shap_interpret._check_if_fitted

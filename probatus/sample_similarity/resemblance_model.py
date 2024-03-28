@@ -108,10 +108,6 @@ class BaseResemblanceModel(BaseFitComputePlotClass):
             (BaseResemblanceModel):
                 Fitted object
         """
-        # Set seed for results reproducibility
-        if self.random_state is not None:
-            np.random.seed(self.random_state)
-
         # Set class names
         self.class_names = class_names
         if self.class_names is None:

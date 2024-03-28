@@ -73,7 +73,7 @@ def shap_calc(
         # https://github.com/slundberg/shap/issues/480
         if shap_kwargs.get("feature_perturbation") == "tree_path_dependent" or X.select_dtypes("category").shape[1] > 0:
             # Calculate Shap values.
-            explainer = Explainer(model, **shap_kwargs)
+            explainer = Explainer(model, seed=random_state, **shap_kwargs)
         else:
             # Create the background data,required for non tree based models.
             # A single datapoint can passed as mask
@@ -83,7 +83,7 @@ def shap_calc(
             else:
                 pass
             mask = sample(X, sample_size, random_state=random_state)
-            explainer = Explainer(model, masker=mask, **shap_kwargs)
+            explainer = Explainer(model, seed=random_state, masker=mask, **shap_kwargs)
 
         # For tree-explainers allow for using check_additivity and approximate arguments
         if isinstance(explainer, TreeExplainer):

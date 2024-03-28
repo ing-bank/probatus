@@ -332,10 +332,6 @@ class ShapRFECV(BaseFitComputePlotClass):
         Returns:
             (ShapRFECV): Fitted object.
         """
-        # Set seed for results reproducibility
-        if self.random_state is not None:
-            np.random.seed(self.random_state)
-
         # Initialise len_columns_to_keep based on columns_to_keep content validation
         len_columns_to_keep = 0
         if columns_to_keep:
@@ -397,10 +393,6 @@ class ShapRFECV(BaseFitComputePlotClass):
 
             # Current dataset
             current_X = self.X[remaining_removeable_features]
-
-            # Set seed for results reproducibility
-            if self.random_state is not None:
-                np.random.seed(self.random_state)
 
             # Optimize parameters
             if self.search_model:
