@@ -903,6 +903,9 @@ class ShapRFECV(BaseFitComputePlotClass):
         # Assuming 'features_set' contains the list of feature names for the row
         return matching_rows.iloc[0]["features_set"]
 
+        # Assuming 'features_set' contains the list of feature names for the row
+        return matching_rows.iloc[0]["features_set"]
+
     @staticmethod
     def _get_feature_support(self, feature_names_selected):
         """
