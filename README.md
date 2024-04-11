@@ -10,7 +10,7 @@
 
 ## Overview
 
-**Probatus** is a python package that helps validate binary classification models and the data used to develop them. Main features:
+**Probatus** is a python package that helps validate regression & (multiclass) classification models and the data used to develop them. Main features:
 
 - [probatus.interpret](https://ing-bank.github.io/probatus/api/model_interpret.html) provides shap-based model interpretation tools
 - [probatus.sample_similarity](https://ing-bank.github.io/probatus/api/sample_similarity.html) to compare two datasets using resemblance modelling, f.e. `train` with out-of-time `test`.

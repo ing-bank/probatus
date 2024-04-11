@@ -1,5 +1,3 @@
-import os
-
 import numpy as np
 import pandas as pd
 import pytest
@@ -172,7 +170,6 @@ def test_shap_interpret_fit_compute(
     pd.testing.assert_frame_equal(expected_feature_importance, importance_df)
 
 
-@pytest.mark.skipif(os.environ.get("SKIP_LIGHTGBM") == "true", reason="LightGBM tests disabled")
 def test_shap_interpret_complex_data(complex_data_split_with_categorical, complex_fitted_lightgbm, random_state):
     """
     Test lightgbm.
