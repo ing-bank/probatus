@@ -394,6 +394,7 @@ def test_shap_rfe_early_stopping_XGBoost(XGBoost_classifier, complex_data, rando
 
 
 #
+#
 def test_shap_rfe_early_stopping_CatBoost(complex_data_with_categorical, catboost_classifier, random_state):
     X, y = complex_data_with_categorical
 
@@ -550,6 +551,7 @@ def test_LightGBM_stratified_kfold(random_state):
     X[0] = X[0].astype("float")
     y = [0] * 5 + [1] * 5
 
+    model = LGBMClassifier(random_state=random_state)
     model = LGBMClassifier(random_state=random_state)
     n_iter = 2
     n_folds = 3
