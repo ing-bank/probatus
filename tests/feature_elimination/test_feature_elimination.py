@@ -552,7 +552,6 @@ def test_LightGBM_stratified_kfold(random_state):
     y = [0] * 5 + [1] * 5
 
     model = LGBMClassifier(random_state=random_state)
-    model = LGBMClassifier(random_state=random_state)
     n_iter = 2
     n_folds = 3
 
