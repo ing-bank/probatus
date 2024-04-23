@@ -1,33 +1,9 @@
 from sklearn.metrics import get_scorer
 
 
-def get_scorers(scoring):
-    """
-    Returns Scorers list based on the provided scoring.
-
-    Args:
-        scoring (string, list of strings, probatus.utils.Scorer or list of probatus.utils.Scorers):
-            Metrics for which the score is calculated. It can be either a name or list of names metric names and
-            needs to be aligned with predefined classification scorers names in sklearn
-            ([link](https://scikit-learn.org/stable/modules/model_evaluation.html)).
-            Another option is using probatus.utils.Scorer to define a custom metric.
-
-    Returns:
-        (list of probatus.utils.Scorer):
-            List of scorers that can be used for scoring models
-    """
-    scorers = []
-    if isinstance(scoring, list):
-        for scorer in scoring:
-            scorers.append(get_single_scorer(scorer))
-    else:
-        scorers.append(get_single_scorer(scoring))
-    return scorers
-
-
 def get_single_scorer(scoring):
     """
-    Returns single Scorer, based on provided input in scoring argument.
+    Returns Scorer, based on provided input in scoring argument.
 
     Args:
         scoring (string or probatus.utils.Scorer, optional):
@@ -67,7 +43,7 @@ class Scorer:
 
     # Make custom scorer with following function:
     def custom_metric(y_true, y_pred):
-          return (y_true == y_pred).sum()
+         return (y_true == y_pred).sum()
     scorer2 = Scorer('custom_metric', custom_scorer=make_scorer(custom_metric))
 
     # Prepare two samples
@@ -110,7 +86,7 @@ class Scorer:
         """
         Scores the samples model based on the provided metric name.
 
-        Args:
+        Args
             model (model object):
                 Model to be scored.
 

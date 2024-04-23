@@ -15,9 +15,6 @@ matplotlib.use("Agg")
 
 @pytest.fixture(scope="function")
 def X_y():
-    """
-    Fixture.
-    """
     return (
         pd.DataFrame(
             [
@@ -44,9 +41,6 @@ def X_y():
 
 @pytest.fixture(scope="function")
 def expected_shap_vals():
-    """
-    Fixture.
-    """
     return pd.DataFrame(
         [
             [0.176667, 0.005833, 0.284167],
@@ -70,9 +64,6 @@ def expected_shap_vals():
 
 @pytest.fixture(scope="function")
 def model(X_y, random_state):
-    """
-    Fixture.
-    """
     X, y = X_y
 
     model = RandomForestClassifier(random_state=random_state, n_estimators=10, max_depth=5)
@@ -83,9 +74,6 @@ def model(X_y, random_state):
 
 @pytest.fixture(scope="function")
 def expected_feat_importances():
-    """
-    Test.
-    """
     return pd.DataFrame(
         {
             "Feature Name": {0: 2, 1: 1, 2: 0},
@@ -96,17 +84,11 @@ def expected_feat_importances():
 
 
 def test_not_fitted(model, random_state):
-    """
-    Test.
-    """
     plotter = DependencePlotter(model, random_state)
     assert plotter.fitted is False
 
 
 def test_fit_complex(complex_data_split, complex_fitted_lightgbm, random_state):
-    """
-    Test.
-    """
     _, X_test, _, y_test = complex_data_split
 
     plotter = DependencePlotter(complex_fitted_lightgbm, random_state=random_state)
@@ -122,9 +104,6 @@ def test_fit_complex(complex_data_split, complex_fitted_lightgbm, random_state):
 
 
 def test_get_X_y_shap_with_q_cut_normal(X_y, model, random_state):
-    """
-    Test.
-    """
     X, y = X_y
 
     plotter = DependencePlotter(model, random_state).fit(X, y)
@@ -156,44 +135,29 @@ def test_get_X_y_shap_with_q_cut_normal(X_y, model, random_state):
 
 
 def test_get_X_y_shap_with_q_cut_unfitted(model, random_state):
-    """
-    Test.
-    """
     plotter = DependencePlotter(model, random_state)
     with pytest.raises(NotFittedError):
         plotter._get_X_y_shap_with_q_cut(0)
 
 
 def test_get_X_y_shap_with_q_cut_input(X_y, model, random_state):
-    """
-    Test.
-    """
     plotter = DependencePlotter(model, random_state).fit(X_y[0], X_y[1])
     with pytest.raises(ValueError):
         plotter._get_X_y_shap_with_q_cut("not a feature")
 
 
 def test_plot_normal(X_y, model, random_state):
-    """
-    Test.
-    """
     plotter = DependencePlotter(model, random_state).fit(X_y[0], X_y[1])
     _ = plotter.plot(feature=0)
 
 
 def test_plot_class_names(X_y, model, random_state):
-    """
-    Test.
-    """
     plotter = DependencePlotter(model, random_state).fit(X_y[0], X_y[1], class_names=["a", "b"])
     _ = plotter.plot(feature=0)
     assert plotter.class_names == ["a", "b"]
 
 
 def test_plot_input(X_y, model, random_state):
-    """
-    Test.
-    """
     plotter = DependencePlotter(model, random_state).fit(X_y[0], X_y[1])
     with pytest.raises(ValueError):
         plotter.plot(feature="not a feature")

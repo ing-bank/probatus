@@ -8,7 +8,7 @@ from shap import summary_plot
 from sklearn.inspection import permutation_importance
 from sklearn.model_selection import train_test_split
 
-from probatus.utils import BaseFitComputePlotClass, get_single_scorer, preprocess_data, preprocess_labels
+from probatus.utils import BaseFitComputePlotClass, preprocess_data, preprocess_labels, get_single_scorer
 from probatus.utils.shap_helpers import calculate_shap_importance, shap_calc
 
 
@@ -108,10 +108,6 @@ class BaseResemblanceModel(BaseFitComputePlotClass):
             (BaseResemblanceModel):
                 Fitted object
         """
-        # Set seed for results reproducibility
-        if self.random_state is not None:
-            np.random.seed(self.random_state)
-
         # Set class names
         self.class_names = class_names
         if self.class_names is None:

@@ -57,17 +57,15 @@ def shap_calc(
 
     """
     if isinstance(model, Pipeline):
-        raise (
-            TypeError(
-                "The provided model is a Pipeline. Unfortunately, the features based on SHAP do not support "
-                "pipelines, because they cannot be used in combination with shap.Explainer. Please apply any "
-                "data transformations before running the probatus module."
-            )
+        raise TypeError(
+            "The provided model is a Pipeline. Unfortunately, the features based on SHAP do not support "
+            "pipelines, because they cannot be used in combination with shap.Explainer. Please apply any "
+            "data transformations before running the probatus module."
         )
+
     # Suppress warnings regarding XGboost and Lightgbm models.
     with warnings.catch_warnings():
-        if verbose <= 1:
-            warnings.simplefilter("ignore")
+        warnings.simplefilter("ignore" if verbose <= 1 else "default")
 
         # For tree explainers, do not pass masker when feature_perturbation is
         # tree_path_dependent, or when X contains categorical features
@@ -75,7 +73,7 @@ def shap_calc(
         # https://github.com/slundberg/shap/issues/480
         if shap_kwargs.get("feature_perturbation") == "tree_path_dependent" or X.select_dtypes("category").shape[1] > 0:
             # Calculate Shap values.
-            explainer = Explainer(model, **shap_kwargs)
+            explainer = Explainer(model, seed=random_state, **shap_kwargs)
         else:
             # Create the background data,required for non tree based models.
             # A single datapoint can passed as mask
@@ -85,7 +83,7 @@ def shap_calc(
             else:
                 pass
             mask = sample(X, sample_size, random_state=random_state)
-            explainer = Explainer(model, masker=mask, **shap_kwargs)
+            explainer = Explainer(model, seed=random_state, masker=mask, **shap_kwargs)
 
         # For tree-explainers allow for using check_additivity and approximate arguments
         if isinstance(explainer, TreeExplainer):
@@ -130,18 +128,15 @@ def shap_to_df(model, X, precalc_shap=None, **kwargs):
         (pd.DataFrame):
             Dataframe with SHAP feature importance per features on X dataset.
     """
-    if precalc_shap is not None:
-        shap_values = precalc_shap
-    else:
-        shap_values = shap_calc(model, X, **kwargs)
-    if isinstance(X, pd.DataFrame):
+    shap_values = precalc_shap if precalc_shap is not None else shap_calc(model, X, **kwargs)
+
+    try:
         return pd.DataFrame(shap_values, columns=X.columns, index=X.index)
-
-    elif isinstance(X, np.ndarray) and len(X.shape) == 2:
-        return pd.DataFrame(shap_values, columns=[f"col_{ix}" for ix in range(X.shape[1])])
-
-    else:
-        raise NotImplementedError("X must be a dataframe or a 2d array")
+    except AttributeError:
+        if isinstance(X, np.ndarray) and len(X.shape) == 2:
+            return pd.DataFrame(shap_values, columns=[f"col_{ix}" for ix in range(X.shape[1])])
+        else:
+            raise TypeError("X must be a dataframe or a 2d array")
 
 
 def calculate_shap_importance(shap_values, columns, output_columns_suffix="", shap_variance_penalty_factor=None):
@@ -169,52 +164,36 @@ def calculate_shap_importance(shap_values, columns, output_columns_suffix="", sh
             Mean absolute shap values and Mean shap values of features.
 
     """
-    if shap_variance_penalty_factor is None:
-        _shap_variance_penalty_factor = 0
-    elif (
-        isinstance(shap_variance_penalty_factor, float) or isinstance(shap_variance_penalty_factor, int)
-    ) and shap_variance_penalty_factor >= 0:
-        _shap_variance_penalty_factor = shap_variance_penalty_factor
-    else:
+    if shap_variance_penalty_factor is None or shap_variance_penalty_factor < 0:
+        shap_variance_penalty_factor = 0
+    elif not isinstance(shap_variance_penalty_factor, (float, int)):
         warnings.warn(
-            "shap_variance_penalty_factor must be None, int or float. " "Setting shap_variance_penalty_factor = 0"
+            "shap_variance_penalty_factor must be None, int, or float. Setting shap_variance_penalty_factor = 0"
         )
-        _shap_variance_penalty_factor = 0
+        shap_variance_penalty_factor = 0
 
+    abs_shap_values = np.abs(shap_values)
     if np.ndim(shap_values) > 2:  # multi-class case
-        shap_abs_mean = np.mean(np.sum(np.abs(shap_values), axis=0), axis=0)
-        shap_mean = np.mean(np.sum(shap_values, axis=0), axis=0)
-        penalized_shap_abs_mean = np.mean(np.sum(np.abs(shap_values), axis=0), axis=0) - (
-            np.std(np.sum(np.abs(shap_values), axis=0), axis=0) * _shap_variance_penalty_factor
-        )
+        sum_abs_shap = np.sum(abs_shap_values, axis=0)
+        sum_shap = np.sum(shap_values, axis=0)
+        shap_abs_mean = np.mean(sum_abs_shap, axis=0)
+        shap_mean = np.mean(sum_shap, axis=0)
+        penalized_shap_abs_mean = shap_abs_mean - (np.std(sum_abs_shap, axis=0) * shap_variance_penalty_factor)
     else:
         # Find average shap importance for neg and pos class
-        shap_abs_mean = np.mean(np.abs(shap_values), axis=0)
+        shap_abs_mean = np.mean(abs_shap_values, axis=0)
         shap_mean = np.mean(shap_values, axis=0)
-        penalized_shap_abs_mean = np.mean(np.abs(shap_values), axis=0) - (
-            np.std(np.abs(shap_values), axis=0) * _shap_variance_penalty_factor
-        )
+        penalized_shap_abs_mean = shap_abs_mean - (np.std(abs_shap_values, axis=0) * shap_variance_penalty_factor)
 
-    # Prepare importance values in a handy df
+    # Prepare the values in a df and set the correct column types
     importance_df = pd.DataFrame(
         {
-            f"mean_abs_shap_value{output_columns_suffix}": shap_abs_mean.tolist(),
-            f"mean_shap_value{output_columns_suffix}": shap_mean.tolist(),
-            f"penalized_mean_abs_shap_value{output_columns_suffix}": penalized_shap_abs_mean.tolist(),
+            f"mean_abs_shap_value{output_columns_suffix}": shap_abs_mean,
+            f"mean_shap_value{output_columns_suffix}": shap_mean,
+            f"penalized_mean_abs_shap_value{output_columns_suffix}": penalized_shap_abs_mean,
         },
         index=columns,
-    )
-
-    # Set the correct column types
-    importance_df[f"mean_abs_shap_value{output_columns_suffix}"] = importance_df[
-        f"mean_abs_shap_value{output_columns_suffix}"
-    ].astype(float)
-    importance_df[f"mean_shap_value{output_columns_suffix}"] = importance_df[
-        f"mean_shap_value{output_columns_suffix}"
-    ].astype(float)
-    importance_df[f"penalized_mean_abs_shap_value{output_columns_suffix}"] = importance_df[
-        f"penalized_mean_abs_shap_value{output_columns_suffix}"
-    ].astype(float)
+    ).astype(float)
 
     importance_df = importance_df.sort_values(f"penalized_mean_abs_shap_value{output_columns_suffix}", ascending=False)
 

@@ -14,24 +14,15 @@ matplotlib.use("Agg")
 
 @pytest.fixture(scope="function")
 def X1():
-    """
-    Fixture.
-    """
     return pd.DataFrame({"col_1": [1, 1, 1, 1], "col_2": [0, 0, 0, 0], "col_3": [0, 0, 0, 0]}, index=[1, 2, 3, 4])
 
 
 @pytest.fixture(scope="function")
 def X2():
-    """
-    Fixture.
-    """
     return pd.DataFrame({"col_1": [0, 0, 0, 0], "col_2": [0, 0, 0, 0], "col_3": [0, 0, 0, 0]}, index=[1, 2, 3, 4])
 
 
 def test_base_class(X1, X2, decision_tree_classifier, random_state):
-    """
-    Test.
-    """
     rm = BaseResemblanceModel(decision_tree_classifier, test_prc=0.5, n_jobs=1, random_state=random_state)
 
     actual_report, train_score, test_score = rm.fit_compute(X1, X2, return_scores=True)
@@ -61,9 +52,6 @@ def test_base_class(X1, X2, decision_tree_classifier, random_state):
 
 
 def test_base_class_lin_models(X1, X2, logistic_regression, random_state):
-    """
-    Test.
-    """
     # Test class BaseResemblanceModel for linear models.
     rm = BaseResemblanceModel(logistic_regression, test_prc=0.5, n_jobs=1, random_state=random_state)
 
@@ -94,9 +82,6 @@ def test_base_class_lin_models(X1, X2, logistic_regression, random_state):
 
 
 def test_shap_resemblance_class(X1, X2, decision_tree_classifier, random_state):
-    """
-    Test.
-    """
     rm = SHAPImportanceResemblance(decision_tree_classifier, test_prc=0.5, n_jobs=1, random_state=random_state)
 
     actual_report, train_score, test_score = rm.fit_compute(X1, X2, return_scores=True)
@@ -125,9 +110,6 @@ def test_shap_resemblance_class(X1, X2, decision_tree_classifier, random_state):
 
 
 def test_shap_resemblance_class_lin_models(X1, X2, logistic_regression, random_state):
-    """
-    Test.
-    """
     # Test SHAP Resemblance Model for linear models.
     rm = SHAPImportanceResemblance(logistic_regression, test_prc=0.5, n_jobs=1, random_state=random_state)
 
@@ -159,9 +141,6 @@ def test_shap_resemblance_class_lin_models(X1, X2, logistic_regression, random_s
 
 
 def test_shap_resemblance_class2(complex_data_with_categorical, complex_lightgbm, random_state):
-    """
-    Test.
-    """
     X1, _ = complex_data_with_categorical
     X2 = X1.copy()
     X2["f4"] = X2["f4"] + 100
@@ -198,9 +177,6 @@ def test_shap_resemblance_class2(complex_data_with_categorical, complex_lightgbm
 
 
 def test_permutation_resemblance_class(X1, X2, decision_tree_classifier, random_state):
-    """
-    Test.
-    """
     rm = PermutationImportanceResemblance(
         decision_tree_classifier, test_prc=0.5, n_jobs=1, random_state=random_state, iterations=20
     )
@@ -230,9 +206,6 @@ def test_permutation_resemblance_class(X1, X2, decision_tree_classifier, random_
 
 
 def test_base_class_same_data(X1, decision_tree_classifier, random_state):
-    """
-    Test.
-    """
     rm = BaseResemblanceModel(decision_tree_classifier, test_prc=0.5, n_jobs=1, random_state=random_state)
 
     actual_report, train_score, test_score = rm.fit_compute(X1, X1, return_scores=True)

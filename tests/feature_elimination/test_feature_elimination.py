@@ -16,9 +16,6 @@ from probatus.utils import preprocess_labels
 
 @pytest.fixture(scope="function")
 def X():
-    """
-    Fixture for X.
-    """
     return pd.DataFrame(
         {
             "col_1": [1, 1, 1, 1, 1, 1, 1, 0],
@@ -31,46 +28,32 @@ def X():
 
 @pytest.fixture(scope="function")
 def y():
-    """
-    Fixture for y.
-    """
     return pd.Series([1, 0, 1, 0, 1, 0, 1, 0], index=[1, 2, 3, 4, 5, 6, 7, 8])
 
 
 @pytest.fixture(scope="function")
 def sample_weight():
-    """
-    Fixture for sample_weight.
-    """
     return pd.Series([1, 1, 1, 1, 1, 1, 1, 1], index=[1, 2, 3, 4, 5, 6, 7, 8])
 
 
 @pytest.fixture(scope="function")
 def groups():
-    """
-    Fixture for groups.
-    """
     return pd.Series(["grp1", "grp1", "grp1", "grp1", "grp2", "grp2", "grp2", "grp2"], index=[1, 2, 3, 4, 5, 6, 7, 8])
 
 
 @pytest.fixture(scope="function")
 def XGBoost_classifier(random_state):
-    """This fixture allows to reuse the import of the XGBClassifier class across different tests."""
     model = XGBClassifier(n_estimators=200, max_depth=3, random_state=random_state)
     return model
 
 
 @pytest.fixture(scope="function")
 def XGBoost_regressor(random_state):
-    """This fixture allows to reuse the import of the XGBRegressor class across different tests."""
     model = XGBRegressor(n_estimators=200, max_depth=3, random_state=random_state)
     return model
 
 
 def test_shap_rfe_regressor(XGBoost_regressor, random_state):
-    """
-    Test with a Regressor.
-    """
     diabetes = load_diabetes()
     X = pd.DataFrame(diabetes.data, columns=diabetes.feature_names)
     y = diabetes.target
@@ -85,9 +68,6 @@ def test_shap_rfe_regressor(XGBoost_regressor, random_state):
 
 
 def test_shap_rfe_randomized_search(X, y, randomized_search_decision_tree_classifier, random_state):
-    """
-    Test with RandomizedSearchCV.
-    """
     search = randomized_search_decision_tree_classifier
     shap_elimination = ShapRFECV(search, step=0.8, cv=2, scoring="roc_auc", n_jobs=4, random_state=random_state)
     report = shap_elimination.fit_compute(X, y)
@@ -113,9 +93,6 @@ def test_shap_rfe_multi_class(X, y, decision_tree_classifier, random_state):
 
 
 def test_shap_rfe(X, y, sample_weight, decision_tree_classifier, random_state):
-    """
-    Test with ShapRFECV.
-    """
     shap_elimination = ShapRFECV(
         decision_tree_classifier,
         random_state=random_state,
@@ -131,9 +108,6 @@ def test_shap_rfe(X, y, sample_weight, decision_tree_classifier, random_state):
 
 
 def test_shap_rfe_group_cv(X, y, groups, sample_weight, decision_tree_classifier, random_state):
-    """
-    Test ShapRFECV with StratifiedGroupKFold.
-    """
     cv = StratifiedGroupKFold(n_splits=2, shuffle=True, random_state=random_state)
     shap_elimination = ShapRFECV(
         decision_tree_classifier,
@@ -152,9 +126,6 @@ def test_shap_rfe_group_cv(X, y, groups, sample_weight, decision_tree_classifier
 
 
 def test_shap_pipeline_error(X, y, decision_tree_classifier, random_state):
-    """
-    Test with ShapRFECV for pipelines.
-    """
     model = Pipeline(
         [
             ("scaler", StandardScaler()),
@@ -174,9 +145,6 @@ def test_shap_pipeline_error(X, y, decision_tree_classifier, random_state):
 
 
 def test_shap_rfe_linear_model(X, y, random_state):
-    """
-    Test ShapRFECV with linear model.
-    """
     model = LogisticRegression(C=1, random_state=random_state)
     shap_elimination = ShapRFECV(model, random_state=random_state, step=1, cv=2, scoring="roc_auc", n_jobs=4)
     report = shap_elimination.fit_compute(X, y)
@@ -186,9 +154,6 @@ def test_shap_rfe_linear_model(X, y, random_state):
 
 
 def test_shap_rfe_svm(X, y, random_state):
-    """
-    Test with ShapRFECV with SVM.
-    """
     model = SVC(C=1, kernel="linear", probability=True, random_state=random_state)
     shap_elimination = ShapRFECV(model, random_state=random_state, step=1, cv=2, scoring="roc_auc", n_jobs=4)
     shap_elimination = shap_elimination.fit(X, y)
@@ -199,9 +164,6 @@ def test_shap_rfe_svm(X, y, random_state):
 
 
 def test_shap_rfe_cols_to_keep(X, y, decision_tree_classifier, random_state):
-    """
-    Test for shap_rfe_cv with features to keep parameter.
-    """
     shap_elimination = ShapRFECV(
         decision_tree_classifier,
         random_state=random_state,
@@ -219,9 +181,6 @@ def test_shap_rfe_cols_to_keep(X, y, decision_tree_classifier, random_state):
 
 
 def test_shap_rfe_randomized_search_cols_to_keep(X, y, randomized_search_decision_tree_classifier, random_state):
-    """
-    Test with ShapRFECV with column to keep param.
-    """
     search = randomized_search_decision_tree_classifier
     shap_elimination = ShapRFECV(search, step=0.8, cv=2, scoring="roc_auc", n_jobs=4, random_state=random_state)
     report = shap_elimination.fit_compute(X, y, columns_to_keep=["col_2", "col_3"])
@@ -232,9 +191,6 @@ def test_shap_rfe_randomized_search_cols_to_keep(X, y, randomized_search_decisio
 
 
 def test_calculate_number_of_features_to_remove():
-    """
-    Test with ShapRFECV with n features to remove.
-    """
     assert 3 == ShapRFECV._calculate_number_of_features_to_remove(
         current_num_of_features=10, num_features_to_remove=3, min_num_features_to_keep=5
     )
@@ -250,9 +206,6 @@ def test_calculate_number_of_features_to_remove():
 
 
 def test_shap_automatic_num_feature_selection(decision_tree_classifier, random_state):
-    """
-    Test automatic num feature selection methods
-    """
     X = pd.DataFrame(
         {
             "col_1": [1, 0, 1, 0, 1, 0, 1, 0],
@@ -284,9 +237,6 @@ def test_shap_automatic_num_feature_selection(decision_tree_classifier, random_s
 
 
 def test_get_feature_shap_values_per_fold(X, y, decision_tree_classifier, random_state):
-    """
-    Test with ShapRFECV with features per fold.
-    """
     shap_elimination = ShapRFECV(decision_tree_classifier, scoring="roc_auc", random_state=random_state)
     (
         shap_values,
@@ -369,9 +319,6 @@ def test_shap_rfe_same_features_are_kept_after_each_run(random_state_1234):
 
 
 def test_shap_rfe_penalty_factor(X, y, decision_tree_classifier, random_state):
-    """
-    Test ShapRFECV with shap_variance_penalty_factor
-    """
     shap_elimination = ShapRFECV(
         decision_tree_classifier,
         random_state=random_state,
@@ -389,9 +336,6 @@ def test_shap_rfe_penalty_factor(X, y, decision_tree_classifier, random_state):
 
 
 def test_complex_dataset(complex_data, complex_lightgbm, random_state_1):
-    """
-    Test on complex dataset.
-    """
     X, y = complex_data
 
     param_grid = {
@@ -410,9 +354,6 @@ def test_complex_dataset(complex_data, complex_lightgbm, random_state_1):
 
 
 def test_shap_rfe_early_stopping_lightGBM(complex_data, random_state):
-    """
-    Test EarlyStoppingShapRFECV with a LGBMClassifier.
-    """
     model = LGBMClassifier(n_estimators=200, max_depth=3, random_state=random_state)
     X, y = complex_data
 
@@ -433,9 +374,6 @@ def test_shap_rfe_early_stopping_lightGBM(complex_data, random_state):
 
 
 def test_shap_rfe_early_stopping_XGBoost(XGBoost_classifier, complex_data, random_state):
-    """
-    Test EarlyStoppingShapRFECV with a LGBMClassifier.
-    """
     X, y = complex_data
     X["f1_categorical"] = X["f1_categorical"].astype(float)
 
@@ -456,10 +394,8 @@ def test_shap_rfe_early_stopping_XGBoost(XGBoost_classifier, complex_data, rando
 
 
 #
+#
 def test_shap_rfe_early_stopping_CatBoost(complex_data_with_categorical, catboost_classifier, random_state):
-    """
-    Test EarlyStoppingShapRFECV with a CatBoostClassifier.
-    """
     X, y = complex_data_with_categorical
 
     shap_elimination = EarlyStoppingShapRFECV(
@@ -479,9 +415,6 @@ def test_shap_rfe_early_stopping_CatBoost(complex_data_with_categorical, catboos
 
 
 def test_shap_rfe_randomized_search_early_stopping_lightGBM(complex_data, random_state):
-    """
-    Test EarlyStoppingShapRFECV with RandomizedSearchCV and a LGBMClassifier on complex dataset.
-    """
     model = LGBMClassifier(n_estimators=200, random_state=random_state)
     X, y = complex_data
 
@@ -509,9 +442,6 @@ def test_shap_rfe_randomized_search_early_stopping_lightGBM(complex_data, random
 
 
 def test_get_feature_shap_values_per_fold_early_stopping_lightGBM(complex_data, random_state):
-    """
-    Test with ShapRFECV with features per fold.
-    """
     model = LGBMClassifier(n_estimators=200, max_depth=3, random_state=random_state)
     X, y = complex_data
     y = preprocess_labels(y, y_name="y", index=X.index)
@@ -538,9 +468,6 @@ def test_get_feature_shap_values_per_fold_early_stopping_lightGBM(complex_data, 
 def test_get_feature_shap_values_per_fold_early_stopping_CatBoost(
     complex_data_with_categorical, catboost_classifier, random_state
 ):
-    """
-    Test with ShapRFECV with features per fold.
-    """
     X, y = complex_data_with_categorical
     y = preprocess_labels(y, y_name="y", index=X.index)
 
@@ -564,9 +491,6 @@ def test_get_feature_shap_values_per_fold_early_stopping_CatBoost(
 
 
 def test_get_feature_shap_values_per_fold_early_stopping_XGBoost(XGBoost_classifier, complex_data, random_state):
-    """
-    Test with ShapRFECV with features per fold.
-    """
     X, y = complex_data
     y = preprocess_labels(y, y_name="y", index=X.index)
 
@@ -590,7 +514,6 @@ def test_get_feature_shap_values_per_fold_early_stopping_XGBoost(XGBoost_classif
 
 
 def test_EarlyStoppingShapRFECV_no_categorical(complex_data, random_state):
-    """Test EarlyStoppingShapRFECV when no categorical features are present."""
     model = LGBMClassifier(n_estimators=50, max_depth=3, num_leaves=3, random_state=random_state)
 
     shap_elimination = EarlyStoppingShapRFECV(

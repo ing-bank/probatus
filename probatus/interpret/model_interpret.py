@@ -9,9 +9,9 @@ from probatus.utils import (
     BaseFitComputePlotClass,
     assure_list_of_strings,
     calculate_shap_importance,
-    get_single_scorer,
     preprocess_data,
     preprocess_labels,
+    get_single_scorer,
     shap_calc,
 )
 
