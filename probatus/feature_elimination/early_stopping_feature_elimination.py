@@ -239,6 +239,7 @@ class EarlyStoppingShapRFECV(ShapRFECV):
             "X": X_train,
             "y": y_train,
             "eval_set": [(X_val, y_val)],
+            "eval_metric": self.eval_metric,
             "callbacks": [
                 early_stopping(self.early_stopping_rounds, first_metric_only=True),
                 log_evaluation(1 if self.verbose >= 2 else 0),
@@ -507,14 +508,6 @@ class EarlyStoppingShapRFECV(ShapRFECV):
 
         # Due to deprecation issues (compatibility with Sklearn) set some params
         # like below, instead of through fit().
-        try:
-            from lightgbm import LGBMModel
-
-            if isinstance(model, LGBMModel):
-                model.set_params(eval_metric=self.eval_metric)
-        except ImportError:
-            pass
-
         try:
             from xgboost.sklearn import XGBModel
 
