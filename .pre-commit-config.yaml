@@ -2,58 +2,58 @@ repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v3.2.0
     hooks:
-    - id: check-case-conflict # Different OSes
-      name: 'Check case conflict: Naming of files is compatible with all OSes'
-    - id: check-docstring-first
-      name: 'Check docstring first: Ensures Docstring present and first'
-    - id: detect-private-key
-      name: 'Detect private key: Prevent commit of env related keys'
-    - id: trailing-whitespace
-      name: 'Trailing whitespace: Remove empty spaces'
+      - id: check-case-conflict # Different OSes
+        name: "Check case conflict: Naming of files is compatible with all OSes"
+      - id: check-docstring-first
+        name: "Check docstring first: Ensures Docstring present and first"
+      - id: detect-private-key
+        name: "Detect private key: Prevent commit of env related keys"
+      - id: trailing-whitespace
+        name: "Trailing whitespace: Remove empty spaces"
   - repo: https://github.com/nbQA-dev/nbQA
-    rev: 1.7.0
+    rev: 1.8.5
     hooks:
-    - id: nbqa-ruff
-      name: 'ruff nb: Check for errors, styling issues and complexity'
-    - id: nbqa-mypy
-      name: 'mypy nb: Static type checking'
-    - id: nbqa-isort
-      name: 'isort nb: Sort file imports'
-    - id: nbqa-pyupgrade
-      name: 'pyupgrade nb: Updates code to Python 3.8+ code convention'
-      args: [&py_version --py37-plus]
-    - id: nbqa-black
-      name: 'black nb: PEP8 compliant code formatter'
+      - id: nbqa-ruff
+        name: "ruff nb: Check for errors, styling issues and complexity"
+      - id: nbqa-mypy
+        name: "mypy nb: Static type checking"
+      - id: nbqa-isort
+        name: "isort nb: Sort file imports"
+      - id: nbqa-pyupgrade
+        name: "pyupgrade nb: Updates code to Python 3.8+ code convention"
+        args: [&py_version --py37-plus]
+      - id: nbqa-black
+        name: "black nb: PEP8 compliant code formatter"
   - repo: local
     hooks:
-    - id: mypy
-      name: 'mypy: Static type checking'
-      entry: mypy
-      language: system
-      types: [python]
+      - id: mypy
+        name: "mypy: Static type checking"
+        entry: mypy
+        language: system
+        types: [python]
   - repo: local
     hooks:
-    - id: ruff-check
-      name: 'Ruff: Check for errors, styling issues and complexity, and fixes issues if possible (including import order)'
-      entry: ruff check
-      language: system
-      args: [ --fix, --no-cache ]
-    - id: ruff-format
-      name: 'Ruff: format code in line with PEP8'
-      entry: ruff format
-      language: system
-      args: [ --no-cache ]
+      - id: ruff-check
+        name: "Ruff: Check for errors, styling issues and complexity, and fixes issues if possible (including import order)"
+        entry: ruff check
+        language: system
+        args: [--fix, --no-cache]
+      - id: ruff-format
+        name: "Ruff: format code in line with PEP8"
+        entry: ruff format
+        language: system
+        args: [--no-cache]
   - repo: local
     hooks:
-    - id: codespell
-      name: 'codespell: Check for grammar'
-      entry: codespell
-      language: system
-      types: [python]
-      args: [-L mot] # Skip the word "mot"
+      - id: codespell
+        name: "codespell: Check for grammar"
+        entry: codespell
+        language: system
+        types: [python]
+        args: [-L mot] # Skip the word "mot"
   - repo: https://github.com/asottile/pyupgrade
     rev: v3.4.0
     hooks:
-    - id: pyupgrade
-      name: 'pyupgrade: Updates code to Python 3.8+ code convention'
-      args: [*py_version]
+      - id: pyupgrade
+        name: "pyupgrade: Updates code to Python 3.8+ code convention"
+        args: [*py_version]
