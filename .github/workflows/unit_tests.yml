@@ -30,6 +30,11 @@ jobs:
         cmakeVersion: latest
         ninjaVersion: latest
 
+    - name: Install LIBOMP on Macos runners
+      if: ${{ matrix.os }} == "macos"
+      run: |
+        brew install libomp
+
     - name: Setup Python
       uses: actions/setup-python@master
       with:
