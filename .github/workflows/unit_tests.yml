@@ -31,7 +31,7 @@ jobs:
         ninjaVersion: latest
 
     - name: Install LIBOMP on Macos runners
-      if: ${{ matrix.os }} == "macos"
+      if: ${{ matrix.os }} == 'macos'
       run: |
         brew install libomp
 
