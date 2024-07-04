@@ -20,8 +20,8 @@ repos:
       - id: nbqa-isort
         name: "isort nb: Sort file imports"
       - id: nbqa-pyupgrade
-        name: "pyupgrade nb: Updates code to Python 3.8+ code convention"
-        args: [&py_version --py37-plus]
+        name: "pyupgrade nb: Updates code to Python 3.9+ code convention"
+        args: [&py_version --py38-plus]
       - id: nbqa-black
         name: "black nb: PEP8 compliant code formatter"
   - repo: local
@@ -55,5 +55,5 @@ repos:
     rev: v3.4.0
     hooks:
       - id: pyupgrade
-        name: "pyupgrade: Updates code to Python 3.8+ code convention"
+        name: "pyupgrade: Updates code to Python 3.9+ code convention"
         args: [*py_version]

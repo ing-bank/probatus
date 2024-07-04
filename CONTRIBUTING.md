@@ -48,7 +48,7 @@ This will allow you to quickly see if the work you made contains some adaptions 
 
 ## Standards
 
-- Python 3.8+
+- Python 3.9+
 - Follow [PEP8](http://pep8.org/) as closely as possible (except line length)
 - [google docstring format](https://sphinxcontrib-napoleon.readthedocs.io/en/latest/)
 - Git: Include a short description of *what* and *why* was done, *how* can be seen in the code. Use present tense, imperative mood

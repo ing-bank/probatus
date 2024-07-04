@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "probatus"
-version = "3.1.0"
-requires-python= ">=3.8"
+version = "3.1.1"
+requires-python= ">=3.9"
 description = "Validation of regression & classifiers and data used to develop them"
 readme = { file = "README.md", content-type = "text/markdown" }
 authors = [
@@ -16,7 +16,6 @@ classifiers = [
     "Intended Audience :: Developers",
     "Intended Audience :: Science/Research",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
@@ -33,9 +32,8 @@ dependencies = [
     "scipy>=1.4.0",
     "joblib>=0.13.2",
     "tqdm>=4.41.0",
-    "shap==0.43.0 ; python_version == '3.8'",
-    "shap>=0.43.0 ; python_version != '3.8'",
-    "numpy>=1.23.2,<2.0.0", # Numpy v2+ incompatibility. Update when 3.8 dropped.
+    "shap>=0.43.0",
+    "numpy>=1.23.2,<2.0.0",
     "numba>=0.57.0",
     "loguru>=0.7.2",
 ]
@@ -66,9 +64,7 @@ dev = [
     "codespell>=2.2.4",
     "ruff>=0.2.2",
     "lightgbm>=3.3.0",
-    # https://github.com/catboost/catboost/issues/2371
-    "catboost>=1.2 ; python_version != '3.8'",
-    "catboost<1.2 ; python_version == '3.8'",
+    "catboost>=1.2",
     "xgboost>=1.5.0",
     "scipy>=1.4.0",
 ]
@@ -93,7 +89,7 @@ isort = ["--profile=black"]
 black = ["--line-length=120"]
 
 [tool.mypy]
-python_version = "3.8"
+python_version = "3.9"
 ignore_missing_imports = true
 namespace_packages = true
 pretty = true
