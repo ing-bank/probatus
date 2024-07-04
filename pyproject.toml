@@ -35,7 +35,7 @@ dependencies = [
     "tqdm>=4.41.0",
     "shap==0.43.0 ; python_version == '3.8'",
     "shap>=0.43.0 ; python_version != '3.8'",
-    "numpy>=1.23.2",
+    "numpy>=1.23.2,<2.0.0", # Numpy v2+ incompatibility. Update when 3.8 dropped.
     "numba>=0.57.0",
     "loguru>=0.7.2",
 ]
