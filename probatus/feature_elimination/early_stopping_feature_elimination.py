@@ -454,7 +454,7 @@ class EarlyStoppingShapRFECV(ShapRFECV):
 
         raise ValueError("Model type not supported")
 
-    def _get_feature_shap_values_per_fold_early_stopping(
+    def _get_feature_shap_values_per_fold(
         self,
         X,
         y,
