@@ -178,6 +178,14 @@ class EarlyStoppingShapRFECV(ShapRFECV):
             random_state=random_state,
         )
 
+        # TODO: This deprecation warning will removed when it's decided that this class can be deleted.
+        warnings.warn(
+            "The separate EarlyStoppingShapRFECV class is going to be deprecated"
+            " in a later version of Probatus, since its now part of the"
+            " ShapRFECV class. Please adjust your imported class name from"
+            " 'EarlyStoppingShapRFECV' to 'ShapRFECV'."
+        )
+
         if self.search_model and self.verbose > 0:
             warnings.warn(
                 "Early stopping will be used only during Shapley value"
@@ -446,7 +454,7 @@ class EarlyStoppingShapRFECV(ShapRFECV):
 
         raise ValueError("Model type not supported")
 
-    def _get_feature_shap_values_per_fold(
+    def _get_feature_shap_values_per_fold_early_stopping(
         self,
         X,
         y,
@@ -506,8 +514,6 @@ class EarlyStoppingShapRFECV(ShapRFECV):
             val_index=val_index,
         )
 
-        # Due to deprecation issues (compatibility with Sklearn) set some params
-        # like below, instead of through fit().
         try:
             from xgboost.sklearn import XGBModel
 

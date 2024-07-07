@@ -10,7 +10,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVC
 from xgboost import XGBClassifier, XGBRegressor
 
-from probatus.feature_elimination import EarlyStoppingShapRFECV, ShapRFECV
+from probatus.feature_elimination import ShapRFECV
 from probatus.utils import preprocess_labels
 
 
@@ -357,7 +357,7 @@ def test_shap_rfe_early_stopping_lightGBM(complex_data, random_state):
     model = LGBMClassifier(n_estimators=200, max_depth=3, random_state=random_state)
     X, y = complex_data
 
-    shap_elimination = EarlyStoppingShapRFECV(
+    shap_elimination = ShapRFECV(
         model,
         random_state=random_state,
         step=1,
@@ -377,7 +377,7 @@ def test_shap_rfe_early_stopping_XGBoost(XGBoost_classifier, complex_data, rando
     X, y = complex_data
     X["f1_categorical"] = X["f1_categorical"].astype(float)
 
-    shap_elimination = EarlyStoppingShapRFECV(
+    shap_elimination = ShapRFECV(
         XGBoost_classifier,
         random_state=random_state,
         step=1,
@@ -398,7 +398,7 @@ def test_shap_rfe_early_stopping_XGBoost(XGBoost_classifier, complex_data, rando
 def test_shap_rfe_early_stopping_CatBoost(complex_data_with_categorical, catboost_classifier, random_state):
     X, y = complex_data_with_categorical
 
-    shap_elimination = EarlyStoppingShapRFECV(
+    shap_elimination = ShapRFECV(
         catboost_classifier,
         random_state=random_state,
         step=1,
@@ -422,7 +422,7 @@ def test_shap_rfe_randomized_search_early_stopping_lightGBM(complex_data, random
         "max_depth": [3, 4, 5],
     }
     search = RandomizedSearchCV(model, param_grid, cv=2, n_iter=2, random_state=random_state)
-    shap_elimination = EarlyStoppingShapRFECV(
+    shap_elimination = ShapRFECV(
         search,
         step=1,
         cv=10,
@@ -446,14 +446,12 @@ def test_get_feature_shap_values_per_fold_early_stopping_lightGBM(complex_data, 
     X, y = complex_data
     y = preprocess_labels(y, y_name="y", index=X.index)
 
-    shap_elimination = EarlyStoppingShapRFECV(
-        model, early_stopping_rounds=5, scoring="roc_auc", random_state=random_state
-    )
+    shap_elimination = ShapRFECV(model, early_stopping_rounds=5, scoring="roc_auc", random_state=random_state)
     (
         shap_values,
         train_score,
         test_score,
-    ) = shap_elimination._get_feature_shap_values_per_fold(
+    ) = shap_elimination._get_feature_shap_values_per_fold_early_stopping(
         X,
         y,
         model,
@@ -471,14 +469,14 @@ def test_get_feature_shap_values_per_fold_early_stopping_CatBoost(
     X, y = complex_data_with_categorical
     y = preprocess_labels(y, y_name="y", index=X.index)
 
-    shap_elimination = EarlyStoppingShapRFECV(
+    shap_elimination = ShapRFECV(
         catboost_classifier, early_stopping_rounds=5, scoring="roc_auc", random_state=random_state
     )
     (
         shap_values,
         train_score,
         test_score,
-    ) = shap_elimination._get_feature_shap_values_per_fold(
+    ) = shap_elimination._get_feature_shap_values_per_fold_early_stopping(
         X,
         y,
         catboost_classifier,
@@ -494,14 +492,14 @@ def test_get_feature_shap_values_per_fold_early_stopping_XGBoost(XGBoost_classif
     X, y = complex_data
     y = preprocess_labels(y, y_name="y", index=X.index)
 
-    shap_elimination = EarlyStoppingShapRFECV(
+    shap_elimination = ShapRFECV(
         XGBoost_classifier, early_stopping_rounds=5, scoring="roc_auc", random_state=random_state
     )
     (
         shap_values,
         train_score,
         test_score,
-    ) = shap_elimination._get_feature_shap_values_per_fold(
+    ) = shap_elimination._get_feature_shap_values_per_fold_early_stopping(
         X,
         y,
         XGBoost_classifier,
@@ -516,7 +514,7 @@ def test_get_feature_shap_values_per_fold_early_stopping_XGBoost(XGBoost_classif
 def test_EarlyStoppingShapRFECV_no_categorical(complex_data, random_state):
     model = LGBMClassifier(n_estimators=50, max_depth=3, num_leaves=3, random_state=random_state)
 
-    shap_elimination = EarlyStoppingShapRFECV(
+    shap_elimination = ShapRFECV(
         model=model,
         step=0.33,
         cv=5,
@@ -557,7 +555,7 @@ def test_LightGBM_stratified_kfold(random_state):
 
     for _ in range(n_iter):
         skf = StratifiedKFold(n_folds, shuffle=True, random_state=random_state)
-        shap_elimination = EarlyStoppingShapRFECV(
+        shap_elimination = ShapRFECV(
             model=model,
             step=1 / (n_iter + 1),
             cv=skf,

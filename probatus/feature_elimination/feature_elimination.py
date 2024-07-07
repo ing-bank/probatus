@@ -111,6 +111,8 @@ class ShapRFECV(BaseFitComputePlotClass):
         n_jobs=-1,
         verbose=0,
         random_state=None,
+        early_stopping_rounds=None,
+        eval_metric=None,
     ):
         """
         This method initializes the class.
@@ -163,6 +165,18 @@ class ShapRFECV(BaseFitComputePlotClass):
                 Random state set at each round of feature elimination. If it is None, the results will not be
                 reproducible and in random search at each iteration a different hyperparameters might be tested. For
                 reproducible results set it to an integer.
+
+            early_stopping_rounds (int, optional):
+                Number of rounds with constant performance after which the model fitting stops. This is passed to the
+                fit method of the model for Shapley values estimation, but not for hyperparameter search. Only
+                supported by some models, such as XGBoost and LightGBM.
+
+            eval_metric (str, optional):
+                Metric for scoring fitting rounds and activating early stopping. This is passed to the
+                fit method of the model for Shapley values estimation, but not for hyperparameter search. Only
+                supported by some models, such as [XGBoost](https://xgboost.readthedocs.io/en/latest/parameter.html#learning-task-parameters)
+                and [LightGBM](https://lightgbm.readthedocs.io/en/latest/Parameters.html#metric-parameters).
+                Note that `eval_metric` is an argument of the model's fit method and it is different from `scoring`.
         """  # noqa
         self.model = model
         self.search_model = isinstance(model, BaseSearchCV)
@@ -173,7 +187,42 @@ class ShapRFECV(BaseFitComputePlotClass):
         self.n_jobs = n_jobs
         self.verbose = verbose
         self.random_state = random_state
+
+        # Enable early stopping behavior
+        if early_stopping_rounds:
+            if not isinstance(early_stopping_rounds, int) or early_stopping_rounds <= 0:
+                raise ValueError(f"early_stopping_rounds must be a positive integer; got {early_stopping_rounds}.")
+
+            if not self._check_if_model_is_compatible_with_early_stopping(model):
+                raise ValueError("Only 'XGBoost', 'LGBM' and 'CatBoost' supported for early stopping.")
+
+        self.early_stopping_rounds = early_stopping_rounds
+        self.eval_metric = eval_metric
+
         self.report_df = pd.DataFrame()
+
+    def _check_if_model_is_compatible_with_early_stopping(self, model):
+        """
+        Check if the model or the estimator of the cv is compatible with early stopping.
+
+        Returns:
+            (bool):
+                bool if true or false based on compatibility.
+        """
+        libraries = [("lightgbm", "LGBMModel"), ("xgboost.sklearn", "XGBModel"), ("catboost", "CatBoost")]
+
+        if isinstance(model, BaseSearchCV):
+            model = model.estimator
+
+        for lib, class_name in libraries:
+            try:
+                module = __import__(lib, fromlist=[class_name])
+                if isinstance(model, getattr(module, class_name)):
+                    return True
+            except ImportError:
+                pass
+
+        return False
 
     def compute(self):
         """
@@ -401,19 +450,35 @@ class ShapRFECV(BaseFitComputePlotClass):
             else:
                 current_model = clone(self.model)
 
-            # Perform CV to estimate feature importance with SHAP
-            results_per_fold = Parallel(n_jobs=self.n_jobs)(
-                delayed(self._get_feature_shap_values_per_fold)(
-                    X=current_X,
-                    y=self.y,
-                    model=current_model,
-                    train_index=train_index,
-                    val_index=val_index,
-                    sample_weight=sample_weight,
-                    **shap_kwargs,
+            # Early stopping enabled (or not)
+            if not (self.early_stopping_rounds and self.eval_metric):
+                # Perform CV to estimate feature importance with SHAP
+                results_per_fold = Parallel(n_jobs=self.n_jobs)(
+                    delayed(self._get_feature_shap_values_per_fold)(
+                        X=current_X,
+                        y=self.y,
+                        model=current_model,
+                        train_index=train_index,
+                        val_index=val_index,
+                        sample_weight=sample_weight,
+                        **shap_kwargs,
+                    )
+                    for train_index, val_index in self.cv.split(current_X, self.y, groups)
                 )
-                for train_index, val_index in self.cv.split(current_X, self.y, groups)
-            )
+            else:
+                # Perform CV to estimate feature importance with SHAP
+                results_per_fold = Parallel(n_jobs=self.n_jobs)(
+                    delayed(self._get_feature_shap_values_per_fold_early_stopping)(
+                        X=current_X,
+                        y=self.y,
+                        model=current_model,
+                        train_index=train_index,
+                        val_index=val_index,
+                        sample_weight=sample_weight,
+                        **shap_kwargs,
+                    )
+                    for train_index, val_index in self.cv.split(current_X, self.y, groups)
+                )
 
             if self.y.nunique() == 2 or is_regressor(current_model):
                 shap_values = np.concatenate([current_result[0] for current_result in results_per_fold], axis=0)
@@ -942,3 +1007,338 @@ class ShapRFECV(BaseFitComputePlotClass):
         ranking = [features_eliminated_dict[col] for col in self.column_names]
 
         return ranking
+
+    def _get_fit_params_lightGBM(
+        self, X_train, y_train, X_val, y_val, sample_weight=None, train_index=None, val_index=None
+    ):
+        """Get the fit parameters for for a LightGBM Model.
+
+        Args:
+
+            X_train (pd.DataFrame):
+                Train Dataset used in CV.
+
+            y_train (pd.Series):
+                Train labels for X.
+
+            X_val (pd.DataFrame):
+                Validation Dataset used in CV.
+
+            y_val (pd.Series):
+                Validation labels for X.
+
+            sample_weight (pd.Series, np.ndarray, list, optional):
+                array-like of shape (n_samples,) - only use if the model you're using supports
+                sample weighting (check the corresponding scikit-learn documentation).
+                Array of weights that are assigned to individual samples.
+                Note that they're only used for fitting of  the model, not during evaluation of metrics.
+                If not provided, then each sample is given unit weight.
+
+            train_index (np.array):
+                Positions of train folds samples.
+
+            val_index (np.array):
+                Positions of validation fold samples.
+
+        Raises:
+            ValueError: if the model is not supported.
+
+        Returns:
+            dict: fit parameters
+        """
+        from lightgbm import early_stopping, log_evaluation
+
+        fit_params = {
+            "X": X_train,
+            "y": y_train,
+            "eval_set": [(X_val, y_val)],
+            "eval_metric": self.eval_metric,
+            "callbacks": [
+                early_stopping(self.early_stopping_rounds, first_metric_only=True),
+                log_evaluation(1 if self.verbose >= 2 else 0),
+            ],
+        }
+
+        if sample_weight is not None:
+            fit_params["sample_weight"] = sample_weight.iloc[train_index]
+            fit_params["eval_sample_weight"] = [sample_weight.iloc[val_index]]
+
+        return fit_params
+
+    def _get_fit_params_XGBoost(
+        self, X_train, y_train, X_val, y_val, sample_weight=None, train_index=None, val_index=None
+    ):
+        """Get the fit parameters for for a XGBoost Model.
+
+        Args:
+
+            X_train (pd.DataFrame):
+                Train Dataset used in CV.
+
+            y_train (pd.Series):
+                Train labels for X.
+
+            X_val (pd.DataFrame):
+                Validation Dataset used in CV.
+
+            y_val (pd.Series):
+                Validation labels for X.
+
+            sample_weight (pd.Series, np.ndarray, list, optional):
+                array-like of shape (n_samples,) - only use if the model you're using supports
+                sample weighting (check the corresponding scikit-learn documentation).
+                Array of weights that are assigned to individual samples.
+                Note that they're only used for fitting of  the model, not during evaluation of metrics.
+                If not provided, then each sample is given unit weight.
+
+            train_index (np.array):
+                Positions of train folds samples.
+
+            val_index (np.array):
+                Positions of validation fold samples.
+
+        Raises:
+            ValueError: if the model is not supported.
+
+        Returns:
+            dict: fit parameters
+        """
+        fit_params = {
+            "X": X_train,
+            "y": y_train,
+            "eval_set": [(X_val, y_val)],
+        }
+        if sample_weight is not None:
+            fit_params["sample_weight"] = sample_weight.iloc[train_index]
+            fit_params["eval_sample_weight"] = [sample_weight.iloc[val_index]]
+
+        return fit_params
+
+    def _get_fit_params_CatBoost(
+        self, X_train, y_train, X_val, y_val, sample_weight=None, train_index=None, val_index=None
+    ):
+        """Get the fit parameters for for a CatBoost Model.
+
+        Args:
+
+            X_train (pd.DataFrame):
+                Train Dataset used in CV.
+
+            y_train (pd.Series):
+                Train labels for X.
+
+            X_val (pd.DataFrame):
+                Validation Dataset used in CV.
+
+            y_val (pd.Series):
+                Validation labels for X.
+
+            sample_weight (pd.Series, np.ndarray, list, optional):
+                array-like of shape (n_samples,) - only use if the model you're using supports
+                sample weighting (check the corresponding scikit-learn documentation).
+                Array of weights that are assigned to individual samples.
+                Note that they're only used for fitting of  the model, not during evaluation of metrics.
+                If not provided, then each sample is given unit weight.
+
+            train_index (np.array):
+                Positions of train folds samples.
+
+            val_index (np.array):
+                Positions of validation fold samples.
+
+        Raises:
+            ValueError: if the model is not supported.
+
+        Returns:
+            dict: fit parameters
+        """
+        from catboost import Pool
+
+        cat_features = [col for col in X_train.select_dtypes(include=["category"]).columns]
+        fit_params = {
+            "X": Pool(X_train, y_train, cat_features=cat_features),
+            "eval_set": Pool(X_val, y_val, cat_features=cat_features),
+            # Evaluation metric should be passed during initialization
+        }
+        if sample_weight is not None:
+            fit_params["X"].set_weight(sample_weight.iloc[train_index])
+            fit_params["eval_set"].set_weight(sample_weight.iloc[val_index])
+
+        return fit_params
+
+    def _get_fit_params(
+        self, model, X_train, y_train, X_val, y_val, sample_weight=None, train_index=None, val_index=None
+    ):
+        """Get the fit parameters for the specified classifier or regressor.
+
+        Args:
+            model (classifier or regressor):
+                Model to be fitted on the train folds.
+
+            X_train (pd.DataFrame):
+                Train Dataset used in CV.
+
+            y_train (pd.Series):
+                Train labels for X.
+
+            X_val (pd.DataFrame):
+                Validation Dataset used in CV.
+
+            y_val (pd.Series):
+                Validation labels for X.
+
+            sample_weight (pd.Series, np.ndarray, list, optional):
+                array-like of shape (n_samples,) - only use if the model you're using supports
+                sample weighting (check the corresponding scikit-learn documentation).
+                Array of weights that are assigned to individual samples.
+                Note that they're only used for fitting of  the model, not during evaluation of metrics.
+                If not provided, then each sample is given unit weight.
+
+            train_index (np.array):
+                Positions of train folds samples.
+
+            val_index (np.array):
+                Positions of validation fold samples.
+
+        Raises:
+            ValueError: if the model is not supported.
+
+        Returns:
+            dict: fit parameters
+        """
+        try:
+            from lightgbm import LGBMModel
+
+            if isinstance(model, LGBMModel):
+                return self._get_fit_params_lightGBM(
+                    X_train=X_train,
+                    y_train=y_train,
+                    X_val=X_val,
+                    y_val=y_val,
+                    sample_weight=sample_weight,
+                    train_index=train_index,
+                    val_index=val_index,
+                )
+        except ImportError:
+            pass
+
+        try:
+            from xgboost.sklearn import XGBModel
+
+            if isinstance(model, XGBModel):
+                return self._get_fit_params_XGBoost(
+                    X_train=X_train,
+                    y_train=y_train,
+                    X_val=X_val,
+                    y_val=y_val,
+                    sample_weight=sample_weight,
+                    train_index=train_index,
+                    val_index=val_index,
+                )
+        except ImportError:
+            pass
+
+        try:
+            from catboost import CatBoost
+
+            if isinstance(model, CatBoost):
+                return self._get_fit_params_CatBoost(
+                    X_train=X_train,
+                    y_train=y_train,
+                    X_val=X_val,
+                    y_val=y_val,
+                    sample_weight=sample_weight,
+                    train_index=train_index,
+                    val_index=val_index,
+                )
+        except ImportError:
+            pass
+
+        raise ValueError("Model type not supported")
+
+    def _get_feature_shap_values_per_fold_early_stopping(
+        self,
+        X,
+        y,
+        model,
+        train_index,
+        val_index,
+        sample_weight=None,
+        **shap_kwargs,
+    ):
+        """
+        This function calculates the shap values on validation set, and Train and Val score.
+
+        Args:
+            X (pd.DataFrame):
+                Dataset used in CV.
+
+            y (pd.Series):
+                Labels for X.
+
+            sample_weight (pd.Series, np.ndarray, list, optional):
+                array-like of shape (n_samples,) - only use if the model you're using supports
+                sample weighting (check the corresponding scikit-learn documentation).
+                Array of weights that are assigned to individual samples.
+                Note that they're only used for fitting of  the model, not during evaluation of metrics.
+                If not provided, then each sample is given unit weight.
+
+            model:
+                Classifier or regressor to be fitted on the train folds.
+
+            train_index (np.array):
+                Positions of train folds samples.
+
+            val_index (np.array):
+                Positions of validation fold samples.
+
+            **shap_kwargs:
+                keyword arguments passed to
+                [shap.Explainer](https://shap.readthedocs.io/en/latest/generated/shap.Explainer.html#shap.Explainer).
+                It also enables `approximate` and `check_additivity` parameters, passed while calculating SHAP values.
+                The `approximate=True` causes less accurate, but faster SHAP values calculation, while
+                `check_additivity=False` disables the additivity check inside SHAP.
+        Returns:
+            (np.array, float, float):
+                Tuple with the results: Shap Values on validation fold, train score, validation score.
+        """
+        X_train, X_val = X.iloc[train_index, :], X.iloc[val_index, :]
+        y_train, y_val = y.iloc[train_index], y.iloc[val_index]
+
+        fit_params = self._get_fit_params(
+            model=model,
+            X_train=X_train,
+            y_train=y_train,
+            X_val=X_val,
+            y_val=y_val,
+            sample_weight=sample_weight,
+            train_index=train_index,
+            val_index=val_index,
+        )
+
+        try:
+            from xgboost.sklearn import XGBModel
+
+            if isinstance(model, XGBModel):
+                model.set_params(eval_metric=self.eval_metric, early_stopping_rounds=self.early_stopping_rounds)
+        except ImportError:
+            pass
+
+        try:
+            from catboost import CatBoost
+
+            if isinstance(model, CatBoost):
+                model.set_params(early_stopping_rounds=self.early_stopping_rounds)
+        except ImportError:
+            pass
+
+        # Train the model
+        model = model.fit(**fit_params)
+
+        # Score the model
+        score_train = self.scorer.score(model, X_train, y_train)
+        score_val = self.scorer.score(model, X_val, y_val)
+
+        # Compute SHAP values
+        shap_values = shap_calc(model, X_val, verbose=self.verbose, random_state=self.random_state, **shap_kwargs)
+        return shap_values, score_train, score_val
