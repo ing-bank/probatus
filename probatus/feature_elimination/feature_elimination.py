@@ -169,7 +169,7 @@ class ShapRFECV(BaseFitComputePlotClass):
             early_stopping_rounds (int, optional):
                 Number of rounds with constant performance after which the model fitting stops. This is passed to the
                 fit method of the model for Shapley values estimation, but not for hyperparameter search. Only
-                supported by some models, such as XGBoost and LightGBM.
+                supported by some models, such as XGBoost, LightGBM and CatBoost. Only recommended when dealing with large sets of data.
 
             eval_metric (str, optional):
                 Metric for scoring fitting rounds and activating early stopping. This is passed to the
@@ -177,6 +177,7 @@ class ShapRFECV(BaseFitComputePlotClass):
                 supported by some models, such as [XGBoost](https://xgboost.readthedocs.io/en/latest/parameter.html#learning-task-parameters)
                 and [LightGBM](https://lightgbm.readthedocs.io/en/latest/Parameters.html#metric-parameters).
                 Note that `eval_metric` is an argument of the model's fit method and it is different from `scoring`.
+                Only recommended when dealing with large sets of data.
         """  # noqa
         self.model = model
         self.search_model = isinstance(model, BaseSearchCV)
