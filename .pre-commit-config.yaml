@@ -30,7 +30,6 @@ repos:
         name: "mypy: Static type checking"
         entry: mypy
         language: system
-        args: ['--verbose']
         types: [python]
   - repo: local
     hooks:
