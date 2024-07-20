@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "probatus"
-version = "3.1.1"
+version = "3.1.2"
 requires-python= ">=3.9"
 description = "Validation of regression & classifiers and data used to develop them"
 readme = { file = "README.md", content-type = "text/markdown" }
@@ -29,9 +29,7 @@ dependencies = [
     "scikit-learn>=0.22.2",
     "pandas>=1.0.0",
     "matplotlib>=3.1.1",
-    "scipy>=1.4.0",
     "joblib>=0.13.2",
-    "tqdm>=4.41.0",
     "shap>=0.43.0",
     "numpy>=1.23.2,<2.0.0",
     "numba>=0.57.0",
@@ -49,15 +47,12 @@ Changelog = "https://github.com/ing-bank/probatus/blob/main/CHANGELOG.md"
 
 dev = [
     "black>=19.10b0",
-    "pre-commit>=2.5.0",
     "mypy>=0.770",
     "pytest>=6.0.0",
     "pytest-cov>=2.10.0",
     "pyflakes",
-    "seaborn>=0.9.0",
     "joblib>=0.13.2",
     "jupyter>=1.0.0",
-    "tabulate>=0.8.7",
     "nbconvert>=6.0.7",
     "pre-commit>=2.7.1",
     "isort>=5.12.0",
@@ -66,7 +61,6 @@ dev = [
     "lightgbm>=3.3.0",
     "catboost>=1.2",
     "xgboost>=1.5.0",
-    "scipy>=1.4.0",
 ]
 docs = [
     "mkdocs>=1.5.3",
