@@ -10,7 +10,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVC
 from xgboost import XGBClassifier, XGBRegressor
 
-from probatus.feature_elimination import ShapRFECV
+from probatus.feature_elimination import ShapRFECV, EarlyStoppingShapRFECV
 from probatus.utils import preprocess_labels
 
 
@@ -357,7 +357,7 @@ def test_shap_rfe_early_stopping_lightGBM(complex_data, random_state):
     model = LGBMClassifier(n_estimators=200, max_depth=3, random_state=random_state)
     X, y = complex_data
 
-    shap_elimination = ShapRFECV(
+    shap_elimination = EarlyStoppingShapRFECV(
         model,
         random_state=random_state,
         step=1,

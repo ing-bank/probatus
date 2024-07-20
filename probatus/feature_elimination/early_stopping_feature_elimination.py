@@ -1,5 +1,4 @@
 import warnings
-
 from probatus.feature_elimination import ShapRFECV
 
 
@@ -169,7 +168,8 @@ class EarlyStoppingShapRFECV(ShapRFECV):
             "The separate EarlyStoppingShapRFECV class is going to be deprecated"
             " in a later version of Probatus, since its now part of the"
             " ShapRFECV class. Please adjust your imported class name from"
-            " 'EarlyStoppingShapRFECV' to 'ShapRFECV'."
+            " 'EarlyStoppingShapRFECV' to 'ShapRFECV'.",
+            DeprecationWarning,
         )
 
         super().__init__(

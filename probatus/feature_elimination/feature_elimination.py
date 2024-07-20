@@ -191,6 +191,12 @@ class ShapRFECV(BaseFitComputePlotClass):
 
         # Enable early stopping behavior
         if early_stopping_rounds:
+            if not eval_metric:
+                warnings.warn(
+                    "Running early stopping, requires both 'early_stopping_rounds' and 'eval_metric' as"
+                    " parameters to be provided and supports only 'XGBoost', 'LGBM' and 'CatBoost'."
+                )
+
             if not isinstance(early_stopping_rounds, int) or early_stopping_rounds <= 0:
                 raise ValueError(f"early_stopping_rounds must be a positive integer; got {early_stopping_rounds}.")
 
