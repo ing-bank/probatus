@@ -5,7 +5,7 @@ The main features assess the metric stability and analyse differences between tw
 
 ## Installation
 
-In order to install Probatus you need to use Python 3.6 or higher.
+In order to install Probatus you need to use Python 3.9 or higher.
 
 Install `probatus` via pip with:
 
