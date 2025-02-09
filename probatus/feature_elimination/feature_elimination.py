@@ -518,10 +518,10 @@ class ShapRFECV(BaseFitComputePlotClass):
             if self.verbose > 1:
                 logger.info(
                     f"Round: {round_number}, Current number of features: {len(current_features_set)}, "
-                    f'Current performance: Train {self.report_df.loc[round_number]["train_metric_mean"]} '
-                    f'+/- {self.report_df.loc[round_number]["train_metric_std"]}, CV Validation '
-                    f'{self.report_df.loc[round_number]["val_metric_mean"]} '
-                    f'+/- {self.report_df.loc[round_number]["val_metric_std"]}. \n'
+                    f"Current performance: Train {self.report_df.loc[round_number]['train_metric_mean']} "
+                    f"+/- {self.report_df.loc[round_number]['train_metric_std']}, CV Validation "
+                    f"{self.report_df.loc[round_number]['val_metric_mean']} "
+                    f"+/- {self.report_df.loc[round_number]['val_metric_std']}. \n"
                     f"Features left: {remaining_features}. "
                     f"Removed features at the end of the round: {features_to_remove}"
                 )

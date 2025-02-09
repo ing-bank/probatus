@@ -99,7 +99,7 @@ def shap_calc(
 
         if isinstance(shap_values, list) and len(shap_values) == 2:
             warnings.warn(
-                "Shap values are related to the output probabilities of class 1 for this model, instead of " "log odds."
+                "Shap values are related to the output probabilities of class 1 for this model, instead of log odds."
             )
             shap_values = shap_values[1]
 
