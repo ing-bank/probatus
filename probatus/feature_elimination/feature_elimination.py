@@ -532,6 +532,8 @@ class ShapRFECV(BaseFitComputePlotClass):
         """
         Generates plot of the model performance for each iteration of feature elimination.
 
+        The plot shows discrete points with error bars for both train and validation scores.
+
         Args:
             show (bool, optional):
                 If True, the plots are showed to the user, otherwise they are not shown. Not showing plot can be useful,
@@ -542,7 +544,7 @@ class ShapRFECV(BaseFitComputePlotClass):
 
         Returns:
             (plt.figure):
-                Figure containing the performance plot.
+                Figure containing the performance plot/image.
         """
         # Data preparation
         num_features = self.report_df["num_features"]
@@ -555,13 +557,15 @@ class ShapRFECV(BaseFitComputePlotClass):
         # Plotting
         fig, ax = plt.subplots(**figure_kwargs)
 
-        # Training performance
-        ax.plot(num_features, train_mean, label="Train Score")
-        ax.fill_between(num_features, train_mean - train_std, train_mean + train_std, alpha=0.3)
+        # Training performance - using errorbar for discrete points
+        ax.errorbar(
+            num_features, train_mean, yerr=train_std, fmt="o-", capsize=5, label="Train Score", markersize=8, alpha=0.7
+        )
 
-        # Validation performance
-        ax.plot(num_features, val_mean, label="Validation Score")
-        ax.fill_between(num_features, val_mean - val_std, val_mean + val_std, alpha=0.3)
+        # Validation performance - using errorbar for discrete points
+        ax.errorbar(
+            num_features, val_mean, yerr=val_std, fmt="s-", capsize=5, label="Validation Score", markersize=8, alpha=0.7
+        )
 
         # Labels and title
         ax.set_xlabel("Number of features")
@@ -570,6 +574,7 @@ class ShapRFECV(BaseFitComputePlotClass):
         ax.legend(loc="lower left")
         ax.invert_xaxis()
         ax.set_xticks(x_ticks)
+        ax.grid(True, linestyle="--", alpha=0.7)
 
         # Display or close plot
         if show:
@@ -967,10 +972,6 @@ class ShapRFECV(BaseFitComputePlotClass):
         # Assuming 'features_set' contains the list of feature names for the row
         return matching_rows.iloc[0]["features_set"]
 
-        # Assuming 'features_set' contains the list of feature names for the row
-        return matching_rows.iloc[0]["features_set"]
-
-    @staticmethod
     def _get_feature_support(self, feature_names_selected):
         """
         Helper function that takes feature_names_selected and returns a boolean mask representing the columns
