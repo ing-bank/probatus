@@ -1,6 +1,8 @@
 import numpy as np
 import pandas as pd
 import pytest
+import matplotlib.pyplot as plt
+from matplotlib.axes import Axes
 
 from probatus.interpret import ShapModelInterpreter
 
@@ -69,6 +71,9 @@ def test_shap_interpret(fitted_tree, X_train, y_train, X_test, y_test, expected_
     assert isinstance(ax7, list) and len(ax7) == 2
     assert isinstance(ax8, list) and len(ax8) == 2
 
+    # Close all plots to free memory
+    plt.close("all")
+
 
 def test_shap_interpret_lin_models(
     fitted_logistic_regression, X_train, y_train, X_test, y_test, expected_feature_importance_lin_models, random_state
@@ -110,6 +115,9 @@ def test_shap_interpret_lin_models(
     assert not (isinstance(ax6, list))
     assert isinstance(ax7, list) and len(ax7) == 2
     assert isinstance(ax8, list) and len(ax8) == 2
+
+    # Close all plots to free memory
+    plt.close("all")
 
 
 def test_shap_interpret_fit_compute_lin_models(
@@ -181,3 +189,42 @@ def test_shap_interpret_complex_data(complex_data_split_with_categorical, comple
     assert not (isinstance(ax6, list))
     assert isinstance(ax7, list) and len(ax7) == 2
     assert isinstance(ax8, list) and len(ax8) == 2
+
+    # Close all plots to free memory
+    plt.close("all")
+
+
+def test_shap_interpret_waterfall_plot(fitted_tree, X_train, y_train, X_test, y_test, random_state):
+    """
+    Test the waterfall plot functionality in ShapModelInterpreter.plot() method.
+    """
+    class_names = ["neg", "pos"]
+
+    # Initialize and fit the ShapModelInterpreter
+    shap_interpret = ShapModelInterpreter(fitted_tree, random_state=random_state)
+    shap_interpret.fit(X_train, X_test, y_train, y_test, class_names=class_names)
+
+    # Test waterfall plot with a single test sample
+    single_test_sample = X_test.index.tolist()[0]
+    ax1 = shap_interpret.plot("sample", samples_index=single_test_sample, target_set="test", show=False)
+
+    # Test waterfall plot with multiple test samples
+    multiple_test_samples = X_test.index.tolist()[0:2]
+    ax2 = shap_interpret.plot("sample", samples_index=multiple_test_samples, target_set="test", show=False)
+
+    # Test waterfall plot with a single train sample
+    single_train_sample = X_train.index.tolist()[0]
+    ax3 = shap_interpret.plot("sample", samples_index=single_train_sample, target_set="train", show=False)
+
+    # Test waterfall plot with multiple train samples
+    multiple_train_samples = X_train.index.tolist()[0:2]
+    ax4 = shap_interpret.plot("sample", samples_index=multiple_train_samples, target_set="train", show=False)
+
+    # Verify the return types of the plots
+    assert isinstance(ax1, Axes)
+    assert isinstance(ax2, list) and len(ax2) == 2
+    assert isinstance(ax3, Axes)
+    assert isinstance(ax4, list) and len(ax4) == 2
+
+    # Close all plots to free memory
+    plt.close("all")
