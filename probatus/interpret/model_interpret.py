@@ -574,6 +574,9 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
                 - "shap_values": SHAP values (np.ndarray)
                 - "tdp": DependencePlotter instance
                 - "expected_value": Expected value for SHAP calculations
+
+        Raises:
+            ValueError: If target_set is not "train" or "test"
         """
         if target_set == "test":
             return {
@@ -589,6 +592,8 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
                 "tdp": self.tdp_train,
                 "expected_value": self.expected_value_train,
             }
+        else:
+            raise ValueError('The target_set parameter can be either "train" or "test".')
 
     def _create_summary_plot(
         self,
