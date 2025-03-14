@@ -38,6 +38,8 @@ def assure_pandas_df(
             x.columns = column_names
     elif isinstance(x, (np.ndarray, pd.Series, list)):
         x = pd.DataFrame(x, columns=column_names)
+    else:
+        raise TypeError(f"Cannot convert object of type {type(x)} to pandas DataFrame")
 
     return x
 
@@ -93,6 +95,8 @@ def assure_pandas_series(
             return x
     elif isinstance(x, (np.ndarray, list)):
         return pd.Series(x, index=index)
+    else:
+        raise TypeError(f"Cannot convert object of type {type(x)} to pandas Series")
 
 
 def preprocess_data(
