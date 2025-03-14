@@ -15,16 +15,20 @@ def assure_pandas_df(
     If the input is already a DataFrame, it can optionally rename the columns.
 
     Args:
-        x: Input data to convert to DataFrame. Can be:
-           - list or list of lists
-           - numpy array
-           - pandas DataFrame
-           - pandas Series
-        column_names: Optional list of column names to use for the DataFrame.
-                     If provided for an existing DataFrame, it will replace the current column names.
+        x (Union[List, np.ndarray, pd.DataFrame, pd.Series]):
+            Input data to convert to DataFrame. Can be:
+            - list or list of lists
+            - numpy array
+            - pandas DataFrame
+            - pandas Series
+
+        column_names (Optional[List[str]], default=None):
+            Optional list of column names to use for the DataFrame.
+            If provided for an existing DataFrame, it will replace the current column names.
 
     Returns:
-        pandas DataFrame with the data from x and specified column names (if provided)
+        pd.DataFrame:
+            pandas DataFrame with the data from x and specified column names (if provided)
 
     Raises:
         TypeError: If x is not one of the supported types
@@ -48,17 +52,21 @@ def assure_pandas_series(
     If the input is already a Series, it handles index alignment based on the provided index.
 
     Args:
-        x: Input data to convert to Series. Can be:
-           - list
-           - numpy array
-           - pandas Series
-        index: Optional index to use for the Series. If x is already a Series:
-               - If index matches exactly: returns x unchanged
-               - If index has same values but different order: reorders x
-               - If index has different values: overwrites x's index
+        x (Union[List, np.ndarray, pd.Series]):
+            Input data to convert to Series. Can be:
+            - list
+            - numpy array
+            - pandas Series
+
+        index (Optional[Union[List, np.ndarray, pd.Index]], default=None):
+            Optional index to use for the Series. If x is already a Series:
+            - If index matches exactly: returns x unchanged
+            - If index has same values but different order: reorders x
+            - If index has different values: overwrites x's index
 
     Returns:
-        pandas Series with the data from x and specified index (if provided)
+        pd.Series:
+            pandas Series with the data from x and specified index (if provided)
 
     Raises:
         TypeError: If x is not one of the supported types
@@ -103,27 +111,32 @@ def preprocess_data(
     4. Converts object dtype features to category dtype for better compatibility with models like LightGBM
 
     Args:
-        X: Input dataset to preprocess. Can be:
-           - pandas DataFrame
-           - list of lists
-           - numpy array
+        X (Union[pd.DataFrame, List, np.ndarray]):
+            Input dataset to preprocess. Can be:
+            - pandas DataFrame
+            - list of lists
+            - numpy array
 
-        X_name: Name of the X variable, used in warning messages.
-                Defaults to "X" if not provided.
+        X_name (Optional[str], default=None):
+            Name of the X variable, used in warning messages.
+            Defaults to "X" if not provided.
 
-        column_names: List of feature names to use for the dataset.
-                     If provided, overwrites existing feature names.
-                     If not provided, uses existing names or generates default ones.
+        column_names (Optional[List[str]], default=None):
+            List of feature names to use for the dataset.
+            If provided, overwrites existing feature names.
+            If not provided, uses existing names or generates default ones.
 
-        verbose: Controls verbosity of the output:
-                - 0: No warnings or prints
-                - 1: Only important warnings
-                - 2: All prints and warnings
+        verbose (int, default=0):
+            Controls verbosity of the output:
+            - 0: No warnings or prints
+            - 1: Only important warnings
+            - 2: All prints and warnings
 
     Returns:
-        Tuple containing:
-        - Preprocessed pandas DataFrame
-        - List of column names in the DataFrame
+        Tuple[pd.DataFrame, List[str]]:
+            Tuple containing:
+            - Preprocessed pandas DataFrame
+            - List of column names in the DataFrame
     """
     # Set default name for warning messages
     X_name = "X" if X_name is None else X_name
@@ -167,20 +180,23 @@ def preprocess_labels(
     This function converts various input types to a pandas Series with proper indexing.
 
     Args:
-        y: Input labels to preprocess. Can be:
-           - pandas Series
-           - list
-           - numpy array
+        y (Union[pd.Series, List, np.ndarray]):
+            Input labels to preprocess. Can be:
+            - pandas Series
+            - list
+            - numpy array
 
-        index: The index to use for the Series. Handling depends on input type:
-               - For list/array: Sets this as the index when creating Series
-               - For existing Series:
-                 - If indexes match exactly: keeps as is
-                 - If same values but different order: reorders
-                 - If different values: overwrites current index
+        index (Optional[Union[List[int], pd.Index]], default=None):
+            The index to use for the Series. Handling depends on input type:
+            - For list/array: Sets this as the index when creating Series
+            - For existing Series:
+              - If indexes match exactly: keeps as is
+              - If same values but different order: reorders
+              - If different values: overwrites current index
 
     Returns:
-        Labels as a pandas Series with proper indexing
+        pd.Series:
+            Labels as a pandas Series with proper indexing
     """
     y = assure_pandas_series(y, index=index)
 
