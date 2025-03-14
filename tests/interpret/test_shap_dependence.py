@@ -102,6 +102,9 @@ def test_fit_complex(complex_data_split, complex_fitted_lightgbm, random_state):
     # Check if plotting does not cause errors
     _ = plotter.plot(feature="f2_missing", show=False)
 
+    # Close all plots to free memory
+    plt.close("all")
+
 
 def test_get_X_y_shap_with_q_cut_normal(X_y, model, random_state):
     X, y = X_y
