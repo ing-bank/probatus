@@ -10,15 +10,10 @@ class NotFittedError(Exception):
         """
         Initialize the NotFittedError with a descriptive message.
 
-        Parameters
-        ----------
-        message : str
-            A descriptive error message explaining which estimator or method
-            was called before fitting.
-
-        Examples
-        --------
-        >>> raise NotFittedError("This estimator is not fitted yet. Call 'fit' before using this method.")
+        Args:
+            message (str):
+                A descriptive error message explaining which estimator or method
+                was called before fitting.
         """
         self.message = message
 
