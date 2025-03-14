@@ -2,7 +2,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from shap import summary_plot
-from shap.plots._waterfall import waterfall_legacy
+from shap import Explanation
+from shap.plots import waterfall
+from typing import Any, List, Optional, Tuple, Union, Literal
+from matplotlib.axes import Axes
 
 from probatus.interpret import DependencePlotter
 from probatus.utils import (
@@ -13,15 +16,38 @@ from probatus.utils import (
     preprocess_labels,
     get_single_scorer,
     shap_calc,
+    Scorer,
 )
 
 
 class ShapModelInterpreter(BaseFitComputePlotClass):
     """
-    This class is a wrapper that allows to easily analyse a model's features.
+    A wrapper class that allows easy analysis and interpretation of a model's features using SHAP values.
 
-    It allows us to plot SHAP feature importance,
-        SHAP summary plot and SHAP dependence plots.
+    This class provides methods to calculate and visualize SHAP (SHapley Additive exPlanations) values
+    for machine learning models, helping to understand feature importance and interactions.
+
+    Attributes:
+        model (Any): The trained model to be interpreted
+        scorer (Scorer): Scorer object used to evaluate model performance
+        verbose (int): Controls verbosity of output
+        random_state (Optional[int]): Random state for reproducibility
+        fitted (bool): Indicates if the interpreter has been fitted
+        X_train (pd.DataFrame): Training feature data
+        X_test (pd.DataFrame): Test feature data
+        y_train (pd.Series): Training target labels
+        y_test (pd.Series): Test target labels
+        column_names (List[str]): Feature names
+        class_names (List[str]): Class names for classification
+        train_score (float): Model score on training data
+        test_score (float): Model score on test data
+        shap_values_train (np.ndarray): SHAP values for training data
+        shap_values_test (np.ndarray): SHAP values for test data
+        expected_value_train (float): Expected value for training data
+        expected_value_test (float): Expected value for test data
+        tdp_train (DependencePlotter): Dependence plotter for training data
+        tdp_test (DependencePlotter): Dependence plotter for test data
+        importance_df (pd.DataFrame): DataFrame with feature importance metrics
 
     Example:
     ```python
@@ -60,77 +86,89 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
     <img src="../img/model_interpret_sample.png" width="320" />
     """
 
-    def __init__(self, model, scoring="roc_auc", verbose=0, random_state=None):
+    def __init__(
+        self, model: Any, scoring: Union[str, Scorer] = "roc_auc", verbose: int = 0, random_state: Optional[int] = None
+    ) -> None:
         """
-        Initializes the class.
+        Initialize a ShapModelInterpreter object.
 
         Args:
-            model (classifier or regressor):
-                Model fitted on X_train.
+            model (Any):
+                The trained model to be interpreted. Must implement either predict or predict_proba
+                method depending on the scoring metric requirements.
 
-            scoring (string or probatus.utils.Scorer, optional):
-                Metric for which the model performance is calculated. It can be either a metric name  aligned with
-                predefined classification scorers names in sklearn
-                ([link](https://scikit-learn.org/stable/modules/model_evaluation.html)).
-                Another option is using probatus.utils.Scorer to define a custom metric.
+            scoring (Union[str, Scorer], default="roc_auc"):
+                Metric for which the model performance is calculated. It can be either:
+                - A string metric name aligned with predefined classification scorers in scikit-learn
+                  (see: https://scikit-learn.org/stable/modules/model_evaluation.html)
+                - An instance of probatus.utils.Scorer to define a custom metric
 
-            verbose (int, optional):
+            verbose (int, default=0):
                 Controls verbosity of the output:
-
                 - 0 - neither prints nor warnings are shown
                 - 1 - only most important warnings
-                - 2 - shows all prints and all warnings.
+                - 2 - shows all prints and all warnings
 
-            random_state (int, optional):
-                Random state set for the nr of samples. If it is None, the results will not be reproducible. For
-                reproducible results set it to an integer.
+            random_state (Optional[int], default=None):
+                Random state for reproducibility. If None, results will not be reproducible.
+                For reproducible results, set it to an integer.
         """
         self.model = model
         self.scorer = get_single_scorer(scoring)
         self.verbose = verbose
         self.random_state = random_state
+        self.fitted = False
 
     def fit(
         self,
-        X_train,
-        X_test,
-        y_train,
-        y_test,
-        column_names=None,
-        class_names=None,
-        **shap_kwargs,
-    ):
+        X_train: pd.DataFrame,
+        X_test: pd.DataFrame,
+        y_train: pd.Series,
+        y_test: pd.Series,
+        column_names: Optional[List[str]] = None,
+        class_names: Optional[List[str]] = None,
+        **shap_kwargs: Any,
+    ) -> "ShapModelInterpreter":
         """
-        Fits the object and calculates the shap values for the provided datasets.
+        Fit the interpreter and calculate SHAP values for the provided datasets.
+
+        This method preprocesses the input data, calculates model performance metrics,
+        and computes SHAP values for both training and test datasets.
 
         Args:
             X_train (pd.DataFrame):
-                Dataframe containing training data.
+                DataFrame containing training feature data, of shape (n_samples, n_features).
 
             X_test (pd.DataFrame):
-                Dataframe containing test data.
+                DataFrame containing test feature data, of shape (n_samples, n_features).
 
             y_train (pd.Series):
-                Series of labels for train data.
+                Series of target labels for training data, of shape (n_samples,).
 
             y_test (pd.Series):
-                Series of labels for test data.
+                Series of target labels for test data, of shape (n_samples,).
 
-            column_names (None, or list of str, optional):
-                List of feature names for the dataset. If None, then column names from the X_train dataframe are used.
+            column_names (Optional[List[str]], default=None):
+                List of feature names for the dataset. If None, column names from
+                the X_train DataFrame are used.
 
-            class_names (None, or list of str, optional):
-                List of class names e.g. ['neg', 'pos']. If none, the default ['Negative Class', 'Positive Class'] are
-                used.
+            class_names (Optional[List[str]], default=None):
+                List of class names e.g. ['neg', 'pos']. If None, the default
+                ['Negative Class', 'Positive Class'] are used.
 
             **shap_kwargs:
-                keyword arguments passed to
-                [shap.Explainer](https://shap.readthedocs.io/en/latest/generated/shap.Explainer.html#shap.Explainer).
-                It also enables `approximate` and `check_additivity` parameters, passed while calculating SHAP values.
-                The `approximate=True` causes less accurate, but faster SHAP values calculation, while
-                `check_additivity=False` disables the additivity check inside SHAP.
-        """
+                Keyword arguments passed to shap.Explainer. Notable parameters include:
+                - approximate (bool): If True, uses faster but less accurate SHAP calculation
+                - check_additivity (bool): If False, disables the additivity check inside SHAP
+                For full details, see: https://shap.readthedocs.io/en/latest/generated/shap.Explainer.html
 
+        Returns:
+            ShapModelInterpreter: The fitted instance (self).
+
+        Raises:
+            ValueError: If input data cannot be properly preprocessed
+        """
+        # Preprocess input data and ensure consistent format
         self.X_train, self.column_names = preprocess_data(
             X_train, X_name="X_train", column_names=column_names, verbose=self.verbose
         )
@@ -138,20 +176,22 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
         self.y_train = preprocess_labels(y_train, index=self.X_train.index)
         self.y_test = preprocess_labels(y_test, index=self.X_test.index)
 
-        # Set class names
+        # Set class names with default if not provided
         self.class_names = class_names
         if self.class_names is None:
             self.class_names = ["Negative Class", "Positive Class"]
 
-        # Calculate Metrics
+        # Calculate model performance metrics
         self.train_score = self.scorer.score(self.model, self.X_train, self.y_train)
         self.test_score = self.scorer.score(self.model, self.X_test, self.y_test)
 
+        # Format results text for display in plots
         self.results_text = (
             f"Train {self.scorer.metric_name}: {np.round(self.train_score, 3)},\n"
             f"Test {self.scorer.metric_name}: {np.round(self.test_score, 3)}."
         )
 
+        # Calculate SHAP values and related variables for training data
         (
             self.shap_values_train,
             self.expected_value_train,
@@ -167,6 +207,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
             **shap_kwargs,
         )
 
+        # Calculate SHAP values and related variables for test data
         (
             self.shap_values_test,
             self.expected_value_test,
@@ -184,25 +225,63 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
 
         self.fitted = True
 
+        # Return self for method chaining
+        return self
+
     @staticmethod
     def _prep_shap_related_variables(
-        model,
-        X,
-        y,
-        approximate=False,
-        verbose=0,
-        random_state=None,
-        column_names=None,
-        class_names=None,
-        **shap_kwargs,
-    ):
+        model: Any,
+        X: pd.DataFrame,
+        y: pd.Series,
+        approximate: bool = False,
+        verbose: int = 0,
+        random_state: Optional[int] = None,
+        column_names: Optional[List[str]] = None,
+        class_names: Optional[List[str]] = None,
+        **shap_kwargs: Any,
+    ) -> Tuple[np.ndarray, float, DependencePlotter]:
         """
-        The function prepares the variables related to shap that are used to interpret the model.
+        Prepare SHAP-related variables used for model interpretation.
+
+        This helper method calculates SHAP values, extracts the expected value,
+        and initializes a DependencePlotter for a given dataset.
+
+        Args:
+            model (Any):
+                The trained model to interpret. Must implement either predict or predict_proba
+                method depending on the analysis requirements.
+
+            X (pd.DataFrame):
+                Feature data, of shape (n_samples, n_features).
+
+            y (pd.Series):
+                Target labels, of shape (n_samples,).
+
+            approximate (bool, default=False):
+                If True, uses faster but less accurate SHAP calculation.
+
+            verbose (int, default=0):
+                Controls verbosity level of the output.
+
+            random_state (Optional[int], default=None):
+                Random state for reproducibility.
+
+            column_names (Optional[List[str]], default=None):
+                List of feature names. If None, column names from X are used.
+
+            class_names (Optional[List[str]], default=None):
+                List of class names. If None, default class names are used.
+
+            **shap_kwargs:
+                Additional keyword arguments passed to shap.Explainer.
 
         Returns:
-            (np.array, int, DependencePlotter):
-                Shap values, expected value of the explainer, and fitted TreeDependencePlotter for a given dataset.
+            Tuple[np.ndarray, float, DependencePlotter]:
+                - SHAP values array of shape (n_samples, n_features)
+                - Expected value of the explainer
+                - Fitted DependencePlotter instance
         """
+        # Calculate SHAP values and get the explainer
         shap_values, explainer = shap_calc(
             model,
             X,
@@ -215,11 +294,12 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
 
         expected_value = explainer.expected_value
 
-        # For sklearn models the expected values consists of two elements (negative_class and positive_class)
-        if isinstance(expected_value, list) or isinstance(expected_value, np.ndarray):
+        # For sklearn models, the expected value consists of two elements (negative_class and positive_class)
+        # We need to extract the positive class expected value (index 1)
+        if isinstance(expected_value, (list, np.ndarray)):
             expected_value = expected_value[1]
 
-        # Initialize tree dependence plotter
+        # Initialize and fit the dependence plotter for visualizing feature interactions
         tdp = DependencePlotter(model, verbose=verbose).fit(
             X,
             y,
@@ -229,26 +309,33 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
         )
         return shap_values, expected_value, tdp
 
-    def compute(self, return_scores=False, shap_variance_penalty_factor=None):
+    def compute(
+        self, return_scores: bool = False, shap_variance_penalty_factor: Optional[float] = None
+    ) -> Union[pd.DataFrame, Tuple[pd.DataFrame, float, float]]:
         """
-        Computes the DataFrame that presents the importance of each feature.
+        Compute feature importance based on SHAP values.
+
+        This method calculates and aggregates SHAP values to create a DataFrame
+        showing the importance of each feature in the model.
 
         Args:
-            return_scores (bool, optional):
-                Flag indicating whether the method should return the train and test score of the model, together with
-                the model interpretation report. If true, the output of this method is a tuple of DataFrame, float,
-                float.
+            return_scores (bool, default=False):
+                If True, returns the train and test scores along with the feature importance DataFrame.
+                If False, returns only the feature importance DataFrame.
 
-            shap_variance_penalty_factor (int or float, optional):
-                Apply aggregation penalty when computing average of shap values for a given feature.
-                Results in a preference for features that have smaller standard deviation of shap
-                values (more coherent shap importance). Recommend value 0.5 - 1.0.
+            shap_variance_penalty_factor (Optional[float], default=None):
+                Factor to penalize features with high variance in SHAP values.
+                This promotes features with more consistent impact across samples.
+                Recommended values are between 0.5 and 1.0.
                 Formula: penalized_shap_mean = (mean_shap - (std_shap * shap_variance_penalty_factor))
 
         Returns:
-            (pd.DataFrame or tuple(pd.DataFrame, float, float)):
-                Dataframe with SHAP feature importance, or tuple containing the dataframe, train and test scores of the
-                model.
+            Union[pd.DataFrame, Tuple[pd.DataFrame, float, float]]:
+                - If return_scores=False: DataFrame with SHAP feature importance metrics
+                - If return_scores=True: Tuple containing (importance_df, train_score, test_score)
+
+        Raises:
+            ValueError: If the interpreter has not been fitted
         """
         self._check_if_fitted()
 
@@ -267,7 +354,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
             shap_variance_penalty_factor=shap_variance_penalty_factor,
         )
 
-        # Concatenate the train and test, sort by test set importance and reorder the columns
+        # Combine train and test results, sort by test importance, and select relevant columns
         self.importance_df = pd.concat([self.importance_df_train, self.importance_df_test], axis=1).sort_values(
             "mean_abs_shap_value_test", ascending=False
         )[
@@ -286,65 +373,66 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
 
     def fit_compute(
         self,
-        X_train,
-        X_test,
-        y_train,
-        y_test,
-        column_names=None,
-        class_names=None,
-        return_scores=False,
-        shap_variance_penalty_factor=None,
-        **shap_kwargs,
-    ):
+        X_train: pd.DataFrame,
+        X_test: pd.DataFrame,
+        y_train: pd.Series,
+        y_test: pd.Series,
+        column_names: Optional[List[str]] = None,
+        class_names: Optional[List[str]] = None,
+        return_scores: bool = False,
+        shap_variance_penalty_factor: Optional[float] = None,
+        **shap_kwargs: Any,
+    ) -> Union[pd.DataFrame, Tuple[pd.DataFrame, float, float]]:
         """
-        Fits the object and calculates the shap values for the provided datasets.
+        Fit the interpreter and compute feature importance in a single step.
+
+        This convenience method combines the fit() and compute() methods to streamline
+        the workflow for model interpretation.
 
         Args:
             X_train (pd.DataFrame):
-                Dataframe containing training data.
+                DataFrame containing training feature data, of shape (n_samples, n_features).
 
             X_test (pd.DataFrame):
-                Dataframe containing test data.
+                DataFrame containing test feature data, of shape (n_samples, n_features).
 
             y_train (pd.Series):
-                Series of labels for train data.
+                Series of target labels for training data, of shape (n_samples,).
 
             y_test (pd.Series):
-                Series of labels for test data.
+                Series of target labels for test data, of shape (n_samples,).
 
-            column_names (None, or list of str, optional):
-                List of feature names for the dataset.
-                If None, then column names from the X_train dataframe are used.
+            column_names (Optional[List[str]], default=None):
+                List of feature names for the dataset. If None, column names from
+                the X_train DataFrame are used.
 
-            class_names (None, or list of str, optional):
-                List of class names e.g. ['neg', 'pos'].
-                If none, the default ['Negative Class', 'Positive Class'] are
-                used.
+            class_names (Optional[List[str]], default=None):
+                List of class names e.g. ['neg', 'pos']. If None, the default
+                ['Negative Class', 'Positive Class'] are used.
 
-            return_scores (bool, optional):
-                Flag indicating whether the method should return
-                the train and test score of the model,
-                together with the model interpretation report. If true,
-                the output of this method is a tuple of DataFrame, float,
-                float.
+            return_scores (bool, default=False):
+                If True, returns the train and test scores along with the feature importance DataFrame.
+                If False, returns only the feature importance DataFrame.
 
-            shap_variance_penalty_factor (int or float, optional):
-                Apply aggregation penalty when computing average of shap values for a given feature.
-                Results in a preference for features that have smaller standard deviation of shap
-                values (more coherent shap importance). Recommend value 0.5 - 1.0.
+            shap_variance_penalty_factor (Optional[float], default=None):
+                Factor to penalize features with high variance in SHAP values.
+                This promotes features with more consistent impact across samples.
+                Recommended values are between 0.5 and 1.0.
                 Formula: penalized_shap_mean = (mean_shap - (std_shap * shap_variance_penalty_factor))
 
             **shap_kwargs:
-                keyword arguments passed to
-                [shap.Explainer](https://shap.readthedocs.io/en/latest/generated/shap.Explainer.html#shap.Explainer).
-                It also enables `approximate` and `check_additivity` parameters, passed while calculating SHAP values.
-                The `approximate=True` causes less accurate, but faster SHAP values calculation, while
-                `check_additivity=False` disables the additivity check inside SHAP.
+                Keyword arguments passed to shap.Explainer. Notable parameters include:
+                - approximate (bool): If True, uses faster but less accurate SHAP calculation
+                - check_additivity (bool): If False, disables the additivity check inside SHAP
+                For full details, see: https://shap.readthedocs.io/en/latest/generated/shap.Explainer.html
 
         Returns:
-            (pd.DataFrame or tuple(pd.DataFrame, float, float)):
-                Dataframe with SHAP feature importance, or tuple containing the dataframe, train and test scores of the
-                model.
+            Union[pd.DataFrame, Tuple[pd.DataFrame, float, float]]:
+                - If return_scores=False: DataFrame with SHAP feature importance metrics
+                - If return_scores=True: Tuple containing (importance_df, train_score, test_score)
+
+        Raises:
+            ValueError: If input data cannot be properly preprocessed
         """
         self.fit(
             X_train=X_train,
@@ -357,136 +445,425 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
         )
         return self.compute(return_scores=return_scores, shap_variance_penalty_factor=shap_variance_penalty_factor)
 
-    def plot(self, plot_type, target_set="test", target_columns=None, samples_index=None, show=True, **plot_kwargs):
+    def plot(
+        self,
+        plot_type: Literal["importance", "summary", "dependence", "sample"],
+        target_set: Literal["train", "test"] = "test",
+        target_columns: Optional[Union[str, List[str]]] = None,
+        samples_index: Optional[Union[int, str, List, pd.Index]] = None,
+        show: bool = True,
+        **plot_kwargs: Any,
+    ) -> Union[Axes, List[Axes]]:
         """
-        Plots the appropriate SHAP plot.
+        Generate SHAP-based visualizations for model interpretation.
+
+        This method creates various types of plots to help understand feature importance,
+        feature interactions, and individual predictions.
 
         Args:
-            plot_type (str):
-                One of the following:
+            plot_type (Literal["importance", "summary", "dependence", "sample"]):
+                Type of plot to generate. Must be one of:
+                - 'importance': Bar plot showing feature importance
+                - 'summary': Dot plot showing feature impact distribution
+                - 'dependence': Plots showing feature interactions
+                - 'sample': Waterfall plot explaining individual predictions
 
-                - `'importance'`: Feature importance plot, SHAP bar summary plot
-                - `'summary'`: SHAP Summary plot
-                - `'dependence'`: Dependence plot for each feature
-                - `'sample'`: Explanation of a given sample in the test data
+            target_set (Literal["train", "test"], default="test"):
+                Dataset to use for plotting, either "train" or "test".
+                Using the test set is recommended to avoid training data bias.
 
-            target_set (str, optional):
-                The set for which the plot should be generated, either `train` or `test` set. We recommend using test
-                set, because it is not biased by model training. The train set plots are mainly used to compare with the
-                test set plots, whether there are significant differences, which indicate shift in data distribution.
+            target_columns (Optional[Union[str, List[str]]], default=None):
+                Features to include in the plot. If None, all features are used.
+                For 'dependence' plots, this specifies which features to create plots for.
 
-            target_columns (None, str or list of str, optional):
-                List of features names, for which the plots should be generated. If None, all features will be plotted.
+            samples_index (Optional[Union[int, str, List, pd.Index]], default=None):
+                Sample indices to explain when plot_type='sample'.
+                Required for 'sample' plots, ignored for other plot types.
 
-            samples_index (None, int, list or pd.Index, optional):
-                Index of samples to be explained if the `plot_type=sample`.
-
-            show (bool, optional):
-                If True, the plots are showed to the user, otherwise they are not shown. Not showing plot can be useful,
-                when you want to edit the returned axis, before showing it.
+            show (bool, default=True):
+                If True, displays the plot immediately.
+                If False, returns the plot axes without showing, allowing for further customization.
 
             **plot_kwargs:
-                Keyword arguments passed to the plot method. For 'importance' and 'summary' plot_type, the kwargs are
-                passed to shap.summary_plot, for 'dependence' plot_type, they are passed to
-                probatus.interpret.DependencePlotter.plot method.
+                Additional keyword arguments passed to the underlying plotting functions:
+                - For 'importance' and 'summary': passed to shap.summary_plot()
+                - For 'dependence': passed to DependencePlotter.plot()
+                - For 'sample': passed to shap.plots.waterfall()
 
         Returns:
-            (matplotlib.axes or list(matplotlib.axes)):
-                An Axes with the plot, or list of axes when multiple plots are returned.
+            Union[Axes, List[Axes]]:
+                Matplotlib Axes object(s) containing the generated plot(s).
+                Returns a single Axes for 'importance' and 'summary' plots.
+                Returns a list of Axes for 'dependence' and 'sample' plots with multiple features/samples.
+
+        Raises:
+            ValueError: If samples_index is not provided for 'sample' plots
+            TypeError: If samples_index has an invalid type for 'sample' plots
         """
-        # Choose correct columns
-        if target_columns is None:
-            target_columns = self.column_names
+        self._check_if_fitted()
 
-        target_columns = assure_list_of_strings(target_columns, "target_columns")
-        target_columns_indices = [self.column_names.index(target_column) for target_column in target_columns]
+        # Prepare data and select appropriate dataset
+        target_columns = self._prepare_target_columns(target_columns)
+        target_columns_indices = [self.column_names.index(col) for col in target_columns]
 
-        # Choose the correct dataset
-        if target_set == "test":
-            target_X = self.X_test
-            target_shap_values = self.shap_values_test
-            target_tdp = self.tdp_test
-            target_expected_value = self.expected_value_test
-        elif target_set == "train":
-            target_X = self.X_train
-            target_shap_values = self.shap_values_train
-            target_tdp = self.tdp_train
-            target_expected_value = self.expected_value_train
-        else:
-            raise (ValueError('The target_set parameter can be either "train" or "test".'))
+        # Select dataset based on target_set parameter
+        target_data = self._select_target_dataset(target_set)
+        target_X, target_shap_values = target_data["X"], target_data["shap_values"]
+        target_tdp, target_expected_value = target_data["tdp"], target_data["expected_value"]
 
+        # Generate the appropriate plot based on plot_type
         if plot_type in ["importance", "summary"]:
-            target_X = target_X[target_columns]
-            target_shap_values = target_shap_values[:, target_columns_indices]
-            # Set summary plot settings
-            if plot_type == "importance":
-                plot_type = "bar"
-                plot_title = f"SHAP Feature Importance for {target_set} set"
-            else:
-                plot_type = "dot"
-                plot_title = f"SHAP Summary plot for {target_set} set"
-
-            summary_plot(
-                target_shap_values,
+            return self._create_summary_plot(
+                plot_type,  # type: ignore[arg-type]
+                target_set,
                 target_X,
-                plot_type=plot_type,
-                class_names=self.class_names,
-                show=False,
+                target_shap_values,
+                target_columns,
+                target_columns_indices,
+                show,
                 **plot_kwargs,
             )
-            ax = plt.gca()
-            ax.set_title(plot_title)
-
-            ax.annotate(
-                self.results_text,
-                (0, 0),
-                (0, -50),
-                fontsize=12,
-                xycoords="axes fraction",
-                textcoords="offset points",
-                va="top",
+        elif plot_type == "dependence":
+            return self._create_dependence_plots(target_columns, target_tdp, show, **plot_kwargs)
+        elif plot_type == "sample":
+            return self._create_sample_plots(
+                samples_index,
+                target_X,
+                target_shap_values,
+                target_expected_value,
+                target_columns,
+                target_set,
+                show,
+                **plot_kwargs,
             )
+        else:
+            raise ValueError("Wrong plot type, select from 'importance', 'summary', 'dependence', or 'sample'")
+
+    def _prepare_target_columns(self, target_columns: Optional[Union[str, List[str]]]) -> List[str]:
+        """
+        Prepare target columns list for plotting.
+
+        This helper method ensures that target_columns is a list of strings.
+        If None is provided, all column names are used.
+
+        Args:
+            target_columns (Optional[Union[str, List[str]]]):
+                Column names to include. Can be a single string, a list of strings, or None.
+
+        Returns:
+            List[str]: List of column names to use in plots
+        """
+        if target_columns is None:
+            target_columns = self.column_names
+        return assure_list_of_strings(target_columns, "target_columns")
+
+    def _select_target_dataset(self, target_set: Literal["train", "test"]) -> dict:
+        """
+        Select the appropriate dataset based on target_set parameter.
+
+        This helper method returns the data, SHAP values, and related objects
+        for either the training or test dataset.
+
+        Args:
+            target_set (Literal["train", "test"]):
+                Which dataset to use, either "train" or "test".
+
+        Returns:
+            dict: Dictionary containing the selected dataset components:
+                - "X": Feature data (pd.DataFrame)
+                - "shap_values": SHAP values (np.ndarray)
+                - "tdp": DependencePlotter instance
+                - "expected_value": Expected value for SHAP calculations
+        """
+        if target_set == "test":
+            return {
+                "X": self.X_test,
+                "shap_values": self.shap_values_test,
+                "tdp": self.tdp_test,
+                "expected_value": self.expected_value_test,
+            }
+        elif target_set == "train":
+            return {
+                "X": self.X_train,
+                "shap_values": self.shap_values_train,
+                "tdp": self.tdp_train,
+                "expected_value": self.expected_value_train,
+            }
+
+    def _create_summary_plot(
+        self,
+        plot_type: Literal["importance", "summary"],
+        target_set: Literal["train", "test"],
+        target_X: pd.DataFrame,
+        target_shap_values: np.ndarray,
+        target_columns: List[str],
+        target_columns_indices: List[int],
+        show: bool,
+        **plot_kwargs: Any,
+    ) -> Axes:
+        """
+        Create importance or summary plots based on SHAP values.
+
+        This helper method generates bar plots (for importance) or dot plots (for summary)
+        to visualize feature importance and impact distributions.
+
+        Args:
+            plot_type (Literal["importance", "summary"]):
+                Type of plot to create, either "importance" or "summary".
+
+            target_set (Literal["train", "test"]):
+                Dataset being used, either "train" or "test".
+
+            target_X (pd.DataFrame):
+                Feature data for the selected dataset.
+
+            target_shap_values (np.ndarray):
+                SHAP values for the selected dataset.
+
+            target_columns (List[str]):
+                List of column names to include in the plot.
+
+            target_columns_indices (List[int]):
+                Indices of the target columns in the original data.
+
+            show (bool):
+                Whether to display the plot immediately.
+
+            **plot_kwargs:
+                Additional keyword arguments passed to shap.summary_plot().
+
+        Returns:
+            Axes: Matplotlib Axes object containing the generated plot
+        """
+        # Filter data to include only the target columns
+        target_X = target_X[target_columns]
+        target_shap_values = target_shap_values[:, target_columns_indices]
+
+        # Configure plot type and title
+        plot_style = "bar" if plot_type == "importance" else "dot"
+        plot_title = (
+            f"SHAP {'Feature Importance' if plot_type == 'importance' else 'Summary plot'} for {target_set} set"
+        )
+
+        # Create the plot
+        summary_plot(
+            target_shap_values,
+            target_X,
+            plot_type=plot_style,
+            class_names=self.class_names,
+            show=False,
+            **plot_kwargs,
+        )
+
+        # Get the current figure and adjust layout to make room for title
+        fig = plt.gcf()
+
+        # Customize the plot
+        ax = plt.gca()
+        ax.set_title(plot_title, pad=20)  # Add padding to the title
+
+        # Add model performance metrics as annotation
+        ax.annotate(
+            self.results_text,
+            (0, 0),
+            (0, -50),
+            fontsize=12,
+            xycoords="axes fraction",
+            textcoords="offset points",
+            va="top",
+        )
+
+        # Apply layout adjustments after all elements are added
+        # This ensures proper spacing for all elements including title and annotations
+        fig.tight_layout()
+        # Add extra padding at the top for the title
+        fig.subplots_adjust(top=0.85)
+
+        if show:
+            plt.show()
+        else:
+            plt.close()
+
+        return ax
+
+    def _create_dependence_plots(
+        self, target_columns: List[str], target_tdp: DependencePlotter, show: bool, **plot_kwargs: Any
+    ) -> Union[Axes, List[Axes]]:
+        """
+        Create dependence plots to visualize feature interactions.
+
+        This helper method generates plots showing how SHAP values depend on feature values,
+        helping to understand feature interactions and their impact on predictions.
+
+        Args:
+            target_columns (List[str]):
+                List of features to create dependence plots for.
+
+            target_tdp (DependencePlotter):
+                Fitted DependencePlotter instance for the selected dataset.
+
+            show (bool):
+                Whether to display the plots immediately.
+
+            **plot_kwargs:
+                Additional keyword arguments passed to DependencePlotter.plot().
+
+        Returns:
+            Union[Axes, List[Axes]]:
+                Matplotlib Axes object(s) containing the generated plot(s).
+                Returns a single Axes if there's only one plot, otherwise a list of Axes.
+        """
+        axes_list: List[Axes] = []
+        for feature_name in target_columns:
+            # The plot method might return a single axes or a list of axes
+            ax_result = target_tdp.plot(feature=feature_name, figsize=(10, 7), show=False, **plot_kwargs)
+
+            # Handle both cases: single axes or list of axes
+            if isinstance(ax_result, list):
+                # If it's a list, process each axes
+                for i, ax in enumerate(ax_result):
+                    fig = ax.figure
+                    fig.tight_layout()
+                    fig.subplots_adjust(top=0.9)  # Add space for title
+
+                    # Set title with padding - add subplot number if multiple
+                    subplot_info = f" (subplot {i+1}/{len(ax_result)})" if len(ax_result) > 1 else ""
+                    ax.set_title(f"SHAP Dependence Plot for {feature_name}{subplot_info}", pad=20)
+
+                    axes_list.append(ax)
+            else:
+                # If it's a single axes
+                fig = ax_result.figure
+                fig.tight_layout()
+                fig.subplots_adjust(top=0.9)  # Add space for title
+
+                # Set title with padding
+                ax_result.set_title(f"SHAP Dependence Plot for {feature_name}", pad=20)
+
+                axes_list.append(ax_result)
+
+            if show:
+                plt.show()
+
+        # Return a single Axes if there's only one plot
+        if len(axes_list) == 1:
+            return axes_list[0]
+        return axes_list
+
+    def _create_sample_plots(
+        self,
+        samples_index: Optional[Union[int, str, List, pd.Index]],
+        target_X: pd.DataFrame,
+        target_shap_values: np.ndarray,
+        target_expected_value: float,
+        target_columns: List[str],
+        target_set: Literal["train", "test"],
+        show: bool,
+        **plot_kwargs: Any,
+    ) -> Union[Axes, List[Axes]]:
+        """
+        Create waterfall plots explaining individual predictions.
+
+        This helper method generates plots showing how each feature contributes
+        to the prediction for specific samples in the dataset.
+
+        Args:
+            samples_index (Optional[Union[int, str, List, pd.Index]]):
+                Indices of samples to explain.
+
+            target_X (pd.DataFrame):
+                Feature data for the selected dataset.
+
+            target_shap_values (np.ndarray):
+                SHAP values for the selected dataset.
+
+            target_expected_value (float):
+                Expected value (base value) for SHAP calculations.
+
+            target_columns (List[str]):
+                List of column names to include in the plot.
+
+            target_set (Literal["train", "test"]):
+                Dataset being used, either "train" or "test".
+
+            show (bool):
+                Whether to display the plots immediately.
+
+            **plot_kwargs:
+                Additional keyword arguments passed to shap.plots.waterfall().
+
+        Returns:
+            Union[Axes, List[Axes]]:
+                Matplotlib Axes object(s) containing the generated plot(s).
+                Returns a single Axes if there's only one plot, otherwise a list of Axes.
+
+        Raises:
+            ValueError: If samples_index is None
+        """
+        # Validate samples_index parameter
+        if samples_index is None:
+            raise ValueError("For sample plot, you need to specify the samples_index to be plotted")
+
+        # Convert scalar indices to list for consistent handling
+        if not isinstance(samples_index, (list, pd.Index)):
+            samples_index = [samples_index]
+
+        axes_list: List[Axes] = []
+
+        # Create a waterfall plot for each sample
+        for sample_index in samples_index:
+            # Get the position of the sample in the DataFrame
+            sample_loc = target_X.index.get_loc(sample_index)
+
+            # Calculate appropriate figure dimensions
+            max_name_length = max([len(str(name)) for name in target_columns])
+            fig_width = max(10, 8 + max_name_length * 0.1)
+
+            # Create a SHAP Explanation object
+            explanation = Explanation(
+                values=target_shap_values[sample_loc, :],
+                base_values=target_expected_value,
+                data=target_X.loc[sample_index].values,
+                feature_names=target_columns,
+            )
+
+            # Extract max_display from plot_kwargs
+            max_display = plot_kwargs.pop("max_display", 10) if "max_display" in plot_kwargs else 10
+
+            # Close any existing figures and create the waterfall plot
+            plt.close("all")
+            waterfall(
+                explanation,
+                show=False,
+                max_display=min(len(target_columns), max_display),
+                **plot_kwargs,
+            )
+
+            # Customize the plot
+            fig = plt.gcf()
+            current_ax = plt.gca()
+            fig.set_size_inches(fig_width, 8)
+
+            plot_title = f"SHAP Sample Explanation of {target_set} sample for index={sample_index}"
+            current_ax.set_title(plot_title, pad=20)  # Add padding to the title
+            current_ax.tick_params(axis="y", labelsize=10)
+
+            # Apply consistent layout adjustments
+            # First adjust left margin for feature names
+            plt.subplots_adjust(left=max(0.2, 0.15 + max_name_length * 0.01))
+            # Then apply tight layout for overall spacing
+            plt.tight_layout()
+            # Finally add space at the top for the title
+            plt.subplots_adjust(top=0.9)
+
+            axes_list.append(current_ax)
+
             if show:
                 plt.show()
             else:
-                plt.close()
-        elif plot_type == "dependence":
-            ax = []
-            for feature_name in target_columns:
-                ax.append(target_tdp.plot(feature=feature_name, figsize=(10, 7), show=show, **plot_kwargs))
+                plt.close(fig)
 
-        elif plot_type == "sample":
-            # Ensure the correct samples_index type
-            if samples_index is None:
-                raise (ValueError("For sample plot, you need to specify the samples_index be plotted plot"))
-            elif isinstance(samples_index, int) or isinstance(samples_index, str):
-                samples_index = [samples_index]
-            elif not (isinstance(samples_index, list) or isinstance(samples_index, pd.Index)):
-                raise (TypeError("sample_index must be one of the following: int, str, list or pd.Index"))
-
-            ax = []
-            for sample_index in samples_index:
-                sample_loc = target_X.index.get_loc(sample_index)
-
-                waterfall_legacy(
-                    target_expected_value,
-                    target_shap_values[sample_loc, :],
-                    target_X.loc[sample_index],
-                    show=False,
-                    **plot_kwargs,
-                )
-
-                plot_title = f"SHAP Sample Explanation of {target_set} sample for index={sample_index}"
-                current_ax = plt.gca()
-                current_ax.set_title(plot_title)
-                ax.append(current_ax)
-                if show:
-                    plt.show()
-                else:
-                    plt.close()
-        else:
-            raise ValueError("Wrong plot type, select from 'importance', 'summary', or 'dependence'")
-
-        if isinstance(ax, list) and len(ax) == 1:
-            ax = ax[0]
-        return ax
+        # Return a single Axes if there's only one plot
+        if len(axes_list) == 1:
+            return axes_list[0]
+        return axes_list
