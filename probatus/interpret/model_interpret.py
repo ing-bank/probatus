@@ -135,8 +135,8 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
             X_train, X_name="X_train", column_names=column_names, verbose=self.verbose
         )
         self.X_test, _ = preprocess_data(X_test, X_name="X_test", column_names=column_names, verbose=self.verbose)
-        self.y_train = preprocess_labels(y_train, y_name="y_train", index=self.X_train.index, verbose=self.verbose)
-        self.y_test = preprocess_labels(y_test, y_name="y_test", index=self.X_test.index, verbose=self.verbose)
+        self.y_train = preprocess_labels(y_train, index=self.X_train.index)
+        self.y_test = preprocess_labels(y_test, index=self.X_test.index)
 
         # Set class names
         self.class_names = class_names

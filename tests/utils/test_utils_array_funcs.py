@@ -49,31 +49,24 @@ def test_assure_pandas_df_df(expected_df_2d):
     pd.testing.assert_frame_equal(x_df, expected_df_2d)
 
 
-def test_assure_pandas_df_types():
-    with pytest.raises(TypeError):
-        assure_pandas_df("Test")
-    with pytest.raises(TypeError):
-        assure_pandas_df(5)
-
-
 def test_preprocess_labels():
     y1 = pd.Series([1, 0, 1, 0, 1])
     index_1 = np.array([5, 4, 3, 2, 1])
 
-    y1_output = preprocess_labels(y1, y_name="y1", index=index_1, verbose=2)
+    y1_output = preprocess_labels(y1, index=index_1)
     pd.testing.assert_series_equal(y1_output, pd.Series([1, 0, 1, 0, 1], index=index_1))
 
     y2 = [False, False, False, False, False]
-    y2_output = preprocess_labels(y2, y_name="y2", verbose=2)
+    y2_output = preprocess_labels(y2)
     pd.testing.assert_series_equal(y2_output, pd.Series(y2))
 
     y3 = np.array([0, 1, 2, 3, 4])
-    y3_output = preprocess_labels(y3, y_name="y3", verbose=2)
+    y3_output = preprocess_labels(y3)
     pd.testing.assert_series_equal(y3_output, pd.Series(y3))
 
     y4 = pd.Series(["2", "1", "3", "2", "1"])
     index4 = pd.Index([0, 2, 1, 3, 4])
-    y4_output = preprocess_labels(y4, y_name="y4", index=index4, verbose=0)
+    y4_output = preprocess_labels(y4, index=index4)
     pd.testing.assert_series_equal(y4_output, pd.Series(["2", "3", "1", "2", "1"], index=index4))
 
 

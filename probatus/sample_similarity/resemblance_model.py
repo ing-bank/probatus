@@ -132,7 +132,7 @@ class BaseResemblanceModel(BaseFitComputePlotClass):
         # Assure the type and number of classes for the variable
         self.X, _ = preprocess_data(self.X, X_name="X", column_names=self.column_names, verbose=self.verbose)
 
-        self.y = preprocess_labels(self.y, y_name="y", index=self.X.index, verbose=self.verbose)
+        self.y = preprocess_labels(self.y, index=self.X.index)
 
         # Reinitialize variables in case of multiple times being fit
         self._init_output_variables()

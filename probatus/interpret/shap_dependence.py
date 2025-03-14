@@ -90,7 +90,7 @@ class DependencePlotter(BaseFitComputePlotClass):
                 `check_additivity=False` disables the additivity check inside SHAP.
         """
         self.X, self.column_names = preprocess_data(X, X_name="X", column_names=column_names, verbose=self.verbose)
-        self.y = preprocess_labels(y, y_name="y", index=self.X.index, verbose=self.verbose)
+        self.y = preprocess_labels(y, index=self.X.index)
 
         # Set class names
         self.class_names = class_names

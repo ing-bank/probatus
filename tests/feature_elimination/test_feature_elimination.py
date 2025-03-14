@@ -444,7 +444,7 @@ def test_shap_rfe_randomized_search_early_stopping_lightGBM(complex_data, random
 def test_get_feature_shap_values_per_fold_early_stopping_lightGBM(complex_data, random_state):
     model = LGBMClassifier(n_estimators=200, max_depth=3, random_state=random_state)
     X, y = complex_data
-    y = preprocess_labels(y, y_name="y", index=X.index)
+    y = preprocess_labels(y, index=X.index)
 
     shap_elimination = ShapRFECV(model, early_stopping_rounds=5, scoring="roc_auc", random_state=random_state)
     (
@@ -467,7 +467,7 @@ def test_get_feature_shap_values_per_fold_early_stopping_CatBoost(
     complex_data_with_categorical, catboost_classifier, random_state
 ):
     X, y = complex_data_with_categorical
-    y = preprocess_labels(y, y_name="y", index=X.index)
+    y = preprocess_labels(y, index=X.index)
 
     shap_elimination = ShapRFECV(
         catboost_classifier, early_stopping_rounds=5, scoring="roc_auc", random_state=random_state
@@ -490,7 +490,7 @@ def test_get_feature_shap_values_per_fold_early_stopping_CatBoost(
 
 def test_get_feature_shap_values_per_fold_early_stopping_XGBoost(XGBoost_classifier, complex_data, random_state):
     X, y = complex_data
-    y = preprocess_labels(y, y_name="y", index=X.index)
+    y = preprocess_labels(y, index=X.index)
 
     shap_elimination = ShapRFECV(
         XGBoost_classifier, early_stopping_rounds=5, scoring="roc_auc", random_state=random_state

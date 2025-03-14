@@ -252,6 +252,7 @@ class ShapRFECV(BaseFitComputePlotClass):
         sample_weight=None,
         columns_to_keep=None,
         column_names=None,
+        groups=None,
         shap_variance_penalty_factor=None,
         **shap_kwargs,
     ):
@@ -290,6 +291,12 @@ class ShapRFECV(BaseFitComputePlotClass):
                 feature names. If not provided the existing feature names are used or default feature names are
                 generated.
 
+            groups (pd.Series, np.ndarray, list, optional):
+                array-like of shape (n_samples,)
+                Group labels for the samples used while splitting the dataset into train/test set.
+                Only used in conjunction with a "Group" `cv` instance.
+                (e.g. `sklearn.model_selection.GroupKFold`).
+
             shap_variance_penalty_factor (int or float, optional):
                 Apply aggregation penalty when computing average of shap values for a given feature.
                 Results in a preference for features that have smaller standard deviation of shap
@@ -314,6 +321,7 @@ class ShapRFECV(BaseFitComputePlotClass):
             sample_weight=sample_weight,
             columns_to_keep=columns_to_keep,
             column_names=column_names,
+            groups=groups,
             shap_variance_penalty_factor=shap_variance_penalty_factor,
             **shap_kwargs,
         )
@@ -418,7 +426,7 @@ class ShapRFECV(BaseFitComputePlotClass):
             _shap_variance_penalty_factor = 0
 
         self.X, self.column_names = preprocess_data(X, X_name="X", column_names=column_names, verbose=self.verbose)
-        self.y = preprocess_labels(y, y_name="y", index=self.X.index, verbose=self.verbose)
+        self.y = preprocess_labels(y, index=self.X.index)
         if sample_weight is not None:
             if self.verbose > 0:
                 warnings.warn(
@@ -642,7 +650,7 @@ class ShapRFECV(BaseFitComputePlotClass):
             shap_importance_df (pd.DataFrame):
                 DataFrame presenting SHAP importance of remaining features.
 
-            columns_to_keep Optional(list)L
+            columns_to_keep Optional(list):
                 A list of features that are kept.
 
         Returns:
@@ -866,7 +874,7 @@ class ShapRFECV(BaseFitComputePlotClass):
                 best_method=num_features, standard_error_threshold=standard_error_threshold
             )
         elif not isinstance(num_features, int):
-            ValueError(
+            raise ValueError(
                 "Parameter num_features can be of type int, or of type str with "
                 "possible values of 'best', 'best_coherent' or 'best_parsimonious'"
             )
