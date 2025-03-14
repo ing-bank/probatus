@@ -87,7 +87,11 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
     """
 
     def __init__(
-        self, model: Any, scoring: Union[str, Scorer] = "roc_auc", verbose: int = 0, random_state: Optional[int] = None
+        self,
+        model: Any,
+        scoring: Union[str, Scorer] = "roc_auc",
+        verbose: Literal[0, 1, 2] = 0,
+        random_state: Optional[int] = None,
     ) -> None:
         """
         Initialize a ShapModelInterpreter object.
