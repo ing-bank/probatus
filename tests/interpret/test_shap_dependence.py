@@ -40,29 +40,6 @@ def X_y():
 
 
 @pytest.fixture(scope="function")
-def expected_shap_vals():
-    return pd.DataFrame(
-        [
-            [0.176667, 0.005833, 0.284167],
-            [-0.042020, 0.224520, 0.284167],
-            [-0.092020, -0.135480, -0.205833],
-            [-0.092020, -0.135480, -0.205833],
-            [0.002424, 0.000909, 0.263333],
-            [0.176667, 0.105833, 0.284167],
-            [-0.092020, -0.135480, -0.205833],
-            [-0.028687, 0.311187, 0.184167],
-            [0.176667, 0.005833, 0.284167],
-            [-0.092020, -0.164646, -0.076667],
-            [0.176667, 0.105833, 0.284167],
-            [-0.092020, -0.164646, -0.176667],
-            [-0.092020, -0.164646, -0.176667],
-            [-0.108687, 0.081187, -0.205833],
-            [-0.092020, -0.164646, -0.176667],
-        ]
-    )
-
-
-@pytest.fixture(scope="function")
 def model(X_y, random_state):
     X, y = X_y
 
@@ -70,17 +47,6 @@ def model(X_y, random_state):
 
     model.fit(X, y)
     return model
-
-
-@pytest.fixture(scope="function")
-def expected_feat_importances():
-    return pd.DataFrame(
-        {
-            "Feature Name": {0: 2, 1: 1, 2: 0},
-            "Shap absolute importance": {0: 0.2199, 1: 0.1271, 2: 0.1022},
-            "Shap signed importance": {0: 0.0292, 1: -0.0149, 2: -0.0076},
-        }
-    )
 
 
 def test_not_fitted(model, random_state):

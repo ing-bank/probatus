@@ -46,11 +46,6 @@ def random_state_1():
 
 
 @pytest.fixture(scope="function")
-def mock_model():
-    return Mock()
-
-
-@pytest.fixture(scope="function")
 def complex_data(random_state):
     feature_names = ["f1_categorical", "f2_missing", "f3_static", "f4", "f5"]
 
