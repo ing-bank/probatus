@@ -266,7 +266,7 @@ class ShapRFECV(BaseFitComputePlotClass):
     def fit_compute(
         self,
         X: pd.DataFrame,
-        y: Union[pd.Series, np.ndarray, List[Any]],
+        y: pd.Series,
         sample_weight: Optional[pd.Series] = None,
         columns_to_keep: Optional[List[str]] = None,
         column_names: Optional[List[str]] = None,
@@ -275,32 +275,60 @@ class ShapRFECV(BaseFitComputePlotClass):
         **shap_kwargs: Any,
     ) -> pd.DataFrame:
         """
-        Fit the model and compute feature elimination results in a single step.
+        Fits the model and computes feature elimination results in a single step.
 
-        The algorithm starts with the entire dataset, and then sequentially eliminates features.
-        If sklearn compatible search CV is passed as model (e.g. GridSearchCV, RandomizedSearchCV,
-        or BayesSearchCV), hyperparameter optimization is applied at each step of the elimination.
-        Then, the SHAP feature importance is calculated using Cross-Validation, and `step` lowest
-        importance features are removed. At the end, the report containing results from each
-        iteration is computed and returned.
+        This method performs SHAP-based recursive feature elimination while optionally
+        optimizing hyperparameters at each iteration. The process follows these steps:
+
+        1. Start with the full feature set.
+        2. If a hyperparameter search object (e.g., `GridSearchCV`, `RandomizedSearchCV`, `BayesSearchCV`)
+        is provided as the model, perform hyperparameter optimization at each step.
+        3. Use cross-validation to compute SHAP feature importance.
+        4. Remove the `step` lowest-importance features.
+        5. Repeat until the minimum number of features is reached.
+        6. Return a report containing results from each iteration.
 
         Args:
-            X: Input features dataset.
-            y: Target labels for X.
-            sample_weight: Optional weights for samples. Only used if the model supports
-                sample weighting. Note that weights are only used for model fitting, not for metrics.
-            columns_to_keep: Optional list of columns that will not be eliminated.
-            column_names: Optional list of feature names to use. If provided, overwrites existing names.
-            groups: Optional group labels for samples when using GroupKFold cross-validation.
-            shap_variance_penalty_factor: Optional penalty factor for SHAP value variance.
-                Applies a penalty to features with high variance in SHAP values.
-                Formula: penalized_shap_mean = (mean_shap - (std_shap * shap_variance_penalty_factor))
-                Recommended values: 0.5 - 1.0
-            **shap_kwargs: Additional keyword arguments passed to shap.Explainer.
-                Can include 'approximate' and 'check_additivity' parameters.
+            X (pd.DataFrame):
+                Input feature dataset of shape `(n_samples, n_features)`.
+
+            y (pd.Series):
+                Target labels of shape `(n_samples,)`.
+
+            sample_weight (Optional[pd.Series], optional):
+                Sample weights used for model fitting (if supported by the model).
+                Note: Weights are applied only during training, not for metric calculation.
+                Default is `None`.
+
+            columns_to_keep (Optional[List[str]], optional):
+                List of feature names that should not be eliminated.
+                Default is `None`.
+
+            column_names (Optional[List[str]], optional):
+                Custom feature names to assign to `X`. If provided, this overwrites existing column names.
+                Default is `None`.
+
+            groups (Optional[pd.Series], optional):
+                Group labels for samples when using `GroupKFold` cross-validation.
+                Default is `None`.
+
+            shap_variance_penalty_factor (Optional[Union[int, float]], optional):
+                A penalty factor applied to SHAP values with high variance to reduce their influence.
+                - Formula: `penalized_shap_mean = mean_shap - (std_shap * shap_variance_penalty_factor)`
+                - Helps mitigate instability in SHAP-based rankings.
+                - Recommended values: `0.5 - 1.0`.
+                Default is `None` (no penalty applied).
+
+            **shap_kwargs (Any):
+                Additional keyword arguments passed to `shap.Explainer`.
+                Common options:
+                - `approximate` (bool): Enables faster but less accurate SHAP value computation.
+                - `check_additivity` (bool): If `False`, disables SHAP additivity check.
 
         Returns:
-            pd.DataFrame: Results of feature elimination from each iteration.
+            pd.DataFrame:
+                A DataFrame containing feature elimination results from each iteration, including
+                model performance metrics and selected feature sets.
         """
         self.fit(
             X,
