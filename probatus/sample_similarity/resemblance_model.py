@@ -1,10 +1,13 @@
 import warnings
+from typing import Any, List, Optional, Tuple, Union, cast, Literal
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from loguru import logger
+from matplotlib.figure import Figure
 from shap import summary_plot
+from sklearn.base import BaseEstimator
 from sklearn.inspection import permutation_importance
 from sklearn.model_selection import train_test_split
 
@@ -14,129 +17,144 @@ from probatus.utils.shap_helpers import calculate_shap_importance, shap_calc
 
 class BaseResemblanceModel(BaseFitComputePlotClass):
     """
-    This model checks for the similarity of two samples.
+    Base class for models that check the similarity between two samples.
 
-    A possible use case is analysis of whether th train sample differs
-    from the test sample, due to e.g. non-stationarity.
+    This class provides the foundation for analyzing whether two samples differ from each other,
+    which is useful for detecting non-stationarity between training and test data.
 
-    This is a base class and needs to be extended by a fit() method, which implements how the data is split,
-    how the model is trained and evaluated.
-    Further, inheriting classes need to implement how feature importance should be indicated.
+    This is an abstract base class that needs to be extended with:
+    1. A fit() method that implements how the data is split, trained, and evaluated
+    2. A method to calculate feature importance
+
+    Attributes:
+        model (BaseEstimator): ML model used to distinguish between samples
+        test_prc (float): Percentage of data used for testing
+        n_jobs (int): Number of parallel jobs to run
+        random_state (Optional[int]): Random seed for reproducibility
+        verbose (int): Controls output verbosity
+        scorer: Scoring metric for model evaluation
+        fitted (bool): Boolean indicating if the model has been fitted
+        X1 (pd.DataFrame): First sample data (set after fitting)
+        X2 (pd.DataFrame): Second sample data (set after fitting)
+        X (pd.DataFrame): Combined dataset (set after fitting)
+        y (pd.Series): Binary labels for combined dataset (set after fitting)
+        column_names (List[str]): Feature names (set after fitting)
+        class_names (List[str]): Names for the two classes (set after fitting)
     """
 
     def __init__(
         self,
-        model,
-        scoring="roc_auc",
-        test_prc=0.25,
-        n_jobs=1,
-        verbose=0,
-        random_state=None,
-    ):
+        model: BaseEstimator,
+        scoring: str = "roc_auc",
+        test_prc: float = 0.25,
+        n_jobs: int = 1,
+        verbose: Literal[0, 1, 2] = 0,
+        random_state: Optional[int] = None,
+    ) -> None:
         """
-        Initializes the class.
+        Initialize the BaseResemblanceModel.
 
         Args:
-            model (model object):
-                Regression or classification model or pipeline.
+            model: Regression or classification model or pipeline.
+                Must implement fit() and predict() or predict_proba() methods.
 
-            scoring (string or probatus.utils.Scorer, optional):
-                Metric for which the model performance is calculated. It can be either a metric name aligned with
-                predefined
-                [classification scorers names in sklearn](https://scikit-learn.org/stable/modules/model_evaluation.html).
-                Another option is using probatus.utils.Scorer to define a custom metric. The recommended option for this
-                class is 'roc_auc'.
+            scoring: Metric for model performance evaluation.
+                Can be a string matching sklearn's classification metrics
+                (see: https://scikit-learn.org/stable/modules/model_evaluation.html)
+                or a probatus.utils.Scorer object for custom metrics.
+                'roc_auc' is recommended for this class.
 
-            test_prc (float, optional):
-                Percentage of data used to test the model. By default 0.25 is set.
+            test_prc: Percentage of data used for testing the model (default: 0.25).
 
-            n_jobs (int, optional):
-                Number of parallel executions. If -1 use all available cores. By default 1.
+            n_jobs: Number of parallel jobs to run.
+                Set to -1 to use all available cores (default: 1).
 
-            verbose (int, optional):
-                Controls verbosity of the output:
+            verbose: Controls output verbosity:
+                0 - No output or warnings
+                1 - Only important warnings
+                2 - All prints and warnings
 
-                - 0 - neither prints nor warnings are shown
-                - 1 - only most important warnings
-                - 2 - shows all prints and all warnings.
-
-            random_state (int, optional):
-                Random state set at each round of feature elimination. If it is None, the results will not be
-                reproducible and in random search at each iteration a different hyperparameters might be tested. For
-                reproducible results set it to an integer.
-        """  # noqa
+            random_state: Random seed for reproducibility.
+                Set to an integer for reproducible results or None for non-reproducible behavior.
+        """
         self.model = model
         self.test_prc = test_prc
         self.n_jobs = n_jobs
         self.random_state = random_state
         self.verbose = verbose
         self.scorer = get_single_scorer(scoring)
+        self.fitted = False
+        self.report: Optional[pd.DataFrame] = None
 
-    def _init_output_variables(self):
+    def fit(
+        self,
+        X1: pd.DataFrame,
+        X2: pd.DataFrame,
+        column_names: Optional[List[str]] = None,
+        class_names: Optional[List[str]] = None,
+    ) -> "BaseResemblanceModel":
         """
-        Initializes variables that will be filled in during fit() method, and are used as output.
-        """
-        self.X_train = None
-        self.X_test = None
-        self.y_train = None
-        self.y_test = None
-        self.train_score = None
-        self.test_score = None
-        self.report = None
+        Prepare data and fit the model to distinguish between two samples.
 
-    def fit(self, X1, X2, column_names=None, class_names=None):
-        """
-        Base fit functionality that should be executed before each fit.
+        This method performs the following steps:
+        1. Assigns class labels to each sample (0 for X1, 1 for X2)
+        2. Combines and preprocesses the data
+        3. Splits the data into training and test sets
+        4. Trains the model and evaluates performance
 
         Args:
-            X1 (np.ndarray or pd.DataFrame):
-                First sample to be compared. It needs to have the same number of columns as X2.
+            X1 (pd.DataFrame): First sample to compare.
+                Must have same number of columns as X2.
+                Shape: (n_samples_1, n_features)
 
-            X2 (np.ndarray or pd.DataFrame):
-                Second sample to be compared. It needs to have the same number of columns as X1.
+            X2 (pd.DataFrame): Second sample to compare.
+                Must have same number of columns as X1.
+                Shape: (n_samples_2, n_features)
 
-            column_names (list of str, optional):
-                List of feature names of the provided samples. If provided it will be used to overwrite the existing
-                feature names. If not provided the existing feature names are used or default feature names are
-                generated.
+            column_names (Optional[List[str]], optional): Feature names for the samples.
+                If provided, overwrites existing feature names.
+                If not provided, uses existing names or generates default ones.
+                Length must match number of features.
 
-            class_names (None, or list of str, optional):
-                List of class names assigned, in this case provided samples e.g. ['sample1', 'sample2']. If none, the
-                default ['First Sample', 'Second Sample'] are used.
+            class_names (Optional[List[str]], optional): Names for the two classes/samples.
+                Default is ["First Sample", "Second Sample"].
+                Must be a list of length 2.
 
         Returns:
-            (BaseResemblanceModel):
-                Fitted object
+            BaseResemblanceModel: The fitted model instance.
+
+        Raises:
+            ValueError: If input data dimensions don't match.
+            ValueError: If column_names length doesn't match number of features.
+            ValueError: If class_names is provided but not of length 2.
+            Warning: If train score is significantly higher than test score,
+                    indicating potential overfitting.
         """
-        # Set class names
+        # Set class names for the two samples
         self.class_names = class_names
         if self.class_names is None:
             self.class_names = ["First Sample", "Second Sample"]
 
-        # Ensure inputs are correct
         self.X1, self.column_names = preprocess_data(X1, X_name="X1", column_names=column_names, verbose=self.verbose)
         self.X2, _ = preprocess_data(X2, X_name="X2", column_names=column_names, verbose=self.verbose)
 
-        # Prepare dataset for modelling
+        # Create binary classification dataset:
+        # - Combine both samples
+        # - Label X1 as class 0, X2 as class 1
         self.X = pd.DataFrame(pd.concat([self.X1, self.X2], axis=0), columns=self.column_names).reset_index(drop=True)
-
         self.y = pd.Series(
             np.concatenate(
                 [
-                    np.zeros(self.X1.shape[0]),
-                    np.ones(self.X2.shape[0]),
+                    np.zeros(self.X1.shape[0]),  # Label 0 for all rows from X1
+                    np.ones(self.X2.shape[0]),  # Label 1 for all rows from X2
                 ]
             )
         ).reset_index(drop=True)
 
-        # Assure the type and number of classes for the variable
-        self.X, _ = preprocess_data(self.X, X_name="X", column_names=self.column_names, verbose=self.verbose)
-
+        # Ensure labels are properly formatted
         self.y = preprocess_labels(self.y, index=self.X.index)
 
-        # Reinitialize variables in case of multiple times being fit
-        self._init_output_variables()
-
+        # Split data into training and test sets, stratifying by class to maintain class balance
         self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(
             self.X,
             self.y,
@@ -145,137 +163,204 @@ class BaseResemblanceModel(BaseFitComputePlotClass):
             shuffle=True,
             stratify=self.y,
         )
+
+        # Train the model to distinguish between the two samples
         self.model.fit(self.X_train, self.y_train)
 
         self.train_score = np.round(self.scorer.score(self.model, self.X_train, self.y_train), 3)
         self.test_score = np.round(self.scorer.score(self.model, self.X_test, self.y_test), 3)
 
         self.results_text = (
-            f"Train {self.scorer.metric_name}: {np.round(self.train_score, 3)},\n"
-            f"Test {self.scorer.metric_name}: {np.round(self.test_score, 3)}."
+            f"Train {self.scorer.metric_name}: {self.train_score},\n"
+            f"Test {self.scorer.metric_name}: {self.test_score}."
         )
         if self.verbose > 1:
             logger.info(f"Finished model training: \n{self.results_text}")
 
-        if self.verbose > 0:
-            if self.train_score > self.test_score:
-                warnings.warn(
-                    f"Train {self.scorer.metric_name} > Test {self.scorer.metric_name}, which might indicate "
-                    f"an overfit. \n Strong overfit might lead to misleading conclusions when analysing "
-                    f"feature importance. Consider retraining with more regularization applied to the model."
-                )
+        # Warn about potential overfitting
+        if self.verbose > 0 and self.train_score > self.test_score:
+            warnings.warn(
+                f"Train {self.scorer.metric_name} > Test {self.scorer.metric_name}, which might indicate "
+                f"overfitting. This could lead to misleading feature importance. "
+                f"Consider adding regularization to the model."
+            )
+
         self.fitted = True
         return self
 
-    def get_data_splits(self):
+    def _get_data_splits(self) -> Tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series]:
         """
-        Returns the data splits used to train the Resemblance model.
+        Return the data splits used to train the Resemblance model.
+
+        This method provides access to the training and test data splits created during model fitting.
+        The data is split to maintain class balance through stratification.
 
         Returns:
-            (pd.DataFrame, pd.DataFrame, pd.Series, pd.Series):
-                X_train, X_test, y_train, y_test.
+            Tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series]:
+                A tuple containing:
+                - X_train (pd.DataFrame): Training features of shape (n_train_samples, n_features)
+                - X_test (pd.DataFrame): Test features of shape (n_test_samples, n_features)
+                - y_train (pd.Series): Training labels of shape (n_train_samples,)
+                - y_test (pd.Series): Test labels of shape (n_test_samples,)
+
+        Raises:
+            ValueError: If the model has not been fitted yet. Call fit() before accessing data splits.
         """
         self._check_if_fitted()
-        return self.X_train, self.X_test, self.y_train, self.y_test
+        return (
+            cast(pd.DataFrame, self.X_train),
+            cast(pd.DataFrame, self.X_test),
+            cast(pd.Series, self.y_train),
+            cast(pd.Series, self.y_test),
+        )
 
-    def compute(self, return_scores=False):
+    def compute(self, return_scores: bool = False) -> Union[pd.DataFrame, Tuple[pd.DataFrame, float, float]]:
         """
-        Checks if fit() method has been run and computes the output variables.
+        Return the feature importance report and optionally the model scores.
+
+        This method returns the feature importance analysis results after the model has been fitted.
+        The report format depends on the specific implementation (e.g., SHAP or Permutation importance).
 
         Args:
-            return_scores (bool, optional):
-                Flag indicating whether the method should return a tuple (feature importances, train score,
-                test score), or feature importances. By default the second option is selected.
+            return_scores (bool, optional): Whether to return model performance scores.
+                If True, returns a tuple with (feature_importances, train_score, test_score).
+                If False (default), returns only feature_importances.
 
         Returns:
-            (tuple(pd.DataFrame, float, float) or pd.DataFrame):
-                Depending on value of return_tuple either returns a tuple (feature importances, train AUC, test AUC), or
-                feature importances.
+            Union[pd.DataFrame, Tuple[pd.DataFrame, float, float]]:
+                If return_scores=False:
+                    pd.DataFrame: Feature importance report with feature-wise metrics
+                If return_scores=True:
+                    Tuple containing:
+                    - pd.DataFrame: Feature importance report
+                    - float: Training score using the specified metric
+                    - float: Test score using the specified metric
+
+        Raises:
+            ValueError: If the model has not been fitted yet. Call fit() before computing results.
         """
         self._check_if_fitted()
 
         if return_scores:
-            return self.report, self.train_score, self.test_score
+            return self.report, cast(float, self.train_score), cast(float, self.test_score)
         else:
             return self.report
 
     def fit_compute(
         self,
-        X1,
-        X2,
-        column_names=None,
-        class_names=None,
-        return_scores=False,
-        **fit_kwargs,
-    ):
+        X1: pd.DataFrame,
+        X2: pd.DataFrame,
+        column_names: Optional[List[str]] = None,
+        class_names: Optional[List[str]] = None,
+        return_scores: bool = False,
+        **fit_kwargs: Any,
+    ) -> Union[pd.DataFrame, Tuple[pd.DataFrame, float, float]]:
         """
-        Fits the resemblance model and computes the report regarding feature importance.
+        Fit the model and compute feature importance in a single step.
+
+        This is a convenience method that combines the functionality of fit() and compute().
+        It first fits the model to distinguish between the two samples, then computes
+        feature importance metrics.
 
         Args:
-            X1 (np.ndarray or pd.DataFrame):
-                First sample to be compared. It needs to have the same number of columns as X2.
+            X1 (pd.DataFrame): First sample to compare.
+                Must have same number of columns as X2.
+                Shape: (n_samples_1, n_features)
 
-            X2 (np.ndarray or pd.DataFrame):
-                Second sample to be compared. It needs to have the same number of columns as X1.
+            X2 (pd.DataFrame): Second sample to compare.
+                Must have same number of columns as X1.
+                Shape: (n_samples_2, n_features)
 
-            column_names (list of str, optional):
-                List of feature names of the provided samples. If provided it will be used to overwrite the existing
-                feature names. If not provided the existing feature names are used or default feature names are
-                generated.
+            column_names (Optional[List[str]], optional): Feature names for the samples.
+                If provided, overwrites existing feature names.
+                If not provided, uses existing names or generates default ones.
+                Length must match number of features.
 
-            class_names (None, or list of str, optional):
-                List of class names assigned, in this case provided samples e.g. ['sample1', 'sample2']. If none, the
-                default ['First Sample', 'Second Sample'] are used.
+            class_names (Optional[List[str]], optional): Names for the two classes/samples.
+                Default is ["First Sample", "Second Sample"].
+                Must be a list of length 2.
 
-            return_scores (bool, optional):
-                Flag indicating whether the method should return a tuple (feature importances, train score,
-                test score), or feature importances. By default the second option is selected.
+            return_scores (bool, optional): Whether to return model performance scores.
+                If True, returns tuple (feature_importances, train_score, test_score).
+                If False (default), returns only feature_importances.
 
-            **fit_kwargs:
-                In case any other arguments are accepted by fit() method, they can be passed as keyword arguments.
+            **fit_kwargs (Any): Additional keyword arguments passed to the fit() method.
+                These vary based on the specific implementation (e.g., SHAP parameters).
 
         Returns:
-            (tuple of (pd.DataFrame, float, float) or pd.DataFrame):
-                Depending on value of return_tuple either returns a tuple (feature importances, train AUC, test AUC), or
-                feature importances.
+            Union[pd.DataFrame, Tuple[pd.DataFrame, float, float]]:
+                If return_scores=False:
+                    pd.DataFrame: Feature importance report with feature-wise metrics
+                If return_scores=True:
+                    Tuple containing:
+                    - pd.DataFrame: Feature importance report
+                    - float: Training score using the specified metric
+                    - float: Test score using the specified metric
+
+        Raises:
+            ValueError: If input data dimensions don't match or other validation errors.
         """
         self.fit(X1, X2, column_names=column_names, class_names=class_names, **fit_kwargs)
         return self.compute(return_scores=return_scores)
 
-    def plot(self):
+    def plot(self, **kwargs: Any) -> Any:
         """
-        Plot.
+        Abstract method for plotting results.
+
+        This method should be implemented by subclasses to visualize the feature importance results.
+        Each implementation should create an appropriate visualization based on its analysis method
+        (e.g., SHAP plots or permutation importance plots).
+
+        Args:
+            **kwargs (Any): Additional keyword arguments passed to the specific plotting implementation.
+                These vary based on the specific implementation.
+
+        Returns:
+            Any: The plot object or visualization result.
+
+        Raises:
+            NotImplementedError: This base method must be overridden by subclasses.
+                Each subclass should implement its own visualization logic.
         """
-        raise (NotImplementedError("Plot method has not been implemented."))
+        raise NotImplementedError("Plot method has not been implemented.")
 
 
 class PermutationImportanceResemblance(BaseResemblanceModel):
     """
-    This model checks the similarity of two samples.
+    Resemblance model using permutation importance to identify key distinguishing features.
 
-    A possible use case is analysis of whether the train sample differs
-    from the test sample, due to e.g. non-stationarity.
+    This model analyzes the similarity between two samples by:
+    1. Labeling each sample (0 for first sample, 1 for second sample)
+    2. Training a model to distinguish between the samples
+    3. Using permutation importance to identify which features are most important for distinguishing
 
-    It assigns labels to each sample, 0 to the first sample, 1 to the second. Then, it randomly selects a portion of
-    data to train on. The resulting model tries to distinguish which sample a given test row comes from. This
-    provides insights on how distinguishable these samples are and which features contribute to that. The feature
-    importance is calculated using permutation importance.
-
-    If the model achieves a test AUC significantly different than 0.5, it indicates that it is possible to distinguish
-    between the samples, and therefore, the samples differ.
-    Features with a high permutation importance contribute to that effect the most.
-    Thus, their distribution might differ between two samples.
+    Interpretation:
+    - If the model achieves a test score significantly different from 0.5, the samples are distinguishable
+    - Features with high permutation importance contribute most to the differences between samples
+    - These features likely have different distributions between the two samples
 
     Examples:
     ```python
     from sklearn.datasets import make_classification
     from sklearn.ensemble import RandomForestClassifier
     from probatus.sample_similarity import PermutationImportanceResemblance
-    X1, _ = make_classification(n_samples=100, n_features=5)
-    X2, _ = make_classification(n_samples=100, n_features=5, shift=0.5)
+    import pandas as pd
+
+    # Create two slightly different datasets
+    X1_array, _ = make_classification(n_samples=100, n_features=5)
+    X2_array, _ = make_classification(n_samples=100, n_features=5, shift=0.5)
+
+    # Convert to pandas DataFrames
+    feature_names = [f'feature_{i}' for i in range(5)]
+    X1 = pd.DataFrame(X1_array, columns=feature_names)
+    X2 = pd.DataFrame(X2_array, columns=feature_names)
+
+    # Initialize and fit the model
     model = RandomForestClassifier(max_depth=2)
     perm = PermutationImportanceResemblance(model)
     feature_importance = perm.fit_compute(X1, X2)
+
+    # Visualize the results
     perm.plot()
     ```
     <img src="../img/sample_similarity_permutation_importance.png" width="500" />
@@ -283,50 +368,42 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
 
     def __init__(
         self,
-        model,
-        iterations=100,
-        scoring="roc_auc",
-        test_prc=0.25,
-        n_jobs=1,
-        verbose=0,
-        random_state=None,
-    ):
+        model: BaseEstimator,
+        iterations: int = 100,
+        scoring: str = "roc_auc",
+        test_prc: float = 0.25,
+        n_jobs: int = 1,
+        verbose: Literal[0, 1, 2] = 0,
+        random_state: Optional[int] = None,
+    ) -> None:
         """
-        Initializes the class.
+        Initialize the PermutationImportanceResemblance model.
 
         Args:
-            model (model object):
-                Regression or classification model or pipeline.
+            model: Machine learning model (classifier) to distinguish between samples.
+                Must implement fit() and predict() or predict_proba() methods.
 
-            iterations (int, optional):
-                Number of iterations performed to calculate permutation importance. By default 100 iterations per
-                feature are done.
+            iterations: Number of iterations for permutation importance calculation.
+                Higher values give more stable results but take longer (default: 100).
 
-            scoring (string or probatus.utils.Scorer, optional):
-                Metric for which the model performance is calculated. It can be either a metric name aligned with
-                predefined
-                [classification scorers names in sklearn](https://scikit-learn.org/stable/modules/model_evaluation.html).
-                Another option is using probatus.utils.Scorer to define a custom metric. Recommended option for this
-                class is 'roc_auc'.
+            scoring: Metric for model performance evaluation.
+                Can be a string matching sklearn's classification metrics
+                or a probatus.utils.Scorer object for custom metrics.
+                'roc_auc' is recommended for this class.
 
-            test_prc (float, optional):
-                Percentage of data used to test the model. By default 0.25 is set.
+            test_prc: Percentage of data used for testing (default: 0.25).
 
-            n_jobs (int, optional):
-                Number of parallel executions. If -1 use all available cores. By default 1.
+            n_jobs: Number of parallel jobs to run.
+                Set to -1 to use all available cores (default: 1).
 
-            verbose (int, optional):
-                Controls verbosity of the output:
+            verbose: Controls output verbosity:
+                0 - No output or warnings
+                1 - Only important warnings
+                2 - All prints and warnings
 
-                - 0 - neither prints nor warnings are shown
-                - 1 - only most important warnings
-                - 2 - shows all prints and all warnings.
-
-            random_state (int, optional):
-                Random state set at each round of feature elimination. If it is None, the results will not be
-                reproducible and in random search at each iteration a different hyperparameters might be tested. For
-                reproducible results set it to integer.
-        """  # noqa
+            random_state: Random seed for reproducibility.
+                Set to an integer for reproducible results.
+        """
         super().__init__(
             model=model,
             scoring=scoring,
@@ -338,44 +415,62 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
 
         self.iterations = iterations
 
+        # Initialize dataframe to store iteration results
         self.iterations_columns = ["feature", "importance"]
         self.iterations_results = pd.DataFrame(columns=self.iterations_columns)
 
+        # Set plot labels
         self.plot_x_label = "Permutation Feature Importance"
         self.plot_y_label = "Feature Name"
         self.plot_title = "Permutation Feature Importance of Resemblance Model"
 
-    def fit(self, X1, X2, column_names=None, class_names=None):
+    def fit(
+        self,
+        X1: pd.DataFrame,
+        X2: pd.DataFrame,
+        column_names: Optional[List[str]] = None,
+        class_names: Optional[List[str]] = None,
+    ) -> "PermutationImportanceResemblance":
         """
-        This function assigns labels to each sample, 0 to the first sample, 1 to the second.
+        Fit the model and calculate permutation importance.
 
-        Then, it randomly selects a
-            portion of data to train on. The resulting model tries to distinguish which sample a given test row
-            comes from. This provides insights on how distinguishable these samples are and which features contribute to
-            that. The feature importance is calculated using permutation importance.
+        This method extends the base class fit method by adding permutation importance calculation.
+        After fitting the model on the training data, it evaluates feature importance by measuring
+        how much model performance decreases when each feature is randomly shuffled.
 
         Args:
-            X1 (np.ndarray or pd.DataFrame):
-                First sample to be compared. It needs to have the same number of columns as X2.
+            X1 (pd.DataFrame): First sample to compare.
+                Must have same number of columns as X2.
+                Shape: (n_samples_1, n_features)
 
-            X2 (np.ndarray or pd.DataFrame):
-                Second sample to be compared. It needs to have the same number of columns as X1.
+            X2 (pd.DataFrame): Second sample to compare.
+                Must have same number of columns as X1.
+                Shape: (n_samples_2, n_features)
 
-            column_names (list of str, optional):
-                List of feature names of the provided samples. If provided it will be used to overwrite the existing
-                feature names. If not provided the existing feature names are used or default feature names are
-                generated.
+            column_names (Optional[List[str]], optional): Feature names for the samples.
+                If provided, overwrites existing feature names.
+                If not provided, uses existing names or generates default ones.
+                Length must match number of features.
 
-            class_names (None, or list of str, optional):
-                List of class names assigned, in this case provided samples e.g. ['sample1', 'sample2']. If none, the
-                default ['First Sample', 'Second Sample'] are used.
+            class_names (Optional[List[str]], optional): Names for the two classes/samples.
+                Default is ["First Sample", "Second Sample"].
+                Must be a list of length 2.
 
         Returns:
-            (PermutationImportanceResemblance):
-                Fitted object.
+            PermutationImportanceResemblance: The fitted model instance with calculated importance values.
+
+        Raises:
+            ValueError: If input data dimensions don't match.
+            ValueError: If column_names length doesn't match number of features.
+            ValueError: If class_names is provided but not of length 2.
+            Warning: If train score is significantly higher than test score,
+                    indicating potential overfitting.
         """
+        # Call parent class fit method to prepare data and train model
         super().fit(X1=X1, X2=X2, column_names=column_names, class_names=class_names)
 
+        # Calculate permutation importance
+        # This measures how model performance decreases when a feature is randomly shuffled
         permutation_result = permutation_importance(
             self.model,
             self.X_test,
@@ -385,82 +480,96 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
             n_jobs=self.n_jobs,
         )
 
-        # Prepare report
+        # Create report dataframe
         self.report_columns = ["mean_importance", "std_importance"]
         self.report = pd.DataFrame(index=self.column_names, columns=self.report_columns, dtype=float)
 
+        # Process results for each feature
         for feature_index, feature_name in enumerate(self.column_names):
-            # Fill in the report
+            # Store summary statistics
             self.report.loc[feature_name, "mean_importance"] = permutation_result["importances_mean"][feature_index]
             self.report.loc[feature_name, "std_importance"] = permutation_result["importances_std"][feature_index]
 
-            # Fill in the iterations
-            current_iterations = pd.DataFrame(
-                np.stack(
-                    [
-                        np.repeat(feature_name, self.iterations),
-                        permutation_result["importances"][feature_index, :].reshape((self.iterations,)),
-                    ],
-                    axis=1,
-                ),
-                columns=self.iterations_columns,
+            # Store individual iteration results for visualization
+            feature_iterations = pd.DataFrame(
+                {
+                    "feature": np.repeat(feature_name, self.iterations),
+                    "importance": permutation_result["importances"][feature_index, :].reshape((self.iterations,)),
+                }
             )
 
-            self.iterations_results = pd.concat([self.iterations_results, current_iterations])
+            # Append to overall results
+            self.iterations_results = pd.concat([self.iterations_results, feature_iterations])
 
-        self.iterations_results["importance"] = self.iterations_results["importance"].astype(float)
-
-        # Sort by mean test score of first metric
+        # Sort features by importance (descending)
         self.report.sort_values(by="mean_importance", ascending=False, inplace=True)
 
         return self
 
-    def plot(self, ax=None, top_n=None, show=True, **plot_kwargs):
+    def plot(self, top_n: Optional[int] = None, show: bool = True, **plot_kwargs: Any) -> Figure:
         """
-        Plots the resulting AUC of the model as well as the feature importances.
+        Plot feature importance as boxplots showing the distribution of importance values.
+
+        This method creates a horizontal boxplot visualization where:
+        - Each row represents a feature
+        - The boxplot shows the distribution of importance values across iterations
+        - Features are sorted by mean importance (most important at the top)
+        - Performance metrics are annotated below the plot
 
         Args:
-            ax (matplotlib.axes, optional):
-                Axes to which the output should be plotted. If not provided new axes are created.
+            top_n (Optional[int], optional): Number of top features to include in the plot.
+                If None, includes all features.
+                If provided, must be positive and <= number of features.
+                Features are selected based on mean importance.
 
-            top_n (int, optional):
-                Number of the most important features to be plotted. By default features are included in the plot.
+            show (bool, optional): Whether to display the plot immediately.
+                If True, calls plt.show() (default)
+                If False, returns the figure without displaying
+                Useful when you want to modify the plot further
 
-            show (bool, optional):
-                If True, the plots are shown to the user, otherwise they are not shown. Not showing a plot can be useful
-                when you want to edit the returned axis before showing it.
-
-            **plot_kwargs:
-                Keyword arguments passed to the matplotlib.plotly.subplots method.
+            **plot_kwargs (Any): Additional keyword arguments passed to plt.subplots().
+                Common options include:
+                - figsize: Tuple[float, float] for figure dimensions
+                - dpi: Float for figure resolution
+                - facecolor: Color for figure background
 
         Returns:
-            (matplotlib.axes):
-                Axes that include the plot.
+            matplotlib.figure.Figure: The created figure object.
+                Can be used for further customization or saving to file.
+
+        Raises:
+            ValueError: If the model has not been fitted yet.
+            ValueError: If top_n is provided but not positive.
+            ValueError: If top_n is larger than the number of features.
         """
-
-        feature_report = self.compute()
-        self.iterations_results["importance"] = self.iterations_results["importance"].astype(float)
-
+        self._check_if_fitted()
+        feature_report: pd.DataFrame = self.compute(return_scores=False)
         sorted_features = feature_report["mean_importance"].sort_values(ascending=True).index.values
+
         if top_n is not None and top_n > 0:
             sorted_features = sorted_features[-top_n:]
 
-        if ax is None:
-            fig, ax = plt.subplots(**plot_kwargs)
+        fig, ax = plt.subplots(**plot_kwargs)
 
+        # Create boxplots for each feature
         for position, feature in enumerate(sorted_features):
+            # Get importance values for this feature
+            feature_values = self.iterations_results[self.iterations_results["feature"] == feature]["importance"]
+
+            # Create horizontal boxplot
             ax.boxplot(
-                self.iterations_results[self.iterations_results["feature"] == feature]["importance"],
+                feature_values,
                 positions=[position],
                 vert=False,
             )
 
-        ax.set_yticks(range(position + 1))
+        ax.set_yticks(range(len(sorted_features)))
         ax.set_yticklabels(sorted_features)
         ax.set_xlabel(self.plot_x_label)
         ax.set_ylabel(self.plot_y_label)
         ax.set_title(self.plot_title)
 
+        # Add performance metrics annotation
         ax.annotate(
             self.results_text,
             (0, 0),
@@ -471,42 +580,55 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
             va="top",
         )
 
+        # Show or close the plot
         if show:
             plt.show()
         else:
-            plt.close()
+            # Close plot to improve memory usage when decided not to show
+            plt.close(fig)
 
-        return ax
+        return fig
 
 
 class SHAPImportanceResemblance(BaseResemblanceModel):
     """
-    This model checks for similarity of two samples.
+    Resemblance model using SHAP values to identify key distinguishing features.
 
-    A possible use case is analysis of whether the train sample differs
-        from the test sample, due to e.g. non-stationarity.
+    This model analyzes the similarity between two samples by:
+    1. Labeling each sample (0 for first sample, 1 for second sample)
+    2. Training a model to distinguish between the samples
+    3. Using SHAP (SHapley Additive exPlanations) to identify which features are most important
 
-    It assigns labels to each sample, 0 to the first sample, 1 to the second. Then, it randomly selects a portion of
-        data to train on. The resulting model tries to distinguish which sample a given test row comes from. This
-        provides insights on how distinguishable these samples are and which features contribute to that. The feature
-        importance is calculated using SHAP feature importance.
+    Interpretation:
+    - If the model achieves a test score significantly different from 0.5, the samples are distinguishable
+    - Features with high SHAP importance contribute most to the differences between samples
+    - These features likely have different distributions between the two samples
 
-    If the model achieves test AUC significantly different than 0.5, it indicates that it is possible to distinguish
-        between the samples, and therefore, the samples differ. Features with a high permutation importance contribute
-        to that effect the most. Thus, their distribution might differ between two samples.
-
-    This class currently works only with the Tree based models.
+    Note:
+    - This class currently works only with tree-based models (like Random Forest, XGBoost)
 
     Examples:
     ```python
     from sklearn.datasets import make_classification
     from sklearn.ensemble import RandomForestClassifier
     from probatus.sample_similarity import SHAPImportanceResemblance
-    X1, _ = make_classification(n_samples=100, n_features=5)
-    X2, _ = make_classification(n_samples=100, n_features=5, shift=0.5)
+    import pandas as pd
+
+    # Create two slightly different datasets
+    X1_array, _ = make_classification(n_samples=100, n_features=5)
+    X2_array, _ = make_classification(n_samples=100, n_features=5, shift=0.5)
+
+    # Convert to pandas DataFrames
+    feature_names = [f'feature_{i}' for i in range(5)]
+    X1 = pd.DataFrame(X1_array, columns=feature_names)
+    X2 = pd.DataFrame(X2_array, columns=feature_names)
+
+    # Initialize and fit the model
     model = RandomForestClassifier(max_depth=2)
     rm = SHAPImportanceResemblance(model)
     feature_importance = rm.fit_compute(X1, X2)
+
+    # Visualize the results
     rm.plot()
     ```
 
@@ -516,45 +638,39 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
 
     def __init__(
         self,
-        model,
-        scoring="roc_auc",
-        test_prc=0.25,
-        n_jobs=1,
-        verbose=0,
-        random_state=None,
-    ):
+        model: BaseEstimator,
+        scoring: str = "roc_auc",
+        test_prc: float = 0.25,
+        n_jobs: int = 1,
+        verbose: Literal[0, 1, 2] = 0,
+        random_state: Optional[int] = None,
+    ) -> None:
         """
-        Initializes the class.
+        Initialize the SHAPImportanceResemblance model.
 
         Args:
-            model (model object):
-                Regression or classification model or pipeline.
+            model: Machine learning model (classifier) to distinguish between samples.
+                Must implement fit() and predict() or predict_proba() methods.
+                Currently only works with tree-based models.
 
-            scoring (string or probatus.utils.Scorer, optional):
-                Metric for which the model performance is calculated. It can be either a metric name aligned with
-                predefined
-                [classification scorers names in sklearn](https://scikit-learn.org/stable/modules/model_evaluation.html).
-                Another option is using probatus.utils.Scorer to define a custom metric. Recommended option for this
-                class is 'roc_auc'.
+            scoring: Metric for model performance evaluation.
+                Can be a string matching sklearn's classification metrics
+                or a probatus.utils.Scorer object for custom metrics.
+                'roc_auc' is recommended for this class.
 
-            test_prc (float, optional):
-                Percentage of data used to test the model. By default 0.25 is set.
+            test_prc: Percentage of data used for testing (default: 0.25).
 
-            n_jobs (int, optional):
-                Number of parallel executions. If -1 use all available cores. By default 1.
+            n_jobs: Number of parallel jobs to run.
+                Set to -1 to use all available cores (default: 1).
 
-            verbose (int, optional):
-                Controls verbosity of the output:
+            verbose: Controls output verbosity:
+                0 - No output or warnings
+                1 - Only important warnings
+                2 - All prints and warnings
 
-                - 0 - neither prints nor warnings are shown
-                - 1 - only most important warnings
-                - 2 - shows all prints and all warnings.
-
-            random_state (int, optional):
-                Random state set at each round of feature elimination. If it is None, the results will not be
-                reproducible and in random search at each iteration a different hyperparameters might be tested. For
-                reproducible results set it to integer.
-        """  # noqa
+            random_state: Random seed for reproducibility.
+                Set to an integer for reproducible results.
+        """
         super().__init__(
             model=model,
             scoring=scoring,
@@ -566,84 +682,139 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
 
         self.plot_title = "SHAP summary plot"
 
-    def fit(self, X1, X2, column_names=None, class_names=None, **shap_kwargs):
+    def fit(
+        self,
+        X1: pd.DataFrame,
+        X2: pd.DataFrame,
+        column_names: Optional[List[str]] = None,
+        class_names: Optional[List[str]] = None,
+        **shap_kwargs: Any,
+    ) -> "SHAPImportanceResemblance":
         """
-        This function assigns labels to each sample, 0 to the first sample, 1 to the second.
+        Fit the model and calculate SHAP importance values.
 
-        Then, it randomly selects a
-            portion of data to train on. The resulting model tries to distinguish which sample a given test row
-            comes from. This provides insights on how distinguishable these samples are and which features contribute to
-            that. The feature importance is calculated using SHAP feature importance.
+        This method extends the base class fit method by adding SHAP value calculation.
+        After fitting the model on the training data, it uses SHAP (SHapley Additive exPlanations)
+        to explain the model's predictions and determine feature importance.
 
         Args:
-            X1 (np.ndarray or pd.DataFrame):
-                First sample to be compared. It needs to have the same number of columns as X2.
+            X1 (pd.DataFrame): First sample to compare.
+                Must have same number of columns as X2.
+                Shape: (n_samples_1, n_features)
 
-            X2 (np.ndarray or pd.DataFrame):
-                Second sample to be compared. It needs to have the same number of columns as X1.
+            X2 (pd.DataFrame): Second sample to compare.
+                Must have same number of columns as X1.
+                Shape: (n_samples_2, n_features)
 
-            column_names (list of str, optional):
-                List of feature names of the provided samples. If provided it will be used to overwrite the existing
-                feature names. If not provided the existing feature names are used or default feature names are
-                generated.
+            column_names (Optional[List[str]], optional): Feature names for the samples.
+                If provided, overwrites existing feature names.
+                If not provided, uses existing names or generates default ones.
+                Length must match number of features.
 
-            class_names (None, or list of str, optional):
-                List of class names assigned, in this case provided samples e.g. ['sample1', 'sample2']. If none, the
-                default ['First Sample', 'Second Sample'] are used.
+            class_names (Optional[List[str]], optional): Names for the two classes/samples.
+                Default is ["First Sample", "Second Sample"].
+                Must be a list of length 2.
 
-            **shap_kwargs:
-                keyword arguments passed to
-                [shap.Explainer](https://shap.readthedocs.io/en/latest/generated/shap.Explainer.html#shap.Explainer).
-                It also enables `approximate` and `check_additivity` parameters, passed while calculating SHAP values.
-                The `approximate=True` causes less accurate, but faster SHAP values calculation, while
-                `check_additivity=False` disables the additivity check inside SHAP.
+            **shap_kwargs (Any): Additional arguments passed to the SHAP explainer.
+                See https://shap.readthedocs.io/en/latest/generated/shap.Explainer.html
+                Important options include:
+                - approximate: If True, uses faster but less accurate SHAP calculation
+                - check_additivity: If False, disables additivity check in SHAP
 
         Returns:
-            (SHAPImportanceResemblance):
-                Fitted object.
+            SHAPImportanceResemblance: The fitted model instance with calculated SHAP values.
+
+        Raises:
+            ValueError: If input data dimensions don't match.
+            ValueError: If column_names length doesn't match number of features.
+            ValueError: If class_names is provided but not of length 2.
+            Warning: If train score is significantly higher than test score,
+                    indicating potential overfitting.
+            RuntimeError: If model is not tree-based or SHAP calculation fails.
         """
         super().fit(X1=X1, X2=X2, column_names=column_names, class_names=class_names)
 
+        # Calculate SHAP values for test set
+        # SHAP values explain each feature's contribution to model predictions
         self.shap_values_test = shap_calc(
-            self.model, self.X_test, verbose=self.verbose, random_state=self.random_state, **shap_kwargs
+            self.model,
+            self.X_test,
+            return_explainer=False,
+            verbose=self.verbose,
+            random_state=self.random_state,
+            **shap_kwargs,
         )
+
+        # Calculate feature importance from SHAP values
         self.report = calculate_shap_importance(self.shap_values_test, self.column_names)
+
         return self
 
-    def plot(self, plot_type="bar", show=True, **summary_plot_kwargs):
+    def plot(
+        self, plot_type: Literal["bar", "dot", "violin"] = "bar", show: bool = True, **summary_plot_kwargs: Any
+    ) -> Figure:
         """
-        Plots the resulting AUC of the model as well as the feature importances.
+        Create a SHAP summary plot to visualize feature importance.
+
+        This method uses SHAP's visualization tools to create different types of plots
+        showing the impact of features on model predictions. The plot includes both
+        the magnitude and direction of each feature's effect.
 
         Args:
-            plot_type (str, optional): Type of plot, used to compute shap.summary_plot. By default 'bar', available ones
-                are  "dot", "bar", "violin",
+            plot_type (Literal["bar", "dot", "violin"], optional): Type of SHAP summary plot.
+                Options:
+                - "bar": Bar chart showing average absolute SHAP values (default)
+                - "dot": Beeswarm plot showing distribution of SHAP values and feature values
+                - "violin": Violin plot showing distribution of SHAP values
 
-            show (bool, optional):
-                If True, the plots are showed to the user, otherwise they are not shown. Not showing plot can be useful,
-                when you want to edit the returned axis, before showing it.
+            show (bool, optional): Whether to display the plot immediately.
+                If True, calls plt.show() (default)
+                If False, returns the figure without displaying
+                Useful when you want to modify the plot further
 
-            **summary_plot_kwargs:
-                kwargs passed to the shap.summary_plot.
+            **summary_plot_kwargs (Any): Additional keyword arguments passed to shap.summary_plot().
+                Common options include:
+                - max_display: int, maximum number of features to show
+                - plot_size: tuple, figure dimensions
+                - color: str/tuple, color of plots
+                - alpha: float, transparency of plots
 
         Returns:
-            (matplotlib.axes):
-                Axes that include the plot.
-        """
+            matplotlib.figure.Figure: The created figure object.
+                Can be used for further customization or saving to file.
 
-        # This line serves as a double check if the object has been fitted
+        Raises:
+            ValueError: If the model has not been fitted yet.
+            ValueError: If plot_type is not one of "bar", "dot", or "violin".
+        """
         self._check_if_fitted()
 
+        # Convert SHAP values to numpy array if they're a DataFrame
+        # This is necessary because SHAP's summary_plot expects numpy arrays for dot and violin plots
+        shap_values_array = (
+            self.shap_values_test.values if isinstance(self.shap_values_test, pd.DataFrame) else self.shap_values_test
+        )
+        X_test_array = self.X_test.values if isinstance(self.X_test, pd.DataFrame) else self.X_test
+
+        # Create SHAP summary plot
+        # This creates its own figure and axes internally
         summary_plot(
-            self.shap_values_test,
-            self.X_test,
+            shap_values_array,
+            X_test_array,
             plot_type=plot_type,
             class_names=self.class_names,
-            show=False,
+            show=False,  # Don't show yet, we'll add annotations first
+            feature_names=self.column_names,
             **summary_plot_kwargs,
         )
-        ax = plt.gca()
+
+        # Get the figure and axes created by summary_plot
+        fig, ax = plt.gcf(), plt.gca()
+
+        # Add title
         ax.set_title(self.plot_title)
 
+        # Add performance metrics annotation
         ax.annotate(
             self.results_text,
             (0, 0),
@@ -654,20 +825,34 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
             va="top",
         )
 
+        # Show or close the plot
         if show:
             plt.show()
         else:
-            plt.close()
+            # Close plot to improve memory usage when decided not to show
+            plt.close(fig)
 
-        return ax
+        return fig
 
-    def get_shap_values(self):
+    def get_shap_values(self) -> Union[np.ndarray, pd.DataFrame]:
         """
-        Gets the SHAP values generated on the test set.
+        Get the SHAP values calculated for the test set.
+
+        This method provides access to the raw SHAP values computed during model fitting.
+        These values can be used for custom analyses or visualizations beyond the
+        standard plots provided by the plot() method.
 
         Returns:
-             (np.array):
-                SHAP values generated on the test set.
+            Union[np.ndarray, pd.DataFrame]: SHAP values for the test set.
+                Shape: (n_test_samples, n_features)
+                Each value represents a feature's contribution to a specific prediction:
+                - Positive values push the prediction toward class 1
+                - Negative values push the prediction toward class 0
+                - Magnitude indicates strength of the effect
+
+        Raises:
+            ValueError: If the model has not been fitted yet.
+                Call fit() before accessing SHAP values.
         """
         self._check_if_fitted()
         return self.shap_values_test
