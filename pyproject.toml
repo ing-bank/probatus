@@ -59,8 +59,8 @@ dev = [
     "codespell>=2.2.6",
     "ruff>=0.3.0",
     "lightgbm>=4.3.0",
-    "catboost>=1.2.7",
-    # "xgboost>=2.0.3", # TODO: Uncomment once XGBoost is updated to work with NumPy 2.0
+    # "catboost>=1.2.7", # TODO: Remove this once CatBoost is updated to work with NumPy 2.0
+    "xgboost>=2.0.3",
 ]
 docs = [
     "mkdocs>=1.5.3",
