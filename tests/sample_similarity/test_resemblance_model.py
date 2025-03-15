@@ -32,7 +32,7 @@ def test_base_class(X1, X2, decision_tree_classifier, random_state):
     assert actual_report is None
 
     # Check data splits if correct
-    actual_X_train, actual_X_test, actual_y_train, actual_y_test = rm.get_data_splits()
+    actual_X_train, actual_X_test, actual_y_train, actual_y_test = rm._get_data_splits()
 
     assert actual_X_train.shape == (4, 3)
     assert actual_X_test.shape == (4, 3)
@@ -62,7 +62,7 @@ def test_base_class_lin_models(X1, X2, logistic_regression, random_state):
     assert actual_report is None
 
     # Check data splits if correct
-    actual_X_train, actual_X_test, actual_y_train, actual_y_test = rm.get_data_splits()
+    actual_X_train, actual_X_test, actual_y_train, actual_y_test = rm._get_data_splits()
 
     assert actual_X_train.shape == (4, 3)
     assert actual_X_test.shape == (4, 3)
@@ -104,9 +104,9 @@ def test_shap_resemblance_class(X1, X2, decision_tree_classifier, random_state):
     actual_shap_values_test = rm.get_shap_values()
     assert actual_shap_values_test.shape == (4, 3)
 
-    # Run plots
-    rm.plot(plot_type="bar")
-    rm.plot(plot_type="dot")
+    # Run plots - test both bar and dot plot types
+    rm.plot(plot_type="bar", show=False)
+    rm.plot(plot_type="dot", show=False)
 
 
 def test_shap_resemblance_class_lin_models(X1, X2, logistic_regression, random_state):
@@ -135,9 +135,9 @@ def test_shap_resemblance_class_lin_models(X1, X2, logistic_regression, random_s
     actual_shap_values_test = rm.get_shap_values()
     assert actual_shap_values_test.shape == (4, 3)
 
-    # Run plots
-    rm.plot(plot_type="bar")
-    rm.plot(plot_type="dot")
+    # Run plots - test both bar and dot plot types
+    rm.plot(plot_type="bar", show=False)
+    rm.plot(plot_type="dot", show=False)
 
 
 def test_shap_resemblance_class2(complex_data_with_categorical, complex_lightgbm, random_state):
@@ -171,8 +171,8 @@ def test_shap_resemblance_class2(complex_data_with_categorical, complex_lightgbm
     # 50 test samples and 5 features
     assert actual_shap_values_test.shape == (X1.shape[0], X1.shape[1])
 
-    # Run plots
-    rm.plot(plot_type="bar", show=True)
+    # Run plots - test both bar and dot plot types
+    rm.plot(plot_type="bar", show=False)
     rm.plot(plot_type="dot", show=False)
 
 
