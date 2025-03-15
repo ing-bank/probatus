@@ -238,7 +238,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
         X: pd.DataFrame,
         y: pd.Series,
         approximate: bool = False,
-        verbose: int = 0,
+        verbose: Literal[0, 1, 2] = 0,
         random_state: Optional[int] = None,
         column_names: Optional[List[str]] = None,
         class_names: Optional[List[str]] = None,
@@ -604,7 +604,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
         plot_type: Literal["importance", "summary"],
         target_set: Literal["train", "test"],
         target_X: pd.DataFrame,
-        target_shap_values: np.ndarray,
+        target_shap_values: pd.DataFrame,
         target_columns: List[str],
         target_columns_indices: List[int],
         show: bool,
@@ -626,7 +626,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
             target_X (pd.DataFrame):
                 Feature data for the selected dataset.
 
-            target_shap_values (np.ndarray):
+            target_shap_values (pd.DataFrame):
                 SHAP values for the selected dataset.
 
             target_columns (List[str]):
@@ -646,7 +646,14 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
         """
         # Filter data to include only the target columns
         target_X = target_X[target_columns]
-        target_shap_values = target_shap_values[:, target_columns_indices]
+
+        # Handle different types of target_shap_values
+        if isinstance(target_shap_values, pd.DataFrame):
+            # If it's a DataFrame, select columns by name
+            target_shap_values = target_shap_values[target_columns].values
+        else:
+            # If it's a numpy array, select columns by index
+            target_shap_values = target_shap_values[:, target_columns_indices]
 
         # Configure plot type and title
         plot_style = "bar" if plot_type == "importance" else "dot"
@@ -732,8 +739,10 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
                 # If it's a list, process each axes
                 for i, ax in enumerate(ax_result):
                     fig = ax.figure
-                    fig.tight_layout()
-                    fig.subplots_adjust(top=0.9)  # Add space for title
+                    if fig is not None and hasattr(fig, "tight_layout"):
+                        fig.tight_layout()
+                        if hasattr(fig, "subplots_adjust"):
+                            fig.subplots_adjust(top=0.9)  # Add space for title
 
                     # Set title with padding - add subplot number if multiple
                     subplot_info = f" (subplot {i+1}/{len(ax_result)})" if len(ax_result) > 1 else ""
@@ -742,9 +751,11 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
                     axes_list.append(ax)
             else:
                 # If it's a single axes
-                fig = ax_result.figure
-                fig.tight_layout()
-                fig.subplots_adjust(top=0.9)  # Add space for title
+                ax_fig = ax_result.figure
+                if ax_fig is not None and hasattr(ax_fig, "tight_layout"):
+                    ax_fig.tight_layout()
+                    if hasattr(ax_fig, "subplots_adjust"):
+                        ax_fig.subplots_adjust(top=0.9)  # Add space for title
 
                 # Set title with padding
                 ax_result.set_title(f"SHAP Dependence Plot for {feature_name}", pad=20)
@@ -763,7 +774,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
         self,
         samples_index: Optional[Union[int, str, List, pd.Index]],
         target_X: pd.DataFrame,
-        target_shap_values: np.ndarray,
+        target_shap_values: pd.DataFrame,
         target_expected_value: float,
         target_columns: List[str],
         target_set: Literal["train", "test"],
@@ -783,7 +794,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
             target_X (pd.DataFrame):
                 Feature data for the selected dataset.
 
-            target_shap_values (np.ndarray):
+            target_shap_values (pd.DataFrame):
                 SHAP values for the selected dataset.
 
             target_expected_value (float):
@@ -828,9 +839,17 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
             max_name_length = max([len(str(name)) for name in target_columns])
             fig_width = max(10, 8 + max_name_length * 0.1)
 
+            # Get SHAP values for this sample
+            if isinstance(target_shap_values, pd.DataFrame):
+                # If it's a DataFrame, get the row by index
+                sample_shap_values = target_shap_values.loc[sample_index].values
+            else:
+                # If it's a numpy array, get the row by position
+                sample_shap_values = target_shap_values[sample_loc, :]
+
             # Create a SHAP Explanation object
             explanation = Explanation(
-                values=target_shap_values[sample_loc, :],
+                values=sample_shap_values,
                 base_values=target_expected_value,
                 data=target_X.loc[sample_index].values,
                 feature_names=target_columns,
