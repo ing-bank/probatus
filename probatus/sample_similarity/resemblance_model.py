@@ -736,7 +736,7 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
 
         # Calculate SHAP values for test set
         # SHAP values explain each feature's contribution to model predictions
-        self.shap_values_test = shap_calc(
+        self.shap_values_test: pd.DataFrame = shap_calc(
             self.model,
             self.X_test,
             return_explainer=False,
@@ -834,7 +834,7 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
 
         return fig
 
-    def get_shap_values(self) -> Union[np.ndarray, pd.DataFrame]:
+    def get_shap_values(self) -> np.ndarray:
         """
         Get the SHAP values calculated for the test set.
 
@@ -843,7 +843,7 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
         standard plots provided by the plot() method.
 
         Returns:
-            Union[np.ndarray, pd.DataFrame]: SHAP values for the test set.
+            np.ndarray: Array of SHAP values for the test set.
                 Shape: (n_test_samples, n_features)
                 Each value represents a feature's contribution to a specific prediction:
                 - Positive values push the prediction toward class 1
