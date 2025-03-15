@@ -182,7 +182,7 @@ class BaseResemblanceModel(BaseFitComputePlotClass):
             f"Train {self.scorer.metric_name}: {self.train_score},\n"
             f"Test {self.scorer.metric_name}: {self.test_score}."
         )
-        if self.verbose > 1:
+        if self.verbose > 0:
             logger.info(f"Finished model training: \n{self.results_text}")
 
         # Warn about potential overfitting

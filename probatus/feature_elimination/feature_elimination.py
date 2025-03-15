@@ -9,6 +9,7 @@ from loguru import logger
 from sklearn.base import BaseEstimator, clone, is_classifier, is_regressor
 from sklearn.model_selection import check_cv
 from sklearn.model_selection._search import BaseSearchCV
+from tqdm.auto import tqdm
 
 from probatus.utils import (
     BaseFitComputePlotClass,
@@ -458,9 +459,6 @@ class ShapRFECV(BaseFitComputePlotClass):
         # Setup cross-validation
         self.cv = check_cv(self.cv, self.y, classifier=is_classifier(self.model))
 
-        remaining_features = current_features_set = self.column_names
-        round_number = 0
-
         # Calculate stopping criteria
         stopping_criteria = max(self.min_features_to_select, len_columns_to_keep)
 
@@ -471,96 +469,116 @@ class ShapRFECV(BaseFitComputePlotClass):
             if self.verbose > 1:
                 warnings.warn(f"Minimum features to select : {stopping_criteria}")
 
-        # TODO: Introduce TQDM here (make for-loop)
-        while len(current_features_set) > stopping_criteria:
-            round_number += 1
+        # Initialize variables for the feature elimination loop
+        remaining_features = current_features_set = self.column_names
+        round_number = 0
 
-            # Get current dataset info
-            current_features_set = remaining_features
-            remaining_removeable_features = list(dict.fromkeys(current_features_set + (columns_to_keep or [])))
+        # Calculate the maximum number of iterations
+        max_iterations = len(current_features_set) - stopping_criteria
 
-            # Create current dataset with selected features
-            current_X = self.X[remaining_removeable_features]
+        # Create a tqdm progress bar for feature elimination
+        with tqdm(total=max_iterations, desc="Feature Elimination", disable=self.verbose == 0) as progress_bar:
+            while len(current_features_set) > stopping_criteria:
+                round_number += 1
 
-            # Optimize model parameters if using a search model
-            if self.search_model:
-                current_search_model = clone(self.model).fit(current_X, self.y)
-                current_model = current_search_model.estimator.set_params(**current_search_model.best_params_)
-            else:
-                current_model = clone(self.model)
+                # Get current dataset info
+                current_features_set = remaining_features
+                remaining_removeable_features = list(dict.fromkeys(current_features_set + (columns_to_keep or [])))
 
-            # Perform cross-validation to estimate feature importance with SHAP
-            if not (self.early_stopping_rounds and self.eval_metric):
-                # Standard CV without early stopping
-                results_per_fold = Parallel(n_jobs=self.n_jobs)(
-                    delayed(self._get_feature_shap_values_per_fold)(
-                        X=current_X,
-                        y=self.y,
-                        model=current_model,
-                        train_index=train_index,
-                        val_index=val_index,
-                        sample_weight=sample_weight,
-                        **shap_kwargs,
+                # Create current dataset with selected features
+                current_X = self.X[remaining_removeable_features]
+
+                # Optimize model parameters if using a search model
+                if self.search_model:
+                    current_search_model = clone(self.model).fit(current_X, self.y)
+                    current_model = current_search_model.estimator.set_params(**current_search_model.best_params_)
+                else:
+                    current_model = clone(self.model)
+
+                # Perform cross-validation to estimate feature importance with SHAP
+                if not (self.early_stopping_rounds and self.eval_metric):
+                    # Standard CV without early stopping
+                    results_per_fold = Parallel(n_jobs=self.n_jobs)(
+                        delayed(self._get_feature_shap_values_per_fold)(
+                            X=current_X,
+                            y=self.y,
+                            model=current_model,
+                            train_index=train_index,
+                            val_index=val_index,
+                            sample_weight=sample_weight,
+                            **shap_kwargs,
+                        )
+                        for train_index, val_index in self.cv.split(current_X, self.y, groups)
                     )
-                    for train_index, val_index in self.cv.split(current_X, self.y, groups)
-                )
-            else:
-                # CV with early stopping
-                results_per_fold = Parallel(n_jobs=self.n_jobs)(
-                    delayed(self._get_feature_shap_values_per_fold_early_stopping)(
-                        X=current_X,
-                        y=self.y,
-                        model=current_model,
-                        train_index=train_index,
-                        val_index=val_index,
-                        sample_weight=sample_weight,
-                        **shap_kwargs,
+                else:
+                    # CV with early stopping
+                    results_per_fold = Parallel(n_jobs=self.n_jobs)(
+                        delayed(self._get_feature_shap_values_per_fold_early_stopping)(
+                            X=current_X,
+                            y=self.y,
+                            model=current_model,
+                            train_index=train_index,
+                            val_index=val_index,
+                            sample_weight=sample_weight,
+                            **shap_kwargs,
+                        )
+                        for train_index, val_index in self.cv.split(current_X, self.y, groups)
                     )
-                    for train_index, val_index in self.cv.split(current_X, self.y, groups)
+
+                # Process SHAP values based on model type
+                if self.y.nunique() == 2 or is_regressor(current_model):
+                    # Binary classification or regression case
+                    shap_values = np.concatenate([current_result[0] for current_result in results_per_fold], axis=0)
+                else:
+                    # Multi-class case
+                    shap_values = np.concatenate([current_result[0] for current_result in results_per_fold], axis=1)
+
+                # Extract scores from results
+                scores_train = [current_result[1] for current_result in results_per_fold]
+                scores_val = [current_result[2] for current_result in results_per_fold]
+
+                # Calculate SHAP importance for features
+                shap_importance_df = calculate_shap_importance(
+                    shap_values,
+                    remaining_removeable_features,
+                    shap_variance_penalty_factor=_shap_variance_penalty_factor,
                 )
 
-            # Process SHAP values based on model type
-            if self.y.nunique() == 2 or is_regressor(current_model):
-                # Binary classification or regression case
-                shap_values = np.concatenate([current_result[0] for current_result in results_per_fold], axis=0)
-            else:
-                # Multi-class case
-                shap_values = np.concatenate([current_result[0] for current_result in results_per_fold], axis=1)
-
-            # Extract scores from results
-            scores_train = [current_result[1] for current_result in results_per_fold]
-            scores_val = [current_result[2] for current_result in results_per_fold]
-
-            # Calculate SHAP importance for features
-            shap_importance_df = calculate_shap_importance(
-                shap_values, remaining_removeable_features, shap_variance_penalty_factor=_shap_variance_penalty_factor
-            )
-
-            # Determine which features to keep and which to remove
-            remaining_features, features_to_remove = self._filter_and_identify_features_based_on_importance(
-                shap_importance_df, columns_to_keep, current_features_set
-            )
-
-            # Record results for this round
-            self._report_current_results(
-                round_number=round_number,
-                current_features_set=current_features_set,
-                features_to_remove=features_to_remove,
-                train_metric_mean=np.mean(scores_train),
-                train_metric_std=np.std(scores_train),
-                val_metric_mean=np.mean(scores_val),
-                val_metric_std=np.std(scores_val),
-            )
-            if self.verbose > 1:
-                logger.info(
-                    f"Round: {round_number}, Current number of features: {len(current_features_set)}, "
-                    f"Current performance: Train {self.report_df.loc[round_number]['train_metric_mean']} "
-                    f"+/- {self.report_df.loc[round_number]['train_metric_std']}, CV Validation "
-                    f"{self.report_df.loc[round_number]['val_metric_mean']} "
-                    f"+/- {self.report_df.loc[round_number]['val_metric_std']}. \n"
-                    f"Features left: {remaining_features}. "
-                    f"Removed features at the end of the round: {features_to_remove}"
+                # Determine which features to keep and which to remove
+                remaining_features, features_to_remove = self._filter_and_identify_features_based_on_importance(
+                    shap_importance_df, columns_to_keep, current_features_set
                 )
+
+                # Record results for this round
+                self._report_current_results(
+                    round_number=round_number,
+                    current_features_set=current_features_set,
+                    features_to_remove=features_to_remove,
+                    train_metric_mean=np.mean(scores_train),
+                    train_metric_std=np.std(scores_train),
+                    val_metric_mean=np.mean(scores_val),
+                    val_metric_std=np.std(scores_val),
+                )
+
+                # Update the progress bar with the number of features removed in this iteration
+                features_removed = len(current_features_set) - len(remaining_features)
+                progress_bar.update(features_removed)
+
+                # Update progress bar description with current performance
+                progress_bar.set_description(
+                    f"Feature Elimination (features: {len(remaining_features)}, val score: {self.report_df.loc[round_number]['val_metric_mean']:.4f})"
+                )
+
+                if self.verbose > 1:
+                    logger.debug(
+                        f"Round: {round_number}, Current number of features: {len(current_features_set)}, "
+                        f"Current performance: Train {self.report_df.loc[round_number]['train_metric_mean']} "
+                        f"+/- {self.report_df.loc[round_number]['train_metric_std']}, CV Validation "
+                        f"{self.report_df.loc[round_number]['val_metric_mean']} "
+                        f"+/- {self.report_df.loc[round_number]['val_metric_std']}. \n"
+                        f"Features left: {remaining_features}. "
+                        f"Removed features at the end of the round: {features_to_remove}"
+                    )
 
         self.fitted = True
         return self
@@ -1072,7 +1090,7 @@ class ShapRFECV(BaseFitComputePlotClass):
 
         # Log the report if verbose
         if self.verbose > 1:
-            logger.info(shap_report)
+            logger.debug(shap_report)
 
         return best_num_features
 
@@ -1215,7 +1233,7 @@ class ShapRFECV(BaseFitComputePlotClass):
             "eval_metric": self.eval_metric,
             "callbacks": [
                 early_stopping(self.early_stopping_rounds, first_metric_only=True),
-                log_evaluation(1 if self.verbose >= 2 else 0),
+                log_evaluation(1 if self.verbose > 1 else 0),
             ],
         }
 
