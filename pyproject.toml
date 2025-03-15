@@ -33,7 +33,7 @@ dependencies = [
     "shap>=0.47.0",
     "numpy>=2.0.0",
     "loguru>=0.7.2",
-    "tqdm>=4.66.2",
+    "tqdm>=4.66.2"
 ]
 
 [project.urls]
@@ -60,7 +60,7 @@ dev = [
     "ruff>=0.3.0",
     "lightgbm>=4.3.0",
     "catboost>=1.2.7",
-    "xgboost>=2.0.3",
+    # "xgboost>=2.0.3", # TODO: Uncomment once XGBoost is updated to work with NumPy 2.0
 ]
 docs = [
     "mkdocs>=1.5.3",
