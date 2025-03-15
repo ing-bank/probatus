@@ -115,11 +115,12 @@ class EarlyStoppingShapRFECV(ShapRFECV):
                 - None: 1 core (unless in a joblib.parallel_backend context)
                 - -1: use all available processors
 
-            verbose (Literal[0, 1, 2], default=0):
-                Controls output verbosity:
-                - 0: no prints or warnings
-                - 1: only important warnings
-                - 2: all prints and warnings
+            verbose (Literal[0, 1, 2], optional):
+                Controls the level of output messages:
+                - `0`: No output or warnings.
+                - `1`: Only important warnings.
+                - `2`: All warnings and detailed logs.
+                - Default is `0`.
 
             random_state (Optional[int], default=None):
                 Random seed for reproducibility. If None, results won't be reproducible

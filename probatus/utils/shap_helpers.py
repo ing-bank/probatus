@@ -1,5 +1,5 @@
 import warnings
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union, Literal
 
 import numpy as np
 import pandas as pd
@@ -10,11 +10,191 @@ from sklearn.base import BaseEstimator
 from sklearn.pipeline import Pipeline
 
 
+def _validate_shap_inputs(
+    model: BaseEstimator,
+    X: pd.DataFrame,
+    verbose: Literal[0, 1, 2] = 0,
+) -> Tuple[bool, Optional[str]]:
+    """
+    Check prerequisites for SHAP calculation and validate inputs.
+
+    Args:
+        model (BaseEstimator):
+            Trained model to explain. Should be compatible with SHAP library.
+
+        X (pd.DataFrame):
+            Feature set used to calculate SHAP values.
+
+        verbose (Literal[0, 1, 2], optional):
+                Controls the level of output messages:
+                - `0`: No output or warnings.
+                - `1`: Only important warnings.
+                - `2`: All warnings and detailed logs.
+                - Default is `0`.
+
+    Returns:
+        Tuple[bool, Optional[str]]:
+            A tuple containing (is_valid, error_message).
+            If is_valid is False, error_message contains the reason.
+    """
+    # SHAP doesn't work with scikit-learn pipelines
+    if isinstance(model, Pipeline):
+        return False, (
+            "The provided model is a Pipeline. Unfortunately, the features based on SHAP do not support "
+            "pipelines, because they cannot be used in combination with shap.Explainer. Please apply any "
+            "data transformations before running the probatus module."
+        )
+
+    # Check if the dataset is a pandas DataFrame
+    if not isinstance(X, pd.DataFrame) and verbose > 0:
+        warnings.warn("The provided dataset is not a pandas DataFrame. Categorical features are not recognized.")
+
+    return True, None
+
+
+def _create_shap_explainer(
+    model: BaseEstimator,
+    X: pd.DataFrame,
+    random_state: Optional[int] = None,
+    sample_size: int = 100,
+    **shap_kwargs: Any,
+) -> Explainer:
+    """
+    Create an appropriate SHAP explainer for the given model and data.
+
+    Args:
+        model (BaseEstimator):
+            Trained model to explain.
+
+        X (pd.DataFrame):
+            Feature set used to calculate SHAP values.
+
+        random_state (int, optional):
+            Random state for reproducibility. Default is None.
+
+        sample_size (int, optional):
+            Number of samples to use for background data. Default is 100.
+
+        **shap_kwargs:
+            Additional keyword arguments passed to the SHAP Explainer.
+
+    Returns:
+        Explainer:
+            Initialized SHAP explainer object.
+    """
+    # Check if the dataset has categorical features
+    has_categorical = False
+    if isinstance(X, pd.DataFrame):
+        has_categorical = X.select_dtypes("category").shape[1] > 0
+
+    # For non-tree models, we reserve a background sample (masker) to provide a realistic baseline for
+    # perturbing features, since tree-based models inherently manage feature variations. Perturbing features
+    # quantify each feature's contribution relative to this baseline, which is key to SHAP calculations.
+    masker = None
+    if not has_categorical and shap_kwargs.get("feature_perturbation") != "tree_path_dependent":
+        # If the dataset is smaller than the requested sample size, use a percentage of the dataset
+        if X.shape[0] < sample_size:
+            sample_size = int(np.ceil(X.shape[0] * 0.2))  # Use 20% of the dataset
+
+        # Create background data by sampling from the input dataset
+        masker = sample(X, sample_size, random_state=random_state)
+
+    # Initialize the SHAP explainer with the model and masker
+    return Explainer(model, masker=masker, seed=random_state, **shap_kwargs)
+
+
+def _compute_shap_values(
+    explainer: Explainer,
+    X: pd.DataFrame,
+    approximate: bool = False,
+    check_additivity: bool = True,
+) -> np.ndarray:
+    """
+    Calculate SHAP values using the appropriate method based on explainer type.
+
+    Args:
+        explainer (Explainer):
+            Initialized SHAP explainer.
+
+        X (pd.DataFrame):
+            Feature set to calculate SHAP values for.
+
+        approximate (bool, optional):
+            If True, uses SHAP approximations for tree-based models. Default is False.
+
+        check_additivity (bool, optional):
+            If False, disables additivity check for tree models. Default is True.
+
+    Returns:
+        np.ndarray:
+            Raw SHAP values.
+    """
+    # Calculate SHAP values based on the explainer type
+    if isinstance(explainer, TreeExplainer):
+        # Tree-based models can use approximation for faster calculation
+        return explainer.shap_values(X, check_additivity=check_additivity, approximate=approximate)
+    else:
+        # Standard calculation for non-tree models
+        return explainer.shap_values(X)
+
+
+def _format_shap_values(
+    shap_values: Union[np.ndarray, List[np.ndarray]],
+    verbose: Literal[0, 1, 2] = 0,
+) -> np.ndarray:
+    """
+    Process SHAP values into a consistent format.
+
+    Args:
+        shap_values (Union[np.ndarray, List[np.ndarray]]):
+            Raw SHAP values from the explainer.
+
+        verbose (Literal[0, 1, 2], optional):
+            Controls the level of output messages:
+            - `0`: No output or warnings.
+            - `1`: Only important warnings.
+            - `2`: All warnings and detailed logs.
+            Default is `0`.
+
+    Returns:
+        np.ndarray:
+            Processed SHAP values in a consistent format.
+    """
+    # Handle different output formats from SHAP
+    if isinstance(shap_values, list) and len(shap_values) == 2:
+        # For binary classification, SHAP often returns a list with values for both classes
+        if verbose > 0:
+            warnings.warn(
+                "Shap values are related to the output probabilities of class 1 for this model, instead of log odds."
+            )
+        return shap_values[1]  # Take positive class (index 1)
+    elif not isinstance(shap_values, list) and len(shap_values.shape) == 3:
+        # For some models, SHAP returns a 3D array with shape (samples, features, classes)
+        try:
+            # Try to get the positive class (index 1) for binary classification
+            return shap_values[:, :, 1]
+        except IndexError:
+            # If index 1 doesn't exist (e.g., only one class), use the last dimension
+            if verbose > 0:
+                warnings.warn("Could not extract dimension 1 from 3D SHAP values. Using the last dimension instead.")
+            return shap_values[:, :, -1]
+
+    # Return as is for other formats, but ensure it's a numpy array
+    if isinstance(shap_values, list):
+        # Convert list to numpy array if needed
+        if verbose > 0:
+            warnings.warn("Converting list of SHAP values to numpy array using the first element.")
+        return np.array(shap_values[0])
+
+    # Already a numpy array
+    return shap_values
+
+
 def shap_calc(
     model: BaseEstimator,
     X: pd.DataFrame,
     return_explainer: bool = False,
-    verbose: int = 0,
+    verbose: Literal[0, 1, 2] = 0,
     random_state: Optional[int] = None,
     sample_size: int = 100,
     approximate: bool = False,
@@ -29,7 +209,7 @@ def shap_calc(
 
     Args:
         model (BaseEstimator):
-            Trained model to explain. Should be compatible with SHAP library.
+            Trained model to explain. Should be compatible with the SHAP library.
 
         X (pd.DataFrame):
             Feature set used to calculate SHAP values. Should have the same format
@@ -39,108 +219,74 @@ def shap_calc(
             If True, returns a tuple (shap_values, explainer) to allow reuse of the explainer.
             Default is False.
 
-        verbose (int, optional):
-            Controls verbosity of the output:
-            - 0 - neither prints nor warnings are shown
-            - 1 - only most important warnings
-            - 2 - shows all prints and all warnings.
-            Default is 0.
+        verbose (Literal[0, 1, 2], optional):
+            Controls the level of output messages:
+                - `0`: No output or warnings.
+                - `1`: Only important warnings.
+                - `2`: All warnings and detailed logs.
+            Default is `0`.
 
         random_state (int, optional):
             Random state for reproducibility when sampling background data.
             If None, results may not be reproducible. Default is None.
 
         sample_size (int, optional):
-            Number of samples to use for background data when creating the explainer.
-            Default is 100.
+            Number of samples to use for creating the background dataset (masker).
+            A sensible default is 100 samples as it provides a good balance between
+            capturing the data's variability (which is critical for reliable SHAP values
+            and additivity checks) and maintaining reasonable computation times.
+            For smaller datasets, using around 20% of the data might be more appropriate,
+            while for larger datasets, 100–500 samples may be used.
 
         approximate (bool, optional):
-            If True, uses SHAP approximations for tree-based models - less accurate, but much faster.
+            If True, uses SHAP approximations for tree-based models—this is less accurate but much faster.
             Only applies to tree-based explainers. Default is False.
 
         check_additivity (bool, optional):
-            If False, SHAP will disable the additivity check for tree-based models,
-            which can improve performance. Default is True.
+            If True, performs an additivity check to ensure the SHAP values sum to the model's prediction.
+            Using a masker that accurately captures data variability helps avoid potential additivity
+            issues. Default is True.
 
         **shap_kwargs:
             Additional keyword arguments passed to the SHAP Explainer.
 
     Returns:
         Union[pd.DataFrame, Tuple[pd.DataFrame, Explainer]]:
-            SHAP values for the model, optionally also returns the explainer if return_explainer=True.
+            SHAP values for the model, or a tuple (shap_values, explainer) if return_explainer is True.
             For binary classification, returns SHAP values for the positive class.
 
     Raises:
         TypeError: If the provided model is a Pipeline, which is not supported.
     """
-    # SHAP doesn't work with scikit-learn pipelines, so we check for this first
-    if isinstance(model, Pipeline):
-        raise TypeError(
-            "The provided model is a Pipeline. Unfortunately, the features based on SHAP do not support "
-            "pipelines, because they cannot be used in combination with shap.Explainer. Please apply any "
-            "data transformations before running the probatus module."
-        )
+    # Check prerequisites
+    is_valid, error_message = _validate_shap_inputs(model, X, verbose)
+    if not is_valid:
+        raise TypeError(error_message)
 
     # Suppress warnings regarding XGboost and Lightgbm models if verbose level is low
     with warnings.catch_warnings():
         warnings.simplefilter("ignore" if verbose <= 1 else "default")
 
-        # Check if the dataset has categorical features (only possible with pandas DataFrames)
-        # This affects how we create the masker for the SHAP explainer
-        has_categorical = False
-        if isinstance(X, pd.DataFrame):
-            has_categorical = X.select_dtypes("category").shape[1] > 0
-        else:
-            warnings.warn("The provided dataset is not a pandas DataFrame. Categorical features are not recognized.")
+        # Create the SHAP explainer
+        explainer = _create_shap_explainer(
+            model=model, X=X, random_state=random_state, sample_size=sample_size, **shap_kwargs
+        )
 
-        # Create a background dataset (masker) for non-tree models
-        # Tree models don't need a background dataset unless feature_perturbation is not tree_path_dependent
-        masker = None
-        if not has_categorical and shap_kwargs.get("feature_perturbation") != "tree_path_dependent":
-            # If the dataset is smaller than the requested sample size, use a percentage of the dataset
-            if X.shape[0] < sample_size:
-                sample_size = int(np.ceil(X.shape[0] * 0.2))  # Use 20% of the dataset
+        # Calculate SHAP values
+        shap_values = _compute_shap_values(
+            explainer=explainer, X=X, approximate=approximate, check_additivity=check_additivity
+        )
 
-            # Create background data by sampling from the input dataset
-            masker = sample(X, sample_size, random_state=random_state)
-
-        # Initialize the SHAP explainer with the model and masker
-        explainer = Explainer(model, masker=masker, seed=random_state, **shap_kwargs)
-
-        # Calculate SHAP values - different methods for tree-based vs other models
-        if isinstance(explainer, TreeExplainer):
-            # Tree-based models can use approximation for faster calculation
-            shap_values = explainer.shap_values(X, check_additivity=check_additivity, approximate=approximate)
-        else:
-            # Standard calculation for non-tree models
-            shap_values = explainer.shap_values(X)
-
-        # Handle different output formats from SHAP
-        # SHAP can return values in different formats depending on the model type
-        if isinstance(shap_values, list) and len(shap_values) == 2:
-            # For binary classification, SHAP often returns a list with values for both classes
-            # We want to use the values for the positive class (index 1)
-            warnings.warn(
-                "Shap values are related to the output probabilities of class 1 for this model, instead of log odds."
-            )
-            shap_values = shap_values[1]  # Take positive class (index 1)
-        elif not isinstance(shap_values, list) and len(shap_values.shape) == 3:
-            # For some models, SHAP returns a 3D array with shape (samples, features, classes)
-            try:
-                # Try to get the positive class (index 1) for binary classification
-                shap_values = shap_values[:, :, 1]
-            except IndexError:
-                # If index 1 doesn't exist (e.g., only one class), use the last dimension
-                warnings.warn("Could not extract dimension 1 from 3D SHAP values. Using the last dimension instead.")
-                shap_values = shap_values[:, :, -1]
+        # Process the output to a consistent format
+        shap_values = _format_shap_values(shap_values=shap_values, verbose=verbose)
 
     # Convert SHAP values to a pandas DataFrame
-    shap_values = shap_to_df(model=model, X=X, precalc_shap=shap_values)
+    shap_values_df = shap_to_df(model=model, X=X, precalc_shap=shap_values)
 
     # Return the SHAP values, and optionally the explainer for reuse
     if return_explainer:
-        return shap_values, explainer
-    return shap_values
+        return shap_values_df, explainer
+    return shap_values_df
 
 
 def shap_to_df(

@@ -130,11 +130,12 @@ def preprocess_data(
             If provided, overwrites existing feature names.
             If not provided, uses existing names or generates default ones.
 
-        verbose (int, default=0):
-            Controls verbosity of the output:
-            - 0: No warnings or prints
-            - 1: Only important warnings
-            - 2: All prints and warnings
+        verbose (Literal[0, 1, 2], optional):
+                Controls the level of output messages:
+                - `0`: No output or warnings.
+                - `1`: Only important warnings.
+                - `2`: All warnings and detailed logs.
+                - Default is `0`.
 
     Returns:
         Tuple[pd.DataFrame, List[str]]:

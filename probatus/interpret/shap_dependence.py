@@ -67,11 +67,12 @@ class DependencePlotter(BaseFitComputePlotClass):
                 A fitted regression or classification model or pipeline. Must implement
                 predict_proba or decision_function methods depending on the model type.
 
-            verbose (int, optional):
-                Controls verbosity of the output. Default is 0.
-                - 0: No output or warnings
-                - 1: Only important warnings
-                - 2: All prints and warnings
+            verbose (Literal[0, 1, 2], optional):
+                Controls the level of output messages:
+                - `0`: No output or warnings.
+                - `1`: Only important warnings.
+                - `2`: All warnings and detailed logs.
+                - Default is `0`.
 
             random_state (Optional[int], optional):
                 Random state for reproducibility. If None, results may not be reproducible.

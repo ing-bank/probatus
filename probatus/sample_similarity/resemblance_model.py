@@ -52,30 +52,38 @@ class BaseResemblanceModel(BaseFitComputePlotClass):
         random_state: Optional[int] = None,
     ) -> None:
         """
-        Initialize the BaseResemblanceModel.
+        Initializes the BaseResemblanceModel.
 
         Args:
-            model: Regression or classification model or pipeline.
-                Must implement fit() and predict() or predict_proba() methods.
+            model (BaseEstimator):
+                A regression or classification model (or pipeline) that must implement
+                `fit()` and either `predict()` or `predict_proba()`.
 
-            scoring: Metric for model performance evaluation.
-                Can be a string matching sklearn's classification metrics
+            scoring (str, optional):
+                Metric used to evaluate model performance.
+                Can be a string referring to a scikit-learn classification metric
                 (see: https://scikit-learn.org/stable/modules/model_evaluation.html)
-                or a probatus.utils.Scorer object for custom metrics.
-                'roc_auc' is recommended for this class.
+                or a `probatus.utils.Scorer` object for custom scoring.
+                Defaults to `"roc_auc"`.
 
-            test_prc: Percentage of data used for testing the model (default: 0.25).
+            test_prc (float, optional):
+                Fraction of data used for testing, in the range (0, 1].
+                Defaults to `0.25`.
 
-            n_jobs: Number of parallel jobs to run.
-                Set to -1 to use all available cores (default: 1).
+            n_jobs (int, optional):
+                Number of parallel processes to use. Set to `-1` to use all available cores.
+                Defaults to `1`.
 
-            verbose: Controls output verbosity:
-                0 - No output or warnings
-                1 - Only important warnings
-                2 - All prints and warnings
+            verbose (Literal[0, 1, 2], optional):
+                Controls the level of output messages:
+                - `0`: No output or warnings.
+                - `1`: Important warnings only.
+                - `2`: All warnings and detailed logs.
+                Defaults to `0`.
 
-            random_state: Random seed for reproducibility.
-                Set to an integer for reproducible results or None for non-reproducible behavior.
+            random_state (Optional[int], optional):
+                Random seed for reproducibility. Use an integer for deterministic results
+                or `None` for non-reproducible behavior. Defaults to `None`.
         """
         self.model = model
         self.test_prc = test_prc
@@ -377,32 +385,43 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
         random_state: Optional[int] = None,
     ) -> None:
         """
-        Initialize the PermutationImportanceResemblance model.
+        Initializes the PermutationImportanceResemblance model.
 
         Args:
-            model: Machine learning model (classifier) to distinguish between samples.
-                Must implement fit() and predict() or predict_proba() methods.
+            model (BaseEstimator):
+                A machine learning classifier used to distinguish between samples.
+                Must implement `fit()` and either `predict()` or `predict_proba()`.
 
-            iterations: Number of iterations for permutation importance calculation.
-                Higher values give more stable results but take longer (default: 100).
+            iterations (int, optional):
+                Number of iterations for permutation importance calculation.
+                Higher values improve stability but increase computation time.
+                Defaults to `100`.
 
-            scoring: Metric for model performance evaluation.
-                Can be a string matching sklearn's classification metrics
-                or a probatus.utils.Scorer object for custom metrics.
-                'roc_auc' is recommended for this class.
+            scoring (str, optional):
+                Metric used to evaluate model performance.
+                Can be a string referring to a scikit-learn classification metric
+                (see: https://scikit-learn.org/stable/modules/model_evaluation.html)
+                or a `probatus.utils.Scorer` object for custom scoring.
+                Defaults to `"roc_auc"`.
 
-            test_prc: Percentage of data used for testing (default: 0.25).
+            test_prc (float, optional):
+                Fraction of data used for testing, in the range `(0, 1]`.
+                Defaults to `0.25`.
 
-            n_jobs: Number of parallel jobs to run.
-                Set to -1 to use all available cores (default: 1).
+            n_jobs (int, optional):
+                Number of parallel jobs to use. Set to `-1` to utilize all available cores.
+                Defaults to `1`.
 
-            verbose: Controls output verbosity:
-                0 - No output or warnings
-                1 - Only important warnings
-                2 - All prints and warnings
+            verbose (Literal[0, 1, 2], optional):
+                Controls the level of output messages:
+                - `0`: No output or warnings.
+                - `1`: Important warnings only.
+                - `2`: All warnings and detailed logs.
+                Defaults to `0`.
 
-            random_state: Random seed for reproducibility.
-                Set to an integer for reproducible results.
+            random_state (Optional[int], optional):
+                Random seed for reproducibility. Use an integer for deterministic results
+                or `None` for non-reproducible behavior. Defaults to `None`.
         """
         super().__init__(
             model=model,
@@ -663,10 +682,12 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
             n_jobs: Number of parallel jobs to run.
                 Set to -1 to use all available cores (default: 1).
 
-            verbose: Controls output verbosity:
-                0 - No output or warnings
-                1 - Only important warnings
-                2 - All prints and warnings
+            verbose (Literal[0, 1, 2], optional):
+                Controls the level of output messages:
+                - `0`: No output or warnings.
+                - `1`: Only important warnings.
+                - `2`: All warnings and detailed logs.
+                - Default is `0`.
 
             random_state: Random seed for reproducibility.
                 Set to an integer for reproducible results.

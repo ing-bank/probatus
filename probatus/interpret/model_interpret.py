@@ -107,11 +107,12 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
                   (see: https://scikit-learn.org/stable/modules/model_evaluation.html)
                 - An instance of probatus.utils.Scorer to define a custom metric
 
-            verbose (int, default=0):
-                Controls verbosity of the output:
-                - 0 - neither prints nor warnings are shown
-                - 1 - only most important warnings
-                - 2 - shows all prints and all warnings
+            verbose (Literal[0, 1, 2], optional):
+                Controls the level of output messages:
+                - `0`: No output or warnings.
+                - `1`: Only important warnings.
+                - `2`: All warnings and detailed logs.
+                - Default is `0`.
 
             random_state (Optional[int], default=None):
                 Random state for reproducibility. If None, results will not be reproducible.
@@ -264,8 +265,12 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
             approximate (bool, default=False):
                 If True, uses faster but less accurate SHAP calculation.
 
-            verbose (int, default=0):
-                Controls verbosity level of the output.
+            verbose (Literal[0, 1, 2], optional):
+                Controls the level of output messages:
+                - `0`: No output or warnings.
+                - `1`: Only important warnings.
+                - `2`: All warnings and detailed logs.
+                - Default is `0`.
 
             random_state (Optional[int], default=None):
                 Random state for reproducibility.
