@@ -1,7 +1,6 @@
 from typing import Union, Any, Callable, Optional
 from sklearn.metrics import get_scorer
 import pandas as pd
-import numpy as np
 
 
 def get_single_scorer(scoring: Union[str, "Scorer"]) -> "Scorer":
@@ -112,7 +111,7 @@ class Scorer:
                     f"Please provide a valid metric name or a custom scorer."
                 ) from e
 
-    def score(self, model: Any, X: Union[pd.DataFrame, np.ndarray], y: Union[pd.Series, np.ndarray]) -> float:
+    def score(self, model: Any, X: pd.DataFrame, y: pd.Series) -> float:
         """
         Score a model on the provided data using the configured metric.
 
@@ -124,13 +123,11 @@ class Scorer:
                 The trained model to be evaluated. Must implement a predict or predict_proba
                 method depending on the scoring metric requirements.
 
-            X (Union[pd.DataFrame, np.ndarray]):
+            X (pd.DataFrame):
                 Feature data on which to evaluate the model, of shape (n_samples, n_features).
-                Can be a pandas DataFrame or numpy array.
 
-            y (Union[pd.Series, np.ndarray]):
+            y (pd.Series):
                 True target labels for the samples, of shape (n_samples,).
-                Can be a pandas Series or numpy array.
 
         Returns:
             float: The calculated score according to the specified metric

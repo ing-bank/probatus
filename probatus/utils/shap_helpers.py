@@ -12,7 +12,7 @@ from sklearn.pipeline import Pipeline
 
 def shap_calc(
     model: BaseEstimator,
-    X: Union[pd.DataFrame, np.ndarray],
+    X: pd.DataFrame,
     return_explainer: bool = False,
     verbose: int = 0,
     random_state: Optional[int] = None,
@@ -20,7 +20,7 @@ def shap_calc(
     approximate: bool = False,
     check_additivity: bool = True,
     **shap_kwargs: Any,
-) -> Union[np.ndarray, Tuple[np.ndarray, Explainer]]:
+) -> Union[pd.DataFrame, Tuple[pd.DataFrame, Explainer]]:
     """
     Calculate the SHAP (SHapley Additive exPlanations) values for a given model.
 
@@ -31,7 +31,7 @@ def shap_calc(
         model (BaseEstimator):
             Trained model to explain. Should be compatible with SHAP library.
 
-        X (pd.DataFrame or np.ndarray):
+        X (pd.DataFrame):
             Feature set used to calculate SHAP values. Should have the same format
             as the data used to train the model.
 
@@ -66,7 +66,7 @@ def shap_calc(
             Additional keyword arguments passed to the SHAP Explainer.
 
     Returns:
-        Union[np.ndarray, Tuple[np.ndarray, Explainer]]:
+        Union[pd.DataFrame, Tuple[pd.DataFrame, Explainer]]:
             SHAP values for the model, optionally also returns the explainer if return_explainer=True.
             For binary classification, returns SHAP values for the positive class.
 
@@ -90,6 +90,8 @@ def shap_calc(
         has_categorical = False
         if isinstance(X, pd.DataFrame):
             has_categorical = X.select_dtypes("category").shape[1] > 0
+        else:
+            warnings.warn("The provided dataset is not a pandas DataFrame. Categorical features are not recognized.")
 
         # Create a background dataset (masker) for non-tree models
         # Tree models don't need a background dataset unless feature_perturbation is not tree_path_dependent
@@ -132,6 +134,9 @@ def shap_calc(
                 warnings.warn("Could not extract dimension 1 from 3D SHAP values. Using the last dimension instead.")
                 shap_values = shap_values[:, :, -1]
 
+    # Convert SHAP values to a pandas DataFrame
+    shap_values = shap_to_df(model=model, X=X, precalc_shap=shap_values)
+
     # Return the SHAP values, and optionally the explainer for reuse
     if return_explainer:
         return shap_values, explainer
@@ -139,7 +144,7 @@ def shap_calc(
 
 
 def shap_to_df(
-    model: BaseEstimator, X: Union[pd.DataFrame, np.ndarray], precalc_shap: Optional[np.ndarray] = None, **kwargs: Any
+    model: BaseEstimator, X: pd.DataFrame, precalc_shap: Optional[np.ndarray] = None, **kwargs: Any
 ) -> pd.DataFrame:
     """
     Convert SHAP values to a pandas DataFrame with the same structure as the input data.
@@ -152,7 +157,7 @@ def shap_to_df(
         model (BaseEstimator):
             Pretrained model to explain. Used only if precalc_shap is None.
 
-        X (pd.DataFrame or np.ndarray):
+        X (pd.DataFrame):
             Dataset on which the SHAP importance is calculated or was calculated.
             Used to get column names and index for the output DataFrame.
 
@@ -195,9 +200,9 @@ def shap_to_df(
 
 
 def calculate_shap_importance(
-    shap_values: np.ndarray,
-    columns: List[str],
-    output_columns_suffix: str = "",
+    shap_values: pd.DataFrame,
+    columns: Optional[List[str]] = None,
+    output_columns_suffix: Optional[str] = None,
     shap_variance_penalty_factor: Optional[Union[int, float]] = None,
 ) -> pd.DataFrame:
     """
@@ -208,13 +213,14 @@ def calculate_shap_importance(
     with more consistent impact.
 
     Args:
-        shap_values (np.ndarray):
+        shap_values (pd.DataFrame):
             Array of SHAP values with shape (n_samples, n_features) or
             (n_classes, n_samples, n_features) for multi-class problems.
 
-        columns (List[str]):
+        columns (List[str], optional):
             List of feature names corresponding to the columns in shap_values.
             Must have the same length as the feature dimension of shap_values.
+            If None, the column names from the shap_values DataFrame are used.
 
         output_columns_suffix (str, optional):
             Suffix to be added to the end of column names in the output DataFrame.
@@ -236,6 +242,11 @@ def calculate_shap_importance(
     Raises:
         ValueError: If the number of columns doesn't match the feature dimension in shap_values.
     """
+    # Initialize variables
+    shap_values = shap_values.values if isinstance(shap_values, pd.DataFrame) else shap_values
+    columns = shap_values.columns if columns is None else columns
+    output_columns_suffix = "" if output_columns_suffix is None else output_columns_suffix
+
     # Check for dimension mismatch between shap_values and columns
     if np.ndim(shap_values) >= 2:
         feature_dim = shap_values.shape[1]
