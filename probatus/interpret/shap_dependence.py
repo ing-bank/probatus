@@ -399,6 +399,7 @@ class DependencePlotter(BaseFitComputePlotClass):
         Raises:
             ValueError: If feature is not found in the dataset.
             RuntimeError: If called before the model is fitted.
+            TypeError: If bins is not an integer or a list of floats.
         """
         # Create or use provided axes
         ax = plt.gca() if ax is None else cast(Axes, ax)
@@ -425,8 +426,11 @@ class DependencePlotter(BaseFitComputePlotClass):
             if isinstance(bin_edges, np.ndarray):
                 bin_edges = bin_edges.tolist()  # Convert to list for easier manipulation
             bin_edges[0], bin_edges[-1] = -np.inf, np.inf
-        else:
+        elif isinstance(bins, list):
             bin_edges = bins
+        else:
+            # Handle invalid bin types (like float)
+            raise TypeError(f"bins must be an integer or a list of floats, got {type(bins).__name__}")
 
         # Convert bin_edges to numpy array for easier manipulation
         bin_edges_array = np.array(bin_edges)
