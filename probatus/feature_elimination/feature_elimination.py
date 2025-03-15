@@ -235,7 +235,7 @@ class ShapRFECV(BaseFitComputePlotClass):
                 `True` if the model supports early stopping, `False` otherwise.
         """
         # List of supported libraries and their model class names
-        libraries = [("lightgbm", "LGBMModel"), ("xgboost.sklearn", "XGBModel"), ("catboost", "CatBoost")]
+        libraries = [("lightgbm", "LGBMModel"), ("xgboost", "XGBModel"), ("catboost", "CatBoost")]
 
         # If model is a search CV, get the underlying estimator
         if isinstance(model, BaseSearchCV):
@@ -1225,10 +1225,8 @@ class ShapRFECV(BaseFitComputePlotClass):
         if self.early_stopping_rounds is None:
             raise ValueError("early_stopping_rounds must be provided for LightGBM early stopping")
 
-        # Create the base fit parameters
+        # Create the fit parameters with eval_set and callbacks
         fit_params = {
-            "X": X_train,
-            "y": y_train,
             "eval_set": [(X_val, y_val)],
             "eval_metric": self.eval_metric,
             "callbacks": [
@@ -1238,9 +1236,12 @@ class ShapRFECV(BaseFitComputePlotClass):
         }
 
         # Add sample weights if provided
-        if sample_weight is not None and train_index is not None and val_index is not None:
+        if sample_weight is not None and train_index is not None:
             fit_params["sample_weight"] = sample_weight.iloc[train_index]
-            fit_params["eval_sample_weight"] = [sample_weight.iloc[val_index]]
+
+            # Add validation sample weights if validation indices are provided
+            if val_index is not None:
+                fit_params["eval_sample_weight"] = [sample_weight.iloc[val_index]]
 
         return fit_params
 
@@ -1258,7 +1259,8 @@ class ShapRFECV(BaseFitComputePlotClass):
         Prepares the fit parameters for training an XGBoost model with early stopping support.
 
         This method formats the required parameters for XGBoost training, ensuring the
-        correct structure for validation data, sample weights, and early stopping.
+        correct structure for validation data and sample weights. The early stopping
+        configuration is handled separately via the model's parameters.
 
         Args:
             X_train (pd.DataFrame):
@@ -1288,19 +1290,18 @@ class ShapRFECV(BaseFitComputePlotClass):
         Returns:
             Dict[str, Any]:
                 A dictionary containing the formatted parameters to be passed to the
-                XGBoost `fit` method, including validation data and early stopping criteria.
+                XGBoost `fit` method, including validation data.
         """
-        # Create the base fit parameters
-        fit_params = {
-            "X": X_train,
-            "y": y_train,
-            "eval_set": [(X_val, y_val)],
-        }
+        # Create fit parameters dictionary with eval_set for validation
+        fit_params = {"eval_set": [(X_val, y_val)]}
 
         # Add sample weights if provided
-        if sample_weight is not None and train_index is not None and val_index is not None:
+        if sample_weight is not None and train_index is not None:
             fit_params["sample_weight"] = sample_weight.iloc[train_index]
-            fit_params["eval_sample_weight"] = [sample_weight.iloc[val_index]]
+
+            # Add validation sample weights if validation indices are provided
+            if val_index is not None:
+                fit_params["sample_weight_eval_set"] = [sample_weight.iloc[val_index]]
 
         return fit_params
 
@@ -1355,17 +1356,19 @@ class ShapRFECV(BaseFitComputePlotClass):
         # Identify categorical features
         cat_features = [col for col in X_train.select_dtypes(include=["category"]).columns]
 
-        # Create data pools
-        fit_params = {
-            "X": Pool(X_train, y_train, cat_features=cat_features),
-            "eval_set": Pool(X_val, y_val, cat_features=cat_features),
-            # Evaluation metric should be passed during initialization
-        }
+        # Create validation data pool
+        eval_set_pool = Pool(X_val, y_val, cat_features=cat_features)
+
+        # Add validation sample weights if provided
+        if sample_weight is not None and val_index is not None:
+            eval_set_pool.set_weight(sample_weight.iloc[val_index])
+
+        # Create fit parameters dictionary with eval_set
+        fit_params = {"eval_set": eval_set_pool, "cat_features": cat_features}
 
         # Add sample weights if provided
-        if sample_weight is not None and train_index is not None and val_index is not None:
-            fit_params["X"].set_weight(sample_weight.iloc[train_index])
-            fit_params["eval_set"].set_weight(sample_weight.iloc[val_index])
+        if sample_weight is not None and train_index is not None:
+            fit_params["sample_weight"] = sample_weight.iloc[train_index]
 
         return fit_params
 
@@ -1443,7 +1446,7 @@ class ShapRFECV(BaseFitComputePlotClass):
 
         # Try XGBoost
         try:
-            from xgboost.sklearn import XGBModel
+            from xgboost import XGBModel
 
             if isinstance(model, XGBModel):
                 return self._get_fit_params_XGBoost(
@@ -1545,7 +1548,7 @@ class ShapRFECV(BaseFitComputePlotClass):
         )
 
         try:
-            from xgboost.sklearn import XGBModel
+            from xgboost import XGBModel
 
             if isinstance(model, XGBModel):
                 model.set_params(eval_metric=self.eval_metric, early_stopping_rounds=self.early_stopping_rounds)
@@ -1568,7 +1571,9 @@ class ShapRFECV(BaseFitComputePlotClass):
             pass
 
         # Train the model with early stopping
-        model = model.fit(**fit_params)
+        # For XGBoost and LightGBM, we need to pass X_train and y_train explicitly
+        # since they're no longer included in fit_params
+        model = model.fit(X_train, y_train, **fit_params)
 
         # Calculate performance scores
         score_train = self.scorer.score(model, X_train, y_train)

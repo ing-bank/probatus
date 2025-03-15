@@ -198,7 +198,7 @@ def shap_calc(
     random_state: Optional[int] = None,
     sample_size: int = 100,
     approximate: bool = False,
-    check_additivity: bool = True,
+    check_additivity: bool = False,
     **shap_kwargs: Any,
 ) -> Union[pd.DataFrame, Tuple[pd.DataFrame, Explainer]]:
     """
@@ -245,7 +245,7 @@ def shap_calc(
         check_additivity (bool, optional):
             If True, performs an additivity check to ensure the SHAP values sum to the model's prediction.
             Using a masker that accurately captures data variability helps avoid potential additivity
-            issues. Default is True.
+            issues. Default is False.
 
         **shap_kwargs:
             Additional keyword arguments passed to the SHAP Explainer.
