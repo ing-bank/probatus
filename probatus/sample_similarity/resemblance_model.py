@@ -11,7 +11,7 @@ from sklearn.base import BaseEstimator
 from sklearn.inspection import permutation_importance
 from sklearn.model_selection import train_test_split
 
-from probatus.utils import BaseFitComputePlotClass, preprocess_data, preprocess_labels, get_single_scorer
+from probatus.utils import BaseFitComputePlotClass, preprocess_data, preprocess_labels, get_single_scorer, Scorer
 from probatus.utils.shap_helpers import calculate_shap_importance, shap_calc
 
 
@@ -45,7 +45,7 @@ class BaseResemblanceModel(BaseFitComputePlotClass):
     def __init__(
         self,
         model: BaseEstimator,
-        scoring: str = "roc_auc",
+        scoring: Union[str, Scorer] = "roc_auc",
         test_prc: float = 0.25,
         n_jobs: int = 1,
         verbose: Literal[0, 1, 2] = 0,
@@ -179,8 +179,7 @@ class BaseResemblanceModel(BaseFitComputePlotClass):
         self.test_score = np.round(self.scorer.score(self.model, self.X_test, self.y_test), 3)
 
         self.results_text = (
-            f"Train {self.scorer.metric_name}: {self.train_score},\n"
-            f"Test {self.scorer.metric_name}: {self.test_score}."
+            f"Train {self.scorer.metric_name}: {self.train_score},\nTest {self.scorer.metric_name}: {self.test_score}."
         )
         if self.verbose > 0:
             logger.info(f"Finished model training: \n{self.results_text}")
@@ -378,7 +377,7 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
         self,
         model: BaseEstimator,
         iterations: int = 100,
-        scoring: str = "roc_auc",
+        scoring: Union[str, Scorer] = "roc_auc",
         test_prc: float = 0.25,
         n_jobs: int = 1,
         verbose: Literal[0, 1, 2] = 0,
@@ -658,7 +657,7 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
     def __init__(
         self,
         model: BaseEstimator,
-        scoring: str = "roc_auc",
+        scoring: Union[str, Scorer] = "roc_auc",
         test_prc: float = 0.25,
         n_jobs: int = 1,
         verbose: Literal[0, 1, 2] = 0,

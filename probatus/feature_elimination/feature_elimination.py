@@ -554,10 +554,10 @@ class ShapRFECV(BaseFitComputePlotClass):
                     round_number=round_number,
                     current_features_set=current_features_set,
                     features_to_remove=features_to_remove,
-                    train_metric_mean=np.mean(scores_train),
-                    train_metric_std=np.std(scores_train),
-                    val_metric_mean=np.mean(scores_val),
-                    val_metric_std=np.std(scores_val),
+                    train_metric_mean=float(np.mean(scores_train)),
+                    train_metric_std=float(np.std(scores_train)),
+                    val_metric_mean=float(np.mean(scores_val)),
+                    val_metric_std=float(np.std(scores_val)),
                 )
 
                 # Update the progress bar with the number of features removed in this iteration
@@ -1458,21 +1458,27 @@ class ShapRFECV(BaseFitComputePlotClass):
         except ImportError:
             pass
 
-        # Try CatBoost
+        # TODO: Revert this once CatBoost is updated to work with NumPy 2.0
         try:
-            from catboost import CatBoost
+            # Only attempt to import if the model's class name suggests it might be a CatBoost model
+            if hasattr(model, "__class__") and "catboost" in str(model.__class__).lower():
+                try:
+                    from catboost import CatBoost
 
-            if isinstance(model, CatBoost):
-                return self._get_fit_params_CatBoost(
-                    X_train=X_train,
-                    y_train=y_train,
-                    X_val=X_val,
-                    y_val=y_val,
-                    sample_weight=sample_weight,
-                    train_index=train_index,
-                    val_index=val_index,
-                )
-        except ImportError:
+                    if isinstance(model, CatBoost):
+                        return self._get_fit_params_CatBoost(
+                            X_train=X_train,
+                            y_train=y_train,
+                            X_val=X_val,
+                            y_val=y_val,
+                            sample_weight=sample_weight,
+                            train_index=train_index,
+                            val_index=val_index,
+                        )
+                except ImportError:
+                    pass
+        except Exception:
+            # Ignore any errors during this check
             pass
 
         raise ValueError("Model type not supported for early stopping")
@@ -1546,12 +1552,19 @@ class ShapRFECV(BaseFitComputePlotClass):
         except ImportError:
             pass
 
+        # TODO: Revert this once CatBoost is updated to work with NumPy 2.0
         try:
-            from catboost import CatBoost
+            # Only attempt to import if the model's class name suggests it might be a CatBoost model
+            if hasattr(model, "__class__") and "catboost" in str(model.__class__).lower():
+                try:
+                    from catboost import CatBoost
 
-            if isinstance(model, CatBoost):
-                model.set_params(early_stopping_rounds=self.early_stopping_rounds)
-        except ImportError:
+                    if isinstance(model, CatBoost):
+                        model.set_params(early_stopping_rounds=self.early_stopping_rounds)
+                except ImportError:
+                    pass
+        except Exception:
+            # Ignore any errors during this check
             pass
 
         # Train the model with early stopping

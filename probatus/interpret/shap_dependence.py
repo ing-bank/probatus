@@ -300,7 +300,7 @@ class DependencePlotter(BaseFitComputePlotClass):
             raise ValueError("min_q must be smaller than max_q")
         if isinstance(feature, int):
             if feature >= len(self.column_names):
-                raise ValueError(f"Feature index {feature} out of range (0-{len(self.column_names)-1})")
+                raise ValueError(f"Feature index {feature} out of range (0-{len(self.column_names) - 1})")
             feature_name = self.column_names[feature]
         else:
             feature_name = feature

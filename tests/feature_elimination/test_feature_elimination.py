@@ -393,8 +393,7 @@ def test_shap_rfe_early_stopping_XGBoost(XGBoost_classifier, complex_data, rando
     assert shap_elimination.get_reduced_features_set(1) == ["f4"]
 
 
-#
-#
+@pytest.mark.skip(reason="CatBoost tests are temporarily disabled due to compatibility issues with NumPy")
 def test_shap_rfe_early_stopping_CatBoost(complex_data_with_categorical, catboost_classifier, random_state):
     X, y = complex_data_with_categorical
 
@@ -463,6 +462,7 @@ def test_get_feature_shap_values_per_fold_early_stopping_lightGBM(complex_data, 
     assert shap_values.shape == (5, 5)
 
 
+@pytest.mark.skip(reason="CatBoost tests are temporarily disabled due to compatibility issues with NumPy")
 def test_get_feature_shap_values_per_fold_early_stopping_CatBoost(
     complex_data_with_categorical, catboost_classifier, random_state
 ):

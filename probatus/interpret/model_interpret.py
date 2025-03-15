@@ -750,7 +750,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
                             fig.subplots_adjust(top=0.9)  # Add space for title
 
                     # Set title with padding - add subplot number if multiple
-                    subplot_info = f" (subplot {i+1}/{len(ax_result)})" if len(ax_result) > 1 else ""
+                    subplot_info = f" (subplot {i + 1}/{len(ax_result)})" if len(ax_result) > 1 else ""
                     ax.set_title(f"SHAP Dependence Plot for {feature_name}{subplot_info}", pad=20)
 
                     axes_list.append(ax)
