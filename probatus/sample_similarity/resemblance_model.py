@@ -524,7 +524,7 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
 
         return self
 
-    def plot(self, top_n: Optional[int] = None, show: bool = True, **plot_kwargs: Any) -> Figure:
+    def plot(self, top_n: Optional[int] = None, show: bool = False, **plot_kwargs: Any) -> Figure:
         """
         Plot feature importance as boxplots showing the distribution of importance values.
 
@@ -541,8 +541,8 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
                 Features are selected based on mean importance.
 
             show (bool, optional): Whether to display the plot immediately.
-                If True, calls plt.show() (default)
-                If False, returns the figure without displaying
+                If True, calls plt.show()
+                If False, returns the figure without displaying (default)
                 Useful when you want to modify the plot further
 
             **plot_kwargs (Any): Additional keyword arguments passed to plt.subplots().
@@ -566,6 +566,13 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
 
         if top_n is not None and top_n > 0:
             sorted_features = sorted_features[-top_n:]
+
+        # Set default figure size if not provided
+        if "figsize" not in plot_kwargs:
+            num_features = len(sorted_features)
+            # Adjust height based on number of features (minimum 6 inches)
+            height = max(6, 0.5 * num_features)
+            plot_kwargs["figsize"] = (10, height)
 
         fig, ax = plt.subplots(**plot_kwargs)
 
@@ -598,12 +605,15 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
             va="top",
         )
 
+        # Adjust figure margins to make room for annotations
+        plt.subplots_adjust(bottom=0.2)
+
+        # Adjust layout to make sure everything fits
+        plt.tight_layout()
+
         # Show or close the plot
         if show:
             plt.show()
-        else:
-            # Close plot to improve memory usage when decided not to show
-            plt.close(fig)
 
         return fig
 
@@ -771,7 +781,7 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
         return self
 
     def plot(
-        self, plot_type: Literal["bar", "dot", "violin"] = "bar", show: bool = True, **summary_plot_kwargs: Any
+        self, plot_type: Literal["bar", "dot", "violin"] = "bar", show: bool = False, **summary_plot_kwargs: Any
     ) -> Figure:
         """
         Create a SHAP summary plot to visualize feature importance.
@@ -788,9 +798,9 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
                 - "violin": Violin plot showing distribution of SHAP values
 
             show (bool, optional): Whether to display the plot immediately.
-                If True, calls plt.show() (default)
+                If True, calls plt.show()
                 If False, returns the figure without displaying
-                Useful when you want to modify the plot further
+                Useful when you want to modify the plot further (default)
 
             **summary_plot_kwargs (Any): Additional keyword arguments passed to shap.summary_plot().
                 Common options include:
@@ -816,6 +826,17 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
         )
         X_test_array = self.X_test.values if isinstance(self.X_test, pd.DataFrame) else self.X_test
 
+        # Set default plot size if not provided
+        if "plot_size" not in summary_plot_kwargs:
+            num_features = len(self.column_names)
+            # Adjust height based on number of features (minimum 6 inches)
+            height = max(6, 0.4 * num_features)
+            summary_plot_kwargs["plot_size"] = (10, height)
+
+        # Set default max_display if not provided
+        if "max_display" not in summary_plot_kwargs and len(self.column_names) > 20:
+            summary_plot_kwargs["max_display"] = 20
+
         # Create SHAP summary plot
         # This creates its own figure and axes internally
         summary_plot(
@@ -831,10 +852,8 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
         # Get the figure and axes created by summary_plot
         fig, ax = plt.gcf(), plt.gca()
 
-        # Add title
+        # Add title & performance metrics annotation
         ax.set_title(self.plot_title)
-
-        # Add performance metrics annotation
         ax.annotate(
             self.results_text,
             (0, 0),
@@ -845,12 +864,13 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
             va="top",
         )
 
+        # Adjust figure to make sure it fits
+        plt.subplots_adjust(bottom=0.2)
+        plt.tight_layout()
+
         # Show or close the plot
         if show:
             plt.show()
-        else:
-            # Close plot to improve memory usage when decided not to show
-            plt.close(fig)
 
         return fig
 

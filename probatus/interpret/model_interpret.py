@@ -5,7 +5,7 @@ from shap import summary_plot
 from shap import Explanation
 from shap.plots import waterfall
 from typing import Any, List, Optional, Tuple, Union, Literal
-from matplotlib.axes import Axes
+from matplotlib.figure import Figure
 
 from probatus.interpret import DependencePlotter
 from probatus.utils import (
@@ -74,10 +74,10 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
     feature_importance = shap_interpreter.fit_compute(X_train, X_test, y_train, y_test)
 
     # Make plots
-    ax1 = shap_interpreter.plot('importance')
-    ax2 = shap_interpreter.plot('summary')
-    ax3 = shap_interpreter.plot('dependence', target_columns=['f1', 'f2'])
-    ax4 = shap_interpreter.plot('sample', samples_index=[X_test.index.tolist()[0]])
+    fig1 = shap_interpreter.plot('importance')
+    fig2 = shap_interpreter.plot('summary')
+    fig3 = shap_interpreter.plot('dependence', target_columns=['f1', 'f2'])
+    fig4 = shap_interpreter.plot('sample', samples_index=[X_test.index.tolist()[0]])
     ```
 
     <img src="../img/model_interpret_importance.png" width="320" />
@@ -460,9 +460,9 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
         target_set: Literal["train", "test"] = "test",
         target_columns: Optional[Union[str, List[str]]] = None,
         samples_index: Optional[Union[int, str, List, pd.Index]] = None,
-        show: bool = True,
+        show: bool = False,
         **plot_kwargs: Any,
-    ) -> Union[Axes, List[Axes]]:
+    ) -> Union[Figure, List[Figure]]:
         """
         Generate SHAP-based visualizations for model interpretation.
 
@@ -489,9 +489,9 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
                 Sample indices to explain when plot_type='sample'.
                 Required for 'sample' plots, ignored for other plot types.
 
-            show (bool, default=True):
+            show (bool, default=False):
                 If True, displays the plot immediately.
-                If False, returns the plot axes without showing, allowing for further customization.
+                If False, returns the plot figure without showing, allowing for further customization.
 
             **plot_kwargs:
                 Additional keyword arguments passed to the underlying plotting functions:
@@ -500,10 +500,10 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
                 - For 'sample': passed to shap.plots.waterfall()
 
         Returns:
-            Union[Axes, List[Axes]]:
-                Matplotlib Axes object(s) containing the generated plot(s).
-                Returns a single Axes for 'importance' and 'summary' plots.
-                Returns a list of Axes for 'dependence' and 'sample' plots with multiple features/samples.
+            Union[Figure, List[Figure]]:
+                Matplotlib Figure object(s) containing the generated plot(s).
+                Returns a single Figure for 'importance' and 'summary' plots.
+                Returns a list of Figures for 'dependence' and 'sample' plots with multiple features/samples.
 
         Raises:
             ValueError: If samples_index is not provided for 'sample' plots
@@ -614,7 +614,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
         target_columns_indices: List[int],
         show: bool,
         **plot_kwargs: Any,
-    ) -> Axes:
+    ) -> Figure:
         """
         Create importance or summary plots based on SHAP values.
 
@@ -647,7 +647,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
                 Additional keyword arguments passed to shap.summary_plot().
 
         Returns:
-            Axes: Matplotlib Axes object containing the generated plot
+            Figure: Matplotlib Figure object containing the generated plot
         """
         # Filter data to include only the target columns
         target_X = target_X[target_columns]
@@ -702,14 +702,12 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
 
         if show:
             plt.show()
-        else:
-            plt.close()
 
-        return ax
+        return fig
 
     def _create_dependence_plots(
         self, target_columns: List[str], target_tdp: DependencePlotter, show: bool, **plot_kwargs: Any
-    ) -> Union[Axes, List[Axes]]:
+    ) -> Union[Figure, List[Figure]]:
         """
         Create dependence plots to visualize feature interactions.
 
@@ -730,50 +728,25 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
                 Additional keyword arguments passed to DependencePlotter.plot().
 
         Returns:
-            Union[Axes, List[Axes]]:
-                Matplotlib Axes object(s) containing the generated plot(s).
-                Returns a single Axes if there's only one plot, otherwise a list of Axes.
+            Union[Figure, List[Figure]]:
+                Matplotlib Figure object(s) containing the generated plot(s).
+                Returns a single Figure if there's only one plot, otherwise a list of Figures.
         """
-        axes_list: List[Axes] = []
+        figures_list: List[Figure] = []
         for feature_name in target_columns:
-            # The plot method might return a single axes or a list of axes
-            ax_result = target_tdp.plot(feature=feature_name, figsize=(10, 7), show=False, **plot_kwargs)
+            # The plot method now returns a list of Figure objects
+            fig_result = target_tdp.plot(feature=feature_name, figsize=(10, 7), show=False, **plot_kwargs)
 
-            # Handle both cases: single axes or list of axes
-            if isinstance(ax_result, list):
-                # If it's a list, process each axes
-                for i, ax in enumerate(ax_result):
-                    fig = ax.figure
-                    if fig is not None and hasattr(fig, "tight_layout"):
-                        fig.tight_layout()
-                        if hasattr(fig, "subplots_adjust"):
-                            fig.subplots_adjust(top=0.9)  # Add space for title
-
-                    # Set title with padding - add subplot number if multiple
-                    subplot_info = f" (subplot {i + 1}/{len(ax_result)})" if len(ax_result) > 1 else ""
-                    ax.set_title(f"SHAP Dependence Plot for {feature_name}{subplot_info}", pad=20)
-
-                    axes_list.append(ax)
+            # Add the figures to our list
+            if isinstance(fig_result, list):
+                figures_list.extend(fig_result)
             else:
-                # If it's a single axes
-                ax_fig = ax_result.figure
-                if ax_fig is not None and hasattr(ax_fig, "tight_layout"):
-                    ax_fig.tight_layout()
-                    if hasattr(ax_fig, "subplots_adjust"):
-                        ax_fig.subplots_adjust(top=0.9)  # Add space for title
+                figures_list.append(fig_result)
 
-                # Set title with padding
-                ax_result.set_title(f"SHAP Dependence Plot for {feature_name}", pad=20)
-
-                axes_list.append(ax_result)
-
-            if show:
-                plt.show()
-
-        # Return a single Axes if there's only one plot
-        if len(axes_list) == 1:
-            return axes_list[0]
-        return axes_list
+        # Return a single Figure if there's only one plot
+        if len(figures_list) == 1:
+            return figures_list[0]
+        return figures_list
 
     def _create_sample_plots(
         self,
@@ -785,7 +758,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
         target_set: Literal["train", "test"],
         show: bool,
         **plot_kwargs: Any,
-    ) -> Union[Axes, List[Axes]]:
+    ) -> Union[Figure, List[Figure]]:
         """
         Create waterfall plots explaining individual predictions.
 
@@ -818,9 +791,9 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
                 Additional keyword arguments passed to shap.plots.waterfall().
 
         Returns:
-            Union[Axes, List[Axes]]:
-                Matplotlib Axes object(s) containing the generated plot(s).
-                Returns a single Axes if there's only one plot, otherwise a list of Axes.
+            Union[Figure, List[Figure]]:
+                Matplotlib Figure object(s) containing the generated plot(s).
+                Returns a single Figure if there's only one plot, otherwise a list of Figures.
 
         Raises:
             ValueError: If samples_index is None
@@ -833,7 +806,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
         if not isinstance(samples_index, (list, pd.Index)):
             samples_index = [samples_index]
 
-        axes_list: List[Axes] = []
+        figures_list: List[Figure] = []
 
         # Create a waterfall plot for each sample
         for sample_index in samples_index:
@@ -889,14 +862,12 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
             # Finally add space at the top for the title
             plt.subplots_adjust(top=0.9)
 
-            axes_list.append(current_ax)
+            figures_list.append(fig)
 
             if show:
                 plt.show()
-            else:
-                plt.close(fig)
 
-        # Return a single Axes if there's only one plot
-        if len(axes_list) == 1:
-            return axes_list[0]
-        return axes_list
+        # Return a single Figure if there's only one plot
+        if len(figures_list) == 1:
+            return figures_list[0]
+        return figures_list

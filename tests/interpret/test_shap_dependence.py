@@ -66,7 +66,9 @@ def test_fit_complex(complex_data_split, complex_fitted_lightgbm, random_state):
     assert plotter.fitted is True
 
     # Check if plotting does not cause errors
-    _ = plotter.plot(feature="f2_missing", show=False)
+    fig = plotter.plot(feature="f2_missing", show=False)
+    # Verify that plot returns a Figure object
+    assert isinstance(fig, matplotlib.figure.Figure)
 
     # Close all plots to free memory
     plt.close("all")
@@ -117,13 +119,44 @@ def test_get_X_y_shap_with_q_cut_input(X_y, model, random_state):
 
 def test_plot_normal(X_y, model, random_state):
     plotter = DependencePlotter(model, random_state).fit(X_y[0], X_y[1])
-    _ = plotter.plot(feature=0)
+    fig = plotter.plot(feature=0)
+    # Verify that plot returns a Figure object
+    assert isinstance(fig, matplotlib.figure.Figure)
+    plt.close("all")
+
+
+def test_dependence_plot_returns_figure(X_y, model, random_state):
+    plotter = DependencePlotter(model, random_state).fit(X_y[0], X_y[1])
+    # Set required attributes that are normally set in the plot method
+    plotter.min_q = 0
+    plotter.max_q = 1
+    plotter.alpha = 1.0
+    fig = plotter._dependence_plot(feature=0)
+    # Verify that _dependence_plot returns a Figure object
+    assert isinstance(fig, matplotlib.figure.Figure)
+    plt.close("all")
+
+
+def test_target_rate_plot_returns_figure(X_y, model, random_state):
+    plotter = DependencePlotter(model, random_state).fit(X_y[0], X_y[1])
+    # Set required attributes that are normally set in the plot method
+    plotter.min_q = 0
+    plotter.max_q = 1
+    plotter.alpha = 1.0
+    bin_edges, fig, target_ratio = plotter._target_rate_plot(feature=0)
+    # Verify that _target_rate_plot returns a Figure object as second element of tuple
+    assert isinstance(fig, matplotlib.figure.Figure)
+    assert isinstance(bin_edges, np.ndarray)
+    assert isinstance(target_ratio, pd.Series)
+    plt.close("all")
 
 
 def test_plot_class_names(X_y, model, random_state):
     plotter = DependencePlotter(model, random_state).fit(X_y[0], X_y[1], class_names=["a", "b"])
-    _ = plotter.plot(feature=0)
+    fig = plotter.plot(feature=0)
     assert plotter.class_names == ["a", "b"]
+    assert isinstance(fig, matplotlib.figure.Figure)
+    plt.close("all")
 
 
 def test_plot_input(X_y, model, random_state):

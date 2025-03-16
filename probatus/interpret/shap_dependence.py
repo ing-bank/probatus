@@ -236,11 +236,11 @@ class DependencePlotter(BaseFitComputePlotClass):
         feature: Union[str, int],
         figsize: Tuple[float, float] = (15, 10),
         bins: Union[int, List[float]] = 10,
-        show: bool = True,
+        show: bool = False,
         min_q: float = 0,
         max_q: float = 1,
         alpha: float = 1.0,
-    ) -> List[Axes]:
+    ) -> Figure:
         """
         Plots the SHAP values for data points for a given feature, along with target rate and value distribution.
 
@@ -264,7 +264,7 @@ class DependencePlotter(BaseFitComputePlotClass):
             show (bool, optional):
                 If True, the plots are shown to the user, otherwise they are not shown.
                 Not showing plot can be useful when you want to edit the returned axes before showing them.
-                Default is True.
+                Default is False.
 
             min_q (float, optional):
                 Minimum quantile from which to consider values, used for filtering outliers.
@@ -279,9 +279,7 @@ class DependencePlotter(BaseFitComputePlotClass):
                 Default is 1.0.
 
         Returns:
-            List[matplotlib.axes.Axes]: List of axes that include the plots.
-                                        [0] - SHAP dependence plot
-                                        [1] - Feature distribution and target rate plot
+            matplotlib.figure.Figure: Figure containing both the SHAP dependence plot and target rate plot.
 
         Raises:
             ValueError:
@@ -312,10 +310,11 @@ class DependencePlotter(BaseFitComputePlotClass):
         self.min_q, self.max_q, self.alpha = min_q, max_q, alpha
 
         # Create figure with two subplots (2:1 ratio)
-        _: Figure = plt.figure(1, figsize=figsize)
-        ax1: Axes = plt.subplot2grid((3, 1), (0, 0), rowspan=2)
-        ax2: Axes = plt.subplot2grid((3, 1), (2, 0))
+        fig: Figure = plt.figure(figsize=figsize)
+        ax1: Axes = plt.subplot2grid((3, 1), (0, 0), rowspan=2, fig=fig)
+        ax2: Axes = plt.subplot2grid((3, 1), (2, 0), fig=fig)
 
+        # Call the plotting methods with the created axes
         self._dependence_plot(feature=feature_name, ax=ax1)
         self._target_rate_plot(feature=feature_name, bins=bins, ax=ax2)
 
@@ -324,12 +323,10 @@ class DependencePlotter(BaseFitComputePlotClass):
 
         if show:
             plt.show()
-        else:
-            plt.close()
 
-        return [ax1, ax2]
+        return fig
 
-    def _dependence_plot(self, feature: str, ax: Optional[Axes] = None) -> Axes:
+    def _dependence_plot(self, feature: str, ax: Optional[Axes] = None) -> Figure:
         """
         Plots SHAP values for data points with respect to the specified feature.
 
@@ -345,7 +342,7 @@ class DependencePlotter(BaseFitComputePlotClass):
                 Default is None.
 
         Returns:
-            matplotlib.axes.Axes: Axes on which plot is drawn.
+            matplotlib.figure.Figure: Figure containing the dependence plot.
 
         Raises:
             ValueError: If feature is not found in the dataset.
@@ -358,7 +355,12 @@ class DependencePlotter(BaseFitComputePlotClass):
         X, y, shap_val = self._get_X_y_shap_with_q_cut(feature=feature)
 
         # Create or use provided axes
-        ax = plt.gca() if ax is None else cast(Axes, ax)
+        if ax is None:
+            fig = plt.figure()
+            ax = fig.add_subplot(111)
+        else:
+            fig = cast(Figure, ax.figure)
+            ax = cast(Axes, ax)
 
         # Create scatter plot for negative class (y=0) &  (y=1)
         ax.scatter(X[y == 0], shap_val[y == 0], label=self.class_names[0], color="lightblue", alpha=self.alpha)
@@ -367,11 +369,11 @@ class DependencePlotter(BaseFitComputePlotClass):
         ax.set_title(f"Dependence plot for {feature} feature")
         ax.legend()
 
-        return ax
+        return fig
 
     def _target_rate_plot(
         self, feature: Union[str, int], bins: Union[int, List[float]] = 10, ax: Optional[Axes] = None
-    ) -> Tuple[Union[List[float], np.ndarray], Axes, pd.Series]:
+    ) -> Tuple[Union[List[float], np.ndarray], Figure, pd.Series]:
         """
         Plots the distribution of the feature values and the target rate as function of the feature.
 
@@ -392,9 +394,9 @@ class DependencePlotter(BaseFitComputePlotClass):
                 Default is None.
 
         Returns:
-            Tuple[Union[List[float], np.ndarray], matplotlib.axes.Axes, pd.Series]:
+            Tuple[Union[List[float], np.ndarray], matplotlib.figure.Figure, pd.Series]:
                 - Boundaries of bins used for the histogram
-                - Axis on which plot is drawn
+                - Figure containing the target rate plot
                 - Series containing target ratio (proportion of positive class) for each bin
 
         Raises:
@@ -403,7 +405,12 @@ class DependencePlotter(BaseFitComputePlotClass):
             TypeError: If bins is not an integer or a list of floats.
         """
         # Create or use provided axes
-        ax = plt.gca() if ax is None else cast(Axes, ax)
+        if ax is None:
+            fig = plt.figure()
+            ax = fig.add_subplot(111)
+        else:
+            fig = cast(Figure, ax.figure)
+            ax = cast(Axes, ax)
 
         # Handle feature name extraction
         feature_name: str = (
@@ -471,7 +478,7 @@ class DependencePlotter(BaseFitComputePlotClass):
         ax2.set_xlim(x.min(), x.max())
         ax.set_xlabel(f"{feature_name} feature values")
 
-        return bin_edges_array, ax, target_ratio
+        return bin_edges_array, fig, target_ratio
 
     def _get_X_y_shap_with_q_cut(self, feature: str) -> Tuple[pd.Series, pd.Series, pd.Series]:
         """

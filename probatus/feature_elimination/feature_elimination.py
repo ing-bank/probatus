@@ -583,7 +583,7 @@ class ShapRFECV(BaseFitComputePlotClass):
         self.fitted = True
         return self
 
-    def plot(self, show: bool = True, **figure_kwargs: Any) -> plt.Figure:
+    def plot(self, show: bool = False, **figure_kwargs: Any) -> plt.Figure:
         """
         Plots model performance at each iteration of feature elimination.
 
@@ -593,8 +593,8 @@ class ShapRFECV(BaseFitComputePlotClass):
         Args:
             show (bool, optional):
                 Whether to display the plot immediately.
-                - `True` (default): Displays the plot.
-                - `False`: Returns the figure for further modifications before displaying.
+                - `True`: Displays the plot.
+                - `False` (default): Returns the figure for further modifications before displaying.
 
             **figure_kwargs (Any):
                 Additional keyword arguments passed to `plt.figure()` for customizing
@@ -634,18 +634,17 @@ class ShapRFECV(BaseFitComputePlotClass):
         # Configure plot appearance
         ax.set_xlabel("Number of features")
         ax.set_ylabel(f"Performance {self.scorer.metric_name}")
-        ax.set_title("Backwards Feature Elimination using SHAP & CV")
+        ax.set_title("Backwards Feature Elimination using SHAP")
         ax.legend(loc="lower left")
         ax.invert_xaxis()  # Reverse x-axis to show feature reduction from left to right
         ax.set_xticks(x_ticks)
+        # Rotate x-axis labels by 45 degrees
+        plt.setp(ax.get_xticklabels(), rotation=45, ha="right")
         ax.grid(True, linestyle="--", alpha=0.7)
 
         # Show or close the plot based on the show parameter
         if show:
             plt.show()
-        else:
-            # Close plot to improve memory usage when decided not to show
-            plt.close(fig)
 
         return fig
 

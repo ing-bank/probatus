@@ -252,8 +252,7 @@ def shap_calc(
 
     Returns:
         Union[pd.DataFrame, Tuple[pd.DataFrame, Explainer]]:
-            SHAP values for the model, or a tuple (shap_values, explainer) if return_explainer is True.
-            For binary classification, returns SHAP values for the positive class.
+             SHAP values for the model, or a tuple (shap_values, explainer) if return_explainer is True.
 
     Raises:
         TypeError: If the provided model is a Pipeline, which is not supported.
