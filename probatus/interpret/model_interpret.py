@@ -17,6 +17,7 @@ from probatus.utils import (
     get_single_scorer,
     shap_calc,
     Scorer,
+    is_regression_model,
 )
 
 
@@ -48,6 +49,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
         tdp_train (DependencePlotter): Dependence plotter for training data
         tdp_test (DependencePlotter): Dependence plotter for test data
         importance_df (pd.DataFrame): DataFrame with feature importance metrics
+        is_regression (bool): Whether the model is a regression model
 
     Example:
     ```python
@@ -123,6 +125,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
         self.verbose = verbose
         self.random_state = random_state
         self.fitted = False
+        self.is_regression = False  # Will be set during fit
 
     def fit(
         self,
@@ -159,7 +162,8 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
 
             class_names (Optional[List[str]], default=None):
                 List of class names e.g. ['neg', 'pos']. If None, the default
-                ['Negative Class', 'Positive Class'] are used.
+                ['Negative Class', 'Positive Class'] are used. For regression models,
+                this parameter is ignored.
 
             **shap_kwargs:
                 Keyword arguments passed to shap.Explainer. Notable parameters include:
@@ -181,10 +185,16 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
         self.y_train = preprocess_labels(y_train, index=self.X_train.index)
         self.y_test = preprocess_labels(y_test, index=self.X_test.index)
 
+        # Determine if this is a regression model using the utility function
+        self.is_regression = is_regression_model(self.model)
+
         # Set class names with default if not provided
         self.class_names = class_names
         if self.class_names is None:
-            self.class_names = ["Negative Class", "Positive Class"]
+            if self.is_regression:
+                self.class_names = ["Regression Output"]
+            else:
+                self.class_names = ["Negative Class", "Positive Class"]
 
         # Calculate model performance metrics
         self.train_score = self.scorer.score(self.model, self.X_train, self.y_train)
@@ -303,10 +313,9 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
 
         expected_value = explainer.expected_value
 
-        # For sklearn models, the expected value consists of two elements (negative_class and positive_class)
-        # We need to extract the positive class expected value (index 1)
+        # For sklearn models, the expected value consists of n elements
         if isinstance(expected_value, (list, np.ndarray)):
-            expected_value = expected_value[1]
+            expected_value = expected_value[0]
 
         # Initialize and fit the dependence plotter for visualizing feature interactions
         tdp = DependencePlotter(model, verbose=verbose).fit(
@@ -662,19 +671,27 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
 
         # Configure plot type and title
         plot_style = "bar" if plot_type == "importance" else "dot"
-        plot_title = (
-            f"SHAP {'Feature Importance' if plot_type == 'importance' else 'Summary plot'} for {target_set} set"
-        )
+        model_type = "Regression" if self.is_regression else "Feature Importance"
+        plot_title = f"SHAP {model_type if plot_type == 'importance' else 'Summary plot'} for {target_set} set"
 
-        # Create the plot
-        summary_plot(
-            target_shap_values,
-            target_X,
-            plot_type=plot_style,
-            class_names=self.class_names,
-            show=False,
-            **plot_kwargs,
-        )
+        # Create the plot - for regression models, don't pass class_names
+        if self.is_regression:
+            summary_plot(
+                target_shap_values,
+                target_X,
+                plot_type=plot_style,
+                show=False,
+                **plot_kwargs,
+            )
+        else:
+            summary_plot(
+                target_shap_values,
+                target_X,
+                plot_type=plot_style,
+                class_names=self.class_names,
+                show=False,
+                **plot_kwargs,
+            )
 
         # Get the current figure and adjust layout to make room for title
         fig = plt.gcf()
@@ -850,7 +867,8 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
             current_ax = plt.gca()
             fig.set_size_inches(fig_width, 8)
 
-            plot_title = f"SHAP Sample Explanation of {target_set} sample for index={sample_index}"
+            model_type = "Regression" if self.is_regression else "Sample Explanation"
+            plot_title = f"SHAP {model_type} of {target_set} sample for index={sample_index}"
             current_ax.set_title(plot_title, pad=20)  # Add padding to the title
             current_ax.tick_params(axis="y", labelsize=10)
 

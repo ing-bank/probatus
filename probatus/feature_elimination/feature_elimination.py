@@ -219,7 +219,8 @@ class ShapRFECV(BaseFitComputePlotClass):
         self.column_names: Optional[List[str]] = None
         self.fitted = False
 
-    def _check_if_model_is_compatible_with_early_stopping(self, model: Union[BaseEstimator, BaseSearchCV]) -> bool:
+    @staticmethod
+    def _check_if_model_is_compatible_with_early_stopping(model: Union[BaseEstimator, BaseSearchCV]) -> bool:
         """
         Checks whether the given model supports early stopping.
 
@@ -235,7 +236,8 @@ class ShapRFECV(BaseFitComputePlotClass):
                 `True` if the model supports early stopping, `False` otherwise.
         """
         # List of supported libraries and their model class names
-        libraries = [("lightgbm", "LGBMModel"), ("xgboost", "XGBModel"), ("catboost", "CatBoost")]
+        # TODO: Add CatBoostClassifier (when it supports NumPy 2.0)
+        libraries = [("lightgbm", "LGBMModel"), ("xgboost", "XGBModel")]  # , ("catboost", "CatBoost")]
 
         # If model is a search CV, get the underlying estimator
         if isinstance(model, BaseSearchCV):

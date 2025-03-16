@@ -17,6 +17,22 @@ from sklearn.model_selection import RandomizedSearchCV
 CatBoostClassifier = Mock  # Create a mock for CatBoostClassifier
 
 
+# Define pytest command line option for saving plots
+def pytest_addoption(parser):
+    parser.addoption(
+        "--save-plots",
+        action="store",
+        default="false",
+        choices=["true", "false"],
+        help="Save plots generated during tests (true/false)",
+    )
+
+
+@pytest.fixture
+def save_plots(request):
+    return request.config.getoption("--save-plots").lower() == "true"
+
+
 @pytest.fixture(scope="function")
 def random_state():
     RANDOM_STATE = 0

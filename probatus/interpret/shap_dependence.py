@@ -6,7 +6,13 @@ from typing import Any, List, Optional, Tuple, Union, Literal, cast
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 
-from probatus.utils import BaseFitComputePlotClass, preprocess_data, preprocess_labels, shap_to_df
+from probatus.utils import (
+    BaseFitComputePlotClass,
+    preprocess_data,
+    preprocess_labels,
+    shap_calc,
+    is_regression_model,
+)
 
 
 class DependencePlotter(BaseFitComputePlotClass):
@@ -79,10 +85,11 @@ class DependencePlotter(BaseFitComputePlotClass):
                 Default is None.
         """
         self.model: Any = model
-        self.verbose: int = verbose
+        self.verbose: Literal[0, 1, 2] = verbose
         self.random_state: Optional[int] = random_state
         self.fitted: bool = False
         self.class_names: List[str] = ["Negative Class", "Positive Class"]
+        self.is_regression: bool = False
 
     def __repr__(self) -> str:
         """
@@ -123,7 +130,8 @@ class DependencePlotter(BaseFitComputePlotClass):
 
             class_names (Optional[List[str]], optional):
                 List of class names e.g. ['neg', 'pos']. If None, the default
-                ['Negative Class', 'Positive Class'] are used. Default is None.
+                ['Negative Class', 'Positive Class'] are used for classification
+                or ['Regression Output'] for regression. Default is None.
 
             precalc_shap (Optional[pd.DataFrame], optional):
                 Precalculated SHAP values of shape (n_samples, n_features).
@@ -144,20 +152,30 @@ class DependencePlotter(BaseFitComputePlotClass):
         self.X, self.column_names = preprocess_data(X, X_name="X", column_names=column_names, verbose=self.verbose)
         self.y = preprocess_labels(y, index=self.X.index)
 
+        # Determine if this is a regression model
+        self.is_regression = is_regression_model(self.model)
+
         # Set class names with default fallback
         if class_names is not None:
             self.class_names = class_names
         else:
-            self.class_names = ["Negative Class", "Positive Class"]
+            if self.is_regression:
+                self.class_names = ["Regression Output"]
+            else:
+                self.class_names = ["Negative Class", "Positive Class"]
 
-        self.shap_vals_df = shap_to_df(
-            self.model,
-            self.X,
-            precalc_shap=precalc_shap,
-            verbose=self.verbose,
-            random_state=self.random_state,
-            **shap_kwargs,
-        )
+        # Calculate SHAP values
+        if precalc_shap is not None:
+            # Use precalculated SHAP values
+            self.shap_values = precalc_shap.values
+        else:
+            # Calculate SHAP values
+            self.shap_values = shap_calc(self.model, self.X, verbose=self.verbose, **shap_kwargs)
+
+        # Set default values for quantile range and alpha
+        self.min_q: float = 0.0
+        self.max_q: float = 1.0
+        self.alpha: float = 1.0
 
         self.fitted = True
         return self
@@ -177,7 +195,7 @@ class DependencePlotter(BaseFitComputePlotClass):
             RuntimeError: If called before the model is fitted.
         """
         self._check_if_fitted()
-        return self.shap_vals_df
+        return self.shap_values
 
     def fit_compute(
         self,
@@ -362,9 +380,19 @@ class DependencePlotter(BaseFitComputePlotClass):
             fig = cast(Figure, ax.figure)
             ax = cast(Axes, ax)
 
-        # Create scatter plot for negative class (y=0) &  (y=1)
-        ax.scatter(X[y == 0], shap_val[y == 0], label=self.class_names[0], color="lightblue", alpha=self.alpha)
-        ax.scatter(X[y == 1], shap_val[y == 1], label=self.class_names[1], color="darkred", alpha=self.alpha)
+        # Check if this is a regression model (only one class name)
+        is_regression = len(self.class_names) == 1
+
+        if is_regression:
+            # For regression, use a single scatter plot with a colormap based on target values
+            scatter = ax.scatter(X, shap_val, c=y, cmap="viridis", alpha=self.alpha, label=self.class_names[0])
+            # Add a colorbar to show the target value scale
+            plt.colorbar(scatter, ax=ax, label="Target Value")
+        else:
+            # For classification, create separate scatter plots for each class
+            ax.scatter(X[y == 0], shap_val[y == 0], label=self.class_names[0], color="lightblue", alpha=self.alpha)
+            ax.scatter(X[y == 1], shap_val[y == 1], label=self.class_names[1], color="darkred", alpha=self.alpha)
+
         ax.set_ylabel("Shap value")
         ax.set_title(f"Dependence plot for {feature} feature")
         ax.legend()
@@ -379,6 +407,8 @@ class DependencePlotter(BaseFitComputePlotClass):
 
         This creates a histogram of feature values with a line showing the target rate
         (proportion of positive class) for each bin of feature values.
+
+        For regression models, it shows the mean target value for each bin instead of a target rate.
 
         Args:
             feature (Union[str, int]):
@@ -398,6 +428,7 @@ class DependencePlotter(BaseFitComputePlotClass):
                 - Boundaries of bins used for the histogram
                 - Figure containing the target rate plot
                 - Series containing target ratio (proportion of positive class) for each bin
+                  or mean target value for regression models
 
         Raises:
             ValueError: If feature is not found in the dataset.
@@ -455,7 +486,7 @@ class DependencePlotter(BaseFitComputePlotClass):
         )
 
         # Extract target ratio (mean of y) and mean feature value for each bin
-        target_ratio = dfs["y"].mean()  # Proportion of positive class in each bin
+        target_ratio = dfs["y"].mean()  # Proportion of positive class in each bin or mean target value for regression
         x_vals = dfs[feature_name].mean()  # Mean feature value in each bin
 
         # Transform the first and last bin to work with plt.hist method
@@ -470,11 +501,22 @@ class DependencePlotter(BaseFitComputePlotClass):
         ax.hist(x, bins=cast(Union[int, List[float]], bin_edges_for_hist), lw=2, alpha=0.4)
         ax.set_ylabel("Counts")
 
+        # Check if this is a regression model (only one class name)
+        is_regression = len(self.class_names) == 1
+
         # Create twin axis for target rate line
         ax2 = ax.twinx()
         ax2 = cast(Axes, ax2)
-        ax2.plot(x_vals, target_ratio, color="red")
-        ax2.set_ylabel("Target rate", color="red", fontsize=12)
+
+        if is_regression:
+            # For regression, show mean target value
+            ax2.plot(x_vals, target_ratio, color="green")
+            ax2.set_ylabel("Mean target value", color="green", fontsize=12)
+        else:
+            # For classification, show target rate (proportion of positive class)
+            ax2.plot(x_vals, target_ratio, color="red")
+            ax2.set_ylabel("Target rate", color="red", fontsize=12)
+
         ax2.set_xlim(x.min(), x.max())
         ax.set_xlabel(f"{feature_name} feature values")
 
@@ -508,7 +550,10 @@ class DependencePlotter(BaseFitComputePlotClass):
         # Prepare arrays
         x = self.X[feature]
         y = self.y
-        shap_val = self.shap_vals_df[feature]
+
+        # Get the feature index for accessing SHAP values
+        feature_idx = self.column_names.index(feature)
+        shap_val = self.shap_values[:, feature_idx]
 
         # Determine quantile ranges for filtering
         x_min = x.quantile(self.min_q)

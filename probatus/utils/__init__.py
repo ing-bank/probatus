@@ -7,7 +7,7 @@ from .arrayfuncs import (
 )
 from .scoring import Scorer, get_single_scorer
 from .shap_helpers import shap_calc, shap_to_df, calculate_shap_importance
-from ._utils import assure_list_of_strings
+from ._utils import assure_list_of_strings, is_regression_model
 from .base_class_interface import BaseFitComputeClass, BaseFitComputePlotClass
 
 __all__ = [
@@ -24,4 +24,5 @@ __all__ = [
     "shap_calc",
     "shap_to_df",
     "calculate_shap_importance",
+    "is_regression_model",
 ]

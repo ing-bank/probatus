@@ -1,4 +1,5 @@
-from typing import Union, List
+from typing import Union, List, Any
+from sklearn.base import is_regressor, RegressorMixin
 
 
 def assure_list_of_strings(variable: Union[str, List[str]], variable_name: str) -> List[str]:
@@ -41,3 +42,45 @@ def assure_list_of_strings(variable: Union[str, List[str]], variable_name: str) 
     # Case 3: Neither a list nor a string - raise an error
     else:
         raise ValueError(f"{variable_name} needs to be either a string or list of strings.")
+
+
+def is_regression_model(model: Any) -> bool:
+    """
+    Determine if a model is a regression model using scikit-learn's built-in functions.
+
+    This function checks if a model is a regressor by using scikit-learn's is_regressor
+    function or by checking if it's an instance of RegressorMixin. It also performs
+    additional checks for models that might not directly inherit from scikit-learn's
+    base classes.
+
+    Args:
+        model (Any): The model to check. Can be any scikit-learn estimator,
+            pipeline, or compatible model with similar interface.
+
+    Returns:
+        bool: True if the model is a regression model, False otherwise.
+    """
+    # First try scikit-learn's built-in function
+    if is_regressor(model):
+        return True
+
+    # Check if it's an instance of RegressorMixin
+    if isinstance(model, RegressorMixin):
+        return True
+
+    # For models that might be wrapped (e.g., in a Pipeline)
+    if hasattr(model, "steps") and len(getattr(model, "steps", [])) > 0:
+        # Check the final estimator in a pipeline
+        final_estimator = model.steps[-1][1]
+        return is_regression_model(final_estimator)
+
+    # For other model types, check common attributes
+    # Regression models typically have predict but not predict_proba
+    has_predict = hasattr(model, "predict") and callable(getattr(model, "predict"))
+    has_predict_proba = hasattr(model, "predict_proba") and callable(getattr(model, "predict_proba"))
+
+    # If it has predict but not predict_proba, it's likely a regression model
+    if has_predict and not has_predict_proba:
+        return True
+
+    return False

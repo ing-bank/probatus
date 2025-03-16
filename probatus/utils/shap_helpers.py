@@ -190,6 +190,7 @@ def _format_shap_values(
     return shap_values
 
 
+# TODO: Add support for KernelExplainer
 def shap_calc(
     model: BaseEstimator,
     X: pd.DataFrame,
@@ -206,6 +207,15 @@ def shap_calc(
 
     SHAP values help explain the output of machine learning models by attributing
     the prediction to each input feature.
+
+    Probatus supports the following SHAP explainers:
+    - TreeExplainer: for tree-based models
+    - LinearExplainer: for linear models (e.g. LogisticRegression, LinearRegression, Ridge, Lasso, ElasticNet)
+
+    Not supported (for now):
+    - KernelExplainer: for non-linear models
+    - DeepExplainer: for deep learning models
+    - SamplingExplainer: for models that do not support SHAP
 
     Args:
         model (BaseEstimator):
