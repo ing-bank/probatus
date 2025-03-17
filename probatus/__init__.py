@@ -42,7 +42,7 @@ from probatus.dataset.resemblance_modeler import (
     SHAPImportanceResemblance,
 )
 from probatus.model.shap_interpreter import ShapModelInterpreter
-from probatus.features.shap_dependence_plotter import DependencePlotter
+from probatus.model.shap_dependence_plotter import DependencePlotter
 from probatus.features.shap_rfe import ShapRFECV
 from probatus.features.shap_early_stopping_rfe import EarlyStoppingShapRFECV
 
