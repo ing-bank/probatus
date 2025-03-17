@@ -717,7 +717,7 @@ def results_report_df():
 def dependencies_fitted_classifier_plotter(dependencies_classification_model, dependencies_classification_data):
     """Return a fitted DependencePlotter instance with a classification model."""
     X, y = dependencies_classification_data
-    from probatus.features import DependencePlotter
+    from probatus.model import DependencePlotter
 
     plotter = DependencePlotter(dependencies_classification_model)
     plotter.fit(X, y)
@@ -728,7 +728,7 @@ def dependencies_fitted_classifier_plotter(dependencies_classification_model, de
 def dependencies_fitted_regressor_plotter(dependencies_regression_model, dependencies_regression_data):
     """Return a fitted DependencePlotter instance with a regression model."""
     X, y = dependencies_regression_data
-    from probatus.features import DependencePlotter
+    from probatus.model import DependencePlotter
 
     plotter = DependencePlotter(dependencies_regression_model)
     plotter.fit(X, y)

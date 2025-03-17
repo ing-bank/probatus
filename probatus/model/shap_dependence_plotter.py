@@ -53,7 +53,7 @@ class DependencePlotter(BaseFitComputePlotClass):
     from sklearn.ensemble import RandomForestClassifier
     import pandas as pd
     import numpy as np
-    from probatus.features import DependencePlotter
+    from probatus.model import DependencePlotter
 
     # Create sample data with named features
     X, y = make_classification(n_samples=100, n_features=3, n_informative=3, n_redundant=0, random_state=42)

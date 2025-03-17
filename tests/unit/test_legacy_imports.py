@@ -36,8 +36,8 @@ def test_new_imports():
     """Test that new imports work correctly."""
     from probatus.core import BaseFitComputeClass, BaseFitComputePlotClass
     from probatus.dataset import BaseResemblanceModel, PermutationImportanceResemblance, SHAPImportanceResemblance
-    from probatus.model import ShapModelInterpreter
-    from probatus.features import DependencePlotter, ShapRFECV, EarlyStoppingShapRFECV
+    from probatus.model import ShapModelInterpreter, DependencePlotter
+    from probatus.features import ShapRFECV, EarlyStoppingShapRFECV
 
     # Just verify that imports work, no need to check module names as these are the actual locations
     assert BaseFitComputeClass  # type: ignore[truthy-function]

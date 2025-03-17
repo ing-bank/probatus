@@ -3,8 +3,8 @@ import pandas as pd
 import pytest
 import matplotlib.pyplot as plt
 
-from probatus.features import DependencePlotter
-from probatus.core.exceptions import NotFittedError
+from probatus.model import DependencePlotter
+from probatus.core import NotFittedError
 
 
 def test_dependence_plotter_fit(dependencies_classification_model, dependencies_classification_data):
