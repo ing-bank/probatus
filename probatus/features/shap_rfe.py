@@ -11,8 +11,8 @@ from sklearn.model_selection import check_cv
 from sklearn.model_selection._search import BaseSearchCV
 from tqdm.auto import tqdm
 
+from probatus.core import BaseFitComputePlotClass
 from probatus.utils import (
-    BaseFitComputePlotClass,
     assure_pandas_series,
     calculate_shap_importance,
     preprocess_data,
@@ -206,7 +206,7 @@ class ShapRFECV(BaseFitComputePlotClass):
             if not isinstance(early_stopping_rounds, int) or early_stopping_rounds <= 0:
                 raise ValueError(f"early_stopping_rounds must be a positive integer; got {early_stopping_rounds}.")
 
-            if not self._check_if_model_is_compatible_with_early_stopping(model):
+            if not ShapRFECV._check_if_model_is_compatible_with_early_stopping(model):
                 raise ValueError("Only 'XGBoost', 'LGBM' and 'CatBoost' supported for early stopping.")
 
         self.early_stopping_rounds = early_stopping_rounds
@@ -449,14 +449,7 @@ class ShapRFECV(BaseFitComputePlotClass):
             sample_weight = assure_pandas_series(sample_weight, index=self.X.index)
 
         # Validate and set shap_variance_penalty_factor
-        if isinstance(shap_variance_penalty_factor, (float, int)) and shap_variance_penalty_factor >= 0:
-            _shap_variance_penalty_factor = shap_variance_penalty_factor
-        else:
-            if shap_variance_penalty_factor is not None:
-                warnings.warn(
-                    "shap_variance_penalty_factor must be None, int or float. Setting shap_variance_penalty_factor = 0"
-                )
-            _shap_variance_penalty_factor = 0
+        _shap_variance_penalty_factor = ShapRFECV._validate_shap_variance_penalty_factor(shap_variance_penalty_factor)
 
         # Setup cross-validation
         self.cv = check_cv(self.cv, self.y, classifier=is_classifier(self.model))
@@ -678,25 +671,47 @@ class ShapRFECV(BaseFitComputePlotClass):
     @staticmethod
     def _validate_min_features(min_features: int) -> int:
         """
-        Validates the `min_features_to_select` parameter.
-
-        Ensures that the minimum number of features to retain is a positive integer.
+        Validates the min_features_to_select parameter.
 
         Args:
             min_features (int):
-                The minimum number of features to retain during feature elimination.
+                The minimum number of features to select.
 
         Returns:
             int:
-                The validated `min_features_to_select` value.
+                The validated min_features value.
 
         Raises:
             ValueError:
-                If `min_features` is not a positive integer.
+                If min_features is not a positive integer.
         """
-        if not isinstance(min_features, int) or min_features <= 0:
-            raise ValueError(f"Invalid min_features_to_select value: {min_features}. Must be a positive int.")
+        if not isinstance(min_features, int):
+            raise ValueError(f"min_features_to_select must be an integer; got {min_features}.")
+        if min_features <= 0:
+            raise ValueError(f"min_features_to_select must be > 0; got {min_features}.")
         return min_features
+
+    @staticmethod
+    def _validate_shap_variance_penalty_factor(shap_variance_penalty_factor: Optional[Union[int, float]]) -> float:
+        """
+        Validates the shap_variance_penalty_factor parameter.
+
+        Args:
+            shap_variance_penalty_factor (Optional[Union[int, float]]):
+                The penalty factor to apply to SHAP values with high variance.
+
+        Returns:
+            float:
+                The validated shap_variance_penalty_factor value.
+        """
+        if isinstance(shap_variance_penalty_factor, (float, int)) and shap_variance_penalty_factor >= 0:
+            return float(shap_variance_penalty_factor)
+        else:
+            if shap_variance_penalty_factor is not None:
+                warnings.warn(
+                    "shap_variance_penalty_factor must be None, int or float. Setting shap_variance_penalty_factor = 0"
+                )
+            return 0.0
 
     @staticmethod
     def _calculate_number_of_features_to_remove(
@@ -1218,7 +1233,7 @@ class ShapRFECV(BaseFitComputePlotClass):
         Returns:
             Dict[str, Any]:
                 A dictionary containing the formatted parameters to be passed to
-                the LightGBM `fit` method, including validation sets and early stopping criteria.
+                the LightGBM `fit` method, including validation sets and callbacks.
         """
         from lightgbm import early_stopping, log_evaluation
 
@@ -1232,7 +1247,7 @@ class ShapRFECV(BaseFitComputePlotClass):
             "eval_metric": self.eval_metric,
             "callbacks": [
                 early_stopping(self.early_stopping_rounds, first_metric_only=True),
-                log_evaluation(1 if self.verbose > 1 else 0),
+                log_evaluation(1 if self.verbose > 1 else -1),
             ],
         }
 
@@ -1248,8 +1263,6 @@ class ShapRFECV(BaseFitComputePlotClass):
 
     def _get_fit_params_XGBoost(
         self,
-        X_train: pd.DataFrame,
-        y_train: pd.Series,
         X_val: pd.DataFrame,
         y_val: pd.Series,
         sample_weight: Optional[pd.Series] = None,
@@ -1264,12 +1277,6 @@ class ShapRFECV(BaseFitComputePlotClass):
         configuration is handled separately via the model's parameters.
 
         Args:
-            X_train (pd.DataFrame):
-                Training feature matrix of shape `(n_samples, n_features)`.
-
-            y_train (pd.Series):
-                Training labels of shape `(n_samples,)`.
-
             X_val (pd.DataFrame):
                 Validation feature matrix of shape `(n_samples, n_features)`.
 
@@ -1309,7 +1316,6 @@ class ShapRFECV(BaseFitComputePlotClass):
     def _get_fit_params_CatBoost(
         self,
         X_train: pd.DataFrame,
-        y_train: pd.Series,
         X_val: pd.DataFrame,
         y_val: pd.Series,
         sample_weight: Optional[pd.Series] = None,
@@ -1325,9 +1331,6 @@ class ShapRFECV(BaseFitComputePlotClass):
         Args:
             X_train (pd.DataFrame):
                 Training feature matrix of shape `(n_samples, n_features)`.
-
-            y_train (pd.Series):
-                Training labels of shape `(n_samples,)`.
 
             X_val (pd.DataFrame):
                 Validation feature matrix of shape `(n_samples, n_features)`.
@@ -1451,8 +1454,6 @@ class ShapRFECV(BaseFitComputePlotClass):
 
             if isinstance(model, XGBModel):
                 return self._get_fit_params_XGBoost(
-                    X_train=X_train,
-                    y_train=y_train,
                     X_val=X_val,
                     y_val=y_val,
                     sample_weight=sample_weight,
@@ -1472,7 +1473,6 @@ class ShapRFECV(BaseFitComputePlotClass):
                     if isinstance(model, CatBoost):
                         return self._get_fit_params_CatBoost(
                             X_train=X_train,
-                            y_train=y_train,
                             X_val=X_val,
                             y_val=y_val,
                             sample_weight=sample_weight,

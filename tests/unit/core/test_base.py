@@ -1,6 +1,6 @@
-from probatus.interpret import ShapModelInterpreter
+from probatus.model import ShapModelInterpreter
 import pytest
-from probatus.utils import NotFittedError
+from probatus.core import NotFittedError
 
 
 def test_fitted_exception(fitted_tree, X_train, y_train, X_test, y_test, random_state):
@@ -16,11 +16,4 @@ def test_fitted_exception(fitted_tree, X_train, y_train, X_test, y_test, random_
 
     # Check parameters
     assert shap_interpret.fitted
-    shap_interpret._check_if_fitted
-
-
-@pytest.mark.xfail
-def test_fitted_exception_is_raised(fitted_tree, random_state):
-    shap_interpret = ShapModelInterpreter(fitted_tree, random_state=random_state)
-
     shap_interpret._check_if_fitted

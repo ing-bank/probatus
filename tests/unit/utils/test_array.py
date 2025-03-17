@@ -2,17 +2,9 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from probatus.utils import assure_pandas_df, preprocess_data, preprocess_labels
+from probatus.utils import assure_pandas_df, preprocess_data, preprocess_labels, assure_pandas_series
 
-
-@pytest.fixture(scope="function")
-def expected_df_2d():
-    return pd.DataFrame({0: [1, 2], 1: [2, 3], 2: [3, 4]})
-
-
-@pytest.fixture(scope="function")
-def expected_df():
-    return pd.DataFrame({0: [1, 2, 3]})
+# Fixtures are now imported from conftest.py
 
 
 def test_assure_pandas_df_list(expected_df):
@@ -89,3 +81,49 @@ def test_preprocess_data():
 
     assert target_column_names_X1 == output_column_names_X2
     pd.testing.assert_frame_equal(X2_output, X2_expected_output)
+
+
+def test_assure_pandas_series():
+    # Test with list
+    x_list = [1, 2, 3]
+    pd.testing.assert_series_equal(assure_pandas_series(x_list), pd.Series([1, 2, 3]))
+
+    # Test with numpy array
+    x_array = np.array([1, 2, 3], dtype="int64")
+    pd.testing.assert_series_equal(assure_pandas_series(x_array), pd.Series([1, 2, 3]))
+
+    # Test with pandas Series
+    x_series = pd.Series([1, 2, 3])
+    pd.testing.assert_series_equal(assure_pandas_series(x_series), pd.Series([1, 2, 3]))
+
+    # Test with custom index
+    index = ["a", "b", "c"]
+    pd.testing.assert_series_equal(assure_pandas_series(x_list, index=index), pd.Series([1, 2, 3], index=index))
+
+    # Test Series with index handling cases
+    x_with_index = pd.Series([1, 2, 3], index=["a", "b", "c"])
+
+    # Case 1: Same index - no change
+    pd.testing.assert_series_equal(
+        assure_pandas_series(x_with_index, index=["a", "b", "c"]), pd.Series([1, 2, 3], index=["a", "b", "c"])
+    )
+
+    # Case 2: Reordered index - reorder values
+    pd.testing.assert_series_equal(
+        assure_pandas_series(x_with_index, index=["c", "a", "b"]), pd.Series([3, 1, 2], index=["c", "a", "b"])
+    )
+
+    # Case 3: Different index - overwrite index
+    pd.testing.assert_series_equal(
+        assure_pandas_series(x_with_index, index=["d", "e", "f"]), pd.Series([1, 2, 3], index=["d", "e", "f"])
+    )
+
+    # Test invalid type
+    with pytest.raises(TypeError):
+        assure_pandas_series({"a": 1, "b": 2})
+
+
+def test_assure_pandas_series_invalid_type():
+    x = {"a": 1, "b": 2}
+    with pytest.raises(TypeError):
+        assure_pandas_series(x)

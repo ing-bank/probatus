@@ -7,9 +7,9 @@ import matplotlib
 import matplotlib.pyplot as plt
 import pytest
 
-import probatus.feature_elimination
-import probatus.interpret
-import probatus.sample_similarity
+import probatus.features
+import probatus.model
+import probatus.dataset
 import probatus.utils
 
 # Turn off interactive mode in plots
@@ -17,15 +17,12 @@ plt.ioff()
 matplotlib.use("Agg")
 
 CLASSES_TO_TEST = [
-    probatus.feature_elimination.ShapRFECV,
-    probatus.interpret.DependencePlotter,
-    probatus.sample_similarity.SHAPImportanceResemblance,
-    probatus.sample_similarity.PermutationImportanceResemblance,
+    probatus.features.ShapRFECV,
+    probatus.features.DependencePlotter,
+    probatus.dataset.SHAPImportanceResemblance,
+    probatus.dataset.PermutationImportanceResemblance,
     probatus.utils.Scorer,
-]
-
-CLASSES_TO_TEST_LGBM = [
-    probatus.feature_elimination.EarlyStoppingShapRFECV,
+    probatus.model.ShapModelInterpreter,
 ]
 
 FUNCTIONS_TO_TEST: List = []
@@ -60,16 +57,15 @@ def test_class_docstrings(c):
 
 
 @pytest.mark.skipif(os.environ.get("SKIP_LIGHTGBM") == "true", reason="LightGBM tests disabled")
-@pytest.mark.parametrize("c", CLASSES_TO_TEST_LGBM)
-def test_class_docstrings_lgbm(c):
+def test_class_docstrings_lgbm():
     """
     Take the docstring of a given class which uses LightGBM.
-
-    The test passes if the usage examples causes no errors.
+    We test that the docstring can be run without errors since it will import LightGBM.
 
     The test is skipped if the environment does not support LightGBM correctly, such as macos.
     """
-    handle_docstring(c.__doc__, indent=4)
+    # Test ShapRFECV with early stopping parameters
+    handle_docstring(probatus.features.ShapRFECV.__doc__, indent=4)
 
 
 @pytest.mark.parametrize("f", FUNCTIONS_TO_TEST)

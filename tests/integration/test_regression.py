@@ -12,17 +12,9 @@ from sklearn.model_selection import RandomizedSearchCV
 from sklearn.datasets import load_diabetes, load_linnerud
 from sklearn.model_selection import train_test_split
 
-from probatus.interpret import ShapModelInterpreter
-from probatus.sample_similarity import SHAPImportanceResemblance
-from probatus.feature_elimination import ShapRFECV
-
-# Import common utility functions from conftest.py
-from tests.integration.integration_utils import (
-    check_plots_are_generated_correctly,
-    create_model_with_params,
-    get_plots_dir,
-    setup_plot_dirs,
-)
+from probatus.features import ShapRFECV
+from probatus.model import ShapModelInterpreter
+from probatus.dataset import SHAPImportanceResemblance
 
 # Turn off interactive mode in plots
 plt.ioff()
@@ -132,7 +124,18 @@ def linnerud_data_split(linnerud_data, random_state):
 
 
 @pytest.mark.parametrize("estimator_class, estimator_params, param_grid", ESTIMATORS)
-def test_sample_similarity(diabetes_data, random_state, estimator_class, estimator_params, param_grid, save_plots):
+def test_sample_similarity(
+    diabetes_data,
+    random_state,
+    estimator_class,
+    estimator_params,
+    param_grid,
+    save_plots,
+    setup_plot_dirs,
+    get_plots_dir,
+    check_plots_are_generated_correctly,
+    create_model_with_params,
+):
     """
     Test different estimators with SHAPImportanceResemblance for sample similarity analysis.
     """
@@ -190,7 +193,18 @@ def test_sample_similarity(diabetes_data, random_state, estimator_class, estimat
 
 
 @pytest.mark.parametrize("estimator_class, estimator_params, param_grid", ESTIMATORS)
-def test_model_interpret(diabetes_data_split, random_state, estimator_class, estimator_params, param_grid, save_plots):
+def test_model_interpret(
+    diabetes_data_split,
+    random_state,
+    estimator_class,
+    estimator_params,
+    param_grid,
+    save_plots,
+    setup_plot_dirs,
+    get_plots_dir,
+    check_plots_are_generated_correctly,
+    create_model_with_params,
+):
     """
     Test different estimators with ShapModelInterpreter for model interpretation.
     """
@@ -237,7 +251,18 @@ def test_model_interpret(diabetes_data_split, random_state, estimator_class, est
 
 
 @pytest.mark.parametrize("estimator_class, estimator_params, param_grid", ESTIMATORS)
-def test_shap_dependence(diabetes_data_split, random_state, estimator_class, estimator_params, param_grid, save_plots):
+def test_shap_dependence(
+    diabetes_data_split,
+    random_state,
+    estimator_class,
+    estimator_params,
+    param_grid,
+    save_plots,
+    setup_plot_dirs,
+    get_plots_dir,
+    check_plots_are_generated_correctly,
+    create_model_with_params,
+):
     """
     Test different estimators with ShapModelInterpreter for SHAP dependence plots.
     """
@@ -359,7 +384,18 @@ def test_shap_dependence(diabetes_data_split, random_state, estimator_class, est
 
 
 @pytest.mark.parametrize("estimator_class, estimator_params, param_grid", ESTIMATORS)
-def test_feature_elimination(linnerud_data, random_state, estimator_class, estimator_params, param_grid, save_plots):
+def test_feature_elimination(
+    linnerud_data,
+    random_state,
+    estimator_class,
+    estimator_params,
+    param_grid,
+    save_plots,
+    setup_plot_dirs,
+    get_plots_dir,
+    check_plots_are_generated_correctly,
+    create_model_with_params,
+):
     """
     Test different estimators with ShapRFECV for feature elimination.
     """
@@ -405,7 +441,16 @@ def test_feature_elimination(linnerud_data, random_state, estimator_class, estim
 
 @pytest.mark.parametrize("estimator_class, estimator_params, param_grid", ESTIMATORS)
 def test_feature_elimination_early_stopping(
-    linnerud_data, random_state, estimator_class, estimator_params, param_grid, save_plots
+    linnerud_data,
+    random_state,
+    estimator_class,
+    estimator_params,
+    param_grid,
+    save_plots,
+    setup_plot_dirs,
+    get_plots_dir,
+    check_plots_are_generated_correctly,
+    create_model_with_params,
 ):
     """
     Test different estimators with ShapRFECV for feature elimination with early stopping.
@@ -479,7 +524,16 @@ def test_feature_elimination_early_stopping(
 
 @pytest.mark.parametrize("estimator_class, estimator_params, param_grid", ESTIMATORS)
 def test_randomized_search_early_stopping(
-    linnerud_data, random_state, estimator_class, estimator_params, param_grid, save_plots
+    linnerud_data,
+    random_state,
+    estimator_class,
+    estimator_params,
+    param_grid,
+    save_plots,
+    setup_plot_dirs,
+    get_plots_dir,
+    check_plots_are_generated_correctly,
+    create_model_with_params,
 ):
     """
     Test different estimators with RandomizedSearchCV and early stopping for feature elimination.
@@ -556,7 +610,12 @@ def test_randomized_search_early_stopping(
 
 @pytest.mark.parametrize("estimator_class, estimator_params, param_grid", ESTIMATORS)
 def test_get_feature_shap_values_per_fold_early_stopping(
-    linnerud_data, random_state, estimator_class, estimator_params, param_grid
+    linnerud_data,
+    random_state,
+    estimator_class,
+    estimator_params,
+    param_grid,
+    create_model_with_params,
 ):
     """
     Test the internal _get_feature_shap_values_per_fold_early_stopping method with different estimators.

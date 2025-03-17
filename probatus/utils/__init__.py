@@ -1,14 +1,12 @@
-from .exceptions import NotFittedError
-from .arrayfuncs import (
+from .array import (
     assure_pandas_df,
     assure_pandas_series,
     preprocess_data,
     preprocess_labels,
 )
 from .scoring import Scorer, get_single_scorer
-from .shap_helpers import shap_calc, shap_to_df, calculate_shap_importance
-from ._utils import assure_list_of_strings, is_regression_model
-from .base_class_interface import BaseFitComputeClass, BaseFitComputePlotClass
+from .shap import shap_calc, shap_to_df, calculate_shap_importance
+from .common import assure_list_of_strings, is_regression_model
 
 __all__ = [
     "assure_list_of_strings",
@@ -16,9 +14,6 @@ __all__ = [
     "assure_pandas_series",
     "preprocess_data",
     "preprocess_labels",
-    "BaseFitComputeClass",
-    "BaseFitComputePlotClass",
-    "NotFittedError",
     "get_single_scorer",
     "Scorer",
     "shap_calc",

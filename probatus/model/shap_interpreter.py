@@ -7,9 +7,9 @@ from shap.plots import waterfall
 from typing import Any, List, Optional, Tuple, Union, Literal
 from matplotlib.figure import Figure
 
-from probatus.interpret import DependencePlotter
+from probatus.features import DependencePlotter
+from probatus.core import BaseFitComputePlotClass
 from probatus.utils import (
-    BaseFitComputePlotClass,
     assure_list_of_strings,
     calculate_shap_importance,
     preprocess_data,

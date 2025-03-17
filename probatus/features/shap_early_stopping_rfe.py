@@ -4,7 +4,7 @@ from typing import Literal, Optional, Union, Iterable
 from sklearn.base import BaseEstimator
 from sklearn.model_selection._split import BaseCrossValidator
 
-from probatus.feature_elimination import ShapRFECV
+from probatus.features import ShapRFECV
 from probatus.utils import Scorer
 
 

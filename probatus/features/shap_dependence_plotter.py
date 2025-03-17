@@ -6,8 +6,8 @@ from typing import Any, List, Optional, Tuple, Union, Literal, cast
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 
+from probatus.core import BaseFitComputePlotClass
 from probatus.utils import (
-    BaseFitComputePlotClass,
     preprocess_data,
     preprocess_labels,
     shap_calc,
@@ -51,14 +51,25 @@ class DependencePlotter(BaseFitComputePlotClass):
     ```python
     from sklearn.datasets import make_classification
     from sklearn.ensemble import RandomForestClassifier
-    from probatus.interpret import DependencePlotter
+    import pandas as pd
+    import numpy as np
+    from probatus.features import DependencePlotter
 
-    X, y = make_classification(n_samples=15, n_features=3, n_informative=3, n_redundant=0, random_state=42)
-    model = RandomForestClassifier().fit(X, y)
-    bdp = DependencePlotter(model)
-    shap_values = bdp.fit_compute(X, y)
+    # Create sample data with named features
+    X, y = make_classification(n_samples=100, n_features=3, n_informative=3, n_redundant=0, random_state=42)
+    feature_names = ['feature_1', 'feature_2', 'feature_3']
+    X = pd.DataFrame(X, columns=feature_names)
+    y = pd.Series(y)
 
-    bdp.plot(feature=2)
+    # Train a model
+    model = RandomForestClassifier(random_state=42).fit(X, y)
+
+    # Initialize and fit the plotter
+    dep_plotter = DependencePlotter(model)
+    shap_values = dep_plotter.fit_compute(X, y, column_names=feature_names)
+
+    # Plot the dependence for a specific feature
+    dep_plotter.plot(feature='feature_3')
     ```
 
     <img src="../img/model_interpret_dep.png"/>
@@ -553,7 +564,13 @@ class DependencePlotter(BaseFitComputePlotClass):
 
         # Get the feature index for accessing SHAP values
         feature_idx = self.column_names.index(feature)
-        shap_val = self.shap_values[:, feature_idx]
+
+        # Handle both numpy arrays and pandas DataFrames for shap_values
+        if isinstance(self.shap_values, pd.DataFrame):
+            shap_val = self.shap_values[feature]
+        else:
+            # Assume it's a numpy array
+            shap_val = self.shap_values[:, feature_idx]
 
         # Determine quantile ranges for filtering
         x_min = x.quantile(self.min_q)

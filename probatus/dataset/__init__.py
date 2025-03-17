@@ -1,4 +1,4 @@
-from .resemblance_model import (
+from .resemblance_modeler import (
     BaseResemblanceModel,
     PermutationImportanceResemblance,
     SHAPImportanceResemblance,

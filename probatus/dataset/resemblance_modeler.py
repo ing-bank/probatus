@@ -11,8 +11,15 @@ from sklearn.base import BaseEstimator
 from sklearn.inspection import permutation_importance
 from sklearn.model_selection import train_test_split
 
-from probatus.utils import BaseFitComputePlotClass, preprocess_data, preprocess_labels, get_single_scorer, Scorer
-from probatus.utils.shap_helpers import calculate_shap_importance, shap_calc
+from probatus.core import BaseFitComputePlotClass
+from probatus.utils import (
+    preprocess_data,
+    preprocess_labels,
+    get_single_scorer,
+    Scorer,
+    calculate_shap_importance,
+    shap_calc,
+)
 
 
 class BaseResemblanceModel(BaseFitComputePlotClass):
@@ -434,8 +441,10 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
         self.iterations = iterations
 
         # Initialize dataframe to store iteration results
-        self.iterations_columns = ["feature", "importance"]
-        self.iterations_results = pd.DataFrame(columns=self.iterations_columns)
+        self.iterations_results = pd.DataFrame(
+            {"feature": pd.Series(dtype="object"), "importance": pd.Series(dtype="float64")}
+        )
+        self.iterations_columns = self.iterations_results.columns
 
         # Set plot labels
         self.plot_x_label = "Permutation Feature Importance"
@@ -517,7 +526,8 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
             )
 
             # Append to overall results
-            self.iterations_results = pd.concat([self.iterations_results, feature_iterations])
+            if not feature_iterations.empty:
+                self.iterations_results = pd.concat([self.iterations_results, feature_iterations])
 
         # Sort features by importance (descending)
         self.report.sort_values(by="mean_importance", ascending=False, inplace=True)
@@ -585,7 +595,7 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
             ax.boxplot(
                 feature_values,
                 positions=[position],
-                vert=False,
+                orientation="horizontal",
             )
 
         ax.set_yticks(range(len(sorted_features)))
