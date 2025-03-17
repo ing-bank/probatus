@@ -12,7 +12,7 @@ from sklearn.model_selection import RandomizedSearchCV
 from sklearn.datasets import load_breast_cancer
 from sklearn.model_selection import train_test_split
 
-from probatus.dataset import SHAPImportanceResemblance
+from probatus.dataset import SHAPImportanceResemblance, PermutationImportanceResemblance
 from probatus.model import ShapModelInterpreter
 from probatus.features import ShapRFECV
 from probatus.utils import preprocess_labels
@@ -137,6 +137,68 @@ def test_sample_similarity(
         # Verify the plot has diverse colors
         assert check_plots_are_generated_correctly(plot_path), (
             "Sample similarity plot doesn't have enough colors - it may be empty or only showing axes."
+        )
+
+    # Close all plots to free memory
+    plt.close("all")
+
+
+@pytest.mark.parametrize("estimator_class, estimator_params, param_grid", ESTIMATORS)
+def test_permutation_importance_resemblance(
+    breast_cancer_data,
+    random_state,
+    estimator_class,
+    estimator_params,
+    param_grid,
+    save_plots,
+    setup_plot_dirs,
+    get_plots_dir,
+    check_plots_are_generated_correctly,
+):
+    """
+    Test different estimators with PermutationImportanceResemblance for sample similarity analysis.
+    """
+    # Create plot directories if save_plots is True
+    setup_plot_dirs(save_plots, BASE_PLOTS_DIR, ESTIMATORS)
+
+    X, y = breast_cancer_data
+    plots_dir = get_plots_dir(BASE_PLOTS_DIR, estimator_class, ESTIMATORS)
+    estimator_name = next(param.id for param in ESTIMATORS if param.values[0] == estimator_class)
+
+    # Split data into two samples
+    X1 = X[y == 0].reset_index(drop=True)
+    X2 = X[y == 1].reset_index(drop=True)
+
+    # Create model with the specified estimator class and parameters
+    model = estimator_class(random_state=random_state, **estimator_params)
+
+    # Initialize resemblance model with PermutationImportanceResemblance
+    resemblance = PermutationImportanceResemblance(
+        model=model, iterations=20, test_prc=0.3, n_jobs=1, verbose=1, random_state=random_state
+    )
+
+    # Fit and compute importance
+    importance_df = resemblance.fit_compute(X1=X1, X2=X2, class_names=["Malignant", "Benign"])
+
+    # Verify results
+    assert resemblance.class_names == ["Malignant", "Benign"]
+    assert importance_df.shape[0] == X.shape[1]
+    # The score might be exactly 0.5 if the samples are not distinguishable
+    assert resemblance.train_score >= 0.5
+    assert resemblance.test_score >= 0.5
+
+    # Test plotting and save the plot
+    fig = resemblance.plot(show=False)
+    assert fig is not None
+
+    # Save the plot if save_plots is True
+    if save_plots:
+        plot_path = os.path.join(plots_dir, f"{estimator_name}_permutation_importance.png")
+        fig.savefig(plot_path, dpi=300, bbox_inches="tight")
+
+        # Verify the plot has diverse colors
+        assert check_plots_are_generated_correctly(plot_path), (
+            "Permutation importance plot doesn't have enough colors - it may be empty or only showing axes."
         )
 
     # Close all plots to free memory
