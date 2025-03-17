@@ -1,6 +1,7 @@
 import warnings
 from typing import Any, List, Optional, Tuple, Union, cast, Literal
 
+import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -10,6 +11,7 @@ from shap import summary_plot
 from sklearn.base import BaseEstimator
 from sklearn.inspection import permutation_importance
 from sklearn.model_selection import train_test_split
+from distutils.version import LooseVersion
 
 from probatus.core import BaseFitComputePlotClass
 from probatus.utils import (
@@ -591,12 +593,22 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
             # Get importance values for this feature
             feature_values = self.iterations_results[self.iterations_results["feature"] == feature]["importance"]
 
+            # TODO: Remove this once we drop support for matplotlib < 3.10
             # Create horizontal boxplot
-            ax.boxplot(
-                feature_values,
-                positions=[position],
-                orientation="horizontal",
-            )
+            if LooseVersion(matplotlib.__version__) >= LooseVersion("3.10"):
+                # Use orientation parameter for matplotlib 3.10+
+                ax.boxplot(
+                    feature_values,
+                    positions=[position],
+                    orientation="horizontal",
+                )
+            else:
+                # Use vert=False for older matplotlib versions
+                ax.boxplot(
+                    feature_values,
+                    positions=[position],
+                    vert=False,
+                )
 
         ax.set_yticks(range(len(sorted_features)))
         ax.set_yticklabels(sorted_features)
