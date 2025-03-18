@@ -18,7 +18,7 @@ from probatus.utils import (
     preprocess_data,
     preprocess_labels,
     get_single_scorer,
-    shap_calc,
+    calculate_shap_explanation,
 )
 from probatus.utils import Scorer
 
@@ -472,7 +472,7 @@ class ShapRFECV(BaseFitComputePlotClass):
         max_iterations = len(current_features_set) - stopping_criteria
 
         # Create a tqdm progress bar for feature elimination
-        with tqdm(total=max_iterations, desc="Feature Elimination", disable=self.verbose == 0) as progress_bar:
+        with tqdm(total=max_iterations, desc="Feature Elimination") as progress_bar:
             while len(current_features_set) > stopping_criteria:
                 round_number += 1
 
@@ -635,7 +635,7 @@ class ShapRFECV(BaseFitComputePlotClass):
         ax.set_xticks(x_ticks)
         # Rotate x-axis labels by 45 degrees
         plt.setp(ax.get_xticklabels(), rotation=45, ha="right")
-        ax.grid(True, linestyle="--", alpha=0.7)
+        ax.grid(True, linestyle=":", alpha=0.7)
 
         # Show or close the plot based on the show parameter
         if show:
@@ -924,7 +924,7 @@ class ShapRFECV(BaseFitComputePlotClass):
         score_val = self.scorer.score(model, X_val, y_val)
 
         # Calculate SHAP values for validation set
-        shap_values = shap_calc(
+        shap_values = calculate_shap_explanation(
             model, X_val, return_explainer=False, verbose=self.verbose, random_state=self.random_state, **shap_kwargs
         )
 
@@ -1194,8 +1194,6 @@ class ShapRFECV(BaseFitComputePlotClass):
 
     def _get_fit_params_lightGBM(
         self,
-        X_train: pd.DataFrame,
-        y_train: pd.Series,
         X_val: pd.DataFrame,
         y_val: pd.Series,
         sample_weight: Optional[pd.Series] = None,
@@ -1209,12 +1207,6 @@ class ShapRFECV(BaseFitComputePlotClass):
         validation data and optional sample weights.
 
         Args:
-            X_train (pd.DataFrame):
-                Training feature matrix of shape `(n_samples, n_features)`.
-
-            y_train (pd.Series):
-                Training labels of shape `(n_samples,)`.
-
             X_val (pd.DataFrame):
                 Validation feature matrix of shape `(n_samples, n_features)`.
 
@@ -1235,7 +1227,7 @@ class ShapRFECV(BaseFitComputePlotClass):
                 A dictionary containing the formatted parameters to be passed to
                 the LightGBM `fit` method, including validation sets and callbacks.
         """
-        from lightgbm import early_stopping, log_evaluation
+        from lightgbm import early_stopping
 
         # Ensure early_stopping_rounds is not None
         if self.early_stopping_rounds is None:
@@ -1246,8 +1238,9 @@ class ShapRFECV(BaseFitComputePlotClass):
             "eval_set": [(X_val, y_val)],
             "eval_metric": self.eval_metric,
             "callbacks": [
-                early_stopping(self.early_stopping_rounds, first_metric_only=True),
-                log_evaluation(1 if self.verbose > 1 else -1),
+                early_stopping(
+                    self.early_stopping_rounds, first_metric_only=True, verbose=True if self.verbose > 1 else False
+                ),
             ],
         }
 
@@ -1380,7 +1373,6 @@ class ShapRFECV(BaseFitComputePlotClass):
         self,
         model: Union[BaseEstimator, BaseSearchCV],
         X_train: pd.DataFrame,
-        y_train: pd.Series,
         X_val: pd.DataFrame,
         y_val: pd.Series,
         sample_weight: Optional[pd.Series] = None,
@@ -1437,8 +1429,6 @@ class ShapRFECV(BaseFitComputePlotClass):
 
             if isinstance(model, LGBMModel):
                 return self._get_fit_params_lightGBM(
-                    X_train=X_train,
-                    y_train=y_train,
                     X_val=X_val,
                     y_val=y_val,
                     sample_weight=sample_weight,
@@ -1540,7 +1530,6 @@ class ShapRFECV(BaseFitComputePlotClass):
         fit_params = self._get_fit_params(
             model=model,
             X_train=X_train,
-            y_train=y_train,
             X_val=X_val,
             y_val=y_val,
             sample_weight=sample_weight,
@@ -1581,6 +1570,8 @@ class ShapRFECV(BaseFitComputePlotClass):
         score_val = self.scorer.score(model, X_val, y_val)
 
         # Calculate SHAP values for validation set
-        shap_values = shap_calc(model, X_val, verbose=self.verbose, random_state=self.random_state, **shap_kwargs)
+        shap_values = calculate_shap_explanation(
+            model, X_val, return_explainer=False, verbose=self.verbose, random_state=self.random_state, **shap_kwargs
+        )
 
         return shap_values, score_train, score_val

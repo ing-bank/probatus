@@ -43,8 +43,8 @@ from probatus.dataset.resemblance_modeler import (
 )
 from probatus.model.shap_interpreter import ShapModelInterpreter
 from probatus.model.shap_dependence_plotter import DependencePlotter
-from probatus.features.shap_rfe import ShapRFECV
-from probatus.features.shap_early_stopping_rfe import EarlyStoppingShapRFECV
+from probatus.features.shap_recursive_feature_elimination import ShapRFECV
+from probatus.features.shap_early_stopping_recursive_feature_elimination import EarlyStoppingShapRFECV
 
 # Map classes to their legacy module paths
 sys.modules["probatus.sample_similarity"].BaseResemblanceModel = BaseResemblanceModel

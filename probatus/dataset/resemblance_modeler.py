@@ -8,6 +8,7 @@ import pandas as pd
 from loguru import logger
 from matplotlib.figure import Figure
 from shap import summary_plot
+from shap.plots import bar
 from sklearn.base import BaseEstimator
 from sklearn.inspection import permutation_importance
 from sklearn.model_selection import train_test_split
@@ -20,7 +21,8 @@ from probatus.utils import (
     get_single_scorer,
     Scorer,
     calculate_shap_importance,
-    shap_calc,
+    calculate_shap_explanation,
+    shap_explanation_to_shap_df,
 )
 
 
@@ -788,7 +790,7 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
 
         # Calculate SHAP values for test set
         # SHAP values explain each feature's contribution to model predictions
-        self.shap_values_test: pd.DataFrame = shap_calc(
+        self.shap_explanation_test = calculate_shap_explanation(
             self.model,
             self.X_test,
             return_explainer=False,
@@ -796,9 +798,15 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
             random_state=self.random_state,
             **shap_kwargs,
         )
+        self.shap_values_test = shap_explanation_to_shap_df(
+            shap_explanation=self.shap_explanation_test,
+            model=self.model,
+            X=self.X_test,
+        )
 
         # Calculate feature importance from SHAP values
-        self.report = calculate_shap_importance(self.shap_values_test, self.column_names)
+        shap_df = pd.DataFrame(self.shap_values_test, columns=self.column_names)
+        self.report = calculate_shap_importance(shap_df, self.column_names)
 
         return self
 
@@ -861,15 +869,14 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
 
         # Create SHAP summary plot
         # This creates its own figure and axes internally
-        summary_plot(
-            shap_values_array,
-            X_test_array,
-            plot_type=plot_type,
-            class_names=self.class_names,
-            show=False,  # Don't show yet, we'll add annotations first
-            feature_names=self.column_names,
-            **summary_plot_kwargs,
-        )
+        ax = bar(self.shap_explanation_test, show=False)
+        # summary_plot(
+        #     plot_type=plot_type,
+        #     class_names=self.class_names,
+        #     show=False,  # Don't show yet, we'll add annotations first
+        #     feature_names=self.column_names,
+        #     **summary_plot_kwargs,
+        # )
 
         # Get the figure and axes created by summary_plot
         fig, ax = plt.gcf(), plt.gca()
@@ -895,26 +902,3 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
             plt.show()
 
         return fig
-
-    def get_shap_values(self) -> np.ndarray:
-        """
-        Get the SHAP values calculated for the test set.
-
-        This method provides access to the raw SHAP values computed during model fitting.
-        These values can be used for custom analyses or visualizations beyond the
-        standard plots provided by the plot() method.
-
-        Returns:
-            np.ndarray: Array of SHAP values for the test set.
-                Shape: (n_test_samples, n_features)
-                Each value represents a feature's contribution to a specific prediction:
-                - Positive values push the prediction toward class 1
-                - Negative values push the prediction toward class 0
-                - Magnitude indicates strength of the effect
-
-        Raises:
-            ValueError: If the model has not been fitted yet.
-                Call fit() before accessing SHAP values.
-        """
-        self._check_if_fitted()
-        return self.shap_values_test

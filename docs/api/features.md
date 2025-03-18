@@ -64,6 +64,5 @@ The module is designed to provide a robust and efficient approach to feature sel
 
 ## Implementation
 
-::: probatus.features.shap_rfe
-::: probatus.features.shap_early_stopping_rfe
-::: probatus.features.shap_dependence_plotter
+::: probatus.features.shap_recursive_feature_elimination
+::: probatus.features.shap_early_stopping_recursive_feature_elimination

@@ -1,5 +1,6 @@
-from typing import Union, List, Any
+from typing import Union, List, Any, Optional, Dict
 from sklearn.base import is_regressor, RegressorMixin
+import pandas as pd
 
 
 def assure_list_of_strings(variable: Union[str, List[str]], variable_name: str) -> List[str]:
@@ -84,3 +85,70 @@ def is_regression_model(model: Any) -> bool:
         return True
 
     return False
+
+
+def handle_class_names(
+    y: pd.Series,
+    class_names: Optional[Union[List[str], Dict[Union[int, str], str]]] = None,
+    is_regression: bool = False,
+) -> List[str]:
+    """
+    Handle class names for visualization based on the input type.
+
+    Args:
+        y (pd.Series):
+            Target variable series to process.
+
+        class_names (Optional[Union[List[str], Dict[Union[int, str], str]]], optional):
+            Either a list of class names that will be mapped to the sorted unique values in y,
+            or a dictionary mapping target values to class names.
+            If None, default labels will be used. Default is None.
+
+        is_regression (bool, optional):
+            Whether the model is a regression model. Default is False.
+
+    Returns:
+        List[str]: The list of class names to use for visualization.
+
+    Raises:
+        ValueError: If number of class names doesn't match number of unique target values,
+                   or if a target value is not found in the provided dictionary.
+        TypeError: If class_names is not None, a list, or a dictionary.
+    """
+    # For regression, always use a single class name
+    if is_regression:
+        if class_names is None:
+            return ["Regression Output"]
+        else:
+            return class_names
+
+    # For classification, process class names based on input type
+    unique_y_values = sorted(y.unique())
+    n_classes = len(unique_y_values)
+
+    if class_names is None:
+        # If no class names provided, use default labels
+        return [f"label_{i}" for i in range(n_classes)]
+    elif isinstance(class_names, list):
+        # If list provided, check if it matches the number of classes
+        if len(class_names) != n_classes:
+            raise ValueError(
+                f"Number of class names ({len(class_names)}) must match number of unique target values ({n_classes})"
+            )
+        return class_names
+    elif isinstance(class_names, dict):
+        # If dictionary provided, extract class names based on the mapping
+        # Convert all keys to strings for consistent comparison
+        class_name_dict = {str(k): v for k, v in class_names.items()}
+        # Create list of class names in order of unique values
+        result_class_names = []
+        for val in unique_y_values:
+            if str(val) in class_name_dict:
+                result_class_names.append(class_name_dict[str(val)])
+            else:
+                raise ValueError(f"Target value {val} not found in the class_names dictionary")
+        return result_class_names
+    else:
+        raise TypeError(
+            "class_names must be None, a list of strings, or a dictionary mapping target values to class names"
+        )

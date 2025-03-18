@@ -3,8 +3,8 @@ import numpy as np
 import pandas as pd
 from shap import summary_plot
 from shap import Explanation
-from shap.plots import waterfall
-from typing import Any, List, Optional, Tuple, Union, Literal
+from shap.plots import waterfall, bar
+from typing import Any, Dict, List, Optional, Tuple, Union, Literal
 from matplotlib.figure import Figure
 
 from probatus.model.shap_dependence_plotter import DependencePlotter
@@ -15,9 +15,10 @@ from probatus.utils import (
     preprocess_data,
     preprocess_labels,
     get_single_scorer,
-    shap_calc,
+    calculate_shap_explanation,
     Scorer,
     is_regression_model,
+    handle_class_names,
 )
 
 
@@ -125,6 +126,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
         self.verbose = verbose
         self.random_state = random_state
         self.fitted = False
+        self.class_names: List[str] = None
         self.is_regression = False  # Will be set during fit
 
     def fit(
@@ -160,10 +162,12 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
                 List of feature names for the dataset. If None, column names from
                 the X_train DataFrame are used.
 
-            class_names (Optional[List[str]], default=None):
-                List of class names e.g. ['neg', 'pos']. If None, the default
-                ['Negative Class', 'Positive Class'] are used. For regression models,
-                this parameter is ignored.
+            class_names (Optional[Union[List[str], Dict[Union[int, str], str]]], optional):
+                Either a list of class names (e.g. ['blue', 'red', 'green']) that will be mapped
+                to the sorted unique values in y, or a dictionary mapping target values to class
+                names (e.g. {0: 'blue', 1: 'red', 2: 'green'}).
+                If None, default labels will be 'label_0', 'label_1', etc. for classification
+                or 'Regression Output' for regression. Default is None.
 
             **shap_kwargs:
                 Keyword arguments passed to shap.Explainer. Notable parameters include:
@@ -188,13 +192,8 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
         # Determine if this is a regression model using the utility function
         self.is_regression = is_regression_model(self.model)
 
-        # Set class names with default if not provided
-        self.class_names = class_names
-        if self.class_names is None:
-            if self.is_regression:
-                self.class_names = ["Regression Output"]
-            else:
-                self.class_names = ["Negative Class", "Positive Class"]
+        # Use class names for plotting
+        self.class_names = handle_class_names(pd.concat([self.y_train, self.y_test]), class_names, self.is_regression)
 
         # Calculate model performance metrics
         self.train_score = self.scorer.score(self.model, self.X_train, self.y_train)
@@ -243,7 +242,6 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
         # Return self for method chaining
         return self
 
-    @staticmethod
     def _prep_shap_related_variables(
         model: Any,
         X: pd.DataFrame,
@@ -252,9 +250,9 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
         verbose: Literal[0, 1, 2] = 0,
         random_state: Optional[int] = None,
         column_names: Optional[List[str]] = None,
-        class_names: Optional[List[str]] = None,
+        class_names: Optional[Union[List[str], Dict[Union[int, str], str]]] = None,
         **shap_kwargs: Any,
-    ) -> Tuple[np.ndarray, float, DependencePlotter]:
+    ) -> Tuple[Explanation, float, DependencePlotter]:
         """
         Prepare SHAP-related variables used for model interpretation.
 
@@ -295,22 +293,21 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
                 Additional keyword arguments passed to shap.Explainer.
 
         Returns:
-            Tuple[np.ndarray, float, DependencePlotter]:
-                - SHAP values array of shape (n_samples, n_features)
+            Tuple[Explanation, float, DependencePlotter]:
+                - SHAP explanation object
                 - Expected value of the explainer
                 - Fitted DependencePlotter instance
         """
         # Calculate SHAP values and get the explainer
-        shap_values, explainer = shap_calc(
+        shap_explanation, explainer = calculate_shap_explanation(
             model,
             X,
+            return_explainer=True,
             approximate=approximate,
             verbose=verbose,
             random_state=random_state,
-            return_explainer=True,
             **shap_kwargs,
         )
-
         expected_value = explainer.expected_value
 
         # For sklearn models, the expected value consists of n elements
@@ -318,14 +315,14 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
             expected_value = expected_value[0]
 
         # Initialize and fit the dependence plotter for visualizing feature interactions
-        tdp = DependencePlotter(model, verbose=verbose).fit(
+        dependence_plotter = DependencePlotter(model, verbose=verbose).fit(
             X,
             y,
             column_names=column_names,
             class_names=class_names,
-            precalc_shap=shap_values,
+            precalc_shap=shap_explanation,
         )
-        return shap_values, expected_value, tdp
+        return shap_explanation, expected_value, dependence_plotter
 
     def compute(
         self, return_scores: bool = False, shap_variance_penalty_factor: Optional[float] = None
@@ -396,7 +393,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
         y_train: pd.Series,
         y_test: pd.Series,
         column_names: Optional[List[str]] = None,
-        class_names: Optional[List[str]] = None,
+        class_names: Optional[Union[List[str], Dict[Union[int, str], str]]] = None,
         return_scores: bool = False,
         shap_variance_penalty_factor: Optional[float] = None,
         **shap_kwargs: Any,
@@ -424,9 +421,12 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
                 List of feature names for the dataset. If None, column names from
                 the X_train DataFrame are used.
 
-            class_names (Optional[List[str]], default=None):
-                List of class names e.g. ['neg', 'pos']. If None, the default
-                ['Negative Class', 'Positive Class'] are used.
+            class_names (Optional[Union[List[str], Dict[Union[int, str], str]]], optional):
+                Either a list of class names (e.g. ['blue', 'red', 'green']) that will be mapped
+                to the sorted unique values in y, or a dictionary mapping target values to class
+                names (e.g. {0: 'blue', 1: 'red', 2: 'green'}).
+                If None, default labels will be 'label_0', 'label_1', etc. for classification
+                or 'Regression Output' for regression. Default is None.
 
             return_scores (bool, default=False):
                 If True, returns the train and test scores along with the feature importance DataFrame.
@@ -684,7 +684,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
                 **plot_kwargs,
             )
         else:
-            summary_plot(
+            ax = bar(
                 target_shap_values,
                 target_X,
                 plot_type=plot_style,
@@ -692,6 +692,14 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
                 show=False,
                 **plot_kwargs,
             )
+            # summary_plot(
+            #     target_shap_values,
+            #     target_X,
+            #     plot_type=plot_style,
+            #     class_names=self.class_names,
+            #     show=False,
+            #     **plot_kwargs,
+            # )
 
         # Get the current figure and adjust layout to make room for title
         fig = plt.gcf()

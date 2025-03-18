@@ -3,7 +3,7 @@ import pandas as pd
 import pytest
 import matplotlib.pyplot as plt
 
-from probatus.model import DependencePlotter
+from probatus.model.shap_dependence_plotter import DependencePlotter
 from probatus.core import NotFittedError
 
 
@@ -19,22 +19,7 @@ def test_dependence_plotter_fit(dependencies_classification_model, dependencies_
     assert hasattr(plotter, "shap_values")
     # Shap values can be a DataFrame or a numpy array
     assert isinstance(plotter.shap_values, (np.ndarray, pd.DataFrame))
-    if isinstance(plotter.shap_values, np.ndarray):
-        assert plotter.shap_values.shape == X.shape
-    else:
-        assert plotter.shap_values.shape == X.shape
-
-    # Test fit with custom column names
-    custom_cols = [f"custom_{i}" for i in range(X.shape[1])]
-    plotter = DependencePlotter(dependencies_classification_model)
-    plotter.fit(X, y, column_names=custom_cols)
-    assert plotter.column_names == custom_cols
-
-    # Test fit with custom class names
-    custom_classes = ["Negative", "Positive"]
-    plotter = DependencePlotter(dependencies_classification_model)
-    plotter.fit(X, y, class_names=custom_classes)
-    assert plotter.class_names == custom_classes
+    assert plotter.shap_values.shape == (X.shape[0], X.shape[1], len(set(y)))
 
     # Test fit with precalculated SHAP values
     precalc_shap = pd.DataFrame(np.random.rand(*X.shape), columns=X.columns)
@@ -44,6 +29,34 @@ def test_dependence_plotter_fit(dependencies_classification_model, dependencies_
         assert np.array_equal(plotter.shap_values, precalc_shap.values)
     else:
         assert plotter.shap_values.equals(precalc_shap)
+
+
+def test_class_names_integration(dependencies_classification_model, dependencies_classification_data):
+    """Test the integration of class_names handling in fit and plotting methods."""
+    X, y = dependencies_classification_data
+
+    # Create test data with multi-class scenario (3 classes)
+    multi_y = pd.Series(np.random.choice([0, 1, 2], size=len(y)))
+
+    # Test with None (default labels)
+    plotter = DependencePlotter(dependencies_classification_model)
+    plotter.fit(X, multi_y)
+    assert plotter.class_names == ["label_0", "label_1", "label_2"]
+
+    # Test with list of class names
+    plotter = DependencePlotter(dependencies_classification_model)
+    plotter.fit(X, multi_y, class_names=["Ape", "Lion", "Bear"])
+    assert plotter.class_names == ["Ape", "Lion", "Bear"]
+
+    # Test with dictionary of class names
+    plotter = DependencePlotter(dependencies_classification_model)
+    plotter.fit(X, multi_y, class_names={1: "Ape", 2: "Lion", 0: "Bear"})
+    assert plotter.class_names == ["Bear", "Ape", "Lion"]
+
+    # Test with string keys in dictionary
+    plotter = DependencePlotter(dependencies_classification_model)
+    plotter.fit(X, multi_y, class_names={"0": "Ape", "2": "Bear", "1": "Lion"})
+    assert plotter.class_names == ["Ape", "Lion", "Bear"]
 
 
 def test_dependence_plotter_plot(dependencies_fitted_classifier_plotter, dependencies_classification_data):

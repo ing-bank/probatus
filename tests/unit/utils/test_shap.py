@@ -8,8 +8,8 @@ from probatus.utils.shap import (
     _create_shap_explainer,
     _compute_shap_values,
     _format_shap_values,
-    shap_calc,
-    shap_to_df,
+    calculate_shap_explanation,
+    _shap_values_to_df,
     calculate_shap_importance,
 )
 
@@ -139,11 +139,11 @@ def test_shap_calc(request, classification_data, model_fixture, return_explainer
     X, _ = classification_data
 
     if return_explainer:
-        shap_values, explainer = shap_calc(model, X, return_explainer=True, random_state=42)
-        assert isinstance(shap_values, pd.DataFrame)
+        shap_values, explainer = calculate_shap_explanation(model, X, return_explainer=True, random_state=42)
+        assert isinstance(shap_values.values, np.ndarray)
         assert isinstance(explainer, shap.Explainer)
     else:
-        shap_values = shap_calc(model, X, random_state=42)
+        shap_values = calculate_shap_explanation(model, X, return_explainer=False, random_state=42)
         assert isinstance(shap_values, pd.DataFrame)
         assert shap_values.shape == X.shape
         assert list(shap_values.columns) == list(X.columns)
@@ -154,7 +154,7 @@ def test_shap_calc_with_pipeline(pipeline_model, classification_data):
     X, _ = classification_data
 
     with pytest.raises(TypeError, match="Pipeline"):
-        shap_calc(pipeline_model, X)
+        calculate_shap_explanation(pipeline_model, X)
 
 
 @pytest.mark.parametrize(
@@ -181,19 +181,19 @@ def test_shap_to_df(tree_model, classification_data, shap_input_data, input_type
 
     if input_type == "empty":
         with pytest.raises(ValueError, match="cannot be empty"):
-            shap_to_df(tree_model, input_data)
+            _shap_values_to_df(tree_model, input_data)
     else:
         if has_precalc:
             precalc_shap = np.random.rand(*shape)
-            shap_df = shap_to_df(tree_model, input_data, precalc_shap)
+            shap_df = _shap_values_to_df(tree_model, input_data, precalc_shap)
         else:
-            shap_df = shap_to_df(tree_model, input_data)
+            shap_df = _shap_values_to_df(tree_model, input_data)
 
         assert isinstance(shap_df, pd.DataFrame)
         assert shap_df.shape == shape
 
         if input_type == "numpy":
-            assert shap_df.columns[0] == "col_0"  # Generic column names for arrays
+            assert shap_df.columns[0] == 0  # Generic column names for arrays
 
 
 @pytest.mark.parametrize(

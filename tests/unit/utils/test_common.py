@@ -4,7 +4,7 @@ from sklearn.linear_model import LinearRegression, LogisticRegression
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
-from probatus.utils.common import assure_list_of_strings, is_regression_model
+from probatus.utils import handle_class_names, assure_list_of_strings, is_regression_model
 
 
 def test_assure_list_of_strings_with_string():
@@ -83,3 +83,32 @@ def test_is_regression_model_with_custom_classification_model():
 
     model = CustomClassifier()
     assert is_regression_model(model) is False
+
+
+def test_handle_class_names(dependencies_classification_model, dependencies_classification_data):
+    """Test the handle_class_names function with different inputs."""
+    X, y = dependencies_classification_data
+    is_regression = False
+    unique_values = sorted(y.unique())
+
+    # Test with mismatched list length
+    with pytest.raises(ValueError, match="Number of class names .* must match number of unique target values"):
+        handle_class_names(y, ["Single Class"], is_regression)
+
+    # Test with missing key in dictionary
+    incomplete_dict = {unique_values[0]: "Only First Class"}
+    with pytest.raises(ValueError, match="Target value .* not found in the class_names dictionary"):
+        handle_class_names(y, incomplete_dict, is_regression)
+
+    # Test with invalid class_names type
+    with pytest.raises(TypeError, match="class_names must be None, a list of strings, or a dictionary"):
+        handle_class_names(y, 123, is_regression)
+
+    # Test with regression model
+    is_regression = True
+    class_names = handle_class_names(y, None, is_regression)
+    assert class_names == ["Regression Output"]
+
+    # Regression model should use provided class names
+    class_names = handle_class_names(y, ["Custom Regression"], is_regression)
+    assert class_names == ["Custom Regression"]

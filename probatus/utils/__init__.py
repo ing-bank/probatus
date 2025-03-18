@@ -5,8 +5,8 @@ from .array import (
     preprocess_labels,
 )
 from .scoring import Scorer, get_single_scorer
-from .shap import shap_calc, shap_to_df, calculate_shap_importance
-from .common import assure_list_of_strings, is_regression_model
+from .shap import calculate_shap_explanation, shap_explanation_to_shap_df, calculate_shap_importance
+from .common import assure_list_of_strings, is_regression_model, handle_class_names
 
 __all__ = [
     "assure_list_of_strings",
@@ -16,8 +16,9 @@ __all__ = [
     "preprocess_labels",
     "get_single_scorer",
     "Scorer",
-    "shap_calc",
-    "shap_to_df",
+    "calculate_shap_explanation",
+    "shap_explanation_to_shap_df",
     "calculate_shap_importance",
     "is_regression_model",
+    "handle_class_names",
 ]

@@ -2,16 +2,18 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import KBinsDiscretizer
-from typing import Any, List, Optional, Tuple, Union, Literal, cast
+from typing import Any, List, Optional, Tuple, Union, Literal, Dict, cast
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
+from shap import Explanation
 
 from probatus.core import BaseFitComputePlotClass
 from probatus.utils import (
     preprocess_data,
     preprocess_labels,
-    shap_calc,
+    calculate_shap_explanation,
     is_regression_model,
+    handle_class_names,
 )
 
 
@@ -99,7 +101,7 @@ class DependencePlotter(BaseFitComputePlotClass):
         self.verbose: Literal[0, 1, 2] = verbose
         self.random_state: Optional[int] = random_state
         self.fitted: bool = False
-        self.class_names: List[str] = ["Negative Class", "Positive Class"]
+        self.class_names: List[str] = None
         self.is_regression: bool = False
 
     def __repr__(self) -> str:
@@ -116,8 +118,8 @@ class DependencePlotter(BaseFitComputePlotClass):
         X: pd.DataFrame,
         y: pd.Series,
         column_names: Optional[List[str]] = None,
-        class_names: Optional[List[str]] = None,
-        precalc_shap: Optional[pd.DataFrame] = None,
+        class_names: Optional[Union[List[str], Dict[Union[int, str], str]]] = None,
+        precalc_shap: Optional[Explanation] = None,
         **shap_kwargs: Any,
     ) -> "DependencePlotter":
         """
@@ -139,14 +141,16 @@ class DependencePlotter(BaseFitComputePlotClass):
                 List of feature names for the dataset. If None, column names from
                 the X dataframe are used. Default is None.
 
-            class_names (Optional[List[str]], optional):
-                List of class names e.g. ['neg', 'pos']. If None, the default
-                ['Negative Class', 'Positive Class'] are used for classification
-                or ['Regression Output'] for regression. Default is None.
+            class_names (Optional[Union[List[str], Dict[Union[int, str], str]]], optional):
+                Either a list of class names (e.g. ['blue', 'red', 'green']) that will be mapped
+                to the sorted unique values in y, or a dictionary mapping target values to class
+                names (e.g. {0: 'blue', 1: 'red', 2: 'green'}).
+                If None, default labels will be 'label_0', 'label_1', etc. for classification
+                or 'Regression Output' for regression. Default is None.
 
-            precalc_shap (Optional[pd.DataFrame], optional):
-                Precalculated SHAP values of shape (n_samples, n_features).
-                If provided, they are used directly instead of computing new ones.
+            precalc_shap (Optional[Explanation], optional):
+                Precalculated SHAP explanation object.
+                If provided, it is used directly instead of computing new ones.
                 Default is None.
 
             **shap_kwargs (Any):
@@ -166,22 +170,20 @@ class DependencePlotter(BaseFitComputePlotClass):
         # Determine if this is a regression model
         self.is_regression = is_regression_model(self.model)
 
-        # Set class names with default fallback
-        if class_names is not None:
-            self.class_names = class_names
-        else:
-            if self.is_regression:
-                self.class_names = ["Regression Output"]
-            else:
-                self.class_names = ["Negative Class", "Positive Class"]
+        # Use class names for plotting
+        self.class_names = handle_class_names(self.y, class_names, self.is_regression)
 
         # Calculate SHAP values
         if precalc_shap is not None:
             # Use precalculated SHAP values
-            self.shap_values = precalc_shap.values
+            self.shap_explanation = precalc_shap
+            self.shap_values = self.shap_explanation.values
         else:
             # Calculate SHAP values
-            self.shap_values = shap_calc(self.model, self.X, verbose=self.verbose, **shap_kwargs)
+            self.shap_explanation = calculate_shap_explanation(
+                self.model, self.X, return_explainer=False, verbose=self.verbose, **shap_kwargs
+            )
+            self.shap_values = self.shap_explanation.values
 
         # Set default values for quantile range and alpha
         self.min_q: float = 0.0
@@ -213,7 +215,7 @@ class DependencePlotter(BaseFitComputePlotClass):
         X: pd.DataFrame,
         y: pd.Series,
         column_names: Optional[List[str]] = None,
-        class_names: Optional[List[str]] = None,
+        class_names: Optional[Union[List[str], Dict[Union[int, str], str]]] = None,
         precalc_shap: Optional[pd.DataFrame] = None,
         **shap_kwargs: Any,
     ) -> pd.DataFrame:
@@ -235,9 +237,12 @@ class DependencePlotter(BaseFitComputePlotClass):
                 List of feature names for the dataset. If None, column names from
                 the X dataframe are used. Default is None.
 
-            class_names (Optional[List[str]], optional):
-                List of class names e.g. ['neg', 'pos']. If None, the default
-                ['Negative Class', 'Positive Class'] are used. Default is None.
+            class_names (Optional[Union[List[str], Dict[Union[int, str], str]]], optional):
+                Either a list of class names (e.g. ['blue', 'red', 'green']) that will be mapped
+                to the sorted unique values in y, or a dictionary mapping target values to class
+                names (e.g. {0: 'blue', 1: 'red', 2: 'green'}).
+                If None, default labels will be 'label_0', 'label_1', etc. for classification
+                or 'Regression Output' for regression. Default is None.
 
             precalc_shap (Optional[pd.DataFrame], optional):
                 Precalculated SHAP values of shape (n_samples, n_features).
@@ -391,18 +396,21 @@ class DependencePlotter(BaseFitComputePlotClass):
             fig = cast(Figure, ax.figure)
             ax = cast(Axes, ax)
 
-        # Check if this is a regression model (only one class name)
-        is_regression = len(self.class_names) == 1
-
-        if is_regression:
+        if self.is_regression:
             # For regression, use a single scatter plot with a colormap based on target values
             scatter = ax.scatter(X, shap_val, c=y, cmap="viridis", alpha=self.alpha, label=self.class_names[0])
             # Add a colorbar to show the target value scale
             plt.colorbar(scatter, ax=ax, label="Target Value")
         else:
-            # For classification, create separate scatter plots for each class
-            ax.scatter(X[y == 0], shap_val[y == 0], label=self.class_names[0], color="lightblue", alpha=self.alpha)
-            ax.scatter(X[y == 1], shap_val[y == 1], label=self.class_names[1], color="darkred", alpha=self.alpha)
+            # For classification, create separate scatter plot for each class
+            # Sort the unique values of y and use the sorted values to map the class names
+            for class_name, class_value in zip(self.class_names, sorted(self.y.unique())):
+                ax.scatter(
+                    X[y == class_value],
+                    shap_val[y == class_value],
+                    label=class_name,
+                    alpha=self.alpha,
+                )
 
         ax.set_ylabel("Shap value")
         ax.set_title(f"Dependence plot for {feature} feature")
@@ -512,14 +520,11 @@ class DependencePlotter(BaseFitComputePlotClass):
         ax.hist(x, bins=cast(Union[int, List[float]], bin_edges_for_hist), lw=2, alpha=0.4)
         ax.set_ylabel("Counts")
 
-        # Check if this is a regression model (only one class name)
-        is_regression = len(self.class_names) == 1
-
         # Create twin axis for target rate line
         ax2 = ax.twinx()
         ax2 = cast(Axes, ax2)
 
-        if is_regression:
+        if self.is_regression:
             # For regression, show mean target value
             ax2.plot(x_vals, target_ratio, color="green")
             ax2.set_ylabel("Mean target value", color="green", fontsize=12)

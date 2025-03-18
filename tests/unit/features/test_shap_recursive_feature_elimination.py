@@ -493,7 +493,6 @@ def test_get_fit_params(random_state_42):
     shap_elimination.eval_metric = "auc"
 
     X_train = pd.DataFrame({"col_1": [1, 0], "col_2": [0, 1], "col_3": [1, 0]})
-    y_train = pd.Series([1, 0])
     X_val = pd.DataFrame({"col_1": [1, 0], "col_2": [0, 1], "col_3": [1, 0]})
     y_val = pd.Series([1, 0])
     sample_weight = pd.Series([1, 1])
@@ -505,7 +504,6 @@ def test_get_fit_params(random_state_42):
         shap_elimination._get_fit_params(
             model=model,
             X_train=X_train,
-            y_train=y_train,
             X_val=X_val,
             y_val=y_val,
             sample_weight=sample_weight,
