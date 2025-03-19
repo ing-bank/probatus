@@ -266,13 +266,30 @@ def X2():
 
 
 @pytest.fixture(scope="function")
-def classification_data():
+def binary_classification_data():
     """Create synthetic classification data for testing."""
     X, y = make_classification(n_samples=100, n_features=5, n_informative=3, n_redundant=1, random_state=42)
     feature_names = [f"feature_{i}" for i in range(X.shape[1])]
     X_df = pd.DataFrame(X, columns=feature_names)
     y_series = pd.Series(y)
     return X_df, y_series
+
+
+@pytest.fixture(scope="function")
+def multi_classification_data(random_state):
+    """Create multi-class classification data."""
+    # Prepare two samples
+    X, y = make_classification(
+        n_samples=50,
+        class_sep=0.05,
+        n_informative=6,
+        n_features=10,
+        random_state=random_state,
+        n_redundant=2,
+        n_clusters_per_class=1,
+        n_classes=5,
+    )
+    return pd.DataFrame(X), y
 
 
 @pytest.fixture(scope="function")
@@ -472,27 +489,27 @@ def logistic_regression(random_state):
 
 
 @pytest.fixture(scope="function")
-def tree_model(classification_data, random_state):
+def tree_model(binary_classification_data, random_state):
     """Create a trained random forest model for testing."""
-    X, y = classification_data
+    X, y = binary_classification_data
     model = RandomForestClassifier(random_state=random_state, n_estimators=10)
     model.fit(X, y)
     return model
 
 
 @pytest.fixture(scope="function")
-def linear_model(classification_data, random_state):
+def linear_model(binary_classification_data, random_state):
     """Create a trained logistic regression model for testing."""
-    X, y = classification_data
+    X, y = binary_classification_data
     model = LogisticRegression(random_state=random_state)
     model.fit(X, y)
     return model
 
 
 @pytest.fixture(scope="function")
-def pipeline_model(classification_data, random_state):
+def pipeline_model(binary_classification_data, random_state):
     """Create a sklearn pipeline model for testing."""
-    X, y = classification_data
+    X, y = binary_classification_data
     pipeline = Pipeline([("scaler", StandardScaler()), ("model", LogisticRegression(random_state=random_state))])
     pipeline.fit(X, y)
     return pipeline
@@ -562,9 +579,9 @@ def dependencies_regression_model(dependencies_regression_data):
 
 
 @pytest.fixture(scope="function")
-def shap_explainer(tree_model, classification_data):
+def shap_explainer(tree_model, binary_classification_data):
     """Create a SHAP explainer for a tree model."""
-    X, _ = classification_data
+    X, _ = binary_classification_data
     return shap.Explainer(tree_model, X)
 
 

@@ -7,7 +7,6 @@ import numpy as np
 import pandas as pd
 from loguru import logger
 from matplotlib.figure import Figure
-from shap import summary_plot
 from shap.plots import bar
 from sklearn.base import BaseEstimator
 from sklearn.inspection import permutation_importance
