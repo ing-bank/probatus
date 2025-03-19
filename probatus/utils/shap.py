@@ -112,8 +112,9 @@ def shap_explanation_to_shap_df(
     shap_explanation: Explanation,
     model: BaseEstimator,
     X: pd.DataFrame,
-    feature: Optional[str] = None,
+    class_selection: Optional[Any] = None,
     multiclass_aggregation: Optional[Literal["max_abs", "variance", "mean_abs"]] = None,
+    weight_type: Optional[Union[Literal["frequency"], Dict[Any, float]]] = None,
 ) -> pd.DataFrame:
     """
     Process a SHAP explanation object, format the values, and convert to a DataFrame.
@@ -131,10 +132,11 @@ def shap_explanation_to_shap_df(
         X (pd.DataFrame):
             Feature set used to calculate SHAP values.
 
-        feature (Optional[str], optional):
-            Feature to format. If None, all features are formatted.
-            For multiclass models, this can be a class name/index to return SHAP values
-            for that specific class only.
+        class_selection (Optional[Any], optional):
+            For multiclass models only: class name or index to select SHAP values for.
+            This extracts values for a single specific class instead of aggregating
+            across classes. Ignored for binary classification or regression models.
+            Default is None (no specific class selected).
 
         multiclass_aggregation (Optional[Literal["max_abs", "variance", "mean_abs"]], optional):
             Method to aggregate SHAP values across classes for multiclass models:
@@ -156,13 +158,36 @@ def shap_explanation_to_shap_df(
 
             Default is None (uses first class for multiclass).
 
+        weight_type (Optional[Union[Literal["frequency"], Dict[Any, float]]], optional):
+            Determines how to weight SHAP values across classes in multiclass scenarios:
+
+            - 'frequency': Uses equal weights for all classes (1/n_classes). This is useful
+              when all classes are equally important regardless of their frequency in the data.
+
+            - dict: Dictionary with class names/indices as keys and weights as values for
+              custom weighting. This allows for precise control over the importance of each class.
+
+            The weighting is valuable in multiclass scenarios:
+                - When certain classes are more critical to predict correctly, you can
+                  emphasize their importance.
+                - When classes are imbalanced, you can balance their influence on the overall
+                  feature importance.
+                - Example: For a 5-class problem with imbalanced classes, you might use
+                  `{0: 0.1, 1: 0.3, 2: 0.1, 3: 0.4, 4: 0.1}` to prioritize classes 1 and 3.
+
+            Default is None (no weighting). Note: This parameter is only applicable for
+            multiclass models and has no effect on binary classification.
+
     Returns:
         pd.DataFrame:
             SHAP values in a DataFrame format with the same column names as the input data.
     """
     # Format the SHAP values to a consistent format
     shap_values: np.ndarray = _format_shap_values(
-        shap_explanation=shap_explanation, feature=feature, multiclass_aggregation=multiclass_aggregation
+        shap_explanation=shap_explanation,
+        class_selection=class_selection,
+        multiclass_aggregation=multiclass_aggregation,
+        weight_type=weight_type,
     )
 
     # Convert SHAP values to a pandas DataFrame
@@ -413,7 +438,8 @@ def _compute_shap_values(
 
 def _format_shap_values(
     shap_explanation: Explanation,
-    feature: Optional[str] = None,
+    class_selection: Optional[Any] = None,
+    weight_type: Optional[Union[Literal["frequency"], Dict[Any, float]]] = None,
     multiclass_aggregation: Optional[Literal["max_abs", "variance", "mean_abs"]] = None,
 ) -> np.ndarray:
     """
@@ -426,10 +452,31 @@ def _format_shap_values(
         shap_explanation (Explanation):
             SHAP explanation object from the explainer.
 
-        feature (Optional[str], optional):
-            Feature to format. If None, all features are formatted.
-            For multiclass models, this can be a class name/index to return SHAP values
-            for that specific class only.
+        class_selection (Optional[Any], optional):
+            For multiclass models only: class name or index to select SHAP values for.
+            This extracts values for a single specific class instead of aggregating
+            across classes. Ignored for binary classification or regression models.
+            Default is None (no specific class selected).
+
+        weight_type (Optional[Union[Literal["frequency"], Dict[Any, float]]], optional):
+            Determines how to weight SHAP values across classes in multiclass scenarios:
+
+            - 'frequency': Uses equal weights for all classes (1/n_classes). This is useful
+              when all classes are equally important regardless of their frequency in the data.
+
+            - dict: Dictionary with class names/indices as keys and weights as values for
+              custom weighting. This allows for precise control over the importance of each class.
+
+            The weighting is valuable in multiclass scenarios:
+                - When certain classes are more critical to predict correctly, you can
+                  emphasize their importance.
+                - When classes are imbalanced, you can balance their influence on the overall
+                  feature importance.
+                - Example: For a 5-class problem with imbalanced classes, you might use
+                  `{0: 0.1, 1: 0.3, 2: 0.1, 3: 0.4, 4: 0.1}` to prioritize classes 1 and 3.
+
+            Default is None (no weighting). Note: This parameter is only applicable for
+            multiclass models and has no effect on binary classification.
 
         multiclass_aggregation (Optional[Literal["max_abs", "variance", "mean_abs"]], optional):
             Method to aggregate SHAP values across classes for multiclass models:
@@ -455,54 +502,180 @@ def _format_shap_values(
         np.ndarray:
             Processed SHAP values in a consistent format.
     """
-    # Check the shape of SHAP values to determine if it's multiclass
-    # For multiclass: (n_samples, n_classes, n_features)
-    # For binary/regression: (n_samples, n_features)
+    # Determine if the SHAP values are for a multiclass problem (3D) or binary/regression (2D)
     is_multiclass = len(shap_explanation.values.shape) == 3
 
-    # If it's not multiclass, just return the values as is
+    # Handle binary/regression case
     if not is_multiclass:
+        if class_selection is not None:
+            warnings.warn(
+                "`class_selection` parameter is ignored for binary classification or regression models."
+                " This parameter only applies to multiclass models.",
+                UserWarning,
+            )
+        if weight_type is not None:
+            warnings.warn(
+                "`weight_type` parameter is ignored for binary classification or regression models."
+                " This parameter only applies to multiclass models.",
+                UserWarning,
+            )
+        if multiclass_aggregation is not None:
+            warnings.warn(
+                "`multiclass_aggregation` parameter is ignored for binary classification or regression models."
+                " This parameter only applies to multiclass models.",
+                UserWarning,
+            )
         return shap_explanation.values
 
-    # For multiclass scenarios
-    if feature is not None:
-        # Extract class names if available, otherwise use indices
-        model_classes = (
-            shap_explanation.output_names
-            if hasattr(shap_explanation, "output_names")
-            else list(range(shap_explanation.values.shape[1]))
-        )
+    # For multiclass, get model classes information
+    model_classes = _get_model_classes(shap_explanation)
 
-        # Validate that the requested feature is actually a class
-        if feature not in model_classes:
-            raise ValueError(f"Feature {feature} not found in model classes: {model_classes}")
+    # Get a copy of the original SHAP values to modify
+    shap_values = shap_explanation.values.copy()
 
-        # Return SHAP values for the specified class
-        class_idx = model_classes.index(feature)
-        return shap_explanation.values[:, :, class_idx]
+    # Handle class selection - highest priority, returns immediately
+    if class_selection is not None:
+        return _get_shap_values_for_class(shap_explanation, class_selection, model_classes)
 
-    # Apply aggregation across classes if specified
-    if multiclass_aggregation:
-        if multiclass_aggregation == "max_abs":
-            # Maximum absolute SHAP value across classes for each feature
-            return np.max(np.abs(shap_explanation.values), axis=2)
-        elif multiclass_aggregation == "variance":
-            # Variance of SHAP values across classes
-            return np.var(shap_explanation.values, axis=2)
-        elif multiclass_aggregation == "mean_abs":
-            # Mean absolute SHAP value across classes
-            return np.mean(np.abs(shap_explanation.values), axis=2)
+    # Apply class weighting if specified (modifies the original 3D values in place)
+    if weight_type is not None:
+        shap_values = _apply_class_weighting(shap_values, weight_type, model_classes)
 
-    # Default: return values for the first class (multi-class)
-    return shap_explanation.values[:, :, 0]
+    # Apply aggregation across classes if specified (reduces dimension to 2D)
+    if multiclass_aggregation is not None:
+        return _aggregate_multiclass_shap(shap_values, multiclass_aggregation)
+
+    # If aggregation wasn't applied but we need to reduce dimensions:
+    # - If weighting was applied, reduce by summing across classes
+    # - If no weighting was applied, return the first class
+    if weight_type is not None:
+        # Sum weighted values across classes to get final 2D result
+        return np.sum(shap_values, axis=2)
+    else:
+        # Default: return values for the first class (multi-class)
+        return shap_values[:, :, 0]
+
+
+def _get_model_classes(shap_explanation: Explanation) -> List:
+    """
+    Extract class names/indices from a SHAP explanation object.
+
+    Args:
+        shap_explanation (Explanation): SHAP explanation object
+
+    Returns:
+        List: List of class names or indices
+    """
+    if hasattr(shap_explanation, "output_names"):
+        return shap_explanation.output_names
+    else:
+        # If no output_names attribute, use indices based on the third dimension size
+        return list(range(shap_explanation.values.shape[2]))
+
+
+def _get_shap_values_for_class(shap_explanation: Explanation, class_selection: Any, model_classes: List) -> np.ndarray:
+    """
+    Extract SHAP values for a specific class.
+
+    Args:
+        shap_explanation (Explanation): SHAP explanation object
+        class_selection: Class name or index to select
+        model_classes (List): List of available class names/indices
+
+    Returns:
+        np.ndarray: SHAP values for the specified class
+
+    Raises:
+        ValueError: If the requested class is not found
+    """
+    # Validate that the requested class exists
+    if class_selection not in model_classes:
+        raise ValueError(f"Class '{class_selection}' not found in model classes: {model_classes}")
+
+    # Return SHAP values for the specified class
+    class_idx = model_classes.index(class_selection)
+    return shap_explanation.values[:, :, class_idx]
+
+
+def _apply_class_weighting(
+    shap_values: np.ndarray, weight_type: Union[Literal["frequency"], Dict[str, float]], model_classes: List
+) -> np.ndarray:
+    """
+    Apply weighting to multiclass SHAP values while preserving the 3D structure.
+
+    Args:
+        shap_values (np.ndarray): Original 3D SHAP values
+        weight_type: Type of weighting to apply ('frequency' or custom dictionary)
+        model_classes (List): List of available class names/indices
+
+    Returns:
+        np.ndarray: Weighted SHAP values (still in 3D format)
+
+    Raises:
+        ValueError: If an unsupported weight_type is provided
+    """
+    # Calculate weights for each class
+    if weight_type == "frequency":
+        # Equal weights for all classes (1/n_classes)
+        weights = np.ones(len(model_classes)) / len(model_classes)
+    elif isinstance(weight_type, dict):
+        # Use user-provided weights from dictionary
+        weights = np.array([weight_type.get(cls, 0.0) for cls in model_classes])
+
+        # Normalize weights to sum to 1 if any are non-zero
+        if np.sum(weights) > 0:
+            weights = weights / np.sum(weights)
+        else:
+            # If all weights are 0, use equal weighting
+            weights = np.ones(len(model_classes)) / len(model_classes)
+    else:
+        raise ValueError(f"Unsupported weight_type: {weight_type}. Use 'frequency' or a dictionary of weights.")
+
+    # Apply weights to each class in the 3D array (n_samples, n_features, n_classes)
+    # Create weighted values array with the same shape as input
+    weighted_values = np.zeros_like(shap_values)
+
+    # Apply weights to each class
+    for i, weight in enumerate(weights):
+        weighted_values[:, :, i] = shap_values[:, :, i] * weight
+
+    return weighted_values
+
+
+def _aggregate_multiclass_shap(
+    shap_values: np.ndarray, aggregation_method: Literal["max_abs", "variance", "mean_abs"]
+) -> np.ndarray:
+    """
+    Aggregate SHAP values across classes using the specified method.
+
+    Args:
+        shap_values (np.ndarray): 3D SHAP values to aggregate (n_samples, n_features, n_classes)
+        aggregation_method: Method to use for aggregation
+
+    Returns:
+        np.ndarray: Aggregated SHAP values (2D: n_samples, n_features)
+    """
+    if aggregation_method == "max_abs":
+        # Maximum absolute SHAP value across classes for each feature
+        return np.max(np.abs(shap_values), axis=2)
+    elif aggregation_method == "variance":
+        # Variance of SHAP values across classes
+        return np.var(shap_values, axis=2)
+    elif aggregation_method == "mean_abs":
+        # Mean absolute SHAP value across classes
+        return np.mean(np.abs(shap_values), axis=2)
+
+    # Should never reach here based on type hinting
+    return shap_values[:, :, 0]
 
 
 def _shap_values_to_df(
     model: BaseEstimator,
     X: pd.DataFrame,
     precalc_shap: Optional[np.ndarray] = None,
-    feature: Optional[str] = None,
+    class_selection: Optional[Any] = None,
     multiclass_aggregation: Optional[Literal["max_abs", "variance", "mean_abs"]] = None,
+    weight_type: Optional[Union[Literal["frequency"], Dict[Any, float]]] = None,
     **kwargs: Any,
 ) -> pd.DataFrame:
     """
@@ -524,10 +697,11 @@ def _shap_values_to_df(
             Precalculated SHAP values. If None, they are computed using the shap_calc function.
             Default is None.
 
-        feature (Optional[str], optional):
-            Feature to format. If None, all features are formatted.
-            For multiclass models, this can be a class name/index to return SHAP values
-            for that specific class only.
+        class_selection (Optional[Any], optional):
+            For multiclass models only: class name or index to select SHAP values for.
+            This extracts values for a single specific class instead of aggregating
+            across classes. Ignored for binary classification or regression models.
+            Default is None (no specific class selected).
 
         multiclass_aggregation (Optional[Literal["max_abs", "variance", "mean_abs"]], optional):
             Method to aggregate SHAP values across classes for multiclass models:
@@ -548,6 +722,26 @@ def _shap_values_to_df(
               contributions from canceling each other out.
 
             Default is None (uses first class for multiclass).
+
+        weight_type (Optional[Union[Literal["frequency"], Dict[Any, float]]], optional):
+            Determines how to weight SHAP values across classes in multiclass scenarios:
+
+            - 'frequency': Uses equal weights for all classes (1/n_classes). This is useful
+              when all classes are equally important regardless of their frequency in the data.
+
+            - dict: Dictionary with class names/indices as keys and weights as values for
+              custom weighting. This allows for precise control over the importance of each class.
+
+            The weighting is valuable in multiclass scenarios:
+                - When certain classes are more critical to predict correctly, you can
+                  emphasize their importance.
+                - When classes are imbalanced, you can balance their influence on the overall
+                  feature importance.
+                - Example: For a 5-class problem with imbalanced classes, you might use
+                  `{0: 0.1, 1: 0.3, 2: 0.1, 3: 0.4, 4: 0.1}` to prioritize classes 1 and 3.
+
+            Default is None (no weighting). Note: This parameter is only applicable for
+            multiclass models and has no effect on binary classification.
 
         **kwargs:
             Additional keyword arguments passed to the shap_calc function if
@@ -575,8 +769,9 @@ def _shap_values_to_df(
             shap_explanation=shap_explanation,
             model=model,
             X=X,
-            feature=feature,
+            class_selection=class_selection,
             multiclass_aggregation=multiclass_aggregation,
+            weight_type=weight_type,
         )
 
     # Create DataFrame from SHAP values
