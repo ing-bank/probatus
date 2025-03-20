@@ -2,7 +2,6 @@ import numpy as np
 import pandas as pd
 import pytest
 import shap
-from unittest.mock import patch, MagicMock
 from sklearn.ensemble import RandomForestClassifier
 
 from probatus.utils.shap import (
@@ -254,28 +253,38 @@ def test_format_shap_values_with_weights(multi_classification_data, weight_type,
     assert len(weighted_values.shape) == 2
 
 
-def test_format_shap_values_invalid_weight_type():
+def test_format_shap_values_invalid_weight_type(multi_classification_data):
     """Test _format_shap_values with an invalid weight_type."""
-    # Create a mock Explanation object with multiclass data (3D)
-    mock_explanation = MagicMock()
-    mock_explanation.values = np.random.rand(10, 5, 3)
-    mock_explanation.output_names = [0, 1, 2]  # Class names
+    # Create a real multiclass model and SHAP explanation instead of a mock
+    X, y = multi_classification_data
+    model = RandomForestClassifier(random_state=42, n_estimators=2)
+    model.fit(X, y)
+
+    # Generate real SHAP values
+    shap_explanation = calculate_shap_explanation(model=model, X=X, return_explainer=False, random_state=42)
 
     # Try to format with an invalid weight_type
     with pytest.raises(ValueError, match="Unsupported weight_type"):
-        _format_shap_values(mock_explanation, weight_type="invalid_type")
+        _format_shap_values(shap_explanation, weight_type="invalid_type")
 
 
-def test_format_shap_values_invalid_class_selection():
+def test_format_shap_values_invalid_class_selection(multi_classification_data):
     """Test _format_shap_values with an invalid class selection."""
-    # Create a mock Explanation object
-    mock_explanation = MagicMock()
-    mock_explanation.values = np.random.rand(10, 5, 3)
-    mock_explanation.output_names = [0, 1, 2]  # Class names
+    # Create a real multiclass model and SHAP explanation instead of a mock
+    X, y = multi_classification_data
+    model = RandomForestClassifier(random_state=42, n_estimators=2)
+    model.fit(X, y)
+
+    # Generate real SHAP values
+    shap_explanation = calculate_shap_explanation(model=model, X=X, return_explainer=False, random_state=42)
+
+    # Get the highest class number from the output_names and add 1 to ensure it's invalid
+    max_class = max(shap_explanation.output_names)
+    invalid_class = max_class + 1 if isinstance(max_class, int) else len(shap_explanation.output_names)
 
     # Try to format with an invalid class selection
-    with pytest.raises(ValueError, match="Class '3' not found in model classes"):
-        _format_shap_values(mock_explanation, class_selection=3)
+    with pytest.raises(ValueError, match=f"Class '{invalid_class}' not found in model classes"):
+        _format_shap_values(shap_explanation, class_selection=invalid_class)
 
 
 @pytest.mark.parametrize(
