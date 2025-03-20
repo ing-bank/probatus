@@ -19,8 +19,10 @@ from probatus.utils import (
     preprocess_labels,
     get_single_scorer,
     calculate_shap_explanation,
+    Scorer,
+    extract_shap_multiclass_params,
+    shap_explanation_to_shap_df,
 )
-from probatus.utils import Scorer
 
 
 class ShapRFECV(BaseFitComputePlotClass):
@@ -900,7 +902,12 @@ class ShapRFECV(BaseFitComputePlotClass):
                 Default is `None`.
 
             **shap_kwargs (Any):
-                Additional keyword arguments passed to SHAP explainer.
+                Additional arguments passed to:
+                1. SHAP Explainer - parameters like 'approximate' and 'check_additivity'
+                2. SHAP values multi-classification conversion - parameters like 'class_selection', 'multiclass_aggregation', and 'weight_type'
+
+                The conversion parameters are extracted internally and control how SHAP values are processed
+                for multiclass models.
 
         Returns:
             Tuple[pd.DataFrame, float, float]:
@@ -923,12 +930,22 @@ class ShapRFECV(BaseFitComputePlotClass):
         score_train = self.scorer.score(model, X_train, y_train)
         score_val = self.scorer.score(model, X_val, y_val)
 
+        # Split arguments for multi-classification
+        multi_class_kwargs, shap_kwargs = extract_shap_multiclass_params(shap_kwargs)
+
         # Calculate SHAP values for validation set
-        shap_values = calculate_shap_explanation(
+        shap_explanation_val = calculate_shap_explanation(
             model, X_val, return_explainer=False, verbose=self.verbose, random_state=self.random_state, **shap_kwargs
         )
 
-        return shap_values, score_train, score_val
+        shap_values_val = shap_explanation_to_shap_df(
+            shap_explanation=shap_explanation_val,
+            model=model,
+            X=X_val,
+            **multi_class_kwargs,
+        )
+
+        return shap_values_val, score_train, score_val
 
     def _filter_and_identify_features_based_on_importance(
         self, shap_importance_df: pd.DataFrame, columns_to_keep: Optional[List[str]], current_features_set: List[str]
@@ -1514,7 +1531,12 @@ class ShapRFECV(BaseFitComputePlotClass):
                 Default is `None`.
 
             **shap_kwargs (Any):
-                Additional keyword arguments passed to `shap.Explainer`.
+                Additional arguments passed to:
+                1. SHAP Explainer - parameters like 'approximate' and 'check_additivity'
+                2. SHAP values multi-classification conversion - parameters like 'class_selection', 'multiclass_aggregation', and 'weight_type'
+
+                The conversion parameters are extracted internally and control how SHAP values are processed
+                for multiclass models.
 
         Returns:
             Tuple[np.ndarray, float, float]:
@@ -1569,9 +1591,19 @@ class ShapRFECV(BaseFitComputePlotClass):
         score_train = self.scorer.score(model, X_train, y_train)
         score_val = self.scorer.score(model, X_val, y_val)
 
+        # Split arguments for multi-classification
+        multi_class_kwargs, shap_kwargs = extract_shap_multiclass_params(shap_kwargs)
+
         # Calculate SHAP values for validation set
-        shap_values = calculate_shap_explanation(
+        shap_explanation_val = calculate_shap_explanation(
             model, X_val, return_explainer=False, verbose=self.verbose, random_state=self.random_state, **shap_kwargs
         )
 
-        return shap_values, score_train, score_val
+        shap_values_val = shap_explanation_to_shap_df(
+            shap_explanation=shap_explanation_val,
+            model=model,
+            X=X_val,
+            **multi_class_kwargs,
+        )
+
+        return shap_values_val, score_train, score_val

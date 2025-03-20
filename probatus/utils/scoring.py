@@ -1,5 +1,6 @@
-from typing import Union, Any, Callable, Optional
+from typing import Union, Callable, Optional
 from sklearn.metrics import get_scorer
+from sklearn.base import BaseEstimator
 import pandas as pd
 
 
@@ -111,7 +112,7 @@ class Scorer:
                     f"Please provide a valid metric name or a custom scorer."
                 ) from e
 
-    def score(self, model: Any, X: pd.DataFrame, y: pd.Series) -> float:
+    def score(self, model: BaseEstimator, X: pd.DataFrame, y: pd.Series) -> float:
         """
         Score a model on the provided data using the configured metric.
 
@@ -119,7 +120,7 @@ class Scorer:
         on the given feature data and target labels.
 
         Args:
-            model (Any):
+            model (BaseEstimator):
                 The trained model to be evaluated. Must implement a predict or predict_proba
                 method depending on the scoring metric requirements.
 

@@ -96,8 +96,8 @@ def test_fit_compute_logistic_regression(
     assert shap_interpret.test_score == 1.0
 
     # Check expected shap values
-    assert (np.round(np.mean(np.abs(shap_interpret.shap_values_test), axis=0), 2) == [0, 0, 0.53]).all()
-    assert (np.round(np.mean(np.abs(shap_interpret.shap_values_train), axis=0), 2) == [0, 0, 0.4]).all()
+    assert (np.round(np.mean(np.abs(shap_interpret.shap_explanation_test.values), axis=0), 2) == [0, 0, 0.53]).all()
+    assert (np.round(np.mean(np.abs(shap_interpret.shap_explanation_train.values), axis=0), 2) == [0, 0, 0.4]).all()
 
     pd.testing.assert_frame_equal(
         expected_feature_importance_lin_models.round(2), importance_df.round(2), check_exact=False, rtol=1e-2
@@ -142,6 +142,7 @@ def test_select_target_dataset(fitted_tree, X_train, y_train, X_test, y_test, ra
     train_data = shap_interpret._select_target_dataset("train")
     assert train_data["X"] is shap_interpret.X_train
     assert train_data["shap_values"] is shap_interpret.shap_values_train
+    assert train_data["shap_explanation"] is shap_interpret.shap_explanation_train
     assert train_data["expected_value"] == shap_interpret.expected_value_train
     assert train_data["tdp"] is shap_interpret.tdp_train
 
@@ -149,5 +150,6 @@ def test_select_target_dataset(fitted_tree, X_train, y_train, X_test, y_test, ra
     test_data = shap_interpret._select_target_dataset("test")
     assert test_data["X"] is shap_interpret.X_test
     assert test_data["shap_values"] is shap_interpret.shap_values_test
+    assert test_data["shap_explanation"] is shap_interpret.shap_explanation_test
     assert test_data["expected_value"] == shap_interpret.expected_value_test
     assert test_data["tdp"] is shap_interpret.tdp_test

@@ -338,7 +338,7 @@ def complex_data_split_with_categorical(complex_data_split):
 
 
 @pytest.fixture(scope="function")
-def dependencies_classification_data():
+def dependencies_binary_classification_data():
     """Create synthetic classification data for dependency testing."""
     # Re-implement the same functionality as classification_data
     X, y = make_classification(n_samples=100, n_features=5, n_informative=3, n_redundant=1, random_state=42)
@@ -556,9 +556,9 @@ def fitted_tree(X_train, y_train, decision_tree_classifier):
 
 
 @pytest.fixture(scope="function")
-def dependencies_classification_model(dependencies_classification_data, random_state):
+def dependencies_classification_model(dependencies_binary_classification_data, random_state):
     """Create a trained random forest model for dependency testing."""
-    X, y = dependencies_classification_data
+    X, y = dependencies_binary_classification_data
     model = RandomForestClassifier(random_state=random_state, n_estimators=10)
     model.fit(X, y)
     return model
@@ -731,9 +731,9 @@ def results_report_df():
 
 
 @pytest.fixture(scope="function")
-def dependencies_fitted_classifier_plotter(dependencies_classification_model, dependencies_classification_data):
+def dependencies_fitted_classifier_plotter(dependencies_classification_model, dependencies_binary_classification_data):
     """Return a fitted DependencePlotter instance with a classification model."""
-    X, y = dependencies_classification_data
+    X, y = dependencies_binary_classification_data
     from probatus.model import DependencePlotter
 
     plotter = DependencePlotter(dependencies_classification_model)

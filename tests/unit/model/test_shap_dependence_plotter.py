@@ -7,9 +7,9 @@ from probatus.model.shap_dependence_plotter import DependencePlotter
 from probatus.core import NotFittedError
 
 
-def test_dependence_plotter_fit(dependencies_classification_model, dependencies_classification_data):
+def test_dependence_plotter_fit(dependencies_classification_model, dependencies_binary_classification_data):
     """Test fitting the plotter with a classification model."""
-    X, y = dependencies_classification_data
+    X, y = dependencies_binary_classification_data
     plotter = DependencePlotter(dependencies_classification_model)
 
     # Test basic fit
@@ -19,7 +19,7 @@ def test_dependence_plotter_fit(dependencies_classification_model, dependencies_
     assert hasattr(plotter, "shap_values")
     # Shap values can be a DataFrame or a numpy array
     assert isinstance(plotter.shap_values, (np.ndarray, pd.DataFrame))
-    assert plotter.shap_values.shape == (X.shape[0], X.shape[1], len(set(y)))
+    assert plotter.shap_values.shape == X.shape
 
     # Test fit with precalculated SHAP values
     precalc_shap = pd.DataFrame(np.random.rand(*X.shape), columns=X.columns)
@@ -31,9 +31,9 @@ def test_dependence_plotter_fit(dependencies_classification_model, dependencies_
         assert plotter.shap_values.equals(precalc_shap)
 
 
-def test_class_names_integration(dependencies_classification_model, dependencies_classification_data):
+def test_class_names_integration(dependencies_classification_model, dependencies_binary_classification_data):
     """Test the integration of class_names handling in fit and plotting methods."""
-    X, y = dependencies_classification_data
+    X, y = dependencies_binary_classification_data
 
     # Create test data with multi-class scenario (3 classes)
     multi_y = pd.Series(np.random.choice([0, 1, 2], size=len(y)))
@@ -59,9 +59,9 @@ def test_class_names_integration(dependencies_classification_model, dependencies
     assert plotter.class_names == ["Ape", "Lion", "Bear"]
 
 
-def test_dependence_plotter_plot(dependencies_fitted_classifier_plotter, dependencies_classification_data):
+def test_dependence_plotter_plot(dependencies_fitted_classifier_plotter, dependencies_binary_classification_data):
     """Test plot method creates a figure with expected components."""
-    X, _ = dependencies_classification_data
+    X, _ = dependencies_binary_classification_data
 
     # Test plot with feature name string
     fig = dependencies_fitted_classifier_plotter.plot(feature="feature_0", show=False)
@@ -122,10 +122,10 @@ def test_dependence_plotter_target_rate_plot(dependencies_fitted_classifier_plot
 
 
 def test_dependence_plotter_get_X_y_shap_with_q_cut(
-    dependencies_fitted_classifier_plotter, dependencies_classification_data
+    dependencies_fitted_classifier_plotter, dependencies_binary_classification_data
 ):
     """Test _get_X_y_shap_with_q_cut internal method."""
-    X, _ = dependencies_classification_data
+    X, _ = dependencies_binary_classification_data
     feature = "feature_0"
 
     # Test with default quantile range (0, 1)

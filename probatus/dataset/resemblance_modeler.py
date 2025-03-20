@@ -22,6 +22,7 @@ from probatus.utils import (
     calculate_shap_importance,
     calculate_shap_explanation,
     shap_explanation_to_shap_df,
+    extract_shap_multiclass_params,
 )
 
 
@@ -768,11 +769,13 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
                 Default is ["First Sample", "Second Sample"].
                 Must be a list of length 2.
 
-            **shap_kwargs (Any): Additional arguments passed to the SHAP explainer.
-                See https://shap.readthedocs.io/en/latest/generated/shap.Explainer.html
-                Important options include:
-                - approximate: If True, uses faster but less accurate SHAP calculation
-                - check_additivity: If False, disables additivity check in SHAP
+            **shap_kwargs (Any):
+                Additional arguments passed to:
+                1. SHAP Explainer - parameters like 'approximate' and 'check_additivity'
+                2. SHAP values multi-classification conversion - parameters like 'class_selection', 'multiclass_aggregation', and 'weight_type'
+
+                The conversion parameters are extracted internally and control how SHAP values are processed
+                for multiclass models.
 
         Returns:
             SHAPImportanceResemblance: The fitted model instance with calculated SHAP values.
@@ -786,6 +789,9 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
             RuntimeError: If model is not tree-based or SHAP calculation fails.
         """
         super().fit(X1=X1, X2=X2, column_names=column_names, class_names=class_names)
+
+        # Split arguments for multi-classification
+        multi_class_kwargs, shap_kwargs = extract_shap_multiclass_params(shap_kwargs)
 
         # Calculate SHAP values for test set
         # SHAP values explain each feature's contribution to model predictions
@@ -801,6 +807,7 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
             shap_explanation=self.shap_explanation_test,
             model=self.model,
             X=self.X_test,
+            **multi_class_kwargs,
         )
 
         # Calculate feature importance from SHAP values
@@ -868,14 +875,17 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
 
         # Create SHAP summary plot
         # This creates its own figure and axes internally
-        ax = bar(self.shap_explanation_test, show=False)
-        # summary_plot(
-        #     plot_type=plot_type,
-        #     class_names=self.class_names,
-        #     show=False,  # Don't show yet, we'll add annotations first
-        #     feature_names=self.column_names,
-        #     **summary_plot_kwargs,
-        # )
+        from shap import summary_plot
+
+        summary_plot(
+            self.shap_values_test,
+            self.X_test,
+            plot_type="bar",
+            class_names=self.class_names,
+            show=False,  # Don't show yet, we'll add annotations first
+            feature_names=self.column_names,
+            **summary_plot_kwargs,
+        )
 
         # Get the figure and axes created by summary_plot
         fig, ax = plt.gcf(), plt.gca()

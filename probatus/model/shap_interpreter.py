@@ -6,6 +6,7 @@ from shap import Explanation
 from shap.plots import waterfall, bar
 from typing import Any, Dict, List, Optional, Tuple, Union, Literal
 from matplotlib.figure import Figure
+from sklearn.base import BaseEstimator
 
 from probatus.model.shap_dependence_plotter import DependencePlotter
 from probatus.core import BaseFitComputePlotClass
@@ -15,10 +16,12 @@ from probatus.utils import (
     preprocess_data,
     preprocess_labels,
     get_single_scorer,
-    calculate_shap_explanation,
     Scorer,
     is_regression_model,
     handle_class_names,
+    shap_explanation_to_shap_df,
+    extract_shap_multiclass_params,
+    prep_shap_related_variables,
 )
 
 
@@ -91,7 +94,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
 
     def __init__(
         self,
-        model: Any,
+        model: BaseEstimator,
         scoring: Union[str, Scorer] = "roc_auc",
         verbose: Literal[0, 1, 2] = 0,
         random_state: Optional[int] = None,
@@ -100,7 +103,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
         Initialize a ShapModelInterpreter object.
 
         Args:
-            model (Any):
+            model (BaseEstimator):
                 The trained model to be interpreted. Must implement either predict or predict_proba
                 method depending on the scoring metric requirements.
 
@@ -205,35 +208,50 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
             f"Test {self.scorer.metric_name}: {np.round(self.test_score, 3)}."
         )
 
+        # Split arguments for multi-classification
+        multi_class_kwargs, shap_kwargs = extract_shap_multiclass_params(shap_kwargs)
+
         # Calculate SHAP values and related variables for training data
-        (
-            self.shap_values_train,
-            self.expected_value_train,
-            self.tdp_train,
-        ) = self._prep_shap_related_variables(
+        self.shap_explanation_train, self.expected_value_train = prep_shap_related_variables(
             model=self.model,
             X=self.X_train,
-            y=self.y_train,
-            column_names=self.column_names,
-            class_names=self.class_names,
             verbose=self.verbose,
             random_state=self.random_state,
             **shap_kwargs,
         )
+        self.shap_values_train = shap_explanation_to_shap_df(
+            self.shap_explanation_train, self.model, self.X_train, **multi_class_kwargs
+        )
 
-        # Calculate SHAP values and related variables for test data
-        (
-            self.shap_values_test,
-            self.expected_value_test,
-            self.tdp_test,
-        ) = self._prep_shap_related_variables(
-            model=self.model,
-            X=self.X_test,
-            y=self.y_test,
+        # Initialize and fit the dependence plotter for training data
+        self.tdp_train = DependencePlotter(self.model, verbose=self.verbose).fit(
+            self.X_train,
+            self.y_train,
             column_names=self.column_names,
             class_names=self.class_names,
+            precalc_shap=self.shap_values_train,
+            **shap_kwargs,
+        )
+
+        # Calculate SHAP values and related variables for test data
+        self.shap_explanation_test, self.expected_value_test = prep_shap_related_variables(
+            model=self.model,
+            X=self.X_test,
             verbose=self.verbose,
             random_state=self.random_state,
+            **shap_kwargs,
+        )
+        self.shap_values_test = shap_explanation_to_shap_df(
+            self.shap_explanation_test, self.model, self.X_test, **multi_class_kwargs
+        )
+
+        # Initialize and fit the dependence plotter for test data
+        self.tdp_test = DependencePlotter(self.model, verbose=self.verbose).fit(
+            self.X_test,
+            self.y_test,
+            column_names=self.column_names,
+            class_names=self.class_names,
+            precalc_shap=self.shap_values_test,
             **shap_kwargs,
         )
 
@@ -241,88 +259,6 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
 
         # Return self for method chaining
         return self
-
-    def _prep_shap_related_variables(
-        model: Any,
-        X: pd.DataFrame,
-        y: pd.Series,
-        approximate: bool = False,
-        verbose: Literal[0, 1, 2] = 0,
-        random_state: Optional[int] = None,
-        column_names: Optional[List[str]] = None,
-        class_names: Optional[Union[List[str], Dict[Union[int, str], str]]] = None,
-        **shap_kwargs: Any,
-    ) -> Tuple[Explanation, float, DependencePlotter]:
-        """
-        Prepare SHAP-related variables used for model interpretation.
-
-        This helper method calculates SHAP values, extracts the expected value,
-        and initializes a DependencePlotter for a given dataset.
-
-        Args:
-            model (Any):
-                The trained model to interpret. Must implement either predict or predict_proba
-                method depending on the analysis requirements.
-
-            X (pd.DataFrame):
-                Feature data, of shape (n_samples, n_features).
-
-            y (pd.Series):
-                Target labels, of shape (n_samples,).
-
-            approximate (bool, default=False):
-                If True, uses faster but less accurate SHAP calculation.
-
-            verbose (Literal[0, 1, 2], optional):
-                Controls the level of output messages:
-                - `0`: No output or warnings.
-                - `1`: Only important warnings.
-                - `2`: All warnings and detailed logs.
-                - Default is `0`.
-
-            random_state (Optional[int], default=None):
-                Random state for reproducibility.
-
-            column_names (Optional[List[str]], default=None):
-                List of feature names. If None, column names from X are used.
-
-            class_names (Optional[List[str]], default=None):
-                List of class names. If None, default class names are used.
-
-            **shap_kwargs:
-                Additional keyword arguments passed to shap.Explainer.
-
-        Returns:
-            Tuple[Explanation, float, DependencePlotter]:
-                - SHAP explanation object
-                - Expected value of the explainer
-                - Fitted DependencePlotter instance
-        """
-        # Calculate SHAP values and get the explainer
-        shap_explanation, explainer = calculate_shap_explanation(
-            model,
-            X,
-            return_explainer=True,
-            approximate=approximate,
-            verbose=verbose,
-            random_state=random_state,
-            **shap_kwargs,
-        )
-        expected_value = explainer.expected_value
-
-        # For sklearn models, the expected value consists of n elements
-        if isinstance(expected_value, (list, np.ndarray)):
-            expected_value = expected_value[0]
-
-        # Initialize and fit the dependence plotter for visualizing feature interactions
-        dependence_plotter = DependencePlotter(model, verbose=verbose).fit(
-            X,
-            y,
-            column_names=column_names,
-            class_names=class_names,
-            precalc_shap=shap_explanation,
-        )
-        return shap_explanation, expected_value, dependence_plotter
 
     def compute(
         self, return_scores: bool = False, shap_variance_penalty_factor: Optional[float] = None
@@ -589,7 +525,8 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
         Returns:
             dict: Dictionary containing the selected dataset components:
                 - "X": Feature data (pd.DataFrame)
-                - "shap_values": SHAP values (np.ndarray)
+                - "shap_values": SHAP values (pd.DataFrame)
+                - "shap_explanation": Raw SHAP explanation object
                 - "tdp": DependencePlotter instance
                 - "expected_value": Expected value for SHAP calculations
 
@@ -600,6 +537,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
             return {
                 "X": self.X_test,
                 "shap_values": self.shap_values_test,
+                "shap_explanation": self.shap_explanation_test,
                 "tdp": self.tdp_test,
                 "expected_value": self.expected_value_test,
             }
@@ -607,6 +545,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
             return {
                 "X": self.X_train,
                 "shap_values": self.shap_values_train,
+                "shap_explanation": self.shap_explanation_train,
                 "tdp": self.tdp_train,
                 "expected_value": self.expected_value_train,
             }
@@ -684,7 +623,9 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
                 **plot_kwargs,
             )
         else:
-            ax = bar(
+            # Use summary_plot for both importance and summary plots
+            # It supports both "bar" and "dot" plot types
+            summary_plot(
                 target_shap_values,
                 target_X,
                 plot_type=plot_style,
@@ -692,14 +633,6 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
                 show=False,
                 **plot_kwargs,
             )
-            # summary_plot(
-            #     target_shap_values,
-            #     target_X,
-            #     plot_type=plot_style,
-            #     class_names=self.class_names,
-            #     show=False,
-            #     **plot_kwargs,
-            # )
 
         # Get the current figure and adjust layout to make room for title
         fig = plt.gcf()

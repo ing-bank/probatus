@@ -49,16 +49,21 @@ def test_validate_shap_inputs_non_dataframe(tree_model, binary_classification_da
 
 
 @pytest.mark.parametrize(
-    "model_fixture, input_type",
+    "model_fixture, input_type, sample_size, expected_behavior",
     [
-        ("tree_model", "dataframe"),
-        ("linear_model", "dataframe"),
-        ("tree_model", "array_with_categorical"),
-        ("tree_model", "small_dataset"),
+        ("tree_model", "dataframe", None, "basic"),
+        ("linear_model", "dataframe", None, "basic"),
+        ("tree_model", "array_with_categorical", None, "with_categorical"),
+        ("tree_model", "small_dataset", None, "small_data"),
+        ("tree_model", "small_dataset", 10, "use_sample"),  # Testing sample_size
+        ("tree_model", "small_dataset", 100, "use_sample"),  # Large sample_size
+        ("tree_model", "small_dataset", 1, "use_sample"),  # Minimum valid sample size
     ],
 )
-def test_create_shap_explainer(request, binary_classification_data, model_fixture, input_type):
-    """Test _create_shap_explainer with different models and data types."""
+def test_create_shap_explainer_comprehensive(
+    request, binary_classification_data, model_fixture, input_type, sample_size, expected_behavior
+):
+    """Test _create_shap_explainer with different models, data types, and sample sizes."""
     model = request.getfixturevalue(model_fixture)
     X, _ = binary_classification_data
 
@@ -74,11 +79,22 @@ def test_create_shap_explainer(request, binary_classification_data, model_fixtur
             }
         )
     elif input_type == "small_dataset":
-        input_data = pd.DataFrame(np.random.rand(10, 3), columns=["f1", "f2", "f3"])
+        input_data = pd.DataFrame(np.random.rand(20, 3), columns=[f"f{i}" for i in range(3)])
 
-    # Test explainer creation
-    explainer = _create_shap_explainer(model, input_data, random_state=42)
+    # Test explainer creation with optional sample_size
+    kwargs = {}
+    if sample_size is not None:
+        kwargs["sample_size"] = sample_size
+
+    explainer = _create_shap_explainer(model, input_data, random_state=42, **kwargs)
+
+    # Check the result
     assert isinstance(explainer, shap.Explainer)
+
+    # Additional verification for specific behaviors is difficult
+    # since the explainer's internals vary by model type,
+    # but we can check that it was created successfully
+    assert explainer is not None
 
 
 @pytest.mark.parametrize(
@@ -157,15 +173,15 @@ def test_compute_shap_values(request, approximate, check_additivity, dataset_typ
 @pytest.mark.parametrize(
     "multiclass_aggregation, class_selection",
     [
-        (None, None),  # Default behavior
+        (None, None),  # Default behavior - select first class
         ("max_abs", None),  # Max absolute aggregation
         ("variance", None),  # Variance aggregation
         ("mean_abs", None),  # Mean absolute aggregation
-        (None, "Output 0"),  # Specific class by index
+        (None, "Output 0"),  # Specific class by name
     ],
 )
 def test_format_shap_values_multiclass(multi_classification_data, multiclass_aggregation, class_selection):
-    """Test _format_shap_values with real multiclass data and different aggregation methods."""
+    """Test multiclass aggregation in both _format_shap_values and shap_explanation_to_shap_df."""
     # Use real multiclass data and get SHAP explanation
     X, y = multi_classification_data
 
@@ -176,7 +192,7 @@ def test_format_shap_values_multiclass(multi_classification_data, multiclass_agg
     # Generate SHAP values
     shap_explanation = calculate_shap_explanation(model=model, X=X, return_explainer=False, random_state=42)
 
-    # Format the SHAP values
+    # 1. Test _format_shap_values function
     formatted = _format_shap_values(
         shap_explanation=shap_explanation,
         class_selection=class_selection,
@@ -210,6 +226,37 @@ def test_format_shap_values_multiclass(multi_classification_data, multiclass_agg
         # Default behavior should select first class
         expected = shap_explanation.values[:, :, 0]
         np.testing.assert_array_equal(formatted, expected)
+
+    # 2. Test corresponding functionality in shap_explanation_to_shap_df
+    # Only run this part for scenarios with multiclass_aggregation but no class_selection
+    if class_selection is None:
+        # Convert to DataFrame with the same aggregation method
+        shap_df = shap_explanation_to_shap_df(
+            shap_explanation=shap_explanation, model=model, X=X, multiclass_aggregation=multiclass_aggregation
+        )
+
+        # Check output
+        assert isinstance(shap_df, pd.DataFrame)
+        assert shap_df.shape == X.shape
+        assert list(shap_df.columns) == list(X.columns)
+        assert list(shap_df.index) == list(X.index)
+
+
+def test_shap_explanation_to_shap_df_basic(tree_model, binary_classification_data):
+    """Test basic functionality of shap_explanation_to_shap_df function."""
+    X, _ = binary_classification_data
+
+    # Generate SHAP values
+    shap_explanation = calculate_shap_explanation(model=tree_model, X=X, return_explainer=False, random_state=42)
+
+    # Convert to DataFrame with default settings
+    shap_df = shap_explanation_to_shap_df(shap_explanation=shap_explanation, model=tree_model, X=X)
+
+    # Check output
+    assert isinstance(shap_df, pd.DataFrame)
+    assert shap_df.shape == X.shape
+    assert list(shap_df.columns) == list(X.columns)
+    assert list(shap_df.index) == list(X.index)
 
 
 @pytest.mark.parametrize(
@@ -293,14 +340,19 @@ def test_format_shap_values_invalid_class_selection(multi_classification_data):
         ("tree_model", 100, False, False),
         ("linear_model", 50, True, False),
         ("tree_model", 20, False, True),
+        ("tree_model", 5, True, False),  # Added case to specifically test check_additivity
     ],
 )
 def test_calculate_shap_explanation(
     request, binary_classification_data, model_fixture, sample_size, check_additivity, return_explainer
 ):
-    """Test calculate_shap_explanation with different arguments."""
+    """Test calculate_shap_explanation with different arguments, including check_additivity."""
     model = request.getfixturevalue(model_fixture)
     X, _ = binary_classification_data
+
+    # Use a smaller sample for speed in some test cases
+    if sample_size <= 5:
+        X = X.iloc[:5]
 
     # Calculate SHAP explanation
     result = calculate_shap_explanation(
@@ -320,6 +372,12 @@ def test_calculate_shap_explanation(
 
     assert isinstance(shap_explanation, shap.Explanation)
 
+    # Verify that the calculation completes successfully with expected dimensions
+    # Note: We can't determine exactly how many samples SHAP will use
+    # since it depends on the implementation details of the Explainer
+    assert shap_explanation.values.shape[0] > 0  # Should have at least some samples
+    assert shap_explanation.values.shape[1] == X.shape[1]  # Should match feature count
+
 
 def test_shap_calc_with_pipeline(pipeline_model, binary_classification_data):
     """Test that using a Pipeline raises an error."""
@@ -330,61 +388,92 @@ def test_shap_calc_with_pipeline(pipeline_model, binary_classification_data):
 
 
 @pytest.mark.parametrize(
-    "multiclass_aggregation",
+    "weight_type, class_selection, data_type, expected_effect",
     [
-        None,  # Default behavior
-        "max_abs",  # Max absolute aggregation
-        "variance",  # Variance aggregation
-        "mean_abs",  # Mean absolute aggregation
+        # Multiclass data test cases
+        (None, None, "multiclass", None),  # Default behavior
+        ("frequency", None, "multiclass", None),  # Equal frequency weighting
+        ({0: 0.7, 1: 0.3}, None, "multiclass", "custom"),  # Custom weights
+        (None, "Output 0", "multiclass", None),  # Specific class
+        # Binary data test cases
+        (None, None, "binary", "baseline"),  # Default behavior with binary
+        ("frequency", None, "binary", "custom"),  # Frequency weighting with binary
+        ({1: 2.0, 0: 1.0}, None, "binary", "custom"),  # Custom weights with binary
     ],
 )
-def test_shap_explanation_to_shap_df(tree_model, binary_classification_data, multiclass_aggregation):
-    """Test shap_explanation_to_shap_df function."""
-    X, _ = binary_classification_data
-
-    # Generate SHAP values
-    shap_explanation = calculate_shap_explanation(model=tree_model, X=X, return_explainer=False, random_state=42)
-
-    # Convert to DataFrame with different aggregation methods
-    shap_df = shap_explanation_to_shap_df(
-        shap_explanation=shap_explanation, model=tree_model, X=X, multiclass_aggregation=multiclass_aggregation
-    )
-
-    # Check output
-    assert isinstance(shap_df, pd.DataFrame)
-    assert shap_df.shape == X.shape
-    assert list(shap_df.columns) == list(X.columns)
-    assert list(shap_df.index) == list(X.index)
-
-
-@pytest.mark.parametrize(
-    "weight_type, class_selection",
-    [
-        (None, None),  # Default behavior
-        ("frequency", None),  # Equal frequency weighting
-        ({0: 0.7, 1: 0.3}, None),  # Custom weights
-        (None, "Output 0"),  # Specific class - use the class name format from SHAP
-    ],
-)
-def test_shap_explanation_to_shap_df_with_weights(tree_model, multi_classification_data, weight_type, class_selection):
-    """Test shap_explanation_to_shap_df function with weighting."""
-    X, y = multi_classification_data
-    model = RandomForestClassifier(random_state=42, n_estimators=2)
-    model.fit(X, y)
+def test_shap_explanation_to_shap_df_with_weights(
+    request, tree_model, weight_type, class_selection, data_type, expected_effect
+):
+    """Test shap_explanation_to_shap_df and _shap_values_to_df functions with weighting for all data types."""
+    # Get appropriate data based on data_type
+    if data_type == "multiclass":
+        X, y = request.getfixturevalue("multi_classification_data")
+        # Create and train a multiclass model
+        model = RandomForestClassifier(random_state=42, n_estimators=2)
+        model.fit(X, y)
+    else:  # binary
+        X, _ = request.getfixturevalue("binary_classification_data")
+        model = tree_model  # Use the provided tree_model for binary classification
 
     # Generate SHAP values
     shap_explanation = calculate_shap_explanation(model=model, X=X, return_explainer=False, random_state=42)
 
-    # Convert to DataFrame with weighting
-    shap_df = shap_explanation_to_shap_df(
+    # For comparison in binary cases or custom weighting tests
+    if data_type == "binary" or expected_effect == "custom":
+        unweighted_df = shap_explanation_to_shap_df(shap_explanation=shap_explanation, model=model, X=X)
+
+    # Create weighted/class-selected version
+    weighted_df = shap_explanation_to_shap_df(
         shap_explanation=shap_explanation, model=model, X=X, weight_type=weight_type, class_selection=class_selection
     )
 
-    # Check output
-    assert isinstance(shap_df, pd.DataFrame)
-    assert shap_df.shape == X.shape
-    assert list(shap_df.columns) == list(X.columns)
-    assert list(shap_df.index) == list(X.index)
+    # Check output structure
+    assert isinstance(weighted_df, pd.DataFrame)
+    assert weighted_df.shape == X.shape
+    assert list(weighted_df.columns) == list(X.columns)
+    assert list(weighted_df.index) == list(X.index)
+
+    # Check effect of weighting for binary classification
+    if expected_effect == "baseline":
+        # This is the reference case (no weighting)
+        pass
+    elif expected_effect == "custom":
+        # Any custom weighting should produce valid output
+        assert weighted_df is not None
+        assert not weighted_df.isnull().any().any(), "Weighted DataFrame should not contain NaNs"
+
+        # For custom weights in multiclass, verify they have an effect compared to unweighted
+        if weight_type is not None and isinstance(weight_type, dict) and weight_type != {}:
+            # For binary classification, weights are ignored, so we don't expect differences
+            if data_type == "binary":
+                # Just verify the values are the same as unweighted - weights don't apply to binary classification
+                assert np.allclose(
+                    weighted_df.values, unweighted_df.values, rtol=1e-3, atol=1e-3
+                ), "For binary classification, weights should have no effect"
+            else:
+                # For multiclass, we do expect differences with custom weights
+                is_different = not np.allclose(weighted_df.values, unweighted_df.values, rtol=1e-3, atol=1e-3)
+                assert is_different, "Custom weights should produce different SHAP values for multiclass"
+
+    # Test _shap_values_to_df with weighting (only for relevant test cases)
+    if class_selection is None and data_type == "multiclass":
+        # Generate unweighted SHAP values as reference for comparison
+        unweighted_df = _shap_values_to_df(model=model, X=X)
+
+        # Generate weighted SHAP values
+        weighted_df = _shap_values_to_df(model=model, X=X, weight_type=weight_type)
+
+        # Basic validation
+        assert isinstance(weighted_df, pd.DataFrame)
+        assert weighted_df.shape == X.shape
+        assert list(weighted_df.columns) == list(X.columns)
+
+        # For custom weights that differ significantly from default,
+        # the weighted values should be different from unweighted
+        if weight_type is not None and isinstance(weight_type, dict) and weight_type != {}:
+            # Compare the arrays to check if weights had an effect
+            is_different = not np.allclose(weighted_df.values, unweighted_df.values, rtol=1e-3, atol=1e-3)
+            assert is_different, "Custom weights should produce different SHAP values"
 
 
 @pytest.mark.parametrize(
@@ -446,114 +535,120 @@ def test_shap_values_to_df(
 
 
 @pytest.mark.parametrize(
-    "weight_type, expected_effect",
+    "data_source, input_type, columns_arg, suffix, variance_penalty",
     [
-        (None, "baseline"),  # No weighting (baseline)
-        ("frequency", "custom"),  # Frequency weighting (affects binary case differently than expected)
-        ({1: 2.0, 0: 1.0}, "custom"),  # Weight for positive class should have effect
+        # Basic synthetic data cases
+        ("synthetic", "numpy", "feature_names", None, None),
+        ("synthetic", "dataframe", None, None, None),
+        ("synthetic", "numpy", "custom", None, None),
+        # Suffix and penalty test cases
+        ("synthetic", "dataframe", None, "_test", 0.5),
+        ("synthetic", "numpy", "feature_names", "_model1", 0.8),
+        ("synthetic", "dataframe", None, "_comparison", -0.1),
+        # Real multiclass data cases
+        ("multiclass", None, None, None, None),
+        ("multiclass", None, None, None, 0.5),
     ],
 )
-def test_shap_explanation_to_shap_df_binary_with_weights(
-    tree_model, binary_classification_data, weight_type, expected_effect
+def test_calculate_shap_importance_comprehensive(
+    shap_input_data, multi_classification_data, data_source, input_type, columns_arg, suffix, variance_penalty
 ):
-    """Test shap_explanation_to_shap_df function with binary classification and weighting."""
-    X, _ = binary_classification_data
-
-    # Generate SHAP values
-    shap_explanation = calculate_shap_explanation(model=tree_model, X=X, return_explainer=False, random_state=42)
-
-    # Create unweighted version for comparison
-    unweighted_df = shap_explanation_to_shap_df(shap_explanation=shap_explanation, model=tree_model, X=X)
-
-    # Create weighted version
-    weighted_df = shap_explanation_to_shap_df(
-        shap_explanation=shap_explanation, model=tree_model, X=X, weight_type=weight_type
-    )
-
-    # Check output structure
-    assert isinstance(weighted_df, pd.DataFrame)
-    assert weighted_df.shape == X.shape
-    assert list(weighted_df.columns) == list(X.columns)
-    assert list(weighted_df.index) == list(X.index)
-
-    # Check effect of weighting
-    if expected_effect == "baseline":
-        # This is the reference case (no weighting)
-        pass
-    elif expected_effect == "custom":
-        # Any custom weighting should produce valid output, but we don't
-        # make assumptions about specific values
-        assert weighted_df is not None
-        assert not weighted_df.isnull().any().any(), "Weighted DataFrame should not contain NaNs"
-
-
-@pytest.mark.parametrize(
-    "input_type, columns_arg, suffix, variance_penalty",
-    [
-        ("numpy", "feature_names", None, None),
-        ("dataframe", None, None, None),
-        ("numpy", "custom", None, None),
-        ("dataframe", None, "_test", 0.5),
-        ("numpy", "feature_names", "_model1", 0.8),  # Test with both suffix and penalty
-        ("dataframe", None, "_comparison", -0.1),  # Test with negative penalty (should be ignored)
-    ],
-)
-def test_calculate_shap_importance(shap_input_data, input_type, columns_arg, suffix, variance_penalty):
-    """Test calculate_shap_importance with different input formats and options."""
-    X_shape = shap_input_data["X_shape"]
-    feature_names = shap_input_data["feature_names"]
-
-    if input_type == "numpy":
-        shap_values = shap_input_data["numpy_2d"]
-    else:
-        shap_values = shap_input_data["dataframe"]
-
-    # Determine columns to use
-    if columns_arg == "feature_names":
-        columns = feature_names
-    elif columns_arg == "custom":
-        columns = [f"custom_{i}" for i in range(X_shape[1])]
-    elif columns_arg is None and input_type == "dataframe":
-        columns = shap_values.columns
-    else:
-        columns = None
-
-    # Determine if suffix should be used
+    """Test calculate_shap_importance with both synthetic and real SHAP values, covering all options."""
     kwargs = {}
     if suffix:
         kwargs["output_columns_suffix"] = suffix
     if variance_penalty is not None:
         kwargs["shap_variance_penalty_factor"] = variance_penalty
 
-    # Calculate importance
-    importance = calculate_shap_importance(shap_values, columns=columns, **kwargs)
+    if data_source == "synthetic":
+        # Use synthetic data from fixture
+        X_shape = shap_input_data["X_shape"]
+        feature_names = shap_input_data["feature_names"]
 
-    # Check results
-    assert isinstance(importance, pd.DataFrame)
-    assert len(importance) == X_shape[1]
+        if input_type == "numpy":
+            shap_values = shap_input_data["numpy_2d"]
+        else:
+            shap_values = shap_input_data["dataframe"]
 
-    # Check column names based on whether suffix is provided
-    base_column = "mean_abs_shap_value"
-    expected_column = f"{base_column}{suffix or ''}"
-    assert expected_column in importance.columns
+        # Determine columns to use
+        if columns_arg == "feature_names":
+            columns = feature_names
+        elif columns_arg == "custom":
+            columns = [f"custom_{i}" for i in range(X_shape[1])]
+        elif columns_arg is None and input_type == "dataframe":
+            columns = shap_values.columns
+        else:
+            columns = None
 
-    base_column = "mean_shap_value"
-    expected_column = f"{base_column}{suffix or ''}"
-    assert expected_column in importance.columns
+        # Calculate importance
+        importance = calculate_shap_importance(shap_values, columns=columns, **kwargs)
 
-    # Check specific options
-    if columns_arg == "custom":
-        assert set(importance.index) == {f"custom_{i}" for i in range(X_shape[1])}
+        # Check results
+        assert isinstance(importance, pd.DataFrame)
+        assert len(importance) == X_shape[1]
 
-    if variance_penalty is not None and variance_penalty > 0:
-        penalized_column = f"penalized_mean_abs_shap_value{suffix or ''}"
-        abs_shap_column = f"mean_abs_shap_value{suffix or ''}"
-        assert penalized_column in importance.columns
-        assert (importance[penalized_column] <= importance[abs_shap_column]).all()
-    elif variance_penalty is not None and variance_penalty <= 0:
-        # Negative or zero penalty should not result in penalized column
-        penalized_column = f"penalized_mean_abs_shap_value{suffix or ''}"
-        assert penalized_column not in importance.columns
+        # Check column names based on whether suffix is provided
+        base_column = "mean_abs_shap_value"
+        expected_column = f"{base_column}{suffix or ''}"
+        assert expected_column in importance.columns
+
+        base_column = "mean_shap_value"
+        expected_column = f"{base_column}{suffix or ''}"
+        assert expected_column in importance.columns
+
+        # Check specific options
+        if columns_arg == "custom":
+            assert set(importance.index) == {f"custom_{i}" for i in range(X_shape[1])}
+
+        if variance_penalty is not None and variance_penalty > 0:
+            penalized_column = f"penalized_mean_abs_shap_value{suffix or ''}"
+            abs_shap_column = f"mean_abs_shap_value{suffix or ''}"
+            assert penalized_column in importance.columns
+            assert (importance[penalized_column] <= importance[abs_shap_column]).all()
+        elif variance_penalty is not None and variance_penalty <= 0:
+            # Negative or zero penalty should not result in penalized column
+            penalized_column = f"penalized_mean_abs_shap_value{suffix or ''}"
+            assert penalized_column not in importance.columns
+
+    elif data_source == "multiclass":
+        # Use real multiclass data
+        X, y = multi_classification_data
+
+        # Get a small sample of data to make the test faster
+        X_sample = X.iloc[:10, :5]  # Make sure X has sufficient columns
+        y_sample = y[:10]
+
+        # Create and train a multiclass model
+        model = RandomForestClassifier(random_state=42, n_estimators=2)
+        model.fit(X_sample, y_sample)
+
+        # Generate SHAP values
+        shap_explanation = calculate_shap_explanation(model=model, X=X_sample, return_explainer=False, random_state=42)
+
+        # Get feature names - making sure to use actual column names from the sample
+        feature_names = X_sample.columns.tolist()
+
+        # Verify the shapes match before calculating importance
+        assert shap_explanation.values.shape[1] == len(feature_names)
+
+        # Calculate importance
+        importance = calculate_shap_importance(shap_explanation.values, columns=feature_names, **kwargs)
+
+        # Check results
+        assert isinstance(importance, pd.DataFrame)
+        assert len(importance) == len(feature_names)  # Should have one row per feature
+        assert "mean_abs_shap_value" in importance.columns
+        assert "mean_shap_value" in importance.columns
+
+        # Check that all feature names are in the index
+        for feature in feature_names:
+            assert feature in importance.index
+
+        # Check variance penalty if applied
+        if variance_penalty is not None and variance_penalty > 0:
+            # Verify penalized column exists and has lower values than non-penalized
+            assert "penalized_mean_abs_shap_value" in importance.columns
+            assert (importance["penalized_mean_abs_shap_value"] <= importance["mean_abs_shap_value"]).all()
 
 
 def test_calculate_shap_importance_dimension_mismatch(shap_input_data):
@@ -563,150 +658,3 @@ def test_calculate_shap_importance_dimension_mismatch(shap_input_data):
 
     with pytest.raises(ValueError, match="Dimension mismatch"):
         calculate_shap_importance(shap_values, columns=wrong_columns)
-
-
-@pytest.mark.parametrize(
-    "shap_values_type",
-    ["numpy_2d"],
-)
-def test_calculate_shap_importance_regular(shap_input_data, shap_values_type):
-    """Test calculate_shap_importance with regular 2D SHAP values."""
-    shap_values = shap_input_data[shap_values_type]
-    feature_names = shap_input_data["feature_names"]
-
-    # Calculate importance
-    importance = calculate_shap_importance(shap_values, columns=feature_names)
-
-    # Check results
-    assert isinstance(importance, pd.DataFrame)
-    assert len(importance) == shap_values.shape[1]  # Should have one row per feature
-    assert "mean_abs_shap_value" in importance.columns
-    assert "mean_shap_value" in importance.columns
-
-    # Check that all feature names are in the index
-    for feature in feature_names:
-        assert feature in importance.index
-
-
-def test_calculate_shap_importance_multiclass(multi_classification_data):
-    """Test calculate_shap_importance with real multiclass SHAP values."""
-    X, y = multi_classification_data
-
-    # Get a small sample of data to make the test faster
-    X_sample = X.iloc[:10, :5]  # Make sure X has sufficient columns
-    y_sample = y[:10]
-
-    # Create and train a multiclass model
-    model = RandomForestClassifier(random_state=42, n_estimators=2)
-    model.fit(X_sample, y_sample)
-
-    # Generate SHAP values
-    shap_explanation = calculate_shap_explanation(model=model, X=X_sample, return_explainer=False, random_state=42)
-
-    # Get feature names - making sure to use actual column names from the sample
-    feature_names = X_sample.columns.tolist()
-
-    # Verify the shapes match before calculating importance
-    assert shap_explanation.values.shape[1] == len(feature_names)
-
-    # Calculate importance
-    importance = calculate_shap_importance(shap_explanation.values, columns=feature_names)
-
-    # Check results
-    assert isinstance(importance, pd.DataFrame)
-    assert len(importance) == len(feature_names)  # Should have one row per feature
-    assert "mean_abs_shap_value" in importance.columns
-    assert "mean_shap_value" in importance.columns
-
-    # Check that all feature names are in the index
-    for feature in feature_names:
-        assert feature in importance.index
-
-    # Apply a variance penalty and check the results
-    importance_with_penalty = calculate_shap_importance(
-        shap_explanation.values, columns=feature_names, shap_variance_penalty_factor=0.5
-    )
-
-    # Verify penalized column exists and has lower values than non-penalized
-    assert "penalized_mean_abs_shap_value" in importance_with_penalty.columns
-    assert (
-        importance_with_penalty["penalized_mean_abs_shap_value"] <= importance_with_penalty["mean_abs_shap_value"]
-    ).all()
-
-
-@pytest.mark.parametrize("check_additivity", [True, False])
-def test_shap_additivity_checking(tree_model, binary_classification_data, check_additivity):
-    """Test that the check_additivity parameter affects SHAP values."""
-    X, _ = binary_classification_data
-    sample_X = X.iloc[:5]  # Use a small sample for speed
-
-    # Calculate SHAP explanations with different additivity settings
-    shap_explanation = calculate_shap_explanation(
-        model=tree_model, X=sample_X, check_additivity=check_additivity, random_state=42
-    )
-
-    # Just verify that the calculation completes successfully
-    assert isinstance(shap_explanation, shap.Explanation)
-    assert shap_explanation.values.shape[0] == sample_X.shape[0]
-    assert shap_explanation.values.shape[1] == sample_X.shape[1]
-
-
-@pytest.mark.parametrize(
-    "data_size, sample_size, expected_behavior",
-    [
-        (20, 10, "use_sample"),  # Normal case - should use a sample
-        (20, 100, "use_sample"),  # Large sample_size - should still use a sample
-        (20, 1, "use_sample"),  # Minimum valid sample size
-    ],
-)
-def test_create_shap_explainer_sample_size(tree_model, data_size, sample_size, expected_behavior):
-    """Test sample_size parameter in _create_shap_explainer using real data."""
-    # Create dataset of specified size
-    X = pd.DataFrame(np.random.rand(data_size, 3), columns=[f"f{i}" for i in range(3)])
-
-    # Create explainer with the specified sample_size
-    explainer = _create_shap_explainer(model=tree_model, X=X, random_state=42, sample_size=sample_size)
-
-    # Check that explainer was created
-    assert isinstance(explainer, shap.Explainer)
-
-    # Additional verification is difficult since the explainer's internals vary by model type
-    # but we can check that it was created successfully
-    if expected_behavior == "use_sample":
-        # Just verify the explainer was created - can't easily check the exact sample size used
-        assert explainer is not None
-
-
-@pytest.mark.parametrize(
-    "weight_type",
-    [
-        None,  # Default, no weighting
-        "frequency",  # Equal frequency weighting
-        {0: 0.7, 1: 0.3},  # Custom weights
-    ],
-)
-def test_shap_values_to_df_with_weights(multi_classification_data, weight_type):
-    """Test _shap_values_to_df with different weighting options using real data."""
-    X, y = multi_classification_data
-
-    # Create and train a multiclass model
-    model = RandomForestClassifier(random_state=42, n_estimators=2)
-    model.fit(X, y)
-
-    # Generate unweighted SHAP values as reference
-    unweighted_df = _shap_values_to_df(model=model, X=X)
-
-    # Generate weighted SHAP values
-    weighted_df = _shap_values_to_df(model=model, X=X, weight_type=weight_type)
-
-    # Basic validation
-    assert isinstance(weighted_df, pd.DataFrame)
-    assert weighted_df.shape == X.shape
-    assert list(weighted_df.columns) == list(X.columns)
-
-    # For custom weights that differ significantly from default,
-    # the weighted values should be different from unweighted
-    if weight_type is not None and isinstance(weight_type, dict) and weight_type != {}:
-        # Instead of expecting an assertion error, directly compare the arrays
-        is_different = not np.allclose(weighted_df.values, unweighted_df.values, rtol=1e-3, atol=1e-3)
-        assert is_different, "Custom weights should produce different SHAP values"

@@ -5,7 +5,13 @@ from .array import (
     preprocess_labels,
 )
 from .scoring import Scorer, get_single_scorer
-from .shap import calculate_shap_explanation, shap_explanation_to_shap_df, calculate_shap_importance
+from .shap import (
+    calculate_shap_explanation,
+    shap_explanation_to_shap_df,
+    calculate_shap_importance,
+    extract_shap_multiclass_params,
+    prep_shap_related_variables,
+)
 from .common import assure_list_of_strings, is_regression_model, handle_class_names
 
 __all__ = [
@@ -21,4 +27,6 @@ __all__ = [
     "calculate_shap_importance",
     "is_regression_model",
     "handle_class_names",
+    "extract_shap_multiclass_params",
+    "prep_shap_related_variables",
 ]

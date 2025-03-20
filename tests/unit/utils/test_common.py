@@ -85,9 +85,9 @@ def test_is_regression_model_with_custom_classification_model():
     assert is_regression_model(model) is False
 
 
-def test_handle_class_names(dependencies_classification_model, dependencies_classification_data):
+def test_handle_class_names(dependencies_classification_model, dependencies_binary_classification_data):
     """Test the handle_class_names function with different inputs."""
-    X, y = dependencies_classification_data
+    X, y = dependencies_binary_classification_data
     is_regression = False
     unique_values = sorted(y.unique())
 

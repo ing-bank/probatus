@@ -1,5 +1,5 @@
-from typing import Union, List, Any, Optional, Dict
-from sklearn.base import is_regressor, RegressorMixin
+from typing import Union, List, Optional, Dict
+from sklearn.base import is_regressor, RegressorMixin, BaseEstimator
 import pandas as pd
 
 
@@ -45,7 +45,7 @@ def assure_list_of_strings(variable: Union[str, List[str]], variable_name: str) 
         raise ValueError(f"{variable_name} needs to be either a string or list of strings.")
 
 
-def is_regression_model(model: Any) -> bool:
+def is_regression_model(model: BaseEstimator) -> bool:
     """
     Determine if a model is a regression model using scikit-learn's built-in functions.
 
@@ -55,7 +55,7 @@ def is_regression_model(model: Any) -> bool:
     base classes.
 
     Args:
-        model (Any): The model to check. Can be any scikit-learn estimator,
+        model (BaseEstimator): The model to check. Can be any scikit-learn estimator,
             pipeline, or compatible model with similar interface.
 
     Returns:

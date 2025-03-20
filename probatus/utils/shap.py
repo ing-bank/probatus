@@ -503,9 +503,21 @@ def _format_shap_values(
             Processed SHAP values in a consistent format.
     """
     # Determine if the SHAP values are for a multiclass problem (3D) or binary/regression (2D)
-    is_multiclass = len(shap_explanation.values.shape) == 3
+    shap_values_shape = shap_explanation.values.shape
+    is_multiclass = len(shap_values_shape) == 3
 
-    # Handle binary/regression case
+    # Handle binary classification case (2 classes, 3D SHAP values)
+    if is_multiclass and shap_values_shape[2] == 2:
+        warnings.warn(
+            "SHAP values are for a binary classification problem. "
+            "This is a special case of multiclass classification with only two classes.",
+            UserWarning,
+        )
+        # For binary classification, we return the SHAP values for the positive class
+        # as it is equivalent to the SHAP values for the two classes
+        return shap_explanation.values[:, :, 1]
+
+    # Handle binary/regression case (2 or 1 class, 2D SHAP values)
     if not is_multiclass:
         if class_selection is not None:
             warnings.warn(
@@ -743,9 +755,13 @@ def _shap_values_to_df(
             Default is None (no weighting). Note: This parameter is only applicable for
             multiclass models and has no effect on binary classification.
 
-        **kwargs:
-            Additional keyword arguments passed to the shap_calc function if
-            precalc_shap is None.
+        **shap_kwargs (Any):
+                Additional arguments passed to:
+                1. SHAP Explainer - parameters like 'approximate' and 'check_additivity'
+                2. SHAP values multi-classification conversion - parameters like 'class_selection', 'multiclass_aggregation', and 'weight_type'
+
+                The conversion parameters are extracted internally and control how SHAP values are processed
+                for multiclass models.
 
     Returns:
         pd.DataFrame:
@@ -783,3 +799,101 @@ def _shap_values_to_df(
     else:
         # If X is neither a DataFrame nor a 2D array-like object, raise an error
         raise TypeError("X must be a dataframe or a 2d array-like object")
+
+
+def extract_shap_multiclass_params(shap_kwargs: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+    """
+    Extract parameters related to multiclass SHAP value conversions from shap_kwargs.
+
+    This helper function separates parameters that are passed to the SHAP explainer
+    from parameters that control multiclass SHAP value conversion.
+
+    Args:
+        shap_kwargs (Dict[str, Any]):
+            Dictionary of keyword arguments for SHAP and multiclass processing.
+
+    Returns:
+        Tuple[Dict[str, Any], Dict[str, Any]]:
+            - First dict: Parameters for multiclass SHAP values conversion
+            - Second dict: Parameters for SHAP explainer
+    """
+    # Parameters that are used only for multiclass SHAP value conversion
+    multiclass_params = {
+        "class_selection": None,
+        "multiclass_aggregation": None,
+        "weight_type": None,
+    }
+
+    # Extract parameters related to multiclass conversion
+    extracted_params = {}
+    filtered_kwargs = shap_kwargs.copy()
+
+    for param_name in multiclass_params:
+        if param_name in filtered_kwargs:
+            extracted_params[param_name] = filtered_kwargs.pop(param_name)
+
+    return extracted_params, filtered_kwargs
+
+
+def prep_shap_related_variables(
+    model: BaseEstimator,
+    X: pd.DataFrame,
+    approximate: bool = False,
+    verbose: Literal[0, 1, 2] = 0,
+    random_state: Optional[int] = None,
+    **shap_kwargs: Any,
+) -> Tuple[Explanation, float]:
+    """
+    Prepare SHAP values and extract the expected value.
+
+    This helper method calculates SHAP values and extracts the expected value.
+
+    Args:
+        model (BaseEstimator):
+            The trained model to interpret. Must implement either predict or predict_proba
+            method depending on the analysis requirements.
+
+        X (pd.DataFrame):
+            Feature data, of shape (n_samples, n_features).
+
+        approximate (bool, default=False):
+            If True, uses faster but less accurate SHAP calculation.
+
+        verbose (Literal[0, 1, 2], optional):
+            Controls the level of output messages:
+            - `0`: No output or warnings.
+            - `1`: Only important warnings.
+            - `2`: All warnings and detailed logs.
+            - Default is `0`.
+
+        random_state (Optional[int], default=None):
+            Random state for reproducibility.
+
+        **shap_kwargs (Any):
+            Additional arguments passed to SHAP Explainer, such as 'check_additivity'.
+
+    Returns:
+        Tuple[Explanation, float]:
+            - SHAP explanation object
+            - Expected value of the explainer
+    """
+    # Split arguments for multi-classification
+    _, filtered_shap_kwargs = extract_shap_multiclass_params(shap_kwargs)
+
+    # Calculate SHAP values for validation set
+    shap_explanation, shap_explainer = calculate_shap_explanation(
+        model,
+        X,
+        return_explainer=True,
+        approximate=approximate,
+        verbose=verbose,
+        random_state=random_state,
+        **filtered_shap_kwargs,
+    )
+    expected_value = shap_explainer.expected_value
+
+    # For sklearn models, the expected value consists of n elements
+    if isinstance(expected_value, (list, np.ndarray)):
+        expected_value = expected_value[0]
+
+    return shap_explanation, expected_value

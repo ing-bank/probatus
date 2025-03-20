@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from sklearn.base import BaseEstimator
 from sklearn.preprocessing import KBinsDiscretizer
 from typing import Any, List, Optional, Tuple, Union, Literal, Dict, cast
 from matplotlib.axes import Axes
@@ -15,6 +16,7 @@ from probatus.utils import (
     is_regression_model,
     handle_class_names,
 )
+from probatus.utils.shap import extract_shap_multiclass_params, shap_explanation_to_shap_df
 
 
 class DependencePlotter(BaseFitComputePlotClass):
@@ -77,12 +79,12 @@ class DependencePlotter(BaseFitComputePlotClass):
     <img src="../img/model_interpret_dep.png"/>
     """
 
-    def __init__(self, model: Any, verbose: Literal[0, 1, 2] = 0, random_state: Optional[int] = None) -> None:
+    def __init__(self, model: BaseEstimator, verbose: Literal[0, 1, 2] = 0, random_state: Optional[int] = None) -> None:
         """
         Initializes the DependencePlotter class.
 
         Args:
-            model (Any):
+            model (BaseEstimator):
                 A fitted regression or classification model or pipeline. Must implement
                 predict_proba or decision_function methods depending on the model type.
 
@@ -97,7 +99,7 @@ class DependencePlotter(BaseFitComputePlotClass):
                 Random state for reproducibility. If None, results may not be reproducible.
                 Default is None.
         """
-        self.model: Any = model
+        self.model: BaseEstimator = model
         self.verbose: Literal[0, 1, 2] = verbose
         self.random_state: Optional[int] = random_state
         self.fitted: bool = False
@@ -154,9 +156,12 @@ class DependencePlotter(BaseFitComputePlotClass):
                 Default is None.
 
             **shap_kwargs (Any):
-                Keyword arguments passed to the SHAP Explainer. Notable parameters include:
-                - approximate: If True, uses faster but less accurate SHAP calculation
-                - check_additivity: If False, disables the additivity check inside SHAP
+                Additional arguments passed to:
+                1. SHAP Explainer - parameters like 'approximate' and 'check_additivity'
+                2. SHAP values multi-classification conversion - parameters like 'class_selection', 'multiclass_aggregation', and 'weight_type'
+
+                The conversion parameters are extracted internally and control how SHAP values are processed
+                for multiclass models.
 
         Returns:
             DependencePlotter: The fitted instance with computed SHAP values.
@@ -173,17 +178,31 @@ class DependencePlotter(BaseFitComputePlotClass):
         # Use class names for plotting
         self.class_names = handle_class_names(self.y, class_names, self.is_regression)
 
+        # Split arguments for multi-classification
+        multi_class_kwargs, shap_kwargs = extract_shap_multiclass_params(shap_kwargs)
+
         # Calculate SHAP values
         if precalc_shap is not None:
             # Use precalculated SHAP values
             self.shap_explanation = precalc_shap
-            self.shap_values = self.shap_explanation.values
         else:
             # Calculate SHAP values
             self.shap_explanation = calculate_shap_explanation(
-                self.model, self.X, return_explainer=False, verbose=self.verbose, **shap_kwargs
+                self.model,
+                self.X,
+                return_explainer=False,
+                verbose=self.verbose,
+                random_state=self.random_state,
+                **shap_kwargs,
             )
-            self.shap_values = self.shap_explanation.values
+
+        # Set the SHAP values param
+        self.shap_values = shap_explanation_to_shap_df(
+            shap_explanation=self.shap_explanation,
+            model=self.model,
+            X=self.X,
+            **multi_class_kwargs,
+        )
 
         # Set default values for quantile range and alpha
         self.min_q: float = 0.0
@@ -250,9 +269,12 @@ class DependencePlotter(BaseFitComputePlotClass):
                 Default is None.
 
             **shap_kwargs (Any):
-                Keyword arguments passed to the SHAP Explainer. Notable parameters include:
-                - approximate: If True, uses faster but less accurate SHAP calculation
-                - check_additivity: If False, disables the additivity check inside SHAP
+                Additional arguments passed to:
+                1. SHAP Explainer - parameters like 'approximate' and 'check_additivity'
+                2. SHAP values conversion - parameters like 'class_selection', 'multiclass_aggregation', and 'weight_type'
+
+                The conversion parameters are extracted internally and control how SHAP values are processed
+                for multiclass models.
 
         Returns:
             pd.DataFrame: DataFrame containing SHAP values for each feature in X.
