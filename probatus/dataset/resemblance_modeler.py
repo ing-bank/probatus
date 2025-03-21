@@ -524,7 +524,6 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
 
         return self
 
-    # TODO: Move logic to plot
     def plot(self, top_n: Optional[int] = None, show: bool = False, **plot_kwargs: Any) -> Figure:
         """
         Plot feature importance as boxplots showing the distribution of importance values.
@@ -575,7 +574,14 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
             height = max(6, 0.5 * num_features)
             plot_kwargs["figsize"] = (10, height)
 
+        # Apply SHAP-like style
+        plt.style.use("default")  # Reset to default style first
+
         fig, ax = plt.subplots(**plot_kwargs)
+
+        # Set light gray background with white grid
+        ax.set_facecolor("#f8f8f8")
+        fig.patch.set_facecolor("white")
 
         # Create boxplots for each feature
         for position, feature in enumerate(sorted_features):
@@ -586,24 +592,40 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
             # Create horizontal boxplot
             if LooseVersion(matplotlib.__version__) >= LooseVersion("3.10"):
                 # Use orientation parameter for matplotlib 3.10+
-                ax.boxplot(
+                box = ax.boxplot(
                     feature_values,
                     positions=[position],
                     orientation="horizontal",
+                    patch_artist=True,  # Fill boxplots
                 )
             else:
                 # Use vert=False for older matplotlib versions
-                ax.boxplot(
+                box = ax.boxplot(
                     feature_values,
                     positions=[position],
                     vert=False,
+                    patch_artist=True,  # Fill boxplots
                 )
+
+            # Style the boxplots with SHAP-like colors
+            for patch in box["boxes"]:
+                patch.set_facecolor("#1E88E5")
+                patch.set_alpha(0.6)
+            for median in box["medians"]:
+                median.set_color("#ff0051")
+                median.set_linewidth(2)
+
+        # Add subtle grid lines
+        ax.grid(True, linestyle="--", linewidth=0.5, color="#eeeeee", zorder=0)
+
+        # Set custom tick parameters
+        ax.tick_params(axis="both", which="major", labelsize=10)
 
         ax.set_yticks(range(len(sorted_features)))
         ax.set_yticklabels(sorted_features)
-        ax.set_xlabel(self.plot_x_label)
-        ax.set_ylabel(self.plot_y_label)
-        ax.set_title(self.plot_title)
+        ax.set_xlabel(self.plot_x_label, fontsize=11, fontweight="bold")
+        ax.set_ylabel(self.plot_y_label, fontsize=11, fontweight="bold")
+        ax.set_title(self.plot_title, fontsize=13, fontweight="bold", pad=15)
 
         # Add performance metrics annotation
         ax.annotate(
@@ -615,6 +637,11 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
             textcoords="offset points",
             va="top",
         )
+
+        # Add a thin border
+        for spine in ax.spines.values():
+            spine.set_edgecolor("lightgray")
+            spine.set_linewidth(0.8)
 
         # Adjust figure margins to make room for annotations
         plt.subplots_adjust(bottom=0.2)
@@ -865,6 +892,9 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
         # This creates its own figure and axes internally
         from shap import summary_plot
 
+        # Apply SHAP-like styling
+        plt.style.use("default")  # Reset to default style first
+
         summary_plot(
             self.shap_values_test,
             self.X_test,
@@ -878,8 +908,15 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
         # Get the figure and axes created by summary_plot
         fig, ax = plt.gcf(), plt.gca()
 
+        # Set light gray background with white grid
+        ax.set_facecolor("#f8f8f8")
+        fig.patch.set_facecolor("white")
+
+        # Add subtle grid lines
+        ax.grid(True, linestyle="--", linewidth=0.5, color="#eeeeee", zorder=0)
+
         # Add title & performance metrics annotation
-        ax.set_title(self.plot_title)
+        ax.set_title(self.plot_title, fontsize=13, fontweight="bold", pad=15)
         ax.annotate(
             self.results_text,
             (0, 0),
@@ -890,9 +927,17 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
             va="top",
         )
 
-        # Adjust figure to make sure it fits
-        plt.subplots_adjust(bottom=0.2)
-        plt.tight_layout()
+        # Adjust axis labels
+        for label in ax.get_xticklabels():
+            label.set_fontsize(10)
+        for label in ax.get_yticklabels():
+            label.set_fontsize(10)
+            label.set_fontweight("regular")
+
+        # Add a thin border
+        for spine in ax.spines.values():
+            spine.set_edgecolor("lightgray")
+            spine.set_linewidth(0.8)
 
         # Show or close the plot
         if show:

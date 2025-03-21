@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 from shap import summary_plot
 from shap import Explanation
-from shap.plots import waterfall
+from shap.plots import waterfall, bar, beeswarm
 from typing import Any, Dict, List, Optional, Tuple, Union, Literal
 from matplotlib.figure import Figure
 from sklearn.base import BaseEstimator
@@ -581,7 +581,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
         """
         Create importance or summary plots based on SHAP values.
 
-        This helper method generates bar plots (for importance) or dot plots (for summary)
+        This helper method generates bar plots (for importance) or beeswarm plots (for summary)
         to visualize feature importance and impact distributions.
 
         Args:
@@ -607,11 +607,14 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
                 Whether to display the plot immediately.
 
             **plot_kwargs:
-                Additional keyword arguments passed to shap.summary_plot().
+                Additional keyword arguments passed to shap.plots.bar() or shap.plots.beeswarm().
 
         Returns:
             Figure: Matplotlib Figure object containing the generated plot
         """
+        # Reset the style to default first
+        plt.style.use("default")
+
         # Filter data to include only the target columns
         target_X = target_X[target_columns]
 
@@ -624,37 +627,50 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
             target_shap_values = target_shap_values[:, target_columns_indices]
 
         # Configure plot type and title
-        plot_style = "bar" if plot_type == "importance" else "dot"
         model_type = "Regression" if self.is_regression else "Feature Importance"
         plot_title = f"SHAP {model_type if plot_type == 'importance' else 'Summary plot'} for {target_set} set"
 
-        # Create the plot - for regression models, don't pass class_names
-        if self.is_regression:
-            summary_plot(
-                target_shap_values,
-                target_X,
-                plot_type=plot_style,
-                show=False,
-                **plot_kwargs,
-            )
+        # Create a SHAP Explanation object with the data
+        explanation = Explanation(values=target_shap_values, data=target_X.values, feature_names=target_columns)
+
+        # Get max_display from plot_kwargs or use default
+        max_display = plot_kwargs.pop("max_display", 10)
+
+        # For "importance" plots, use bar plot
+        if plot_type == "importance":
+            # Use bar plot with abs value aggregate
+            bar(explanation, max_display=max_display, show=False, **plot_kwargs)
         else:
-            # Use summary_plot for both importance and summary plots
-            # It supports both "bar" and "dot" plot types
-            summary_plot(
-                target_shap_values,
-                target_X,
-                plot_type=plot_style,
-                class_names=self.class_names,
-                show=False,
-                **plot_kwargs,
-            )
+            # For "summary" plots, use beeswarm plot
+            beeswarm(explanation, max_display=max_display, show=False, **plot_kwargs)
 
         # Get the current figure and adjust layout to make room for title
         fig = plt.gcf()
 
-        # Customize the plot
+        # Apply SHAP-like styling to the plot
         ax = plt.gca()
-        ax.set_title(plot_title, pad=20)  # Add padding to the title
+
+        # Set light gray background
+        ax.set_facecolor("#f8f8f8")
+        fig.patch.set_facecolor("white")
+
+        # Add subtle grid lines
+        ax.grid(True, linestyle="--", linewidth=0.5, color="#eeeeee", zorder=0)
+
+        # Improve typography
+        ax.set_title(plot_title, fontsize=14, fontweight="bold", pad=20)
+
+        # Enhance axes labels
+        ax.tick_params(axis="both", which="major", labelsize=10)
+        if ax.get_xlabel():
+            ax.set_xlabel(ax.get_xlabel(), fontsize=11, fontweight="bold")
+        if ax.get_ylabel():
+            ax.set_ylabel(ax.get_ylabel(), fontsize=11, fontweight="bold")
+
+        # Add a thin border
+        for spine in ax.spines.values():
+            spine.set_edgecolor("lightgray")
+            spine.set_linewidth(0.8)
 
         # Add model performance metrics as annotation
         ax.annotate(
@@ -678,7 +694,6 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
 
         return fig
 
-    # TODO: Move logic to plot
     def _create_dependence_plots(
         self, target_columns: List[str], target_tdp: DependencePlotter, show: bool, **plot_kwargs: Any
     ) -> Union[Figure, List[Figure]]:
@@ -722,7 +737,6 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
             return figures_list[0]
         return figures_list
 
-    # TODO: Move logic to plot
     def _create_sample_plots(
         self,
         samples_index: Optional[Union[int, str, List, pd.Index]],
@@ -773,6 +787,9 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
         Raises:
             ValueError: If samples_index is None
         """
+        # Reset style to default first
+        plt.style.use("default")
+
         # Validate samples_index parameter
         if samples_index is None:
             raise ValueError("For sample plot, you need to specify the samples_index to be plotted")
@@ -825,12 +842,30 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
             current_ax = plt.gca()
             fig.set_size_inches(fig_width, 8)
 
+            # Apply SHAP-like styling to the plot
+            # Set light gray background (note: we do this carefully since waterfall plot has its own styling)
+            current_ax.set_facecolor("#f8f8f8")
+            fig.patch.set_facecolor("white")
+
+            # Add subtle grid lines (on a lower zorder to not interfere with other elements)
+            current_ax.grid(True, linestyle="--", linewidth=0.5, color="#eeeeee", zorder=0)
+
+            # Enhance title and labels
             model_type = "Regression" if self.is_regression else "Sample Explanation"
             plot_title = f"SHAP {model_type} of {target_set} sample for index={sample_index}"
-            current_ax.set_title(plot_title, pad=20)  # Add padding to the title
-            current_ax.tick_params(axis="y", labelsize=10)
+            current_ax.set_title(plot_title, fontsize=14, fontweight="bold", pad=20)
+            current_ax.tick_params(axis="both", which="major", labelsize=10)
 
-            # Apply consistent layout adjustments
+            # Fix y-axis label after waterfall plot potentially modified it
+            if current_ax.get_ylabel():
+                current_ax.set_ylabel(current_ax.get_ylabel(), fontsize=11, fontweight="bold")
+
+            # Add a thin border
+            for spine in current_ax.spines.values():
+                spine.set_edgecolor("lightgray")
+                spine.set_linewidth(0.8)
+
+            # Apply layout adjustments
             # First adjust left margin for feature names
             plt.subplots_adjust(left=max(0.2, 0.15 + max_name_length * 0.01))
             # Then apply tight layout for overall spacing

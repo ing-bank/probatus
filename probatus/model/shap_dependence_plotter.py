@@ -429,31 +429,58 @@ class DependencePlotter(BaseFitComputePlotClass):
 
         # Create or use provided axes
         if ax is None:
+            plt.style.use("default")  # Reset to default style first
             fig = plt.figure()
             ax = fig.add_subplot(111)
         else:
             fig = cast(Figure, ax.figure)
             ax = cast(Axes, ax)
 
+        # Set light gray background with white grid
+        ax.set_facecolor("#f8f8f8")
+        fig.patch.set_facecolor("white")
+
+        # Add subtle grid lines
+        ax.grid(True, linestyle="--", linewidth=0.5, color="#eeeeee", zorder=0)
+
         if self.is_regression:
             # For regression, use a single scatter plot with a colormap based on target values
             scatter = ax.scatter(X, shap_val, c=y, cmap="viridis", alpha=self.alpha, label=self.class_names[0])
             # Add a colorbar to show the target value scale
-            plt.colorbar(scatter, ax=ax, label="Target Value")
+            cbar = plt.colorbar(scatter, ax=ax, label="Target Value")
+            cbar.outline.set_linewidth(0.8)
+            cbar.outline.set_edgecolor("lightgray")
         else:
             # For classification, create separate scatter plot for each class
             # Sort the unique values of y and use the sorted values to map the class names
-            for class_name, class_value in zip(self.class_names, sorted(self.y.unique())):
+            # Define SHAP-like colors
+            shap_colors = ["#1E88E5", "#ff0051"]  # Blue and red, the main SHAP colors
+
+            for i, (class_name, class_value) in enumerate(zip(self.class_names, sorted(self.y.unique()))):
                 ax.scatter(
                     X[y == class_value],
                     shap_val[y == class_value],
                     label=class_name,
                     alpha=self.alpha,
+                    color=shap_colors[i % len(shap_colors)],  # Cycle through colors if more than 2 classes
                 )
 
-        ax.set_ylabel("Shap value")
-        ax.set_title(f"Dependence plot for {feature} feature")
-        ax.legend()
+        # Set custom tick parameters
+        ax.tick_params(axis="both", which="major", labelsize=10)
+
+        # Improve axis labels
+        ax.set_ylabel("SHAP value", fontsize=11, fontweight="bold")
+        ax.set_xlabel(f"{feature}", fontsize=11, fontweight="bold")
+        ax.set_title(f"Dependence plot for {feature} feature", fontsize=13, fontweight="bold", pad=15)
+
+        # Create a styled legend
+        legend = ax.legend(loc="best", frameon=True, framealpha=0.95, edgecolor="lightgray", fontsize=10)
+        legend.get_frame().set_facecolor("white")
+
+        # Add a thin border
+        for spine in ax.spines.values():
+            spine.set_edgecolor("lightgray")
+            spine.set_linewidth(0.8)
 
         return fig
 
@@ -496,11 +523,19 @@ class DependencePlotter(BaseFitComputePlotClass):
         """
         # Create or use provided axes
         if ax is None:
+            plt.style.use("default")  # Reset to default style first
             fig = plt.figure()
             ax = fig.add_subplot(111)
         else:
             fig = cast(Figure, ax.figure)
             ax = cast(Axes, ax)
+
+        # Set light gray background with white grid
+        ax.set_facecolor("#f8f8f8")
+        fig.patch.set_facecolor("white")
+
+        # Add subtle grid lines
+        ax.grid(True, linestyle="--", linewidth=0.5, color="#eeeeee", zorder=0)
 
         # Handle feature name extraction
         feature_name: str = (
@@ -556,9 +591,15 @@ class DependencePlotter(BaseFitComputePlotClass):
         if bin_edges_for_hist[-1] == np.inf:
             bin_edges_for_hist[-1] = x.max()
 
-        # Plot histogram of feature values
-        ax.hist(x, bins=cast(Union[int, List[float]], bin_edges_for_hist), lw=2, alpha=0.4)
-        ax.set_ylabel("Counts")
+        # Plot histogram of feature values with SHAP-like colors
+        hist_color = "#1E88E5"  # SHAP blue color
+        n, bins, patches = ax.hist(
+            x, bins=cast(Union[int, List[float]], bin_edges_for_hist), lw=1, alpha=0.6, color=hist_color
+        )
+        ax.set_ylabel("Counts", fontsize=11, fontweight="bold")
+
+        # Set custom tick parameters
+        ax.tick_params(axis="both", which="major", labelsize=10)
 
         # Create twin axis for target rate line
         ax2 = ax.twinx()
@@ -566,15 +607,28 @@ class DependencePlotter(BaseFitComputePlotClass):
 
         if self.is_regression:
             # For regression, show mean target value
-            ax2.plot(x_vals, target_ratio, color="green")
-            ax2.set_ylabel("Mean target value", color="green", fontsize=12)
+            line_color = "#ff0051"  # SHAP red color
+            ax2.plot(x_vals, target_ratio, color=line_color, linewidth=2)
+            ax2.set_ylabel("Mean target value", color=line_color, fontsize=11, fontweight="bold")
         else:
             # For classification, show target rate (proportion of positive class)
-            ax2.plot(x_vals, target_ratio, color="red")
-            ax2.set_ylabel("Target rate", color="red", fontsize=12)
+            line_color = "#ff0051"  # SHAP red color
+            ax2.plot(x_vals, target_ratio, color=line_color, linewidth=2)
+            ax2.set_ylabel("Target rate", color=line_color, fontsize=11, fontweight="bold")
+
+        # Style the twin axis
+        ax2.tick_params(axis="y", labelsize=10, colors=line_color)
+        for spine in ax2.spines.values():
+            spine.set_edgecolor("lightgray")
+            spine.set_linewidth(0.8)
 
         ax2.set_xlim(x.min(), x.max())
-        ax.set_xlabel(f"{feature_name} feature values")
+        ax.set_xlabel(f"{feature_name} value", fontsize=11, fontweight="bold")
+
+        # Add a thin border
+        for spine in ax.spines.values():
+            spine.set_edgecolor("lightgray")
+            spine.set_linewidth(0.8)
 
         return bin_edges_array, fig, target_ratio
 
