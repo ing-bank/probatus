@@ -9,6 +9,8 @@ from shap.utils import sample
 from sklearn.base import BaseEstimator
 from sklearn.pipeline import Pipeline
 
+from probatus.utils.common import get_pipeline_preprocessor_and_estimator, preprocess_using_pipeline
+
 
 def calculate_shap_explanation(
     model: BaseEstimator,
@@ -84,12 +86,28 @@ def calculate_shap_explanation(
             SHAP Explanation for the model, or a tuple (shap_explanation, explainer) if return_explainer is True.
 
     Raises:
-        TypeError: If the provided model is a Pipeline, which is not supported.
+        TypeError: If the model is not compatible with SHAP.
     """
     # Check prerequisites
     is_valid, error_message = _validate_shap_inputs(model, X, verbose)
     if not is_valid:
         raise TypeError(error_message)
+
+    # Extract estimator and preprocess data if it's a pipeline
+    original_X = X
+    if isinstance(model, Pipeline):
+        # Get the preprocessor and estimator from the pipeline
+        preprocessor, estimator = get_pipeline_preprocessor_and_estimator(model)
+
+        if preprocessor is not None and verbose > 1:
+            warnings.warn(f"Applying preprocessing steps from pipeline before calculating SHAP values.")
+
+        # Apply preprocessing to X if a preprocessor exists
+        X = preprocess_using_pipeline(X, model)
+        model = estimator
+
+        if verbose > 1:
+            warnings.warn(f"Using final estimator from pipeline: {type(model).__name__}")
 
     # Create the SHAP explainer
     explainer = _create_shap_explainer(
@@ -337,11 +355,11 @@ def _validate_shap_inputs(
     """
     # SHAP doesn't work with scikit-learn pipelines
     if isinstance(model, Pipeline):
-        return False, (
-            "The provided model is a Pipeline. Unfortunately, the features based on SHAP do not support "
-            "pipelines, because they cannot be used in combination with shap.Explainer. Please apply any "
-            "data transformations before running the probatus module."
-        )
+        if verbose > 0:
+            warnings.warn(
+                "The provided model is a Pipeline. SHAP does not directly support pipelines. "
+                "Automatically extracting the final estimator from the pipeline."
+            )
 
     # Check if the dataset is a pandas DataFrame
     if not isinstance(X, pd.DataFrame) and verbose > 0:

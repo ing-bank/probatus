@@ -12,7 +12,13 @@ from .shap import (
     extract_shap_multiclass_params,
     prep_shap_related_variables,
 )
-from .common import assure_list_of_strings, is_regression_model, handle_class_names
+from .common import (
+    assure_list_of_strings,
+    is_regression_model,
+    handle_class_names,
+    get_pipeline_preprocessor_and_estimator,
+    preprocess_using_pipeline,
+)
 
 __all__ = [
     "assure_list_of_strings",
@@ -29,4 +35,6 @@ __all__ = [
     "handle_class_names",
     "extract_shap_multiclass_params",
     "prep_shap_related_variables",
+    "get_pipeline_preprocessor_and_estimator",
+    "preprocess_using_pipeline",
 ]

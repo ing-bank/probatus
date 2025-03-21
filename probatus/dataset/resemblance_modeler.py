@@ -13,6 +13,8 @@ from sklearn.inspection import permutation_importance
 from sklearn.model_selection import train_test_split
 from distutils.version import LooseVersion
 
+from sklearn.pipeline import Pipeline
+
 from probatus.core import BaseFitComputePlotClass
 from probatus.utils import (
     preprocess_data,
@@ -23,6 +25,7 @@ from probatus.utils import (
     calculate_shap_explanation,
     shap_explanation_to_shap_df,
     extract_shap_multiclass_params,
+    get_pipeline_preprocessor_and_estimator,
 )
 
 
@@ -55,7 +58,7 @@ class BaseResemblanceModel(BaseFitComputePlotClass):
 
     def __init__(
         self,
-        model: BaseEstimator,
+        model: Union[BaseEstimator, Pipeline],
         scoring: Union[str, Scorer] = "roc_auc",
         test_prc: float = 0.25,
         n_jobs: int = 1,
@@ -66,7 +69,7 @@ class BaseResemblanceModel(BaseFitComputePlotClass):
         Initializes the BaseResemblanceModel.
 
         Args:
-            model (BaseEstimator):
+            model (Union[BaseEstimator, Pipeline]):
                 A regression or classification model (or pipeline) that must implement
                 `fit()` and either `predict()` or `predict_proba()`.
 
@@ -96,6 +99,11 @@ class BaseResemblanceModel(BaseFitComputePlotClass):
                 Random seed for reproducibility. Use an integer for deterministic results
                 or `None` for non-reproducible behavior. Defaults to `None`.
         """
+        if isinstance(model, Pipeline):
+            self.pipeline, self.preprocessor = get_pipeline_preprocessor_and_estimator(model)
+        else:
+            self.pipeline = None
+            self.preprocessor = None
         self.model = model
         self.test_prc = test_prc
         self.n_jobs = n_jobs
@@ -154,6 +162,11 @@ class BaseResemblanceModel(BaseFitComputePlotClass):
         if self.class_names is None:
             self.class_names = ["First Sample", "Second Sample"]
 
+        # Transform data if model is a Pipeline
+        if self.pipeline is not None:
+            X1 = self.pipeline.transform(X1)
+            X2 = self.pipeline.transform(X2)
+
         self.X1, self.column_names = preprocess_data(X1, X_name="X1", column_names=column_names, verbose=self.verbose)
         self.X2, _ = preprocess_data(X2, X_name="X2", column_names=column_names, verbose=self.verbose)
 
@@ -205,32 +218,6 @@ class BaseResemblanceModel(BaseFitComputePlotClass):
 
         self.fitted = True
         return self
-
-    def _get_data_splits(self) -> Tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series]:
-        """
-        Return the data splits used to train the Resemblance model.
-
-        This method provides access to the training and test data splits created during model fitting.
-        The data is split to maintain class balance through stratification.
-
-        Returns:
-            Tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series]:
-                A tuple containing:
-                - X_train (pd.DataFrame): Training features of shape (n_train_samples, n_features)
-                - X_test (pd.DataFrame): Test features of shape (n_test_samples, n_features)
-                - y_train (pd.Series): Training labels of shape (n_train_samples,)
-                - y_test (pd.Series): Test labels of shape (n_test_samples,)
-
-        Raises:
-            ValueError: If the model has not been fitted yet. Call fit() before accessing data splits.
-        """
-        self._check_if_fitted()
-        return (
-            cast(pd.DataFrame, self.X_train),
-            cast(pd.DataFrame, self.X_test),
-            cast(pd.Series, self.y_train),
-            cast(pd.Series, self.y_test),
-        )
 
     def compute(self, return_scores: bool = False) -> Union[pd.DataFrame, Tuple[pd.DataFrame, float, float]]:
         """
@@ -538,6 +525,7 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
 
         return self
 
+    # TODO: Move logic to plot
     def plot(self, top_n: Optional[int] = None, show: bool = False, **plot_kwargs: Any) -> Figure:
         """
         Plot feature importance as boxplots showing the distribution of importance values.
@@ -816,6 +804,7 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
 
         return self
 
+    # TODO: Move logic to plot
     def plot(
         self, plot_type: Literal["bar", "dot", "violin"] = "bar", show: bool = False, **summary_plot_kwargs: Any
     ) -> Figure:

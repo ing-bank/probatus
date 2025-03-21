@@ -1,6 +1,8 @@
-from typing import Union, List, Optional, Dict
+from typing import Union, List, Optional, Dict, Tuple
 from sklearn.base import is_regressor, RegressorMixin, BaseEstimator
+from sklearn.pipeline import Pipeline
 import pandas as pd
+import numpy as np
 
 
 def assure_list_of_strings(variable: Union[str, List[str]], variable_name: str) -> List[str]:
@@ -152,3 +154,90 @@ def handle_class_names(
         raise TypeError(
             "class_names must be None, a list of strings, or a dictionary mapping target values to class names"
         )
+
+
+def get_pipeline_preprocessor_and_estimator(
+    model: Union[BaseEstimator, Pipeline],
+) -> Tuple[Optional[Pipeline], BaseEstimator]:
+    """
+    Split a scikit-learn pipeline into preprocessing steps and the final estimator.
+
+    This function handles both Pipeline objects and plain estimators. For Pipeline objects,
+    it separates the preprocessing steps from the final estimator. For plain estimators,
+    it returns None for the preprocessor and the estimator itself.
+
+    This is useful when working with libraries that don't support scikit-learn pipelines
+    directly but need access to the underlying estimator.
+
+    Args:
+        model (Union[BaseEstimator, Pipeline]):
+            A scikit-learn estimator or pipeline.
+
+    Returns:
+        Tuple[Optional[Pipeline], BaseEstimator]:
+            A tuple containing:
+            - Preprocessor: A Pipeline with all steps except the last one, or None if model is not a Pipeline
+            - Estimator: The final estimator from the pipeline, or the original model if not a Pipeline
+    """
+    if isinstance(model, Pipeline):
+        if len(model.steps) <= 1:
+            # Pipeline with only one step (the estimator) - no preprocessor
+            return None, model.steps[0][1]
+        else:
+            # Extract all steps except the last one as preprocessor
+            preprocessor_steps = model.steps[:-1]
+            preprocessor = Pipeline(steps=preprocessor_steps)
+
+            # Extract the final estimator
+            final_estimator = model.steps[-1][1]
+
+            return preprocessor, final_estimator
+    else:
+        # If it's not a pipeline, return None as preprocessor and the model as estimator
+        return None, model
+
+
+def preprocess_using_pipeline(
+    X: pd.DataFrame,
+    model: Union[BaseEstimator, Pipeline],
+) -> pd.DataFrame:
+    """
+    Transform data using the preprocessor part of a pipeline if available.
+
+    This function checks if the provided model is a pipeline, and if so,
+    extracts the preprocessing steps and applies them to the input data.
+    If the model is not a pipeline, the original data is returned unchanged.
+
+    This is useful when working with preprocessing steps that need to be
+    applied to new data before making predictions or calculating feature
+    importance.
+
+    Args:
+        X (pd.DataFrame):
+            Input data to transform.
+
+        model (Union[BaseEstimator, Pipeline]):
+            A scikit-learn estimator or pipeline.
+
+    Returns:
+        pd.DataFrame:
+            Transformed data if model is a pipeline with preprocessing steps,
+            otherwise the original data.
+    """
+    preprocessor, _ = get_pipeline_preprocessor_and_estimator(model)
+
+    if preprocessor is not None:
+        # Apply preprocessing steps to the data
+        X_transformed = preprocessor.transform(X)
+
+        # If the transformation returns a numpy array, convert it back to a DataFrame
+        # to maintain column names for interpretability
+        if isinstance(X_transformed, np.ndarray):
+            X_transformed = pd.DataFrame(
+                X_transformed, index=X.index, columns=[f"preprocessed_{i}" for i in range(X_transformed.shape[1])]
+            )
+
+        return X_transformed
+
+    # If there's no preprocessor, return the original data
+    return X

@@ -1,5 +1,5 @@
 import warnings
-from typing import Any, Dict, List, Optional, Tuple, Union, Literal
+from typing import Any, List, Optional, Tuple, Union, Literal
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -9,9 +9,25 @@ from loguru import logger
 from sklearn.base import BaseEstimator, clone, is_classifier, is_regressor
 from sklearn.model_selection import check_cv
 from sklearn.model_selection._search import BaseSearchCV
+from sklearn.pipeline import Pipeline
 from tqdm.auto import tqdm
 
 from probatus.core import BaseFitComputePlotClass
+from probatus.features.shap_recursive_feature_elimination_helper import (
+    check_if_model_is_compatible_with_early_stopping,
+    get_feature_names,
+    validate_shap_variance_penalty_factor_parameter,
+    validate_step_parameter,
+    validate_min_features_parameter,
+    filter_and_identify_features_based_on_importance,
+    report_current_results,
+    get_best_num_features,
+    get_feature_support,
+    get_feature_ranking,
+)
+from probatus.features.shap_early_stopping_recursive_feature_elimination_helper import (
+    get_fit_params,
+)
 from probatus.utils import (
     assure_pandas_series,
     calculate_shap_importance,
@@ -23,6 +39,7 @@ from probatus.utils import (
     extract_shap_multiclass_params,
     shap_explanation_to_shap_df,
 )
+from probatus.utils.common import get_pipeline_preprocessor_and_estimator
 
 
 class ShapRFECV(BaseFitComputePlotClass):
@@ -122,7 +139,7 @@ class ShapRFECV(BaseFitComputePlotClass):
         Initializes the ShapRFECV class for recursive feature elimination using SHAP importance.
 
         Args:
-            model (Union[BaseEstimator, BaseSearchCV]):
+            model (Union[BaseEstimator, BaseSearchCV, Pipeline]):
                 The model used for training and evaluation at each feature elimination step.
                 - Recommended: `LGBMClassifier` (handles missing values and categorical features natively).
                 - Supports hyperparameter tuning via `GridSearchCV`, `RandomizedSearchCV`, or `BayesSearchCV`.
@@ -187,10 +204,15 @@ class ShapRFECV(BaseFitComputePlotClass):
                 - If the model is not compatible with early stopping.
 
         """
+        if isinstance(model, Pipeline):
+            self.pipeline, self.preprocessor = get_pipeline_preprocessor_and_estimator(model)
+        else:
+            self.pipeline = None
+            self.preprocessor = None
         self.model = model
         self.search_model = isinstance(model, BaseSearchCV)
-        self.step = self._validate_step(step)
-        self.min_features_to_select = self._validate_min_features(min_features_to_select)
+        self.step = validate_step_parameter(step)
+        self.min_features_to_select = validate_min_features_parameter(min_features_to_select)
         self.cv = cv
         self.scorer = get_single_scorer(scoring)
         self.n_jobs = n_jobs
@@ -208,7 +230,7 @@ class ShapRFECV(BaseFitComputePlotClass):
             if not isinstance(early_stopping_rounds, int) or early_stopping_rounds <= 0:
                 raise ValueError(f"early_stopping_rounds must be a positive integer; got {early_stopping_rounds}.")
 
-            if not ShapRFECV._check_if_model_is_compatible_with_early_stopping(model):
+            if not check_if_model_is_compatible_with_early_stopping(model):
                 raise ValueError("Only 'XGBoost', 'LGBM' and 'CatBoost' supported for early stopping.")
 
         self.early_stopping_rounds = early_stopping_rounds
@@ -220,43 +242,6 @@ class ShapRFECV(BaseFitComputePlotClass):
         self.y: Optional[pd.Series] = None
         self.column_names: Optional[List[str]] = None
         self.fitted = False
-
-    @staticmethod
-    def _check_if_model_is_compatible_with_early_stopping(model: Union[BaseEstimator, BaseSearchCV]) -> bool:
-        """
-        Checks whether the given model supports early stopping.
-
-        If the model is a hyperparameter search object (e.g., `GridSearchCV`, `RandomizedSearchCV`),
-        this method checks its base estimator.
-
-        Args:
-            model (Union[BaseEstimator, BaseSearchCV]):
-                The model or hyperparameter search object to check for early stopping compatibility.
-
-        Returns:
-            bool:
-                `True` if the model supports early stopping, `False` otherwise.
-        """
-        # List of supported libraries and their model class names
-        # TODO: Add CatBoostClassifier (when it supports NumPy 2.0)
-        libraries = [("lightgbm", "LGBMModel"), ("xgboost", "XGBModel")]  # , ("catboost", "CatBoost")]
-
-        # If model is a search CV, get the underlying estimator
-        if isinstance(model, BaseSearchCV):
-            model = model.estimator
-
-        # Check if model is an instance of any supported class
-        for lib, class_name in libraries:
-            try:
-                module = __import__(lib, fromlist=[class_name])
-                model_class = getattr(module, class_name)
-                if isinstance(model, model_class):
-                    return True
-            except (ImportError, AttributeError):
-                # Skip if library is not installed or class doesn't exist
-                warnings.warn(f"Library {lib} is not installed or class {class_name} does not exist.")
-
-        return False
 
     def compute(self) -> pd.DataFrame:
         """
@@ -426,6 +411,10 @@ class ShapRFECV(BaseFitComputePlotClass):
                 raise ValueError("All elements in columns_to_keep must be strings.")
             len_columns_to_keep = len(columns_to_keep)
 
+        # Transform data if model is a Pipeline
+        if self.pipeline is not None:
+            X = self.pipeline.transform(X)
+
         # Preprocess input data
         self.X, self.column_names = preprocess_data(X, X_name="X", column_names=column_names, verbose=self.verbose)
         self.y = preprocess_labels(y, index=self.X.index)
@@ -451,7 +440,7 @@ class ShapRFECV(BaseFitComputePlotClass):
             sample_weight = assure_pandas_series(sample_weight, index=self.X.index)
 
         # Validate and set shap_variance_penalty_factor
-        _shap_variance_penalty_factor = ShapRFECV._validate_shap_variance_penalty_factor(shap_variance_penalty_factor)
+        _shap_variance_penalty_factor = validate_shap_variance_penalty_factor_parameter(shap_variance_penalty_factor)
 
         # Setup cross-validation
         self.cv = check_cv(self.cv, self.y, classifier=is_classifier(self.model))
@@ -542,12 +531,13 @@ class ShapRFECV(BaseFitComputePlotClass):
                 )
 
                 # Determine which features to keep and which to remove
-                remaining_features, features_to_remove = self._filter_and_identify_features_based_on_importance(
-                    shap_importance_df, columns_to_keep, current_features_set
+                remaining_features, features_to_remove = filter_and_identify_features_based_on_importance(
+                    shap_importance_df, self.step, self.min_features_to_select, columns_to_keep, current_features_set
                 )
 
                 # Record results for this round
-                self._report_current_results(
+                self.report_df = report_current_results(
+                    report_df=self.report_df,
                     round_number=round_number,
                     current_features_set=current_features_set,
                     features_to_remove=features_to_remove,
@@ -580,6 +570,7 @@ class ShapRFECV(BaseFitComputePlotClass):
         self.fitted = True
         return self
 
+    # TODO: Move logic to plot
     def plot(self, show: bool = False, **figure_kwargs: Any) -> plt.Figure:
         """
         Plots model performance at each iteration of feature elimination.
@@ -644,225 +635,6 @@ class ShapRFECV(BaseFitComputePlotClass):
             plt.show()
 
         return fig
-
-    @staticmethod
-    def _validate_step(step: Union[int, float]) -> Union[int, float]:
-        """
-        Validates the `step` parameter used for feature elimination.
-
-        The step value determines how many features are removed per iteration.
-        It must be a positive integer (absolute count) or a positive float
-        (fraction of remaining features).
-
-        Args:
-            step (Union[int, float]):
-                The step value to validate.
-
-        Returns:
-            Union[int, float]:
-                The validated step value.
-
-        Raises:
-            ValueError:
-                If `step` is not a positive integer or float.
-        """
-        if not isinstance(step, (int, float)) or step <= 0:
-            raise ValueError(f"Invalid step value: {step}. Must be a positive int or float.")
-        return step
-
-    @staticmethod
-    def _validate_min_features(min_features: int) -> int:
-        """
-        Validates the min_features_to_select parameter.
-
-        Args:
-            min_features (int):
-                The minimum number of features to select.
-
-        Returns:
-            int:
-                The validated min_features value.
-
-        Raises:
-            ValueError:
-                If min_features is not a positive integer.
-        """
-        if not isinstance(min_features, int):
-            raise ValueError(f"min_features_to_select must be an integer; got {min_features}.")
-        if min_features <= 0:
-            raise ValueError(f"min_features_to_select must be > 0; got {min_features}.")
-        return min_features
-
-    @staticmethod
-    def _validate_shap_variance_penalty_factor(shap_variance_penalty_factor: Optional[Union[int, float]]) -> float:
-        """
-        Validates the shap_variance_penalty_factor parameter.
-
-        Args:
-            shap_variance_penalty_factor (Optional[Union[int, float]]):
-                The penalty factor to apply to SHAP values with high variance.
-
-        Returns:
-            float:
-                The validated shap_variance_penalty_factor value.
-        """
-        if isinstance(shap_variance_penalty_factor, (float, int)) and shap_variance_penalty_factor >= 0:
-            return float(shap_variance_penalty_factor)
-        else:
-            if shap_variance_penalty_factor is not None:
-                warnings.warn(
-                    "shap_variance_penalty_factor must be None, int or float. Setting shap_variance_penalty_factor = 0"
-                )
-            return 0.0
-
-    @staticmethod
-    def _calculate_number_of_features_to_remove(
-        current_num_of_features: int,
-        num_features_to_remove: int,
-        min_num_features_to_keep: int,
-    ) -> int:
-        """
-        Calculates the number of features to remove while ensuring the minimum required features remain.
-
-        This function ensures that feature elimination does not reduce the dataset below the
-        specified `min_num_features_to_keep` threshold.
-
-        Args:
-            current_num_of_features (int):
-                The current number of features in the dataset.
-
-            num_features_to_remove (int):
-                The proposed number of features to remove in this iteration.
-
-            min_num_features_to_keep (int):
-                The minimum number of features that must remain after feature removal.
-
-        Returns:
-            int:
-                The adjusted number of features that can be safely removed without violating
-                the `min_num_features_to_keep` constraint.
-        """
-        # Calculate maximum number of features that can be removed without dropping below min_num_features_to_keep
-        max_allowed_features_to_remove = current_num_of_features - min_num_features_to_keep
-
-        # Return the smaller of the two values to ensure we don't remove too many features
-        return min(num_features_to_remove, max_allowed_features_to_remove)
-
-    def _get_current_features_to_remove(
-        self, shap_importance_df: pd.DataFrame, columns_to_keep: Optional[List[str]] = None
-    ) -> List[str]:
-        """
-        Determines which features to remove based on SHAP importance.
-
-        This method selects features for removal according to the `step` parameter:
-        - If `step` is an integer: Removes exactly that many lowest-importance features (if available).
-        - If `step` is a float: Removes that fraction of the remaining features (rounded down).
-
-        Args:
-            shap_importance_df (pd.DataFrame):
-                DataFrame containing SHAP importance values for features.
-
-            columns_to_keep (Optional[List[str]], optional):
-                List of feature names that should not be removed. These features are
-                excluded from consideration when selecting features for removal.
-                Default is `None`.
-
-        Returns:
-            List[str]:
-                A list of feature names selected for removal in the current iteration.
-        """
-        # Bounding the variable.
-        num_features_to_remove = 0
-
-        # Exclude columns_to_keep from consideration for removal
-        if columns_to_keep is not None:
-            mask = shap_importance_df.index.isin(columns_to_keep)
-            shap_importance_df = shap_importance_df[~mask]
-
-        # Calculate number of features to remove based on step type
-        if isinstance(self.step, int):
-            num_features_to_remove = self._calculate_number_of_features_to_remove(
-                current_num_of_features=shap_importance_df.shape[0],
-                num_features_to_remove=self.step,
-                min_num_features_to_keep=self.min_features_to_select,
-            )
-        # If the step is a float remove n * number features that are left, rounded down
-        elif isinstance(self.step, float):
-            current_step = int(np.floor(shap_importance_df.shape[0] * self.step))
-
-            # Ensure at least 1 feature is removed (if possible)
-            if current_step < 1:
-                current_step = 1
-
-            num_features_to_remove = self._calculate_number_of_features_to_remove(
-                current_num_of_features=shap_importance_df.shape[0],
-                num_features_to_remove=current_step,
-                min_num_features_to_keep=self.min_features_to_select,
-            )
-
-        # Return empty list if no features should be removed
-        if num_features_to_remove == 0:
-            return []
-
-        # Return the n features with lowest importance
-        return shap_importance_df.iloc[-num_features_to_remove:].index.tolist()
-
-    def _report_current_results(
-        self,
-        round_number: int,
-        current_features_set: List[str],
-        features_to_remove: List[str],
-        train_metric_mean: float,
-        train_metric_std: float,
-        val_metric_mean: float,
-        val_metric_std: float,
-    ) -> None:
-        """
-        Records the results of the current feature elimination iteration.
-
-        This method updates the report DataFrame with details about the current
-        feature set, removed features, and model performance metrics.
-
-        Args:
-            round_number (int):
-                The current iteration number of feature elimination.
-
-            current_features_set (List[str]):
-                The list of features used in this iteration before feature removal.
-
-            features_to_remove (List[str]):
-                The list of features scheduled for removal after this iteration.
-
-            train_metric_mean (float):
-                The mean performance metric for the training set.
-
-            train_metric_std (float):
-                The standard deviation of the training set performance metric.
-
-            val_metric_mean (float):
-                The mean performance metric for the validation set.
-
-            val_metric_std (float):
-                The standard deviation of the validation set performance metric.
-        """
-        current_results = {
-            "num_features": len(current_features_set),
-            "features_set": [current_features_set],
-            "eliminated_features": [features_to_remove],
-            "train_metric_mean": train_metric_mean,
-            "train_metric_std": train_metric_std,
-            "val_metric_mean": val_metric_mean,
-            "val_metric_std": val_metric_std,
-        }
-
-        # Create a new DataFrame row with the current results
-        new_row = pd.DataFrame(current_results, index=[round_number])
-
-        # Add the new row to the report DataFrame
-        if self.report_df.empty:
-            self.report_df = new_row
-        else:
-            self.report_df = pd.concat([self.report_df, new_row])
 
     def _get_feature_shap_values_per_fold(
         self,
@@ -947,43 +719,6 @@ class ShapRFECV(BaseFitComputePlotClass):
 
         return shap_values_val, score_train, score_val
 
-    def _filter_and_identify_features_based_on_importance(
-        self, shap_importance_df: pd.DataFrame, columns_to_keep: Optional[List[str]], current_features_set: List[str]
-    ) -> Tuple[List[str], List[str]]:
-        """
-        Filters features based on SHAP importance while preserving the original feature order.
-
-        This method determines which features should be kept and which should be removed
-        in the current iteration of feature elimination.
-
-        Args:
-            shap_importance_df (pd.DataFrame):
-                DataFrame containing SHAP importance values for features.
-
-            columns_to_keep (Optional[List[str]]):
-                List of feature names that should not be removed, ensuring they remain in the dataset.
-                Default is `None`.
-
-            current_features_set (List[str]):
-                List of currently selected features, preserving the original feature order.
-
-        Returns:
-            Tuple[List[str], List[str]]:
-                A tuple containing:
-                - `List[str]`: Features to keep (`remaining_features`).
-                - `List[str]`: Features selected for removal (`features_to_remove`).
-        """
-        # Get features to remove based on SHAP importance and columns_to_keep
-        features_to_remove = self._get_current_features_to_remove(shap_importance_df, columns_to_keep=columns_to_keep)
-
-        # Convert features_to_remove to a set for O(1) lookup times
-        features_to_remove_set = set(features_to_remove)
-
-        # Filter out the features to remove, maintaining the original order of current_features_set
-        remaining_features = [feature for feature in current_features_set if feature not in features_to_remove_set]
-
-        return remaining_features, features_to_remove
-
     def get_reduced_features_set(
         self,
         num_features: Union[int, Literal["best", "best_coherent", "best_parsimonious"]],
@@ -1031,8 +766,11 @@ class ShapRFECV(BaseFitComputePlotClass):
 
         # Determine the best number of features based on the method specified
         if isinstance(num_features, str):
-            num_features = self._get_best_num_features(
-                best_method=num_features, standard_error_threshold=standard_error_threshold
+            num_features = get_best_num_features(
+                report_df=self.report_df,
+                best_method=num_features,
+                standard_error_threshold=standard_error_threshold,
+                verbose=self.verbose,
             )
         elif not isinstance(num_features, int):
             raise ValueError(
@@ -1040,459 +778,17 @@ class ShapRFECV(BaseFitComputePlotClass):
             )
 
         # Get feature names for the determined number of features
-        feature_names_selected = self._get_feature_names(num_features)
+        feature_names_selected = get_feature_names(report_df=self.report_df, num_features=num_features)
 
         # Return based on the requested return type
         if return_type == "feature_names":
             return feature_names_selected
         elif return_type == "support":
-            return self._get_feature_support(feature_names_selected)
+            return get_feature_support(column_names=self.column_names, feature_names_selected=feature_names_selected)
         elif return_type == "ranking":
-            return self._get_feature_ranking()
+            return get_feature_ranking(report_df=self.report_df)
         else:
             raise ValueError("Invalid return_type. Must be 'feature_names', 'support', or 'ranking'.")
-
-    def _get_best_num_features(
-        self, best_method: Literal["best", "best_coherent", "best_parsimonious"], standard_error_threshold: float = 1.0
-    ) -> int:
-        """
-        Determines the optimal number of features based on the specified selection strategy.
-
-        Args:
-            best_method (Literal["best", "best_coherent", "best_parsimonious"]):
-                The strategy used to select the optimal number of features:
-                - `"best"`: Chooses the iteration with the highest validation score.
-                - `"best_coherent"`: Among iterations within `standard_error_threshold` of the best score,
-                selects the one with the lowest standard deviation.
-                - `"best_parsimonious"`: Among iterations within `standard_error_threshold` of the best score,
-                selects the iteration with the fewest features.
-
-            standard_error_threshold (float, optional):
-                Defines how close an iteration's score must be to the highest score for it to be considered
-                when using `"best_coherent"` or `"best_parsimonious"`.
-                Default is `1.0`.
-
-        Returns:
-            int:
-                The optimal number of features based on the selected strategy.
-
-        Raises:
-            ValueError:
-                - If `best_method` is not one of `"best"`, `"best_coherent"`, or `"best_parsimonious"`.
-                - If `standard_error_threshold` is negative or otherwise invalid.
-        """
-        self._check_if_fitted()
-
-        if not isinstance(standard_error_threshold, (float, int)) or standard_error_threshold < 0:
-            raise ValueError("Parameter standard_error_threshold must be a non-negative int or float.")
-
-        # Create a copy of the report DataFrame to avoid modifying the original
-        shap_report = self.report_df.copy()
-
-        if best_method == "best":
-            # Simply select the iteration with the highest validation score
-            best_score_index = shap_report["val_metric_mean"].idxmax()
-            best_num_features = shap_report.loc[best_score_index, "num_features"]
-
-        elif best_method == "best_coherent":
-            # Find the highest validation score
-            highest_score = shap_report["val_metric_mean"].max()
-
-            # Select iterations within the threshold of the highest score
-            within_threshold = shap_report[shap_report["val_metric_mean"] >= highest_score - standard_error_threshold]
-
-            # From those iterations, select the one with the lowest standard deviation
-            lowest_std_index = within_threshold["val_metric_std"].idxmin()
-            best_num_features = within_threshold.loc[lowest_std_index, "num_features"]
-
-        elif best_method == "best_parsimonious":
-            # Find the highest validation score
-            highest_score = shap_report["val_metric_mean"].max()
-
-            # Select iterations within the threshold of the highest score
-            within_threshold = shap_report[shap_report["val_metric_mean"] >= highest_score - standard_error_threshold]
-
-            # From those iterations, select the one with the fewest features
-            fewest_features_index = within_threshold["num_features"].idxmin()
-            best_num_features = within_threshold.loc[fewest_features_index, "num_features"]
-
-        else:
-            raise ValueError(
-                "The parameter 'best_method' must be one of 'best', 'best_coherent', or 'best_parsimonious'."
-            )
-
-        # Log the report if verbose
-        if self.verbose > 1:
-            logger.debug(shap_report)
-
-        return best_num_features
-
-    def _get_feature_names(self, num_features: int) -> List[str]:
-        """
-        Retrieves the list of feature names corresponding to a specific number of selected features.
-
-        Args:
-            num_features (int):
-                The number of features to retrieve.
-
-        Returns:
-            List[str]:
-                A list of feature names corresponding to the specified number of features.
-
-        Raises:
-            ValueError:
-                If the requested `num_features` was not achieved during the feature elimination process.
-        """
-        self._check_if_fitted()
-
-        # Find the row in the report with the specified number of features
-        matching_rows = self.report_df[self.report_df.num_features == num_features]
-
-        if matching_rows.empty:
-            valid_nums = ", ".join([str(n) for n in sorted(self.report_df.num_features.unique())])
-            raise ValueError(
-                f"The provided number of features ({num_features}) was not achieved during feature elimination. "
-                f"Valid options are: {valid_nums}"
-            )
-
-        # Return the feature set from the first matching row
-        return matching_rows.iloc[0]["features_set"]
-
-    def _get_feature_support(self, feature_names_selected: List[str]) -> List[bool]:
-        """
-        Generates a boolean mask indicating which features were selected.
-
-        Args:
-            feature_names_selected (List[str]):
-                A list of feature names that were selected after feature elimination.
-
-        Returns:
-            List[bool]:
-                A boolean mask where `True` indicates a selected feature and `False` indicates a removed feature.
-        """
-        # Create a boolean mask where True indicates the feature was selected
-        if self.column_names is None:
-            raise ValueError("Feature names are not available. The model may not be fitted.")
-        return [col in feature_names_selected for col in self.column_names]
-
-    def _get_feature_ranking(self) -> List[int]:
-        """
-        Retrieves the ranking of features based on their elimination order.
-
-        Features eliminated earlier receive higher ranks (indicating lower importance),
-        while features that were never eliminated receive a rank of `0` (most important).
-
-        Returns:
-            List[int]:
-                A list of feature rankings, where lower values indicate more important features
-                and higher values correspond to features eliminated earlier.
-        """
-        # Reverse the report DataFrame to process elimination in chronological order
-        flipped_report_df = self.report_df.iloc[::-1]
-
-        # Features that were never eliminated have the highest importance (rank 0)
-        features_not_eliminated = flipped_report_df["features_set"].iloc[0]
-        features_not_eliminated_dict = {feature: 0 for feature in features_not_eliminated}
-
-        # Features that were eliminated are ranked by their elimination order
-        # Earlier elimination = higher rank number = less important
-        features_eliminated = np.concatenate(flipped_report_df["eliminated_features"].to_numpy())
-        features_eliminated_dict = {feature: idx + 1 for idx, feature in enumerate(features_eliminated)}
-
-        # Combine the dictionaries
-        ranking_dict = {**features_eliminated_dict, **features_not_eliminated_dict}
-
-        # Create the ranking list in the original column order
-        if self.column_names is None:
-            raise ValueError("Feature names are not available. The model may not be fitted.")
-        ranking = [ranking_dict.get(col, 0) for col in self.column_names]
-
-        return ranking
-
-    def _get_fit_params_lightGBM(
-        self,
-        X_val: pd.DataFrame,
-        y_val: pd.Series,
-        sample_weight: Optional[pd.Series] = None,
-        train_index: Optional[np.ndarray] = None,
-        val_index: Optional[np.ndarray] = None,
-    ) -> Dict[str, Any]:
-        """
-        Prepares the fit parameters for LightGBM models with early stopping support.
-
-        This method formats the necessary parameters for training LightGBM, including
-        validation data and optional sample weights.
-
-        Args:
-            X_val (pd.DataFrame):
-                Validation feature matrix of shape `(n_samples, n_features)`.
-
-            y_val (pd.Series):
-                Validation labels of shape `(n_samples,)`.
-
-            sample_weight (Optional[pd.Series], optional):
-                Sample weights for training data, if applicable. Default is `None`.
-
-            train_index (Optional[np.ndarray], optional):
-                Indices of training samples. Default is `None`.
-
-            val_index (Optional[np.ndarray], optional):
-                Indices of validation samples. Default is `None`.
-
-        Returns:
-            Dict[str, Any]:
-                A dictionary containing the formatted parameters to be passed to
-                the LightGBM `fit` method, including validation sets and callbacks.
-        """
-        from lightgbm import early_stopping
-
-        # Ensure early_stopping_rounds is not None
-        if self.early_stopping_rounds is None:
-            raise ValueError("early_stopping_rounds must be provided for LightGBM early stopping")
-
-        # Create the fit parameters with eval_set and callbacks
-        fit_params = {
-            "eval_set": [(X_val, y_val)],
-            "eval_metric": self.eval_metric,
-            "callbacks": [
-                early_stopping(
-                    self.early_stopping_rounds, first_metric_only=True, verbose=True if self.verbose > 1 else False
-                ),
-            ],
-        }
-
-        # Add sample weights if provided
-        if sample_weight is not None and train_index is not None:
-            fit_params["sample_weight"] = sample_weight.iloc[train_index]
-
-            # Add validation sample weights if validation indices are provided
-            if val_index is not None:
-                fit_params["eval_sample_weight"] = [sample_weight.iloc[val_index]]
-
-        return fit_params
-
-    def _get_fit_params_XGBoost(
-        self,
-        X_val: pd.DataFrame,
-        y_val: pd.Series,
-        sample_weight: Optional[pd.Series] = None,
-        train_index: Optional[np.ndarray] = None,
-        val_index: Optional[np.ndarray] = None,
-    ) -> Dict[str, Any]:
-        """
-        Prepares the fit parameters for training an XGBoost model with early stopping support.
-
-        This method formats the required parameters for XGBoost training, ensuring the
-        correct structure for validation data and sample weights. The early stopping
-        configuration is handled separately via the model's parameters.
-
-        Args:
-            X_val (pd.DataFrame):
-                Validation feature matrix of shape `(n_samples, n_features)`.
-
-            y_val (pd.Series):
-                Validation labels of shape `(n_samples,)`.
-
-            sample_weight (Optional[pd.Series], optional):
-                Sample weights for training data, if applicable.
-                Default is `None`.
-
-            train_index (Optional[np.ndarray], optional):
-                Indices of training samples.
-                Default is `None`.
-
-            val_index (Optional[np.ndarray], optional):
-                Indices of validation samples.
-                Default is `None`.
-
-        Returns:
-            Dict[str, Any]:
-                A dictionary containing the formatted parameters to be passed to the
-                XGBoost `fit` method, including validation data.
-        """
-        # Create fit parameters dictionary with eval_set for validation
-        fit_params = {"eval_set": [(X_val, y_val)]}
-
-        # Add sample weights if provided
-        if sample_weight is not None and train_index is not None:
-            fit_params["sample_weight"] = sample_weight.iloc[train_index]
-
-            # Add validation sample weights if validation indices are provided
-            if val_index is not None:
-                fit_params["sample_weight_eval_set"] = [sample_weight.iloc[val_index]]
-
-        return fit_params
-
-    def _get_fit_params_CatBoost(
-        self,
-        X_train: pd.DataFrame,
-        X_val: pd.DataFrame,
-        y_val: pd.Series,
-        sample_weight: Optional[pd.Series] = None,
-        train_index: Optional[np.ndarray] = None,
-        val_index: Optional[np.ndarray] = None,
-    ) -> Dict[str, Any]:
-        """
-        Prepares the fit parameters for training a CatBoost model with early stopping support.
-
-        This method structures the necessary parameters for CatBoost training, ensuring the correct
-        format for validation data, optional sample weights, and early stopping.
-
-        Args:
-            X_train (pd.DataFrame):
-                Training feature matrix of shape `(n_samples, n_features)`.
-
-            X_val (pd.DataFrame):
-                Validation feature matrix of shape `(n_samples, n_features)`.
-
-            y_val (pd.Series):
-                Validation labels of shape `(n_samples,)`.
-
-            sample_weight (Optional[pd.Series], optional):
-                Sample weights for training data, if applicable.
-                Default is `None`.
-
-            train_index (Optional[np.ndarray], optional):
-                Indices of training samples.
-                Default is `None`.
-
-            val_index (Optional[np.ndarray], optional):
-                Indices of validation samples.
-                Default is `None`.
-
-        Returns:
-            Dict[str, Any]:
-                A dictionary containing the formatted parameters to be passed to the
-                CatBoost `fit` method, including validation data and early stopping settings.
-        """
-        from catboost import Pool
-
-        # Identify categorical features
-        cat_features = [col for col in X_train.select_dtypes(include=["category"]).columns]
-
-        # Create validation data pool
-        eval_set_pool = Pool(X_val, y_val, cat_features=cat_features)
-
-        # Add validation sample weights if provided
-        if sample_weight is not None and val_index is not None:
-            eval_set_pool.set_weight(sample_weight.iloc[val_index])
-
-        # Create fit parameters dictionary with eval_set
-        fit_params = {"eval_set": eval_set_pool, "cat_features": cat_features}
-
-        # Add sample weights if provided
-        if sample_weight is not None and train_index is not None:
-            fit_params["sample_weight"] = sample_weight.iloc[train_index]
-
-        return fit_params
-
-    def _get_fit_params(
-        self,
-        model: Union[BaseEstimator, BaseSearchCV],
-        X_train: pd.DataFrame,
-        X_val: pd.DataFrame,
-        y_val: pd.Series,
-        sample_weight: Optional[pd.Series] = None,
-        train_index: Optional[np.ndarray] = None,
-        val_index: Optional[np.ndarray] = None,
-    ) -> Dict[str, Any]:
-        """
-        Generates the appropriate fit parameters based on the model type.
-
-        This method automatically detects the model type and delegates to the corresponding
-        specialized method (`_get_fit_params_XGBoost`, `_get_fit_params_CatBoost`,
-        `_get_fit_params_lightGBM`) to retrieve the correct fit parameters.
-
-        Args:
-            model (Union[BaseEstimator, BaseSearchCV]):
-                The model or hyperparameter search object for which to retrieve fit parameters.
-
-            X_train (pd.DataFrame):
-                Training feature matrix of shape `(n_samples, n_features)`.
-
-            y_train (pd.Series):
-                Training labels of shape `(n_samples,)`.
-
-            X_val (pd.DataFrame):
-                Validation feature matrix of shape `(n_samples, n_features)`.
-
-            y_val (pd.Series):
-                Validation labels of shape `(n_samples,)`.
-
-            sample_weight (Optional[pd.Series], optional):
-                Sample weights for training data, if applicable.
-                Default is `None`.
-
-            train_index (Optional[np.ndarray], optional):
-                Indices of training samples.
-                Default is `None`.
-
-            val_index (Optional[np.ndarray], optional):
-                Indices of validation samples.
-                Default is `None`.
-
-        Returns:
-            Dict[str, Any]:
-                A dictionary of parameters to be passed to the model's `fit` method,
-                including validation data and early stopping settings.
-
-        Raises:
-            ValueError:
-                If the model type is not supported for early stopping.
-        """
-        # Try LightGBM
-        try:
-            from lightgbm import LGBMModel
-
-            if isinstance(model, LGBMModel):
-                return self._get_fit_params_lightGBM(
-                    X_val=X_val,
-                    y_val=y_val,
-                    sample_weight=sample_weight,
-                    train_index=train_index,
-                    val_index=val_index,
-                )
-        except ImportError:
-            pass
-
-        # Try XGBoost
-        try:
-            from xgboost import XGBModel
-
-            if isinstance(model, XGBModel):
-                return self._get_fit_params_XGBoost(
-                    X_val=X_val,
-                    y_val=y_val,
-                    sample_weight=sample_weight,
-                    train_index=train_index,
-                    val_index=val_index,
-                )
-        except ImportError:
-            pass
-
-        # TODO: Revert this once CatBoost is updated to work with NumPy 2.0
-        try:
-            # Only attempt to import if the model's class name suggests it might be a CatBoost model
-            if hasattr(model, "__class__") and "catboost" in str(model.__class__).lower():
-                try:
-                    from catboost import CatBoost
-
-                    if isinstance(model, CatBoost):
-                        return self._get_fit_params_CatBoost(
-                            X_train=X_train,
-                            X_val=X_val,
-                            y_val=y_val,
-                            sample_weight=sample_weight,
-                            train_index=train_index,
-                            val_index=val_index,
-                        )
-                except ImportError:
-                    pass
-        except Exception:
-            # Ignore any errors during this check
-            pass
-
-        raise ValueError("Model type not supported for early stopping")
 
     def _get_feature_shap_values_per_fold_early_stopping(
         self,
@@ -1549,7 +845,7 @@ class ShapRFECV(BaseFitComputePlotClass):
         y_train, y_val = y.iloc[train_index], y.iloc[val_index]
 
         # Get appropriate fit parameters for the model type
-        fit_params = self._get_fit_params(
+        fit_params = get_fit_params(
             model=model,
             X_train=X_train,
             X_val=X_val,
@@ -1557,6 +853,9 @@ class ShapRFECV(BaseFitComputePlotClass):
             sample_weight=sample_weight,
             train_index=train_index,
             val_index=val_index,
+            early_stopping_rounds=self.early_stopping_rounds,
+            eval_metric=self.eval_metric,
+            verbose=self.verbose,
         )
 
         try:

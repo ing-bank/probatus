@@ -14,7 +14,7 @@ from sklearn.model_selection import train_test_split
 
 from probatus.dataset import SHAPImportanceResemblance, PermutationImportanceResemblance
 from probatus.model import ShapModelInterpreter
-from probatus.features import ShapRFECV
+from probatus.features import ShapRFECV, check_if_model_is_compatible_with_early_stopping
 from probatus.utils import preprocess_labels
 
 # Turn off interactive mode in plots
@@ -135,9 +135,9 @@ def test_sample_similarity(
         fig.savefig(plot_path, dpi=300, bbox_inches="tight")
 
         # Verify the plot has diverse colors
-        assert check_plots_are_generated_correctly(plot_path), (
-            "Sample similarity plot doesn't have enough colors - it may be empty or only showing axes."
-        )
+        assert check_plots_are_generated_correctly(
+            plot_path
+        ), "Sample similarity plot doesn't have enough colors - it may be empty or only showing axes."
 
     # Close all plots to free memory
     plt.close("all")
@@ -197,9 +197,9 @@ def test_permutation_importance_resemblance(
         fig.savefig(plot_path, dpi=300, bbox_inches="tight")
 
         # Verify the plot has diverse colors
-        assert check_plots_are_generated_correctly(plot_path), (
-            "Permutation importance plot doesn't have enough colors - it may be empty or only showing axes."
-        )
+        assert check_plots_are_generated_correctly(
+            plot_path
+        ), "Permutation importance plot doesn't have enough colors - it may be empty or only showing axes."
 
     # Close all plots to free memory
     plt.close("all")
@@ -260,9 +260,9 @@ def test_model_interpret(
         fig.savefig(plot_path, dpi=300, bbox_inches="tight")
 
         # Verify the plot has diverse colors
-        assert check_plots_are_generated_correctly(plot_path), (
-            "Model interpret importance plot doesn't have enough colors - it may be empty or only showing axes."
-        )
+        assert check_plots_are_generated_correctly(
+            plot_path
+        ), "Model interpret importance plot doesn't have enough colors - it may be empty or only showing axes."
 
     # Close all plots to free memory
     plt.close("all")
@@ -319,9 +319,9 @@ def test_shap_dependence(
                 fig.savefig(plot_path, dpi=300, bbox_inches="tight")
 
                 # Verify the plot has diverse colors
-                assert check_plots_are_generated_correctly(plot_path), (
-                    f"SHAP dependence numeric plot {i} doesn't have enough colors - it may be empty or only showing axes."
-                )
+                assert check_plots_are_generated_correctly(
+                    plot_path
+                ), f"SHAP dependence numeric plot {i} doesn't have enough colors - it may be empty or only showing axes."
         else:
             assert isinstance(fig_result, matplotlib.figure.Figure)
             # Save the plot
@@ -329,9 +329,9 @@ def test_shap_dependence(
             fig_result.savefig(plot_path, dpi=300, bbox_inches="tight")
 
             # Verify the plot has diverse colors
-            assert check_plots_are_generated_correctly(plot_path), (
-                "SHAP dependence numeric plot doesn't have enough colors - it may be empty or only showing axes."
-            )
+            assert check_plots_are_generated_correctly(
+                plot_path
+            ), "SHAP dependence numeric plot doesn't have enough colors - it may be empty or only showing axes."
 
     plt.close("all")
 
@@ -350,9 +350,9 @@ def test_shap_dependence(
             fig.savefig(plot_path, dpi=300, bbox_inches="tight")
 
             # Verify the plot has diverse colors
-            assert check_plots_are_generated_correctly(plot_path), (
-                f"SHAP dependence multiple plot {i} doesn't have enough colors - it may be empty or only showing axes."
-            )
+            assert check_plots_are_generated_correctly(
+                plot_path
+            ), f"SHAP dependence multiple plot {i} doesn't have enough colors - it may be empty or only showing axes."
 
     # Also test summary plot
     # For summary plot, the method now returns a Figure object
@@ -366,9 +366,9 @@ def test_shap_dependence(
         fig.savefig(plot_path, dpi=300, bbox_inches="tight")
 
         # Verify the plot has diverse colors
-        assert check_plots_are_generated_correctly(plot_path), (
-            "SHAP summary plot doesn't have enough colors - it may be empty or only showing axes."
-        )
+        assert check_plots_are_generated_correctly(
+            plot_path
+        ), "SHAP summary plot doesn't have enough colors - it may be empty or only showing axes."
 
     # Test sample plot
     # For sample plot, the method now returns a Figure or List[Figure]
@@ -385,9 +385,9 @@ def test_shap_dependence(
                 fig.savefig(plot_path, dpi=300, bbox_inches="tight")
 
                 # Verify the plot has diverse colors
-                assert check_plots_are_generated_correctly(plot_path), (
-                    f"SHAP sample plot {i} doesn't have enough colors - it may be empty or only showing axes."
-                )
+                assert check_plots_are_generated_correctly(
+                    plot_path
+                ), f"SHAP sample plot {i} doesn't have enough colors - it may be empty or only showing axes."
         else:
             assert isinstance(fig_result, matplotlib.figure.Figure)
             # Save the plot
@@ -395,9 +395,9 @@ def test_shap_dependence(
             fig_result.savefig(plot_path, dpi=300, bbox_inches="tight")
 
             # Verify the plot has diverse colors
-            assert check_plots_are_generated_correctly(plot_path), (
-                "SHAP sample plot doesn't have enough colors - it may be empty or only showing axes."
-            )
+            assert check_plots_are_generated_correctly(
+                plot_path
+            ), "SHAP sample plot doesn't have enough colors - it may be empty or only showing axes."
 
     # Close all plots to free memory
     plt.close("all")
@@ -450,9 +450,9 @@ def test_feature_elimination(
         fig.savefig(plot_path, dpi=300, bbox_inches="tight")
 
         # Verify the plot has diverse colors
-        assert check_plots_are_generated_correctly(plot_path), (
-            "Feature elimination plot doesn't have enough colors - it may be empty or only showing axes."
-        )
+        assert check_plots_are_generated_correctly(
+            plot_path
+        ), "Feature elimination plot doesn't have enough colors - it may be empty or only showing axes."
 
     # Close all plots to free memory
     plt.close("all")
@@ -486,7 +486,7 @@ def test_feature_elimination_early_stopping(
 
     # Create a temporary ShapRFECV to check compatibility
     temp_shap_elimination = ShapRFECV(model=model, random_state=random_state)
-    is_compatible = temp_shap_elimination._check_if_model_is_compatible_with_early_stopping(model)
+    is_compatible = check_if_model_is_compatible_with_early_stopping(model)
 
     # For non-compatible estimators, expect ValueError during initialization
     if not is_compatible:
@@ -533,9 +533,9 @@ def test_feature_elimination_early_stopping(
             fig.savefig(plot_path, dpi=300, bbox_inches="tight")
 
             # Verify the plot has diverse colors
-            assert check_plots_are_generated_correctly(plot_path), (
-                "Feature elimination early stopping plot doesn't have enough colors - it may be empty or only showing axes."
-            )
+            assert check_plots_are_generated_correctly(
+                plot_path
+            ), "Feature elimination early stopping plot doesn't have enough colors - it may be empty or only showing axes."
 
         # Close all plots to free memory
         plt.close("all")
@@ -572,7 +572,7 @@ def test_randomized_search_early_stopping(
 
     # Create a temporary ShapRFECV to check compatibility
     temp_shap_elimination = ShapRFECV(model=search, random_state=random_state)
-    is_compatible = temp_shap_elimination._check_if_model_is_compatible_with_early_stopping(search)
+    is_compatible = check_if_model_is_compatible_with_early_stopping(search)
 
     # For non-compatible estimators, expect ValueError during initialization
     if not is_compatible:
@@ -619,9 +619,9 @@ def test_randomized_search_early_stopping(
             fig.savefig(plot_path, dpi=300, bbox_inches="tight")
 
             # Verify the plot has diverse colors
-            assert check_plots_are_generated_correctly(plot_path), (
-                "Randomized search early stopping plot doesn't have enough colors - it may be empty or only showing axes."
-            )
+            assert check_plots_are_generated_correctly(
+                plot_path
+            ), "Randomized search early stopping plot doesn't have enough colors - it may be empty or only showing axes."
 
         # Close all plots to free memory
         plt.close("all")
@@ -655,7 +655,7 @@ def test_get_feature_shap_values_per_fold_early_stopping(
 
     # Check if model is compatible with early stopping
     temp_shap_elimination = ShapRFECV(model=model, random_state=random_state)
-    is_compatible = temp_shap_elimination._check_if_model_is_compatible_with_early_stopping(model)
+    is_compatible = check_if_model_is_compatible_with_early_stopping(model)
 
     # For non-compatible estimators, expect ValueError
     if not is_compatible:

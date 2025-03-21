@@ -3,10 +3,11 @@ import numpy as np
 import pandas as pd
 from shap import summary_plot
 from shap import Explanation
-from shap.plots import waterfall, bar
+from shap.plots import waterfall
 from typing import Any, Dict, List, Optional, Tuple, Union, Literal
 from matplotlib.figure import Figure
 from sklearn.base import BaseEstimator
+from sklearn.pipeline import Pipeline
 
 from probatus.model.shap_dependence_plotter import DependencePlotter
 from probatus.core import BaseFitComputePlotClass
@@ -23,6 +24,7 @@ from probatus.utils import (
     extract_shap_multiclass_params,
     prep_shap_related_variables,
 )
+from probatus.utils.common import get_pipeline_preprocessor_and_estimator
 
 
 class ShapModelInterpreter(BaseFitComputePlotClass):
@@ -94,7 +96,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
 
     def __init__(
         self,
-        model: BaseEstimator,
+        model: Union[BaseEstimator, Pipeline],
         scoring: Union[str, Scorer] = "roc_auc",
         verbose: Literal[0, 1, 2] = 0,
         random_state: Optional[int] = None,
@@ -103,7 +105,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
         Initialize a ShapModelInterpreter object.
 
         Args:
-            model (BaseEstimator):
+            model (Union[BaseEstimator, Pipeline]):
                 The trained model to be interpreted. Must implement either predict or predict_proba
                 method depending on the scoring metric requirements.
 
@@ -124,6 +126,11 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
                 Random state for reproducibility. If None, results will not be reproducible.
                 For reproducible results, set it to an integer.
         """
+        if isinstance(model, Pipeline):
+            self.pipeline, self.preprocessor = get_pipeline_preprocessor_and_estimator(model)
+        else:
+            self.pipeline = None
+            self.preprocessor = None
         self.model = model
         self.scorer = get_single_scorer(scoring)
         self.verbose = verbose
@@ -184,6 +191,11 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
         Raises:
             ValueError: If input data cannot be properly preprocessed
         """
+        # Transform data if model is a Pipeline
+        if self.pipeline is not None:
+            X_train = self.pipeline.transform(X_train)
+            X_test = self.pipeline.transform(X_test)
+
         # Preprocess input data and ensure consistent format
         self.X_train, self.column_names = preprocess_data(
             X_train, X_name="X_train", column_names=column_names, verbose=self.verbose
@@ -493,6 +505,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
         else:
             raise ValueError("Wrong plot type, select from 'importance', 'summary', 'dependence', or 'sample'")
 
+    # TODO: Move to utils/common/plot
     def _prepare_target_columns(self, target_columns: Optional[Union[str, List[str]]]) -> List[str]:
         """
         Prepare target columns list for plotting.
@@ -511,6 +524,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
             target_columns = self.column_names
         return assure_list_of_strings(target_columns, "target_columns")
 
+    # TODO: Move logic to plot/utils/common or remove
     def _select_target_dataset(self, target_set: Literal["train", "test"]) -> dict:
         """
         Select the appropriate dataset based on target_set parameter.
@@ -552,6 +566,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
         else:
             raise ValueError('The target_set parameter can be either "train" or "test".')
 
+    # TODO: Move logic to plot
     def _create_summary_plot(
         self,
         plot_type: Literal["importance", "summary"],
@@ -663,6 +678,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
 
         return fig
 
+    # TODO: Move logic to plot
     def _create_dependence_plots(
         self, target_columns: List[str], target_tdp: DependencePlotter, show: bool, **plot_kwargs: Any
     ) -> Union[Figure, List[Figure]]:
@@ -706,6 +722,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
             return figures_list[0]
         return figures_list
 
+    # TODO: Move logic to plot
     def _create_sample_plots(
         self,
         samples_index: Optional[Union[int, str, List, pd.Index]],

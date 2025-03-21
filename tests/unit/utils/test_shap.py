@@ -3,6 +3,11 @@ import pandas as pd
 import pytest
 import shap
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LogisticRegression
+from sklearn.pipeline import Pipeline
+from sklearn.compose import ColumnTransformer
+from sklearn.preprocessing import OneHotEncoder
 
 from probatus.utils.shap import (
     _validate_shap_inputs,
@@ -17,16 +22,14 @@ from probatus.utils.shap import (
 
 
 @pytest.mark.parametrize(
-    "model_fixture, expected_valid, expected_error_contains",
+    "model_fixture, expected_valid",
     [
-        ("tree_model", True, None),
-        ("linear_model", True, None),
-        ("pipeline_model", False, "Pipeline"),
+        ("tree_model", True),
+        ("linear_model", True),
+        ("pipeline_model", True),  # Now pipelines are supported
     ],
 )
-def test_validate_shap_inputs(
-    request, binary_classification_data, model_fixture, expected_valid, expected_error_contains
-):
+def test_validate_shap_inputs(request, binary_classification_data, model_fixture, expected_valid):
     """Test _validate_shap_inputs with various model types."""
     model = request.getfixturevalue(model_fixture)
     X, _ = binary_classification_data
@@ -35,8 +38,10 @@ def test_validate_shap_inputs(
     is_valid, error_message = _validate_shap_inputs(model, X, verbose=0)
     assert is_valid is expected_valid
 
-    if expected_error_contains:
-        assert expected_error_contains in error_message
+    # Pipeline should now generate a warning, not an error
+    if model_fixture == "pipeline_model":
+        with pytest.warns(UserWarning, match="SHAP does not directly support pipelines"):
+            _validate_shap_inputs(model, X, verbose=1)
 
 
 def test_validate_shap_inputs_non_dataframe(tree_model, binary_classification_data):
@@ -379,12 +384,16 @@ def test_calculate_shap_explanation(
     assert shap_explanation.values.shape[1] == X.shape[1]  # Should match feature count
 
 
-def test_shap_calc_with_pipeline(pipeline_model, binary_classification_data):
-    """Test that using a Pipeline raises an error."""
+def test_shap_values_with_pipeline(pipeline_model, binary_classification_data):
+    """Test that SHAP values can be calculated for a pipeline model."""
     X, _ = binary_classification_data
 
-    with pytest.raises(TypeError, match="Pipeline"):
-        calculate_shap_explanation(pipeline_model, X)
+    # This should now work without errors
+    shap_explanation = calculate_shap_explanation(pipeline_model, X)
+
+    # Make sure we got a valid SHAP explanation
+    assert isinstance(shap_explanation, shap.Explanation)
+    assert shap_explanation.values.shape[0] == X.shape[0]  # Should have the right number of samples
 
 
 @pytest.mark.parametrize(
@@ -658,3 +667,59 @@ def test_calculate_shap_importance_dimension_mismatch(shap_input_data):
 
     with pytest.raises(ValueError, match="Dimension mismatch"):
         calculate_shap_importance(shap_values, columns=wrong_columns)
+
+
+def test_calculate_shap_explanation_with_pipeline():
+    """Test that SHAP values can be calculated for a pipeline model with preprocessing."""
+    # Create a more complex dataset with numeric and categorical features
+    X = pd.DataFrame(
+        {
+            "num1": np.random.normal(0, 1, 100),
+            "num2": np.random.normal(0, 1, 100),
+            "cat1": np.random.choice(["A", "B", "C"], 100),
+        }
+    )
+    y = (X["num1"] + np.random.normal(0, 0.1, 100) > 0).astype(int)
+
+    # Create a column transformer for mixed data types
+    preprocessor = ColumnTransformer(
+        transformers=[
+            ("num", StandardScaler(), ["num1", "num2"]),
+            ("cat", OneHotEncoder(sparse_output=False), ["cat1"]),
+        ]
+    )
+
+    # Create a pipeline with preprocessing and estimator
+    pipeline = Pipeline([("preprocessor", preprocessor), ("model", LogisticRegression(random_state=42))])
+
+    # Train the pipeline
+    pipeline.fit(X, y)
+
+    # Calculate SHAP values with our updated function that handles pipelines
+    shap_explanation = calculate_shap_explanation(pipeline, X)
+
+    # Calculate the number of feature columns after preprocessing
+    # 2 numeric features + one-hot encoded categorical feature (3 categories)
+    expected_feature_count = 2 + 3
+
+    # Verify that SHAP values have the correct shape
+    assert shap_explanation.values.shape[0] == 100  # 100 samples
+    assert shap_explanation.values.shape[1] == expected_feature_count  # Features after preprocessing
+
+    # Create a non-pipeline model for comparison
+    simple_model = LogisticRegression(random_state=42)
+
+    # Manually apply the preprocessing
+    X_transformed = pipeline.named_steps["preprocessor"].transform(X)
+
+    # Train the simple model on the preprocessed data
+    simple_model.fit(X_transformed, y)
+
+    # Convert X_transformed to DataFrame for SHAP function
+    X_transformed_df = pd.DataFrame(X_transformed, columns=[f"feature_{i}" for i in range(X_transformed.shape[1])])
+
+    # Calculate SHAP values for the simple model
+    shap_explanation_simple = calculate_shap_explanation(simple_model, X_transformed_df)
+
+    # Both should have the same shape for the SHAP values
+    assert shap_explanation.values.shape == shap_explanation_simple.values.shape

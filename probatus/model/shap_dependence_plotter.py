@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from sklearn.base import BaseEstimator
+from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import KBinsDiscretizer
 from typing import Any, List, Optional, Tuple, Union, Literal, Dict, cast
 from matplotlib.axes import Axes
@@ -15,8 +16,10 @@ from probatus.utils import (
     calculate_shap_explanation,
     is_regression_model,
     handle_class_names,
+    extract_shap_multiclass_params,
+    shap_explanation_to_shap_df,
 )
-from probatus.utils.shap import extract_shap_multiclass_params, shap_explanation_to_shap_df
+from probatus.utils.common import get_pipeline_preprocessor_and_estimator
 
 
 class DependencePlotter(BaseFitComputePlotClass):
@@ -79,12 +82,14 @@ class DependencePlotter(BaseFitComputePlotClass):
     <img src="../img/model_interpret_dep.png"/>
     """
 
-    def __init__(self, model: BaseEstimator, verbose: Literal[0, 1, 2] = 0, random_state: Optional[int] = None) -> None:
+    def __init__(
+        self, model: Union[BaseEstimator, Pipeline], verbose: Literal[0, 1, 2] = 0, random_state: Optional[int] = None
+    ) -> None:
         """
         Initializes the DependencePlotter class.
 
         Args:
-            model (BaseEstimator):
+            model (Union[BaseEstimator, Pipeline]):
                 A fitted regression or classification model or pipeline. Must implement
                 predict_proba or decision_function methods depending on the model type.
 
@@ -99,6 +104,11 @@ class DependencePlotter(BaseFitComputePlotClass):
                 Random state for reproducibility. If None, results may not be reproducible.
                 Default is None.
         """
+        if isinstance(model, Pipeline):
+            self.pipeline, self.preprocessor = get_pipeline_preprocessor_and_estimator(model)
+        else:
+            self.pipeline = None
+            self.preprocessor = None
         self.model: BaseEstimator = model
         self.verbose: Literal[0, 1, 2] = verbose
         self.random_state: Optional[int] = random_state
@@ -106,6 +116,7 @@ class DependencePlotter(BaseFitComputePlotClass):
         self.class_names: List[str] = None
         self.is_regression: bool = False
 
+    # TODO: perhaps remove this
     def __repr__(self) -> str:
         """
         Returns a string representation of the DependencePlotter instance.
@@ -169,6 +180,10 @@ class DependencePlotter(BaseFitComputePlotClass):
         Raises:
             ValueError: If input data formats are invalid.
         """
+        # Transform data if model is a Pipeline
+        if self.pipeline is not None:
+            X = self.pipeline.transform(X)
+
         self.X, self.column_names = preprocess_data(X, X_name="X", column_names=column_names, verbose=self.verbose)
         self.y = preprocess_labels(y, index=self.X.index)
 
@@ -287,6 +302,7 @@ class DependencePlotter(BaseFitComputePlotClass):
         self.fit(X, y, column_names=column_names, class_names=class_names, precalc_shap=precalc_shap, **shap_kwargs)
         return self.compute()
 
+    # TODO: Move logic to plot
     def plot(
         self,
         feature: Union[str, int],
@@ -382,6 +398,7 @@ class DependencePlotter(BaseFitComputePlotClass):
 
         return fig
 
+    # TODO: Move logic to plot
     def _dependence_plot(self, feature: str, ax: Optional[Axes] = None) -> Figure:
         """
         Plots SHAP values for data points with respect to the specified feature.
@@ -440,6 +457,7 @@ class DependencePlotter(BaseFitComputePlotClass):
 
         return fig
 
+    # TODO: Move logic to plot
     def _target_rate_plot(
         self, feature: Union[str, int], bins: Union[int, List[float]] = 10, ax: Optional[Axes] = None
     ) -> Tuple[Union[List[float], np.ndarray], Figure, pd.Series]:
@@ -560,6 +578,7 @@ class DependencePlotter(BaseFitComputePlotClass):
 
         return bin_edges_array, fig, target_ratio
 
+    # TODO: Move logic to utils/common/plot
     def _get_X_y_shap_with_q_cut(self, feature: str) -> Tuple[pd.Series, pd.Series, pd.Series]:
         """
         Extracts all X, y pairs and SHAP values that fall within defined quantiles of the feature.
