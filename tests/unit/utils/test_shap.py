@@ -456,9 +456,9 @@ def test_shap_explanation_to_shap_df_with_weights(
             # For binary classification, weights are ignored, so we don't expect differences
             if data_type == "binary":
                 # Just verify the values are the same as unweighted - weights don't apply to binary classification
-                assert np.allclose(
-                    weighted_df.values, unweighted_df.values, rtol=1e-3, atol=1e-3
-                ), "For binary classification, weights should have no effect"
+                assert np.allclose(weighted_df.values, unweighted_df.values, rtol=1e-3, atol=1e-3), (
+                    "For binary classification, weights should have no effect"
+                )
             else:
                 # For multiclass, we do expect differences with custom weights
                 is_different = not np.allclose(weighted_df.values, unweighted_df.values, rtol=1e-3, atol=1e-3)

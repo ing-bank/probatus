@@ -100,7 +100,7 @@ def calculate_shap_explanation(
         preprocessor, estimator = get_pipeline_preprocessor_and_estimator(model)
 
         if preprocessor is not None and verbose > 1:
-            warnings.warn(f"Applying preprocessing steps from pipeline before calculating SHAP values.")
+            warnings.warn("Applying preprocessing steps from pipeline before calculating SHAP values.")
 
         # Apply preprocessing to X if a preprocessor exists
         X = preprocess_using_pipeline(X, model)
@@ -526,11 +526,6 @@ def _format_shap_values(
 
     # Handle binary classification case (2 classes, 3D SHAP values)
     if is_multiclass and shap_values_shape[2] == 2:
-        warnings.warn(
-            "SHAP values are for a binary classification problem. "
-            "This is a special case of multiclass classification with only two classes.",
-            UserWarning,
-        )
         # For binary classification, we return the SHAP values for the positive class
         # as it is equivalent to the SHAP values for the two classes
         return shap_explanation.values[:, :, 1]

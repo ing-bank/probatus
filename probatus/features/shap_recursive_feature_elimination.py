@@ -570,7 +570,6 @@ class ShapRFECV(BaseFitComputePlotClass):
         self.fitted = True
         return self
 
-    # TODO: Move logic to plot
     def plot(self, show: bool = False, **figure_kwargs: Any) -> plt.Figure:
         """
         Plots model performance at each iteration of feature elimination.
@@ -606,31 +605,91 @@ class ShapRFECV(BaseFitComputePlotClass):
         val_std = self.report_df["val_metric_std"]
         x_ticks = list(reversed(num_features.tolist()))
 
-        # Create figure and axis
+        # Set SHAP-like colors
+        shap_blue = "#1E88E5"  # Main SHAP blue color
+        shap_red = "#ff0051"  # Main SHAP red color
+
+        # Create figure with SHAP-like styling
+        if "figsize" not in figure_kwargs:
+            figure_kwargs["figsize"] = (10, 6)
+
+        # Apply SHAP-like style
+        plt.style.use("default")  # Reset to default style first
+
         fig, ax = plt.subplots(**figure_kwargs)
+
+        # Set light gray background with white grid
+        ax.set_facecolor("#f8f8f8")
+        fig.patch.set_facecolor("white")
 
         # Plot training performance with error bars
         ax.errorbar(
-            num_features, train_mean, yerr=train_std, fmt="o-", capsize=5, label="Train Score", markersize=8, alpha=0.7
+            num_features,
+            train_mean,
+            yerr=train_std,
+            fmt="o-",
+            capsize=3,
+            label="Train Score",
+            color=shap_blue,
+            markersize=6,
+            alpha=0.8,
+            linewidth=2,
+            elinewidth=1,
+            capthick=1,
         )
 
         # Plot validation performance with error bars
         ax.errorbar(
-            num_features, val_mean, yerr=val_std, fmt="s-", capsize=5, label="Validation Score", markersize=8, alpha=0.7
+            num_features,
+            val_mean,
+            yerr=val_std,
+            fmt="s-",
+            capsize=3,
+            label="Validation Score",
+            color=shap_red,
+            markersize=6,
+            alpha=0.8,
+            linewidth=2,
+            elinewidth=1,
+            capthick=1,
         )
 
-        # Configure plot appearance
-        ax.set_xlabel("Number of features")
-        ax.set_ylabel(f"Performance {self.scorer.metric_name}")
-        ax.set_title("Backwards Feature Elimination using SHAP")
-        ax.legend(loc="lower left")
-        ax.invert_xaxis()  # Reverse x-axis to show feature reduction from left to right
-        ax.set_xticks(x_ticks)
-        # Rotate x-axis labels by 45 degrees
-        plt.setp(ax.get_xticklabels(), rotation=45, ha="right")
-        ax.grid(True, linestyle=":", alpha=0.7)
+        # Add grid with white lines
+        ax.grid(True, linestyle="--", linewidth=0.5, color="#eeeeee", zorder=0)
 
-        # Show or close the plot based on the show parameter
+        # Configure plot appearance
+        ax.set_xlabel("Number of features", fontsize=11, fontweight="bold")
+        ax.set_ylabel(f"Performance: {self.scorer.metric_name}", fontsize=11, fontweight="bold")
+        ax.set_title("Backwards Feature Elimination using SHAP", fontsize=13, fontweight="bold", pad=15)
+
+        # Create a styled legend
+        legend = ax.legend(loc="best", frameon=True, framealpha=0.95, edgecolor="lightgray", fontsize=10)
+        legend.get_frame().set_facecolor("white")
+
+        # Set axis limits with some padding
+        y_min, y_max = ax.get_ylim()
+        padding = (y_max - y_min) * 0.05
+        ax.set_ylim(y_min - padding, y_max + padding)
+
+        # Reverse x-axis to show feature reduction from left to right
+        ax.invert_xaxis()
+
+        # Set custom tick parameters
+        ax.tick_params(axis="both", which="major", labelsize=10)
+        ax.set_xticks(x_ticks)
+
+        # Rotate x-axis labels for better readability
+        plt.setp(ax.get_xticklabels(), rotation=45, ha="right")
+
+        # Add a thin border
+        for spine in ax.spines.values():
+            spine.set_edgecolor("lightgray")
+            spine.set_linewidth(0.8)
+
+        # Tight layout for better spacing
+        fig.tight_layout()
+
+        # Show or return the plot
         if show:
             plt.show()
 
