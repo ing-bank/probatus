@@ -1,7 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from shap import summary_plot
 from shap import Explanation
 from shap.plots import waterfall, bar, beeswarm
 from typing import Any, Dict, List, Optional, Tuple, Union, Literal
@@ -566,7 +565,6 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
         else:
             raise ValueError('The target_set parameter can be either "train" or "test".')
 
-    # TODO: Move logic to plot
     def _create_summary_plot(
         self,
         plot_type: Literal["importance", "summary"],
@@ -575,7 +573,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
         target_shap_values: pd.DataFrame,
         target_columns: List[str],
         target_columns_indices: List[int],
-        show: bool,
+        show: bool = False,
         **plot_kwargs: Any,
     ) -> Figure:
         """
@@ -612,62 +610,51 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
         Returns:
             Figure: Matplotlib Figure object containing the generated plot
         """
-        # Reset the style to default first
-        plt.style.use("default")
+        # Create new figure and temporarily disable interactive mode
+        was_interactive = plt.isinteractive()
+        plt.ioff()
+        plt.figure()
 
-        # Filter data to include only the target columns
+        # Prepare data
         target_X = target_X[target_columns]
 
-        # Handle different types of target_shap_values
+        # Convert shap values to numpy array with appropriate columns
         if isinstance(target_shap_values, pd.DataFrame):
-            # If it's a DataFrame, select columns by name
             target_shap_values = target_shap_values[target_columns].values
         else:
-            # If it's a numpy array, select columns by index
             target_shap_values = target_shap_values[:, target_columns_indices]
+
+        # Set up SHAP explanation object
+        explanation = Explanation(values=target_shap_values, data=target_X.values, feature_names=target_columns)
+
+        # Create appropriate plot type
+        max_display = plot_kwargs.pop("max_display", 10)
+        if plot_type == "importance":
+            ax = bar(explanation, max_display=max_display, show=False, **plot_kwargs)
+        else:
+            ax = beeswarm(explanation, max_display=max_display, show=False, **plot_kwargs)
+
+        # Get current figure and apply styling
+        fig = plt.gcf()
 
         # Configure plot type and title
         model_type = "Regression" if self.is_regression else "Feature Importance"
         plot_title = f"SHAP {model_type if plot_type == 'importance' else 'Summary plot'} for {target_set} set"
 
-        # Create a SHAP Explanation object with the data
-        explanation = Explanation(values=target_shap_values, data=target_X.values, feature_names=target_columns)
-
-        # Get max_display from plot_kwargs or use default
-        max_display = plot_kwargs.pop("max_display", 10)
-
-        # For "importance" plots, use bar plot
-        if plot_type == "importance":
-            # Use bar plot with abs value aggregate
-            bar(explanation, max_display=max_display, show=False, **plot_kwargs)
-        else:
-            # For "summary" plots, use beeswarm plot
-            beeswarm(explanation, max_display=max_display, show=False, **plot_kwargs)
-
-        # Get the current figure and adjust layout to make room for title
-        fig = plt.gcf()
-
-        # Apply SHAP-like styling to the plot
-        ax = plt.gca()
-
-        # Set light gray background
+        # Style adjustments
         ax.set_facecolor("#f8f8f8")
         fig.patch.set_facecolor("white")
-
-        # Add subtle grid lines
         ax.grid(True, linestyle="--", linewidth=0.5, color="#eeeeee", zorder=0)
-
-        # Improve typography
         ax.set_title(plot_title, fontsize=14, fontweight="bold", pad=20)
 
-        # Enhance axes labels
+        # Label styling
         ax.tick_params(axis="both", which="major", labelsize=10)
         if ax.get_xlabel():
             ax.set_xlabel(ax.get_xlabel(), fontsize=11, fontweight="bold")
         if ax.get_ylabel():
             ax.set_ylabel(ax.get_ylabel(), fontsize=11, fontweight="bold")
 
-        # Add a thin border
+        # Border styling
         for spine in ax.spines.values():
             spine.set_edgecolor("lightgray")
             spine.set_linewidth(0.8)
@@ -683,19 +670,24 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
             va="top",
         )
 
-        # Apply layout adjustments after all elements are added
-        # This ensures proper spacing for all elements including title and annotations
+        # Layout adjustments
         fig.tight_layout()
-        # Add extra padding at the top for the title
         fig.subplots_adjust(top=0.85)
 
+        # Handle display based on show parameter
         if show:
-            plt.show()
+            plt.show(block=False)
+        else:
+            plt.close(fig)
+
+        # Restore previous interactive state
+        if was_interactive:
+            plt.ion()
 
         return fig
 
     def _create_dependence_plots(
-        self, target_columns: List[str], target_tdp: DependencePlotter, show: bool, **plot_kwargs: Any
+        self, target_columns: List[str], target_tdp: DependencePlotter, show: bool = False, **plot_kwargs: Any
     ) -> Union[Figure, List[Figure]]:
         """
         Create dependence plots to visualize feature interactions.
@@ -721,10 +713,15 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
                 Matplotlib Figure object(s) containing the generated plot(s).
                 Returns a single Figure if there's only one plot, otherwise a list of Figures.
         """
+        # Create new figure and temporarily disable interactive mode
+        was_interactive = plt.isinteractive()
+        plt.ioff()
+        plt.figure()
+
         figures_list: List[Figure] = []
         for feature_name in target_columns:
             # The plot method now returns a list of Figure objects
-            fig_result = target_tdp.plot(feature=feature_name, figsize=(10, 7), show=False, **plot_kwargs)
+            fig_result = target_tdp.plot(feature=feature_name, figsize=(10, 7), show=show, **plot_kwargs)
 
             # Add the figures to our list
             if isinstance(fig_result, list):
@@ -735,6 +732,11 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
         # Return a single Figure if there's only one plot
         if len(figures_list) == 1:
             return figures_list[0]
+
+        # Restore previous interactive state
+        if was_interactive:
+            plt.ion()
+
         return figures_list
 
     def _create_sample_plots(
@@ -745,7 +747,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
         target_expected_value: float,
         target_columns: List[str],
         target_set: Literal["train", "test"],
-        show: bool,
+        show: bool = False,
         **plot_kwargs: Any,
     ) -> Union[Figure, List[Figure]]:
         """

@@ -1,50 +1,63 @@
 # Utility Functions
 
-This module contains various smaller functionalities that can be used across the `probatus` package.
+This module contains various reusable functionalities that support the core components of the `probatus` package.
 
 ## Overview
 
-The package contains several utility modules that provide helpful functionalities across different parts of the codebase:
+The utils module provides several specialized submodules that offer consistent data handling, model evaluation, and SHAP analysis across different parts of the library:
 
 ### probatus.utils.scoring
-- Provides functionality for model evaluation and scoring
+- Provides standardized model evaluation metrics
 - Key components:
-  - `Scorer` class: A wrapper for model evaluation metrics
-  - `get_single_scorer()`: Standardizes scoring metrics for consistent model evaluation
-- Supports both predefined scikit-learn metrics and custom metrics
+  - `Scorer` class: A flexible wrapper for both built-in and custom evaluation metrics
+  - `get_single_scorer()`: Ensures consistent metric handling throughout the package
+- Supports both classification and regression metrics
+- Enables custom metric definition through scikit-learn's make_scorer
 
 ### probatus.utils.array
-- Handles data preprocessing and array manipulation
+- Handles data preprocessing and format conversion
 - Key functions:
-  - `assure_pandas_df()`: Ensures data is in pandas DataFrame format
-  - `assure_pandas_series()`: Ensures data is in pandas Series format
-  - `preprocess_data()`: Preprocesses input data for model training
-  - `preprocess_labels()`: Preprocesses target labels
+  - `assure_pandas_df()`: Converts various data types to pandas DataFrame
+  - `assure_pandas_series()`: Converts various data types to pandas Series with index handling
+  - `preprocess_data()`: Prepares feature data with warnings for missing values and categorical features
+  - `preprocess_labels()`: Ensures target data has proper format and indexing
 
 ### probatus.utils.common
-- Contains general-purpose utility functions
+- Provides general-purpose utilities for common operations
 - Key functions:
-  - `assure_list_of_strings()`: Ensures input is a list of strings
-  - `is_regression_model()`: Checks if a model is a regression model
+  - `assure_list_of_strings()`: Validates and converts string inputs to lists
+  - `is_regression_model()`: Detects if a model is for regression vs. classification
+  - `handle_class_names()`: Manages class name formatting for visualization
+  - `get_pipeline_preprocessor_and_estimator()`: Extracts components from scikit-learn pipelines
+  - `preprocess_using_pipeline()`: Applies pipeline preprocessing to new data
 
 ### probatus.utils.shap
-- Provides utilities for SHAP (SHapley Additive exPlanations) analysis
+- Delivers comprehensive SHAP (SHapley Additive exPlanations) analysis tools
 - Key functions:
-  - `shap_calc()`: Calculates SHAP values for a model
-  - `shap_to_df()`: Converts SHAP values to a pandas DataFrame
-  - `calculate_shap_importance()`: Computes feature importance based on SHAP values
-- Includes validation and formatting functions for SHAP analysis
-- Supports both tree-based and non-tree models
-- Handles multi-class and binary classification cases
+  - `calculate_shap_explanation()`: Computes SHAP values with appropriate explainer type selection
+  - `shap_explanation_to_shap_df()`: Formats SHAP values into pandas DataFrame
+  - `calculate_shap_importance()`: Computes feature importance metrics from SHAP values
+  - `extract_shap_multiclass_params()`: Separates multiclass parameters from general SHAP parameters
+  - `prep_shap_related_variables()`: Prepares SHAP values and extracts the expected value
+- Advanced features:
+  - Pipeline compatibility for preprocessing integration
+  - Multi-class support with various aggregation strategies:
+    - max_abs: Highlights most influential features across any class
+    - variance: Identifies features with varying impact between classes
+    - mean_abs: Provides balanced importance across all classes
+  - Custom class weighting for imbalanced datasets
+  - Variance penalization for more stable feature importance
+  - Background data sampling for consistent baseline calculations
 
-These utility functions are used throughout the package to:
-- Ensure consistent data formats
-- Handle model evaluation
-- Process and validate inputs
-- Calculate feature importance
-- Support SHAP analysis for model interpretation
+These utilities serve several key purposes in the probatus package:
 
-The utilities are designed to be modular and reusable, making it easier to maintain consistent behavior across different parts of the package while reducing code duplication.
+1. **Data Consistency**: Ensuring uniform data formats across different components
+2. **Evaluation Standardization**: Providing consistent model performance metrics
+3. **Model Compatibility**: Supporting various model types and scikit-learn pipelines
+4. **SHAP Analysis**: Offering flexible and robust model interpretation capabilities
+5. **Error Handling**: Providing clear error messages and warnings for common issues
+
+The modular design enables these functions to be used independently or combined for complex analytical workflows, while maintaining consistent behavior across the package.
 
 ## Implementation
 

@@ -1,8 +1,8 @@
 # Features Elimination
 
-This module focuses on feature elimination and it contains two classes:
+This module focuses on feature elimination and it contains the following:
 
-- [ShapRFECV][probatus.feature_elimination.feature_elimination.ShapRFECV]: Perform Backwards Recursive Feature Elimination, using SHAP feature importance. It supports binary classification, regression models and hyperparameter optimization at every feature elimination step. Also for LGBM, XGBoost and CatBoost it support early stopping of the model fitting process. It can be an alternative regularization technique to hyperparameter optimization of the number of base trees in gradient boosted tree models. Particularly useful when dealing with large datasets.
+- [ShapRFECV][probatus.feature_elimination.feature_elimination.ShapRFECV]: Perform Backwards Recursive Feature Elimination, using SHAP feature importance. It supports binary classification, multi-class classification, regression models and hyperparameter optimization at every feature elimination step. For XGBoost, LightGBM and CatBoost it supports early stopping of the model fitting process. It can be an alternative regularization technique to hyperparameter optimization of the number of base trees in gradient boosted tree models. Particularly useful when dealing with large datasets.
 
 ## Overview
 
@@ -19,12 +19,18 @@ The feature elimination module provides sophisticated tools for selecting the mo
 - Implements backward feature elimination using SHAP importance
 - Key features:
   - Supports both classification and regression tasks
-  - Integrates with hyperparameter optimization
+  - Integrates with hyperparameter optimization via SearchCV, RandomizedSearchCV, or BayesSearchCV, etc...
   - Provides cross-validation at each elimination step
   - Generates detailed feature selection reports
-  - Supports early stopping for gradient boosted models
+  - Supports custom feature selection strategies
+  - Includes advanced methods to select optimal feature subsets:
+    - Best performance-based selection
+    - Coherent performance with minimal variance
+    - Parsimonious selection (fewest features within a performance threshold)
+  - Supports sklearn Pipeline objects for seamless preprocessing integration
 
 #### Early Stopping Support
+- Directly integrated into ShapRFECV (no separate class needed)
 - Optimized for popular gradient boosting frameworks:
   - LightGBM
   - XGBoost
@@ -38,7 +44,7 @@ The feature elimination module provides sophisticated tools for selecting the mo
 ### Features
 - Flexible feature elimination strategies:
   - Fixed number of features per step
-  - Percentage-based elimination
+  - Percentage-based elimination (adaptive step sizes)
   - Custom elimination criteria
 - Comprehensive model support:
   - Binary classification
@@ -48,10 +54,13 @@ The feature elimination module provides sophisticated tools for selecting the mo
   - Hyperparameter tuning integration
   - Cross-validation at each step
   - Early stopping for gradient boosted models
+  - Support for sample weighting
+  - Optional SHAP variance penalization for more stable feature selection
 - Detailed reporting and visualization:
   - Feature importance tracking
   - Performance metrics across steps
   - Selection process visualization
+  - Error bars showing model stability
 
 ### Use Cases
 - Large-scale feature selection
@@ -59,10 +68,13 @@ The feature elimination module provides sophisticated tools for selecting the mo
 - Feature importance analysis
 - Computational resource optimization
 - Model interpretability enhancement
+- Production model preparation
 
-The module is designed to provide a robust and efficient approach to feature selection using RFECV in combination with SHAP.
+The module is designed to provide a robust and efficient approach to feature selection using RFECV in combination with SHAP, with a focus on practical application in real-world scenarios.
 
 ## Implementation
 
 ::: probatus.features.shap_recursive_feature_elimination
+::: probatus.features.shap_recursive_feature_elimination_helper
 ::: probatus.features.shap_early_stopping_recursive_feature_elimination
+::: probatus.features.shap_early_stopping_recursive_feature_elimination_helper

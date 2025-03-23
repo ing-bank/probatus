@@ -19,23 +19,33 @@ The sample similarity module provides sophisticated tools for analyzing and comp
 
 ### Key Components
 
+#### BaseResemblanceModel
+- Abstract base class that provides the foundation for all resemblance models
+- Handles data preparation, model training, and evaluation
+- Supports both standalone estimators and sklearn Pipelines
+- Features:
+  - Flexible scoring metrics
+  - Train/test split configuration
+  - Comprehensive performance reporting
+  - Parallel processing support
+
 #### SHAPImportanceResemblance (Recommended)
 - Leverages SHAP (SHapley Additive exPlanations) for feature importance analysis
 - Key features:
   - Tree-based model interpretation
   - Detailed feature importance analysis
   - Support for complex feature interactions
-  - Comprehensive visualization options
-  - Integration with scikit-learn's API
+  - Multiple visualization options (bar, dot, violin plots)
+  - Advanced SHAP configuration options
 
 #### PermutationImportanceResemblance
 - Uses permutation feature importance for analysis
 - Key features:
-  - Direct measurement of feature impact on AUC
+  - Direct measurement of feature impact on model performance
+  - Configurable number of permutation iterations
   - Simple and interpretable results
   - Robust to feature interactions
-  - Efficient computation
-  - Clear feature ranking
+  - Efficient computation with parallel processing
 
 ### Features
 - Multiple analysis approaches:
@@ -45,6 +55,7 @@ The sample similarity module provides sophisticated tools for analyzing and comp
   - Binary classification models
   - Tree-based algorithms
   - Custom model integration
+  - Pipeline compatibility
 - Advanced analysis capabilities:
   - Feature importance ranking
   - Distribution shift detection
@@ -66,12 +77,15 @@ The module is designed to provide robust tools for understanding and comparing m
 
 The following features are implemented:
 
+- [BaseResemblanceModel][probatus.dataset.resemblance_modeler.BaseResemblanceModel]:
+  Abstract base class that provides core functionality for all resemblance models. Handles data preparation, model training, and performance evaluation.
+  
 - [SHAPImportanceResemblance (Recommended)][probatus.dataset.resemblance_modeler.SHAPImportanceResemblance]:
-  The class applies SHAP library, in order to interpret the tree based resemblance model.
+  The class applies SHAP library to interpret tree-based resemblance models. Features multiple visualization options and detailed feature importance analysis.
+  
 - [PermutationImportanceResemblance][probatus.dataset.resemblance_modeler.PermutationImportanceResemblance]:
-  The class applies permutation feature importance in order to understand which features the current model relies on the most. The higher the importance of the feature, the more a given feature possibly differs in X2 compared to X1. The importance indicates how much the test AUC drops if a given feature is permuted.
+  The class applies permutation feature importance to understand which features the model relies on most. The higher the importance of the feature, the more a given feature possibly differs in X2 compared to X1. The importance indicates how much the test performance drops if a given feature is permuted.
 
-## Implemetation
+## Implementation
 
 ::: probatus.dataset.resemblance_modeler
-

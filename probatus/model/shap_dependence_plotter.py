@@ -302,7 +302,6 @@ class DependencePlotter(BaseFitComputePlotClass):
         self.fit(X, y, column_names=column_names, class_names=class_names, precalc_shap=precalc_shap, **shap_kwargs)
         return self.compute()
 
-    # TODO: Move logic to plot
     def plot(
         self,
         feature: Union[str, int],
@@ -398,7 +397,6 @@ class DependencePlotter(BaseFitComputePlotClass):
 
         return fig
 
-    # TODO: Move logic to plot
     def _dependence_plot(self, feature: str, ax: Optional[Axes] = None) -> Figure:
         """
         Plots SHAP values for data points with respect to the specified feature.
@@ -484,7 +482,6 @@ class DependencePlotter(BaseFitComputePlotClass):
 
         return fig
 
-    # TODO: Move logic to plot
     def _target_rate_plot(
         self, feature: Union[str, int], bins: Union[int, List[float]] = 10, ax: Optional[Axes] = None
     ) -> Tuple[Union[List[float], np.ndarray], Figure, pd.Series]:
@@ -632,7 +629,6 @@ class DependencePlotter(BaseFitComputePlotClass):
 
         return bin_edges_array, fig, target_ratio
 
-    # TODO: Move logic to utils/common/plot
     def _get_X_y_shap_with_q_cut(self, feature: str) -> Tuple[pd.Series, pd.Series, pd.Series]:
         """
         Extracts all X, y pairs and SHAP values that fall within defined quantiles of the feature.
