@@ -182,7 +182,7 @@ class DependencePlotter(BaseFitComputePlotClass):
         """
         # Transform data if model is a Pipeline
         if self.pipeline is not None:
-            column_names = X.columns
+            column_names = X.columns if column_names is None else column_names
             X = self.pipeline.transform(X)
 
         self.X, self.column_names = preprocess_data(X, X_name="X", column_names=column_names, verbose=self.verbose)

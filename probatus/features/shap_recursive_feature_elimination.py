@@ -502,7 +502,7 @@ class ShapRFECV(BaseFitComputePlotClass):
 
         # Transform data if model is a Pipeline
         if self.pipeline is not None:
-            column_names = X.columns
+            column_names = X.columns if column_names is None else column_names
             X = self.pipeline.transform(X)
 
         # Preprocess input data & reset report_df

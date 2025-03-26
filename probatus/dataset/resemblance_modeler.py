@@ -165,7 +165,7 @@ class BaseResemblanceModel(BaseFitComputePlotClass):
 
         # Transform data if model is a Pipeline
         if self.pipeline is not None:
-            column_names = X1.columns
+            column_names = X1.columns if column_names is None else column_names
             X1 = self.pipeline.transform(X1)
             X2 = self.pipeline.transform(X2)
 
