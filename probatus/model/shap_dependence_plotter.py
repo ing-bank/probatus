@@ -169,10 +169,10 @@ class DependencePlotter(BaseFitComputePlotClass):
             **shap_kwargs (Any):
                 Additional arguments passed to:
                 1. SHAP Explainer - parameters like 'approximate' and 'check_additivity'
-                2. SHAP values multi-classification conversion - parameters like 'class_selection', 'multiclass_aggregation', and 'weight_type'
+                2. SHAP values multi-classification conversion - parameters like 'class_selection', 'multi-class_aggregation', and 'weights'
 
                 The conversion parameters are extracted internally and control how SHAP values are processed
-                for multiclass models.
+                for multi-class models.
 
         Returns:
             DependencePlotter: The fitted instance with computed SHAP values.
@@ -182,6 +182,7 @@ class DependencePlotter(BaseFitComputePlotClass):
         """
         # Transform data if model is a Pipeline
         if self.pipeline is not None:
+            column_names = X.columns
             X = self.pipeline.transform(X)
 
         self.X, self.column_names = preprocess_data(X, X_name="X", column_names=column_names, verbose=self.verbose)
@@ -286,10 +287,10 @@ class DependencePlotter(BaseFitComputePlotClass):
             **shap_kwargs (Any):
                 Additional arguments passed to:
                 1. SHAP Explainer - parameters like 'approximate' and 'check_additivity'
-                2. SHAP values conversion - parameters like 'class_selection', 'multiclass_aggregation', and 'weight_type'
+                2. SHAP values conversion - parameters like 'class_selection', 'multi-class_aggregation', and 'weights'
 
                 The conversion parameters are extracted internally and control how SHAP values are processed
-                for multiclass models.
+                for multi-class models.
 
         Returns:
             pd.DataFrame: DataFrame containing SHAP values for each feature in X.
@@ -367,7 +368,7 @@ class DependencePlotter(BaseFitComputePlotClass):
         # Validate input parameters
         if min_q >= max_q:
             raise ValueError("min_q must be smaller than max_q")
-        if isinstance(feature, int):
+        if isinstance(feature, (int, np.int64)):
             if feature >= len(self.column_names):
                 raise ValueError(f"Feature index {feature} out of range (0-{len(self.column_names) - 1})")
             feature_name = self.column_names[feature]
@@ -419,8 +420,8 @@ class DependencePlotter(BaseFitComputePlotClass):
             ValueError: If feature is not found in the dataset.
             RuntimeError: If called before the model is fitted.
         """
-        if isinstance(feature, int):
-            feature = self.column_names[feature]
+        if isinstance(feature, (int, np.int64)):
+            feature = self.column_names[int(feature)]
 
         # Get filtered data based on quantile range
         X, y, shap_val = self._get_X_y_shap_with_q_cut(feature=feature)
@@ -537,7 +538,7 @@ class DependencePlotter(BaseFitComputePlotClass):
         # Handle feature name extraction
         feature_name: str = (
             self.column_names[feature]
-            if isinstance(feature, int) and isinstance(self.column_names, list)
+            if isinstance(feature, (int, np.int64)) and isinstance(self.column_names, list)
             else str(feature)
         )
 
@@ -546,9 +547,9 @@ class DependencePlotter(BaseFitComputePlotClass):
 
         # Create bins if not explicitly supplied
         bin_edges: Union[List[float], np.ndarray]
-        if isinstance(bins, int):
+        if isinstance(bins, (int, np.int64)):
             # Use KBinsDiscretizer to create uniform bins
-            simple_binner = KBinsDiscretizer(n_bins=bins, encode="ordinal", strategy="uniform").fit(
+            simple_binner = KBinsDiscretizer(n_bins=int(bins), encode="ordinal", strategy="uniform").fit(
                 np.array(x).reshape(-1, 1)
             )
             bin_edges = simple_binner.bin_edges_[0]

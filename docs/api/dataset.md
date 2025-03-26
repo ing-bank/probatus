@@ -79,10 +79,10 @@ The following features are implemented:
 
 - [BaseResemblanceModel][probatus.dataset.resemblance_modeler.BaseResemblanceModel]:
   Abstract base class that provides core functionality for all resemblance models. Handles data preparation, model training, and performance evaluation.
-  
+
 - [SHAPImportanceResemblance (Recommended)][probatus.dataset.resemblance_modeler.SHAPImportanceResemblance]:
   The class applies SHAP library to interpret tree-based resemblance models. Features multiple visualization options and detailed feature importance analysis.
-  
+
 - [PermutationImportanceResemblance][probatus.dataset.resemblance_modeler.PermutationImportanceResemblance]:
   The class applies permutation feature importance to understand which features the model relies on most. The higher the importance of the feature, the more a given feature possibly differs in X2 compared to X1. The importance indicates how much the test performance drops if a given feature is permuted.
 

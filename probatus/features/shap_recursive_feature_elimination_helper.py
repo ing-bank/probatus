@@ -64,7 +64,7 @@ def validate_step_parameter(step: Union[int, float]) -> Union[int, float]:
         ValueError:
             If `step` is not a positive integer or float.
     """
-    if not isinstance(step, (int, float)) or step <= 0:
+    if not isinstance(step, (int, np.int64, float, np.float64)) or step <= 0:
         raise ValueError(f"Invalid step value: {step}. Must be a positive int or float.")
     return step
 
@@ -85,7 +85,7 @@ def validate_min_features_parameter(min_features: int) -> int:
         ValueError:
             If min_features is not a positive integer.
     """
-    if not isinstance(min_features, int):
+    if not isinstance(min_features, (int, np.int64)):
         raise ValueError(f"min_features_to_select must be an integer; got {min_features}.")
     if min_features <= 0:
         raise ValueError(f"min_features_to_select must be > 0; got {min_features}.")
@@ -104,7 +104,10 @@ def validate_shap_variance_penalty_factor_parameter(shap_variance_penalty_factor
         float:
             The validated shap_variance_penalty_factor value.
     """
-    if isinstance(shap_variance_penalty_factor, (float, int)) and shap_variance_penalty_factor >= 0:
+    if (
+        isinstance(shap_variance_penalty_factor, (int, np.int64, float, np.float64))
+        and shap_variance_penalty_factor >= 0
+    ):
         return float(shap_variance_penalty_factor)
     else:
         if shap_variance_penalty_factor is not None:
@@ -186,14 +189,14 @@ def _get_current_features_to_remove(
         shap_importance_df = shap_importance_df[~mask]
 
     # Calculate number of features to remove based on step type
-    if isinstance(step, int):
+    if isinstance(step, (int, np.int64)):
         num_features_to_remove = _calculate_number_of_features_to_remove(
             current_num_of_features=shap_importance_df.shape[0],
-            num_features_to_remove=step,
+            num_features_to_remove=int(step),
             min_num_features_to_keep=min_features_to_select,
         )
     # If the step is a float remove n * number features that are left, rounded down
-    elif isinstance(step, float):
+    elif isinstance(step, (float, np.float64)):
         current_step = int(np.floor(shap_importance_df.shape[0] * step))
 
         # Ensure at least 1 feature is removed (if possible)
@@ -273,7 +276,7 @@ def report_current_results(
     train_metric_std: float,
     val_metric_mean: float,
     val_metric_std: float,
-) -> None:
+) -> pd.DataFrame:
     """
     Records the results of the current feature elimination iteration.
 
@@ -304,6 +307,10 @@ def report_current_results(
 
         val_metric_std (float):
             The standard deviation of the validation set performance metric.
+
+    Returns:
+        pd.DataFrame:
+            The updated report DataFrame with the current results.
     """
     current_results = {
         "num_features": len(current_features_set),
@@ -369,7 +376,7 @@ def get_best_num_features(
             - If `best_method` is not one of `"best"`, `"best_coherent"`, or `"best_parsimonious"`.
             - If `standard_error_threshold` is negative or otherwise invalid.
     """
-    if not isinstance(standard_error_threshold, (float, int)) or standard_error_threshold < 0:
+    if not isinstance(standard_error_threshold, (int, np.int64, float, np.float64)) or standard_error_threshold < 0:
         raise ValueError("Parameter standard_error_threshold must be a non-negative int or float.")
 
     # Create a copy of the report DataFrame to avoid modifying the original

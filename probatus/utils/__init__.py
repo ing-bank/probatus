@@ -11,6 +11,9 @@ from .shap import (
     calculate_shap_importance,
     extract_shap_multiclass_params,
     prep_shap_related_variables,
+    calculate_base_shap_statistics,
+    format_shap_values,
+    create_importance_dataframe,
 )
 from .common import (
     assure_list_of_strings,
@@ -37,4 +40,7 @@ __all__ = [
     "prep_shap_related_variables",
     "get_pipeline_preprocessor_and_estimator",
     "preprocess_using_pipeline",
+    "format_shap_values",
+    "calculate_base_shap_statistics",
+    "create_importance_dataframe",
 ]

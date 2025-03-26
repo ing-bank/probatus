@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 from joblib import Parallel, delayed
 from loguru import logger
-from sklearn.base import BaseEstimator, clone, is_classifier, is_regressor
+from sklearn.base import BaseEstimator, clone, is_classifier
 from sklearn.model_selection import check_cv
 from sklearn.model_selection._search import BaseSearchCV
 from sklearn.pipeline import Pipeline
@@ -30,16 +30,18 @@ from probatus.features.shap_early_stopping_recursive_feature_elimination_helper 
 )
 from probatus.utils import (
     assure_pandas_series,
-    calculate_shap_importance,
     preprocess_data,
     preprocess_labels,
     get_single_scorer,
     calculate_shap_explanation,
     Scorer,
     extract_shap_multiclass_params,
-    shap_explanation_to_shap_df,
+    format_shap_values,
+    calculate_base_shap_statistics,
+    create_importance_dataframe,
 )
 from probatus.utils.common import get_pipeline_preprocessor_and_estimator
+from probatus.utils.shap import calculate_shap_importance, shap_explanation_to_shap_df
 
 
 class ShapRFECV(BaseFitComputePlotClass):
@@ -262,6 +264,7 @@ class ShapRFECV(BaseFitComputePlotClass):
         column_names: Optional[List[str]] = None,
         groups: Optional[pd.Series] = None,
         shap_variance_penalty_factor: Optional[Union[int, float]] = None,
+        execution_mode: Literal["parallel", "vectorized"] = "vectorized",
         **shap_kwargs: Any,
     ) -> pd.DataFrame:
         """
@@ -309,11 +312,53 @@ class ShapRFECV(BaseFitComputePlotClass):
                 - Recommended values: `0.5 - 1.0`.
                 Default is `None` (no penalty applied).
 
+            execution_mode (Literal["parallel", "vectorized"], optional):
+                - "parallel": SHAP values are computed and aggregated across folds in parallel.
+                    Recommended for larger datasets & unbalanced folds.
+                - "vectorized": Make better use of vectorized operations to compute SHAP values.
+                    Recommended for smaller datasets & balanced folds.
+                - Default is `"vectorized"`. Vectorized is the old way, parallel is the new way.
+
+                Parallel is faster and more memory efficient for large datasets. Next to that
+                it should better reflect the folds, since its aggregated on a per fold basis.
+
+                Example:
+                - Fold (f) has dimensions (n_samples, n_features(, n_classes))
+                - SHAP values are computed & aggregated for each fold in parallel.
+                    f * (n_samples, n_features(, n_classes)) -> f * (n_features)
+                - Folds are aggregated.
+                    f * (n_features) -> (n_features)
+
+                Vectorized is more memory intensive for large datasets. Next to that it does not reflect
+                the folds well, especially if these are unbalanced, since it aggregates all SHAP values
+                first, then performs a sum.
+
+                Example:
+                - Fold (f) has dimensions (n_samples, n_features(, n_classes))
+                - SHAP values are computed for each fold in parallel.
+                    f * (n_samples, n_features(, n_classes))
+                - SHAP values are concatenated.
+                    f * (n_samples, n_features(, n_classes)) -> (f * n_samples, n_features(, n_classes))
+                - Folds are aggregated.
+                    (f * n_samples, n_features(, n_classes)) -> (n_features)
+
             **shap_kwargs (Any):
                 Additional keyword arguments passed to `shap.Explainer`.
                 Common options:
-                - `approximate` (bool): Enables faster but less accurate SHAP value computation.
+                - `approximate` (bool): Uses faster but less accurate SHAP calculation.
                 - `check_additivity` (bool): If `False`, disables SHAP additivity check.
+                - `class_selection` (Optional[Any]): For multi-class, select SHAP values for a specific class.
+                - `multiclass_aggregation` (Optional[str]): Method to aggregate SHAP values across classes:
+                    - `max_abs`: Use the maximum absolute SHAP value.
+                    - `mean_abs`: Use the mean of the absolute SHAP values.
+                - `weights` (Optional[Dict]): How to weight SHAP values across classes:
+                    - `class_weights`: Use a dictionary to specify custom weights for each class.
+                - `shap_variance_penalty_factor` (Optional[Union[int, float]]):
+                    Penalization factor applied to SHAP values with high variance.
+                    - Formula: `penalized_shap_mean = mean_shap - (std_shap * shap_variance_penalty_factor)`
+                    - Helps reduce the influence of unstable SHAP values.
+                    - Recommended range: `0.5 - 1.0`.
+                    - Default is `None` (= 0 -> no penalty applied).
 
         Returns:
             pd.DataFrame:
@@ -328,6 +373,7 @@ class ShapRFECV(BaseFitComputePlotClass):
             column_names=column_names,
             groups=groups,
             shap_variance_penalty_factor=shap_variance_penalty_factor,
+            execution_mode=execution_mode,
             **shap_kwargs,
         )
         return self.compute()
@@ -341,6 +387,7 @@ class ShapRFECV(BaseFitComputePlotClass):
         column_names: Optional[List[str]] = None,
         groups: Optional[pd.Series] = None,
         shap_variance_penalty_factor: Optional[Union[int, float]] = None,
+        execution_mode: Literal["parallel", "vectorized"] = "vectorized",
         **shap_kwargs: Any,
     ) -> "ShapRFECV":
         """
@@ -389,11 +436,53 @@ class ShapRFECV(BaseFitComputePlotClass):
                 - Recommended range: `0.5 - 1.0`.
                 - Default is `None` (no penalty applied).
 
+            execution_mode (Literal["parallel", "vectorized"], optional):
+                - "parallel": SHAP values are computed and aggregated across folds in parallel.
+                    Recommended for larger datasets & unbalanced folds.
+                - "vectorized": Make better use of vectorized operations to compute SHAP values.
+                    Recommended for smaller datasets & balanced folds.
+                - Default is `"vectorized"`. Vectorized is the old way, parallel is the new way.
+
+                Parallel is faster and more memory efficient for large datasets. Next to that
+                it should better reflect the folds, since its aggregated on a per fold basis.
+
+                Example:
+                - Fold (f) has dimensions (n_samples, n_features(, n_classes))
+                - SHAP values are computed & aggregated for each fold in parallel.
+                    f * (n_samples, n_features(, n_classes)) -> f * (n_features)
+                - Folds are aggregated.
+                    f * (n_features) -> (n_features)
+
+                Vectorized is more memory intensive for large datasets. Next to that it does not reflect
+                the folds well, especially if these are unbalanced, since it aggregates all SHAP values
+                first, then performs a sum.
+
+                Example:
+                - Fold (f) has dimensions (n_samples, n_features(, n_classes))
+                - SHAP values are computed for each fold in parallel.
+                    f * (n_samples, n_features(, n_classes))
+                - SHAP values are concatenated.
+                    f * (n_samples, n_features(, n_classes)) -> (f * n_samples, n_features(, n_classes))
+                - Folds are aggregated.
+                    (f * n_samples, n_features(, n_classes)) -> (n_features)
+
             **shap_kwargs (Any):
                 Additional keyword arguments passed to `shap.Explainer`.
                 Common options:
                 - `approximate` (bool): Uses faster but less accurate SHAP calculation.
                 - `check_additivity` (bool): If `False`, disables SHAP additivity check.
+                - `class_selection` (Optional[Any]): For multi-class, select SHAP values for a specific class.
+                - `multiclass_aggregation` (Optional[str]): Method to aggregate SHAP values across classes:
+                    - `max_abs`: Use the maximum absolute SHAP value.
+                    - `mean_abs`: Use the mean of the absolute SHAP values.
+                - `weights` (Optional[Dict]): How to weight SHAP values across classes:
+                    - `class_weights`: Use a dictionary to specify custom weights for each class.
+                - `shap_variance_penalty_factor` (Optional[Union[int, float]]):
+                    Penalization factor applied to SHAP values with high variance.
+                    - Formula: `penalized_shap_mean = mean_shap - (std_shap * shap_variance_penalty_factor)`
+                    - Helps reduce the influence of unstable SHAP values.
+                    - Recommended range: `0.5 - 1.0`.
+                    - Default is `None` (= 0 -> no penalty applied).
 
         Returns:
             ShapRFECV:
@@ -413,11 +502,13 @@ class ShapRFECV(BaseFitComputePlotClass):
 
         # Transform data if model is a Pipeline
         if self.pipeline is not None:
+            column_names = X.columns
             X = self.pipeline.transform(X)
 
-        # Preprocess input data
+        # Preprocess input data & reset report_df
         self.X, self.column_names = preprocess_data(X, X_name="X", column_names=column_names, verbose=self.verbose)
         self.y = preprocess_labels(y, index=self.X.index)
+        self.report_df = pd.DataFrame()
 
         # Validate column names
         if column_names and not all(x in column_names for x in list(X.columns)):
@@ -440,7 +531,9 @@ class ShapRFECV(BaseFitComputePlotClass):
             sample_weight = assure_pandas_series(sample_weight, index=self.X.index)
 
         # Validate and set shap_variance_penalty_factor
-        _shap_variance_penalty_factor = validate_shap_variance_penalty_factor_parameter(shap_variance_penalty_factor)
+        shap_variance_penalty_factor: float = validate_shap_variance_penalty_factor_parameter(
+            shap_variance_penalty_factor
+        )
 
         # Setup cross-validation
         self.cv = check_cv(self.cv, self.y, classifier=is_classifier(self.model))
@@ -481,6 +574,9 @@ class ShapRFECV(BaseFitComputePlotClass):
                 else:
                     current_model = clone(self.model)
 
+                # Add SHAP variance penalty factor to shap_kwargs
+                shap_kwargs["shap_variance_penalty_factor"] = shap_variance_penalty_factor
+
                 # Perform cross-validation to estimate feature importance with SHAP
                 if not (self.early_stopping_rounds and self.eval_metric):
                     # Standard CV without early stopping
@@ -492,6 +588,7 @@ class ShapRFECV(BaseFitComputePlotClass):
                             train_index=train_index,
                             val_index=val_index,
                             sample_weight=sample_weight,
+                            execution_mode=execution_mode,
                             **shap_kwargs,
                         )
                         for train_index, val_index in self.cv.split(current_X, self.y, groups)
@@ -506,28 +603,18 @@ class ShapRFECV(BaseFitComputePlotClass):
                             train_index=train_index,
                             val_index=val_index,
                             sample_weight=sample_weight,
+                            execution_mode=execution_mode,
                             **shap_kwargs,
                         )
                         for train_index, val_index in self.cv.split(current_X, self.y, groups)
                     )
 
-                # Process SHAP values based on model type
-                if self.y.nunique() == 2 or is_regressor(current_model):
-                    # Binary classification or regression case
-                    shap_values = np.concatenate([current_result[0] for current_result in results_per_fold], axis=0)
-                else:
-                    # Multi-class case
-                    shap_values = np.concatenate([current_result[0] for current_result in results_per_fold], axis=1)
-
-                # Extract scores from results
-                scores_train = [current_result[1] for current_result in results_per_fold]
-                scores_val = [current_result[2] for current_result in results_per_fold]
-
-                # Calculate SHAP importance for features
-                shap_importance_df = calculate_shap_importance(
-                    shap_values,
-                    remaining_removeable_features,
-                    shap_variance_penalty_factor=_shap_variance_penalty_factor,
+                # Process fold results based on execution mode
+                shap_importance_df, scores_train, scores_val = self._process_fold_results(
+                    results_per_fold=results_per_fold,
+                    execution_mode=execution_mode,
+                    remaining_removeable_features=remaining_removeable_features,
+                    shap_variance_penalty_factor=shap_variance_penalty_factor,
                 )
 
                 # Determine which features to keep and which to remove
@@ -536,7 +623,7 @@ class ShapRFECV(BaseFitComputePlotClass):
                 )
 
                 # Record results for this round
-                self.report_df = report_current_results(
+                self.report_df: pd.DataFrame = report_current_results(
                     report_df=self.report_df,
                     round_number=round_number,
                     current_features_set=current_features_set,
@@ -547,13 +634,15 @@ class ShapRFECV(BaseFitComputePlotClass):
                     val_metric_std=float(np.std(scores_val)),
                 )
 
-                # Update the progress bar with the number of features removed in this iteration
+                # Update progress bar with the number of features removed in this iteration
                 features_removed = len(current_features_set) - len(remaining_features)
                 progress_bar.update(features_removed)
 
                 # Update progress bar description with current performance
+                val_score: float = self.report_df.at[round_number, "val_metric_mean"]
+
                 progress_bar.set_description(
-                    f"Feature Elimination (features: {len(remaining_features)}, val score: {self.report_df.loc[round_number]['val_metric_mean']:.4f})"
+                    f"Feature Elimination (features: {len(remaining_features)}, val score: {val_score:.4f})"
                 )
 
                 if self.verbose > 1:
@@ -597,101 +686,81 @@ class ShapRFECV(BaseFitComputePlotClass):
         """
         self._check_if_fitted()
 
-        # Extract data from report
-        num_features = self.report_df["num_features"]
-        train_mean = self.report_df["train_metric_mean"]
-        train_std = self.report_df["train_metric_std"]
-        val_mean = self.report_df["val_metric_mean"]
-        val_std = self.report_df["val_metric_std"]
-        x_ticks = list(reversed(num_features.tolist()))
+        # Control matplotlib interactive state
+        was_interactive = plt.isinteractive()
+        plt.ioff()
 
-        # Set SHAP-like colors
-        shap_blue = "#1E88E5"  # Main SHAP blue color
-        shap_red = "#ff0051"  # Main SHAP red color
-
-        # Create figure with SHAP-like styling
+        # Set default figure size if not provided
         if "figsize" not in figure_kwargs:
             figure_kwargs["figsize"] = (10, 6)
 
-        # Apply SHAP-like style
-        plt.style.use("default")  # Reset to default style first
-
+        # Create figure and axis
         fig, ax = plt.subplots(**figure_kwargs)
 
-        # Set light gray background with white grid
+        # Extract and prepare data
+        num_features = self.report_df["num_features"]
+        x_ticks = list(reversed(num_features.tolist()))
+
+        # Define colors
+        colors = {"train": "#1E88E5", "val": "#ff0051"}  # SHAP-like colors
+
+        # Plot error bars for train and validation
+        for dataset, label in [("train", "Train Score"), ("val", "Validation Score")]:
+            ax.errorbar(
+                num_features,
+                self.report_df[f"{dataset}_metric_mean"],
+                yerr=self.report_df[f"{dataset}_metric_std"],
+                fmt="o-" if dataset == "train" else "s-",
+                capsize=3,
+                label=label,
+                color=colors[dataset],
+                markersize=6,
+                alpha=0.8,
+                linewidth=2,
+                elinewidth=1,
+                capthick=1,
+            )
+
+        # Style the plot
+        # Background and grid
         ax.set_facecolor("#f8f8f8")
         fig.patch.set_facecolor("white")
-
-        # Plot training performance with error bars
-        ax.errorbar(
-            num_features,
-            train_mean,
-            yerr=train_std,
-            fmt="o-",
-            capsize=3,
-            label="Train Score",
-            color=shap_blue,
-            markersize=6,
-            alpha=0.8,
-            linewidth=2,
-            elinewidth=1,
-            capthick=1,
-        )
-
-        # Plot validation performance with error bars
-        ax.errorbar(
-            num_features,
-            val_mean,
-            yerr=val_std,
-            fmt="s-",
-            capsize=3,
-            label="Validation Score",
-            color=shap_red,
-            markersize=6,
-            alpha=0.8,
-            linewidth=2,
-            elinewidth=1,
-            capthick=1,
-        )
-
-        # Add grid with white lines
         ax.grid(True, linestyle="--", linewidth=0.5, color="#eeeeee", zorder=0)
 
-        # Configure plot appearance
+        # Labels and title
         ax.set_xlabel("Number of features", fontsize=11, fontweight="bold")
         ax.set_ylabel(f"Performance: {self.scorer.metric_name}", fontsize=11, fontweight="bold")
         ax.set_title("Backwards Feature Elimination using SHAP", fontsize=13, fontweight="bold", pad=15)
 
-        # Create a styled legend
+        # Legend
         legend = ax.legend(loc="best", frameon=True, framealpha=0.95, edgecolor="lightgray", fontsize=10)
         legend.get_frame().set_facecolor("white")
 
-        # Set axis limits with some padding
+        # Axis formatting
         y_min, y_max = ax.get_ylim()
-        padding = (y_max - y_min) * 0.05
-        ax.set_ylim(y_min - padding, y_max + padding)
-
-        # Reverse x-axis to show feature reduction from left to right
-        ax.invert_xaxis()
-
-        # Set custom tick parameters
+        ax.set_ylim(y_min - (y_max - y_min) * 0.05, y_max + (y_max - y_min) * 0.05)  # Add padding
+        ax.invert_xaxis()  # Reverse x-axis
         ax.tick_params(axis="both", which="major", labelsize=10)
         ax.set_xticks(x_ticks)
-
-        # Rotate x-axis labels for better readability
         plt.setp(ax.get_xticklabels(), rotation=45, ha="right")
 
-        # Add a thin border
+        # Add borders
         for spine in ax.spines.values():
             spine.set_edgecolor("lightgray")
             spine.set_linewidth(0.8)
 
-        # Tight layout for better spacing
+        # Adjust layout
         fig.tight_layout()
 
-        # Show or return the plot
+        # Handle display
         if show:
-            plt.show()
+            plt.show(block=False)
+        else:
+            plt.close(fig)
+
+        # Restore interactive state
+        if was_interactive:
+            plt.ion()
 
         return fig
 
@@ -703,8 +772,9 @@ class ShapRFECV(BaseFitComputePlotClass):
         train_index: np.ndarray,
         val_index: np.ndarray,
         sample_weight: Optional[pd.Series] = None,
+        execution_mode: Literal["vectorized", "parallel"] = "vectorized",
         **shap_kwargs: Any,
-    ) -> Tuple[pd.DataFrame, float, float]:
+    ) -> Tuple[dict[str, np.ndarray], float, float]:
         """
         Computes SHAP values and model scores for a single cross-validation fold.
 
@@ -732,18 +802,23 @@ class ShapRFECV(BaseFitComputePlotClass):
                 the model supports sample weighting.
                 Default is `None`.
 
+            execution_mode (Literal["vectorized", "parallel"], optional):
+                The mode of execution for the SHAP values calculation.
+                Default is `"vectorized"`.
+
             **shap_kwargs (Any):
                 Additional arguments passed to:
                 1. SHAP Explainer - parameters like 'approximate' and 'check_additivity'
-                2. SHAP values multi-classification conversion - parameters like 'class_selection', 'multiclass_aggregation', and 'weight_type'
+                2. SHAP values multi-classification conversion - parameters like
+                'class_selection', 'multi-class_aggregation', 'weights' and 'shap_variance_penalty_factor'
 
                 The conversion parameters are extracted internally and control how SHAP values are processed
-                for multiclass models.
+                for multi-class models.
 
         Returns:
-            Tuple[pd.DataFrame, float, float]:
+            Tuple[Union[np.ndarray, dict[str, np.ndarray]], float, float]:
                 A tuple containing:
-                - `pd.DataFrame`: SHAP values for validation samples.
+                - `Union[np.ndarray, dict[str, np.ndarray]]`: SHAP statistics for validation samples.
                 - `float`: Training score for this fold.
                 - `float`: Validation score for this fold.
         """
@@ -761,22 +836,67 @@ class ShapRFECV(BaseFitComputePlotClass):
         score_train = self.scorer.score(model, X_train, y_train)
         score_val = self.scorer.score(model, X_val, y_val)
 
-        # Split arguments for multi-classification
-        multi_class_kwargs, shap_kwargs = extract_shap_multiclass_params(shap_kwargs)
-
-        # Calculate SHAP values for validation set
-        shap_explanation_val = calculate_shap_explanation(
-            model, X_val, return_explainer=False, verbose=self.verbose, random_state=self.random_state, **shap_kwargs
-        )
-
-        shap_values_val = shap_explanation_to_shap_df(
-            shap_explanation=shap_explanation_val,
+        # Process SHAP values and return results based on execution mode
+        return self._process_shap_values(
             model=model,
-            X=X_val,
-            **multi_class_kwargs,
+            X_val=X_val,
+            score_train=score_train,
+            score_val=score_val,
+            execution_mode=execution_mode,
+            **shap_kwargs,
         )
 
-        return shap_values_val, score_train, score_val
+    @staticmethod
+    def _summarize_shap_statistics(shap_fold_statistics: list[dict[str, np.ndarray]]) -> dict[str, np.ndarray]:
+        """
+        Aggregates SHAP statistics across multiple cross-validation folds.
+
+        This method combines SHAP statistics from different folds by:
+        1. Collecting all statistics for each metric across folds
+        2. Computing appropriate aggregations (mean or max) for each statistic type
+
+        Args:
+            shap_fold_statistics (list[dict[str, np.ndarray]]):
+                List of dictionaries containing SHAP statistics for each fold.
+                Each dictionary should contain the following keys:
+                - 'shap_abs_mean': Mean absolute SHAP values
+                - 'shap_abs_std': Standard deviation of absolute SHAP values
+                - 'shap_abs_max': Maximum absolute SHAP values
+                - 'shap_mean': Mean SHAP values
+                - 'shap_std': Standard deviation of SHAP values
+
+        Returns:
+            dict[str, np.ndarray]:
+                Dictionary containing aggregated SHAP statistics across all folds:
+                - 'shap_abs_mean': Mean of absolute SHAP values across folds
+                - 'shap_abs_std': Mean of standard deviations of absolute SHAP values
+                - 'shap_abs_max': Maximum absolute SHAP values across folds
+                - 'shap_mean': Mean of SHAP values across folds
+                - 'shap_std': Mean of standard deviations of SHAP values
+
+        Note:
+            - For 'shap_abs_max', the maximum value across folds is used
+            - For all other statistics, the mean across folds is used
+        """
+        # Initialize a dictionary to store the aggregated statistics
+        aggregated_statistics = {}
+
+        # Gather all the SHAP statistics for each fold
+        for fold_stats in shap_fold_statistics:
+            # Create a list of all the SHAP statistics for each fold
+            for key, value in fold_stats.items():
+                if key not in aggregated_statistics:
+                    aggregated_statistics[key] = []
+                aggregated_statistics[key].append(value)
+
+        # Calculate the mean and max for each aggregated statistic
+        for key, values in aggregated_statistics.items():
+            if key == "shap_abs_max":
+                aggregated_statistics[key] = np.max(values, axis=0)
+            else:
+                aggregated_statistics[key] = np.mean(values, axis=0)
+
+        return aggregated_statistics
 
     def get_reduced_features_set(
         self,
@@ -831,7 +951,9 @@ class ShapRFECV(BaseFitComputePlotClass):
                 standard_error_threshold=standard_error_threshold,
                 verbose=self.verbose,
             )
-        elif not isinstance(num_features, int):
+        elif isinstance(num_features, (int, np.int64)):
+            num_features = int(num_features)
+        else:
             raise ValueError(
                 "Parameter num_features must be an int or one of: 'best', 'best_coherent', 'best_parsimonious'"
             )
@@ -845,7 +967,7 @@ class ShapRFECV(BaseFitComputePlotClass):
         elif return_type == "support":
             return get_feature_support(column_names=self.column_names, feature_names_selected=feature_names_selected)
         elif return_type == "ranking":
-            return get_feature_ranking(report_df=self.report_df)
+            return get_feature_ranking(report_df=self.report_df, column_names=self.column_names)
         else:
             raise ValueError("Invalid return_type. Must be 'feature_names', 'support', or 'ranking'.")
 
@@ -857,8 +979,9 @@ class ShapRFECV(BaseFitComputePlotClass):
         train_index: np.ndarray,
         val_index: np.ndarray,
         sample_weight: Optional[pd.Series] = None,
+        execution_mode: Literal["parallel", "vectorized"] = "vectorized",
         **shap_kwargs: Any,
-    ) -> Tuple[pd.DataFrame, float, float]:
+    ) -> Tuple[Union[np.ndarray, dict[str, np.ndarray]], float, float]:
         """
         Computes SHAP values and model scores for a cross-validation fold with early stopping.
 
@@ -885,18 +1008,24 @@ class ShapRFECV(BaseFitComputePlotClass):
                 Sample weights for training data, if applicable.
                 Default is `None`.
 
+            execution_mode (Literal["parallel", "vectorized"], optional):
+                - "parallel": Use parallel processing to compute SHAP values.
+                - "vectorized": Use vectorized operations to compute SHAP values.
+                - Default is `"vectorized"`.
+
             **shap_kwargs (Any):
                 Additional arguments passed to:
                 1. SHAP Explainer - parameters like 'approximate' and 'check_additivity'
-                2. SHAP values multi-classification conversion - parameters like 'class_selection', 'multiclass_aggregation', and 'weight_type'
+                2. SHAP values multi-classification conversion - parameters like
+                'class_selection', 'multi-class_aggregation', 'weights' and 'shap_variance_penalty_factor'
 
                 The conversion parameters are extracted internally and control how SHAP values are processed
-                for multiclass models.
+                for multi-class models.
 
         Returns:
-            Tuple[np.ndarray, float, float]:
+            Tuple[Union[np.ndarray, dict[str, np.ndarray]], float, float]:
                 A tuple containing:
-                - `pd.DataFrame`: SHAP values for validation samples.
+                - `Union[np.ndarray, dict[str, np.ndarray]]`: SHAP statistics for validation samples.
                 - `float`: Training score for this fold.
                 - `float`: Validation score for this fold.
         """
@@ -949,19 +1078,169 @@ class ShapRFECV(BaseFitComputePlotClass):
         score_train = self.scorer.score(model, X_train, y_train)
         score_val = self.scorer.score(model, X_val, y_val)
 
+        # Process SHAP values and return results based on execution mode
+        return self._process_shap_values(
+            model=model,
+            X_val=X_val,
+            score_train=score_train,
+            score_val=score_val,
+            execution_mode=execution_mode,
+            **shap_kwargs,
+        )
+
+    def _process_fold_results(
+        self,
+        results_per_fold: list[Tuple[Union[np.ndarray, dict[str, np.ndarray]], float, float]],
+        execution_mode: Literal["parallel", "vectorized"],
+        remaining_removeable_features: List[str],
+        shap_variance_penalty_factor: float,
+    ) -> Tuple[pd.DataFrame, float, float]:
+        """
+        Processes the results from cross-validation folds to calculate SHAP feature importance.
+
+        This method extracts SHAP values and performance scores from the cross-validation results,
+        then calculates feature importance based on the specified execution mode.
+
+        Two execution modes are supported:
+        - "vectorized": Concatenates SHAP values from all folds before aggregation, then
+           calculates importance. More efficient for smaller datasets with balanced folds.
+        - "parallel": First aggregates SHAP statistics within each fold, then combines statistics
+           across folds. Better reflects the fold structure and is more memory-efficient for
+           large datasets, especially with unbalanced folds.
+
+        Args:
+            results_per_fold (list[Tuple[Union[np.ndarray, dict[str, np.ndarray]], float, float]]):
+                List of tuples, each containing:
+                - SHAP values or statistics from a CV fold
+                - Training score for that fold
+                - Validation score for that fold
+
+            execution_mode (Literal["parallel", "vectorized"]):
+                The mode for processing SHAP values across folds.
+
+            remaining_removeable_features (List[str]):
+                List of feature names that are currently active in the model.
+
+            shap_variance_penalty_factor (float):
+                Penalty factor applied to SHAP values with high variance.
+                Formula: penalized_importance = mean_importance - (std_importance * factor)
+                Used to reduce the influence of features with unstable importance.
+
+        Returns:
+            Tuple[pd.DataFrame, float, float]:
+                A tuple containing:
+                - DataFrame with SHAP importance for each feature
+                - Mean training score across all folds
+                - Mean validation score across all folds
+        """
+        if execution_mode == "vectorized":
+            # Extract SHAP statistics & scores from results
+            shap_values = np.concatenate([current_result[0] for current_result in results_per_fold], axis=0)
+            scores_train = [current_result[1] for current_result in results_per_fold]
+            scores_val = [current_result[2] for current_result in results_per_fold]
+
+            # Calculate SHAP importance for features
+            shap_importance_df = calculate_shap_importance(
+                shap_values,
+                remaining_removeable_features,
+                shap_variance_penalty_factor=shap_variance_penalty_factor,
+            )
+        else:
+            # Extract SHAP statistics & scores from results
+            shap_fold_statistics = [current_result[0] for current_result in results_per_fold]
+            scores_train = [current_result[1] for current_result in results_per_fold]
+            scores_val = [current_result[2] for current_result in results_per_fold]
+
+            # Aggregate SHAP statistics across folds
+            aggregated_shap_statistics = self._summarize_shap_statistics(shap_fold_statistics)
+
+            # Create the output DataFrame with the calculated metrics
+            shap_importance_df = create_importance_dataframe(
+                aggregated_shap_statistics,
+                remaining_removeable_features,
+                shap_variance_penalty_factor=shap_variance_penalty_factor,
+            )
+
+        return shap_importance_df, float(np.mean(scores_train)), float(np.mean(scores_val))
+
+    def _process_shap_values(
+        self,
+        model: Union[BaseEstimator, BaseSearchCV],
+        X_val: pd.DataFrame,
+        score_train: float,
+        score_val: float,
+        execution_mode: Literal["parallel", "vectorized"],
+        **shap_kwargs: Any,
+    ) -> Tuple[Union[np.ndarray, dict[str, np.ndarray]], float, float]:
+        """
+        Processes SHAP values for the validation set based on the specified execution mode.
+
+        This method handles the calculation and formatting of SHAP values, applying
+        appropriate transformations based on whether vectorized or parallel execution
+        is selected.
+
+        Args:
+            model (Union[BaseEstimator, BaseSearchCV]):
+                The trained model to use for SHAP value calculation.
+
+            X_val (pd.DataFrame):
+                Validation dataset for SHAP value calculation.
+
+            score_train (float):
+                Model performance score on the training set.
+
+            score_val (float):
+                Model performance score on the validation set.
+
+            execution_mode (Literal["parallel", "vectorized"]):
+                The execution mode determining how SHAP values are processed:
+                - "vectorized": Concatenates SHAP values across folds before aggregation.
+                - "parallel": Aggregates SHAP values within each fold first.
+
+            **shap_kwargs (Any):
+                Additional keyword arguments for SHAP calculation and processing.
+
+        Returns:
+            Tuple[Union[np.ndarray, dict[str, np.ndarray]], float, float]:
+                A tuple containing:
+                - SHAP values or statistics for validation samples
+                - Training score
+                - Validation score
+        """
         # Split arguments for multi-classification
         multi_class_kwargs, shap_kwargs = extract_shap_multiclass_params(shap_kwargs)
 
         # Calculate SHAP values for validation set
         shap_explanation_val = calculate_shap_explanation(
-            model, X_val, return_explainer=False, verbose=self.verbose, random_state=self.random_state, **shap_kwargs
+            model,
+            X_val,
+            return_explainer=False,
+            verbose=self.verbose,
+            random_state=self.random_state,
+            **shap_kwargs,
         )
 
-        shap_values_val = shap_explanation_to_shap_df(
-            shap_explanation=shap_explanation_val,
-            model=model,
-            X=X_val,
-            **multi_class_kwargs,
-        )
+        if execution_mode == "vectorized":
+            shap_values_val = shap_explanation_to_shap_df(
+                shap_explanation=shap_explanation_val,
+                model=model,
+                X=X_val,
+                **multi_class_kwargs,
+            )
 
-        return shap_values_val, score_train, score_val
+            return shap_values_val, score_train, score_val
+        else:
+            # Get SHAP variance penalty factor & remove from multi_class_kwargs
+            shap_variance_penalty_factor = multi_class_kwargs.pop("shap_variance_penalty_factor", 0)
+
+            # Format SHAP values for validation set (& perform aggregations if multi-class and provided)
+            shap_values_val: np.ndarray = format_shap_values(
+                shap_explanation=shap_explanation_val, **multi_class_kwargs
+            )
+
+            # Calculate base SHAP statistics
+            shap_statistics: dict[str, np.ndarray] = calculate_base_shap_statistics(
+                shap_values_val, shap_variance_penalty_factor
+            )
+
+            return shap_statistics, score_train, score_val

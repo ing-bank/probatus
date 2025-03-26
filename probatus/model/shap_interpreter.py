@@ -192,6 +192,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
         """
         # Transform data if model is a Pipeline
         if self.pipeline is not None:
+            column_names = X_train.columns
             X_train = self.pipeline.transform(X_train)
             X_test = self.pipeline.transform(X_test)
 
@@ -199,6 +200,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
         self.X_train, self.column_names = preprocess_data(
             X_train, X_name="X_train", column_names=column_names, verbose=self.verbose
         )
+
         self.X_test, _ = preprocess_data(X_test, X_name="X_test", column_names=column_names, verbose=self.verbose)
         self.y_train = preprocess_labels(y_train, index=self.X_train.index)
         self.y_test = preprocess_labels(y_test, index=self.X_test.index)
