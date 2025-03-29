@@ -766,7 +766,7 @@ def format_shap_values(
 
     # Apply aggregation across classes if specified (reduces dimension to 2D)
     if multiclass_aggregation is not None:
-        return _aggregate_multiclass_shap(shap_values, multiclass_aggregation, shap_variance_penalty_factor)
+        return aggregate_multiclass_shap(shap_values, multiclass_aggregation, shap_variance_penalty_factor)
 
     # If aggregation wasn't applied but we need to reduce dimensions:
     # - If weighting was applied, reduce by summing across classes
@@ -882,7 +882,7 @@ def _apply_class_weighting(
     return weighted_values
 
 
-def _aggregate_multiclass_shap(
+def aggregate_multiclass_shap(
     shap_values: np.ndarray,
     aggregation_method: Literal["mean", "max_abs", "mean_abs"],
     shap_variance_penalty_factor: Optional[Union[int, float]] = None,
@@ -910,8 +910,8 @@ def _aggregate_multiclass_shap(
 
         # Apply variance penalty if requested
         if shap_variance_penalty_factor is not None and shap_variance_penalty_factor > 0:
-            penalized_shap_abs_mean = mean_shap - (np.std(shap_values, axis=2) * shap_variance_penalty_factor)
-            return penalized_shap_abs_mean
+            penalized_mean_shap = mean_shap - (np.std(shap_values, axis=2) * shap_variance_penalty_factor)
+            return penalized_mean_shap
         else:
             return mean_shap
 
@@ -1062,7 +1062,9 @@ def _shap_values_to_df(
         raise TypeError("X must be a dataframe or a 2d array-like object")
 
 
-def extract_shap_multiclass_params(shap_kwargs: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+def extract_shap_multiclass_params(
+    shap_kwargs: Dict[str, Any], default_aggregation_method: Optional[Literal["mean", "max_abs", "mean_abs"]] = None
+) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     """
     Extract parameters related to multi-class SHAP value conversions from shap_kwargs.
 
@@ -1072,6 +1074,10 @@ def extract_shap_multiclass_params(shap_kwargs: Dict[str, Any]) -> Tuple[Dict[st
     Args:
         shap_kwargs (Dict[str, Any]):
             Dictionary of keyword arguments for SHAP and multi-class processing.
+
+        default_aggregation_method (Optional[Literal["mean", "max_abs", "mean_abs"]], optional):
+            Default aggregation method to use if not specified in shap_kwargs.
+            Default is None (no default aggregation method).
 
     Returns:
         Tuple[Dict[str, Any], Dict[str, Any]]:
@@ -1085,6 +1091,10 @@ def extract_shap_multiclass_params(shap_kwargs: Dict[str, Any]) -> Tuple[Dict[st
         "weights": None,
         "shap_variance_penalty_factor": None,
     }
+
+    # If default aggregation method is provided, use it as the default aggregation method
+    if default_aggregation_method is not None:
+        multiclass_params["multiclass_aggregation"] = default_aggregation_method
 
     # Extract parameters related to multi-class conversion
     extracted_params = {}

@@ -18,6 +18,7 @@ from probatus.utils import (
     handle_class_names,
     extract_shap_multiclass_params,
     shap_explanation_to_shap_df,
+    is_multiclass_model,
 )
 from probatus.utils.common import get_pipeline_preprocessor_and_estimator
 
@@ -116,23 +117,13 @@ class DependencePlotter(BaseFitComputePlotClass):
         self.class_names: List[str] = None
         self.is_regression: bool = False
 
-    # TODO: perhaps remove this
-    def __repr__(self) -> str:
-        """
-        Returns a string representation of the DependencePlotter instance.
-
-        Returns:
-            str: String representation of the plotter.
-        """
-        return f"Shap dependence plotter for {self.model.__class__.__name__}"
-
     def fit(
         self,
         X: pd.DataFrame,
         y: pd.Series,
         column_names: Optional[List[str]] = None,
         class_names: Optional[Union[List[str], Dict[Union[int, str], str]]] = None,
-        precalc_shap: Optional[Explanation] = None,
+        precalc_shap_explanation: Optional[Explanation] = None,
         **shap_kwargs: Any,
     ) -> "DependencePlotter":
         """
@@ -161,7 +152,7 @@ class DependencePlotter(BaseFitComputePlotClass):
                 If None, default labels will be 'label_0', 'label_1', etc. for classification
                 or 'Regression Output' for regression. Default is None.
 
-            precalc_shap (Optional[Explanation], optional):
+            precalc_shap_explanation (Optional[Explanation], optional):
                 Precalculated SHAP explanation object.
                 If provided, it is used directly instead of computing new ones.
                 Default is None.
@@ -190,6 +181,7 @@ class DependencePlotter(BaseFitComputePlotClass):
 
         # Determine if this is a regression model
         self.is_regression = is_regression_model(self.model)
+        self.is_multiclass = is_multiclass_model(self.model, self.y)
 
         # Use class names for plotting
         self.class_names = handle_class_names(self.y, class_names, self.is_regression)
@@ -198,9 +190,9 @@ class DependencePlotter(BaseFitComputePlotClass):
         multi_class_kwargs, shap_kwargs = extract_shap_multiclass_params(shap_kwargs)
 
         # Calculate SHAP values
-        if precalc_shap is not None:
+        if precalc_shap_explanation is not None:
             # Use precalculated SHAP values
-            self.shap_explanation = precalc_shap
+            self.shap_explanation = precalc_shap_explanation
         else:
             # Calculate SHAP values
             self.shap_explanation = calculate_shap_explanation(
@@ -300,7 +292,14 @@ class DependencePlotter(BaseFitComputePlotClass):
             ValueError: If input data formats are invalid.
             RuntimeError: If internal computation fails.
         """
-        self.fit(X, y, column_names=column_names, class_names=class_names, precalc_shap=precalc_shap, **shap_kwargs)
+        self.fit(
+            X,
+            y,
+            column_names=column_names,
+            class_names=class_names,
+            precalc_shap_explanation=precalc_shap,
+            **shap_kwargs,
+        )
         return self.compute()
 
     def plot(
@@ -456,13 +455,22 @@ class DependencePlotter(BaseFitComputePlotClass):
             shap_colors = ["#1E88E5", "#ff0051"]  # Blue and red, the main SHAP colors
 
             for i, (class_name, class_value) in enumerate(zip(self.class_names, sorted(self.y.unique()))):
-                ax.scatter(
-                    X[y == class_value],
-                    shap_val[y == class_value],
-                    label=class_name,
-                    alpha=self.alpha,
-                    color=shap_colors[i % len(shap_colors)],  # Cycle through colors if more than 2 classes
-                )
+                if self.is_multiclass:
+                    ax.scatter(
+                        X[y == class_value],
+                        shap_val[y == class_value][:, i],
+                        label=class_name,
+                        alpha=self.alpha,
+                        color=shap_colors[i % len(shap_colors)],  # Cycle through colors if more than 2 classes
+                    )
+                else:
+                    ax.scatter(
+                        X[y == class_value],
+                        shap_val[y == class_value],
+                        label=class_name,
+                        alpha=self.alpha,
+                        color=shap_colors[i % len(shap_colors)],  # Cycle through colors if more than 2 classes
+                    )
 
         # Set custom tick parameters
         ax.tick_params(axis="both", which="major", labelsize=10)
@@ -591,7 +599,7 @@ class DependencePlotter(BaseFitComputePlotClass):
 
         # Plot histogram of feature values with SHAP-like colors
         hist_color = "#1E88E5"  # SHAP blue color
-        n, bins, patches = ax.hist(
+        _, bins, _ = ax.hist(
             x, bins=cast(Union[int, List[float]], bin_edges_for_hist), lw=1, alpha=0.6, color=hist_color
         )
         ax.set_ylabel("Counts", fontsize=11, fontweight="bold")

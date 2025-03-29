@@ -29,7 +29,7 @@ BASE_PLOTS_DIR = os.path.join(os.path.dirname(__file__), "regression")
 ESTIMATORS = [
     pytest.param(
         LGBMRegressor,
-        {"n_estimators": 100, "max_depth": 3},
+        {"n_estimators": 100, "max_depth": 3, "verbose": -1},
         {"max_depth": [3, 4, 5], "num_leaves": [7, 15, 31]},
         id="lightgbm",
     ),
@@ -54,79 +54,9 @@ ESTIMATORS = [
 ]
 
 
-@pytest.fixture(scope="function")
-def diabetes_data(random_state):
-    """
-    Load the diabetes dataset and return it as a pandas DataFrame.
-    Sample 100 records from the dataset instead of using the entire dataset.
-    """
-    # Load diabetes dataset
-    data = load_diabetes()
-    X = pd.DataFrame(data.data, columns=data.feature_names)
-    y = pd.Series(data.target)
-
-    # Sample 100 records (or all if less than 100)
-    size = min(100, len(X))
-    indices = np.random.RandomState(random_state).choice(len(X), size=size, replace=False)
-    X = X.iloc[indices].reset_index(drop=True)
-    y = y.iloc[indices].reset_index(drop=True)
-
-    return X, y
-
-
-@pytest.fixture(scope="function")
-def linnerud_data(random_state):
-    """
-    Load the Linnerud dataset and return it as a pandas DataFrame.
-    This is a small regression dataset with 3 features and 3 targets.
-    We'll use the first target for simplicity.
-    """
-    # Load Linnerud dataset
-    data = load_linnerud()
-    X = pd.DataFrame(data.data, columns=data.feature_names)
-    # Use only the first target for simplicity
-    y = pd.Series(data.target[:, 0])
-
-    # Since this is a very small dataset, we'll duplicate it to get more samples
-    X_repeated = pd.concat([X] * 10, ignore_index=True)
-    y_repeated = pd.concat([y] * 10, ignore_index=True)
-
-    # Add some noise to make the duplicated samples slightly different
-    noise = np.random.RandomState(random_state).normal(0, 0.1, X_repeated.shape)
-    X_repeated = X_repeated + pd.DataFrame(noise, columns=X_repeated.columns)
-
-    # Sample 100 records (or all if less than 100)
-    size = min(100, len(X_repeated))
-    indices = np.random.RandomState(random_state).choice(len(X_repeated), size=size, replace=False)
-    X_repeated = X_repeated.iloc[indices].reset_index(drop=True)
-    y_repeated = y_repeated.iloc[indices].reset_index(drop=True)
-
-    return X_repeated, y_repeated
-
-
-@pytest.fixture(scope="function")
-def diabetes_data_split(diabetes_data, random_state):
-    """
-    Split the diabetes dataset into train and test sets.
-    """
-    X, y = diabetes_data
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=random_state)
-    return X_train, X_test, y_train, y_test
-
-
-@pytest.fixture(scope="function")
-def linnerud_data_split(linnerud_data, random_state):
-    """
-    Split the Linnerud dataset into train and test sets.
-    """
-    X, y = linnerud_data
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=random_state)
-    return X_train, X_test, y_train, y_test
-
-
 @pytest.mark.parametrize("estimator_class, estimator_params, param_grid", ESTIMATORS)
 def test_sample_similarity(
-    diabetes_data,
+    regression_dataset,
     random_state,
     estimator_class,
     estimator_params,
@@ -143,7 +73,7 @@ def test_sample_similarity(
     # Create plot directories if save_plots is True
     setup_plot_dirs(save_plots, BASE_PLOTS_DIR, ESTIMATORS)
 
-    X, y = diabetes_data
+    X, y = regression_dataset
     plots_dir = get_plots_dir(BASE_PLOTS_DIR, estimator_class, ESTIMATORS)
     estimator_name = next(param.id for param in ESTIMATORS if param.values[0] == estimator_class)
 
@@ -195,7 +125,7 @@ def test_sample_similarity(
 
 @pytest.mark.parametrize("estimator_class, estimator_params, param_grid", ESTIMATORS)
 def test_permutation_importance_resemblance(
-    diabetes_data,
+    regression_dataset,
     random_state,
     estimator_class,
     estimator_params,
@@ -212,7 +142,7 @@ def test_permutation_importance_resemblance(
     # Create plot directories if save_plots is True
     setup_plot_dirs(save_plots, BASE_PLOTS_DIR, ESTIMATORS)
 
-    X, y = diabetes_data
+    X, y = regression_dataset
     plots_dir = get_plots_dir(BASE_PLOTS_DIR, estimator_class, ESTIMATORS)
     estimator_name = next(param.id for param in ESTIMATORS if param.values[0] == estimator_class)
 
@@ -265,7 +195,8 @@ def test_permutation_importance_resemblance(
 
 @pytest.mark.parametrize("estimator_class, estimator_params, param_grid", ESTIMATORS)
 def test_model_interpret(
-    diabetes_data_split,
+    regression_dataset,
+    split_dataset,
     random_state,
     estimator_class,
     estimator_params,
@@ -274,7 +205,6 @@ def test_model_interpret(
     setup_plot_dirs,
     get_plots_dir,
     check_plots_are_generated_correctly,
-    create_model_with_params,
 ):
     """
     Test different estimators with ShapModelInterpreter for model interpretation.
@@ -282,7 +212,7 @@ def test_model_interpret(
     # Create plot directories if save_plots is True
     setup_plot_dirs(save_plots, BASE_PLOTS_DIR, ESTIMATORS)
 
-    X_train, X_test, y_train, y_test = diabetes_data_split
+    X_train, X_test, y_train, y_test = split_dataset(regression_dataset)
     plots_dir = get_plots_dir(BASE_PLOTS_DIR, estimator_class, ESTIMATORS)
     estimator_name = next(param.id for param in ESTIMATORS if param.values[0] == estimator_class)
 
@@ -323,7 +253,8 @@ def test_model_interpret(
 
 @pytest.mark.parametrize("estimator_class, estimator_params, param_grid", ESTIMATORS)
 def test_shap_dependence(
-    diabetes_data_split,
+    regression_dataset,
+    split_dataset,
     random_state,
     estimator_class,
     estimator_params,
@@ -332,7 +263,6 @@ def test_shap_dependence(
     setup_plot_dirs,
     get_plots_dir,
     check_plots_are_generated_correctly,
-    create_model_with_params,
 ):
     """
     Test different estimators with ShapModelInterpreter for SHAP dependence plots.
@@ -340,7 +270,7 @@ def test_shap_dependence(
     # Create plot directories if save_plots is True
     setup_plot_dirs(save_plots, BASE_PLOTS_DIR, ESTIMATORS)
 
-    X_train, X_test, y_train, y_test = diabetes_data_split
+    X_train, X_test, y_train, y_test = split_dataset(regression_dataset)
     plots_dir = get_plots_dir(BASE_PLOTS_DIR, estimator_class, ESTIMATORS)
     estimator_name = next(param.id for param in ESTIMATORS if param.values[0] == estimator_class)
 
@@ -456,7 +386,7 @@ def test_shap_dependence(
 
 @pytest.mark.parametrize("estimator_class, estimator_params, param_grid", ESTIMATORS)
 def test_feature_elimination(
-    linnerud_data,
+    regression_dataset,
     random_state,
     estimator_class,
     estimator_params,
@@ -468,148 +398,13 @@ def test_feature_elimination(
     create_model_with_params,
 ):
     """
-    Test different estimators with ShapRFECV for feature elimination.
+    Test different estimators with RandomizedSearchCV and early stopping for feature elimination,
+    using the regression_dataset fixture.
     """
     # Create plot directories if save_plots is True
     setup_plot_dirs(save_plots, BASE_PLOTS_DIR, ESTIMATORS)
 
-    X, y = linnerud_data
-    plots_dir = get_plots_dir(BASE_PLOTS_DIR, estimator_class, ESTIMATORS)
-    estimator_name = next(param.id for param in ESTIMATORS if param.values[0] == estimator_class)
-
-    # Create model with the specified estimator class and parameters
-    model = estimator_class(random_state=random_state, **estimator_params)
-
-    # Initialize feature elimination
-    shap_elimination = ShapRFECV(
-        model=model, step=1, cv=3, scoring="r2", n_jobs=1, verbose=1, random_state=random_state
-    )
-
-    # Fit and compute feature importance
-    report = shap_elimination.fit_compute(X, y)
-
-    # Verify results
-    assert report.shape[0] == X.shape[1]
-    assert len(shap_elimination.get_reduced_features_set(1)) == 1
-
-    # Test plotting and save the plot
-    fig = shap_elimination.plot(show=False)
-    assert fig is not None
-
-    # Save the plot if save_plots is True
-    if save_plots:
-        plot_path = os.path.join(plots_dir, f"{estimator_name}_feature_elimination.png")
-        fig.savefig(plot_path, dpi=300, bbox_inches="tight")
-
-        # Verify the plot has diverse colors
-        assert check_plots_are_generated_correctly(
-            plot_path
-        ), "Feature elimination plot doesn't have enough colors - it may be empty or only showing axes."
-
-    # Close all plots to free memory
-    plt.close("all")
-
-
-@pytest.mark.parametrize("estimator_class, estimator_params, param_grid", ESTIMATORS)
-def test_feature_elimination_early_stopping(
-    linnerud_data,
-    random_state,
-    estimator_class,
-    estimator_params,
-    param_grid,
-    save_plots,
-    setup_plot_dirs,
-    get_plots_dir,
-    check_plots_are_generated_correctly,
-    create_model_with_params,
-):
-    """
-    Test different estimators with ShapRFECV for feature elimination with early stopping.
-    """
-    # Create plot directories if save_plots is True
-    setup_plot_dirs(save_plots, BASE_PLOTS_DIR, ESTIMATORS)
-
-    X, y = linnerud_data
-    plots_dir = get_plots_dir(BASE_PLOTS_DIR, estimator_class, ESTIMATORS)
-    estimator_name = next(param.id for param in ESTIMATORS if param.values[0] == estimator_class)
-
-    # Create model with the specified estimator class and parameters
-    model = create_model_with_params(estimator_class, estimator_params, random_state)
-    is_compatible = check_if_model_is_compatible_with_early_stopping(model)
-
-    # For non-compatible estimators, expect ValueError during initialization
-    if not is_compatible:
-        with pytest.raises(ValueError, match="Only 'XGBoost', 'LGBM' and 'CatBoost' supported for early stopping"):
-            ShapRFECV(
-                model=model,
-                step=1,
-                cv=3,
-                scoring="r2",
-                early_stopping_rounds=5,
-                eval_metric="rmse",
-                n_jobs=1,
-                verbose=1,
-                random_state=random_state,
-            )
-    else:
-        # Initialize feature elimination with early stopping
-        shap_elimination = ShapRFECV(
-            model=model,
-            step=1,
-            cv=3,
-            scoring="r2",
-            early_stopping_rounds=5,
-            eval_metric="rmse",
-            n_jobs=1,
-            verbose=1,
-            random_state=random_state,
-        )
-
-        # Fit and compute feature importance
-        report = shap_elimination.fit_compute(X, y)
-
-        # Verify results
-        assert report.shape[0] == X.shape[1]
-        assert len(shap_elimination.get_reduced_features_set(1)) == 1
-
-        # Test plotting and save the plot
-        fig = shap_elimination.plot(show=False)
-        assert fig is not None
-
-        # Save the plot if save_plots is True
-        if save_plots:
-            plot_path = os.path.join(plots_dir, f"{estimator_name}_feature_elimination_early_stopping.png")
-            fig.savefig(plot_path, dpi=300, bbox_inches="tight")
-
-            # Verify the plot has diverse colors
-            assert check_plots_are_generated_correctly(
-                plot_path
-            ), "Feature elimination early stopping plot doesn't have enough colors - it may be empty or only showing axes."
-
-        # Close all plots to free memory
-        plt.close("all")
-
-
-@pytest.mark.parametrize("estimator_class, estimator_params, param_grid", ESTIMATORS)
-def test_randomized_search_early_stopping(
-    linnerud_data,
-    random_state,
-    estimator_class,
-    estimator_params,
-    param_grid,
-    save_plots,
-    setup_plot_dirs,
-    get_plots_dir,
-    check_plots_are_generated_correctly,
-    create_model_with_params,
-):
-    """
-    Test different estimators with RandomizedSearchCV and early stopping for feature elimination.
-    """
-    # Create plot directories if save_plots is True
-    setup_plot_dirs(save_plots, BASE_PLOTS_DIR, ESTIMATORS)
-
-    X, y = linnerud_data
+    X, y = regression_dataset
     plots_dir = get_plots_dir(BASE_PLOTS_DIR, estimator_class, ESTIMATORS)
     estimator_name = next(param.id for param in ESTIMATORS if param.values[0] == estimator_class)
 
@@ -661,13 +456,13 @@ def test_randomized_search_early_stopping(
 
         # Save the plot if save_plots is True
         if save_plots:
-            plot_path = os.path.join(plots_dir, f"{estimator_name}_randomized_search_early_stopping.png")
+            plot_path = os.path.join(plots_dir, f"{estimator_name}_feature_elimination_randomized_search.png")
             fig.savefig(plot_path, dpi=300, bbox_inches="tight")
 
             # Verify the plot has diverse colors
             assert check_plots_are_generated_correctly(
                 plot_path
-            ), "Randomized search early stopping plot doesn't have enough colors - it may be empty or only showing axes."
+            ), "Feature elimination with randomized search plot doesn't have enough colors - it may be empty or only showing axes."
 
         # Close all plots to free memory
         plt.close("all")
@@ -675,7 +470,7 @@ def test_randomized_search_early_stopping(
 
 @pytest.mark.parametrize("estimator_class, estimator_params, param_grid", ESTIMATORS)
 def test_get_feature_shap_values_per_fold_early_stopping(
-    linnerud_data,
+    regression_dataset,
     random_state,
     estimator_class,
     estimator_params,
@@ -688,7 +483,7 @@ def test_get_feature_shap_values_per_fold_early_stopping(
     # Create model with the specified estimator class and parameters
     model = create_model_with_params(estimator_class, estimator_params, random_state)
 
-    X, y = linnerud_data
+    X, y = regression_dataset
 
     # Get indices for validation set (10% of data)
     val_index = np.random.RandomState(random_state).choice(len(y), size=max(1, int(len(y) * 0.1)), replace=False)

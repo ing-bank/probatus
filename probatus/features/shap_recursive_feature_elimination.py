@@ -764,6 +764,7 @@ class ShapRFECV(BaseFitComputePlotClass):
 
         return fig
 
+    # TODO: Move to helper class
     def _get_feature_shap_values_per_fold(
         self,
         X: pd.DataFrame,
@@ -846,6 +847,7 @@ class ShapRFECV(BaseFitComputePlotClass):
             **shap_kwargs,
         )
 
+    # TODO: Move to helper class
     @staticmethod
     def _summarize_shap_statistics(shap_fold_statistics: list[dict[str, np.ndarray]]) -> dict[str, np.ndarray]:
         """
@@ -971,6 +973,7 @@ class ShapRFECV(BaseFitComputePlotClass):
         else:
             raise ValueError("Invalid return_type. Must be 'feature_names', 'support', or 'ranking'.")
 
+    # TODO: Move to helper class
     def _get_feature_shap_values_per_fold_early_stopping(
         self,
         X: pd.DataFrame,
@@ -1088,6 +1091,7 @@ class ShapRFECV(BaseFitComputePlotClass):
             **shap_kwargs,
         )
 
+    # TODO: Move to helper class
     def _process_fold_results(
         self,
         results_per_fold: list[Tuple[Union[np.ndarray, dict[str, np.ndarray]], float, float]],
@@ -1163,6 +1167,7 @@ class ShapRFECV(BaseFitComputePlotClass):
 
         return shap_importance_df, float(np.mean(scores_train)), float(np.mean(scores_val))
 
+    # TODO: Move to helper class
     def _process_shap_values(
         self,
         model: Union[BaseEstimator, BaseSearchCV],

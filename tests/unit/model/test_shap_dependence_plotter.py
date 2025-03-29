@@ -24,7 +24,7 @@ def test_dependence_plotter_fit(dependencies_classification_model, dependencies_
     # Test fit with precalculated SHAP values
     precalc_shap = pd.DataFrame(np.random.rand(*X.shape), columns=X.columns)
     plotter = DependencePlotter(dependencies_classification_model)
-    plotter.fit(X, y, precalc_shap=precalc_shap)
+    plotter.fit(X, y, precalc_shap_explanation=precalc_shap)
     if isinstance(plotter.shap_values, np.ndarray):
         assert np.array_equal(plotter.shap_values, precalc_shap.values)
     else:

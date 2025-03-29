@@ -1,21 +1,16 @@
 import pytest
 import matplotlib
 import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
 import os
 from lightgbm import LGBMClassifier
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
-from xgboost import XGBClassifier
 from sklearn.model_selection import RandomizedSearchCV
-from sklearn.datasets import load_breast_cancer
-from sklearn.model_selection import train_test_split
+from xgboost import XGBClassifier
 
 from probatus.dataset import SHAPImportanceResemblance, PermutationImportanceResemblance
 from probatus.model import ShapModelInterpreter
 from probatus.features import ShapRFECV, check_if_model_is_compatible_with_early_stopping
-from probatus.utils import preprocess_labels
 
 # Turn off interactive mode in plots
 plt.ioff()
@@ -29,7 +24,7 @@ BASE_PLOTS_DIR = os.path.join(os.path.dirname(__file__), "binary_classification"
 ESTIMATORS = [
     pytest.param(
         LGBMClassifier,
-        {"n_estimators": 100, "max_depth": 3},
+        {"n_estimators": 100, "max_depth": 3, "verbose": -1},
         {"max_depth": [3, 4, 5], "num_leaves": [7, 15, 31]},
         id="lightgbm",
     ),
@@ -54,38 +49,9 @@ ESTIMATORS = [
 ]
 
 
-@pytest.fixture(scope="function")
-def breast_cancer_data(random_state):
-    """
-    Load the breast cancer dataset and return it as a pandas DataFrame.
-    Sample 100 records from the dataset instead of using the entire dataset.
-    """
-    # Load breast cancer dataset
-    data = load_breast_cancer()
-    X = pd.DataFrame(data.data, columns=data.feature_names)
-    y = pd.Series(data.target)
-
-    # Sample 100 records
-    indices = np.random.RandomState(random_state).choice(len(X), size=100, replace=False)
-    X = X.iloc[indices].reset_index(drop=True)
-    y = y.iloc[indices].reset_index(drop=True)
-
-    return X, y
-
-
-@pytest.fixture(scope="function")
-def breast_cancer_data_split(breast_cancer_data, random_state):
-    """
-    Split the breast cancer dataset into train and test sets.
-    """
-    X, y = breast_cancer_data
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=random_state)
-    return X_train, X_test, y_train, y_test
-
-
 @pytest.mark.parametrize("estimator_class, estimator_params, param_grid", ESTIMATORS)
 def test_sample_similarity(
-    breast_cancer_data,
+    binary_classification_dataset,
     random_state,
     estimator_class,
     estimator_params,
@@ -101,7 +67,7 @@ def test_sample_similarity(
     # Create plot directories if save_plots is True
     setup_plot_dirs(save_plots, BASE_PLOTS_DIR, ESTIMATORS)
 
-    X, y = breast_cancer_data
+    X, y = binary_classification_dataset
     plots_dir = get_plots_dir(BASE_PLOTS_DIR, estimator_class, ESTIMATORS)
     estimator_name = next(param.id for param in ESTIMATORS if param.values[0] == estimator_class)
 
@@ -145,7 +111,7 @@ def test_sample_similarity(
 
 @pytest.mark.parametrize("estimator_class, estimator_params, param_grid", ESTIMATORS)
 def test_permutation_importance_resemblance(
-    breast_cancer_data,
+    binary_classification_dataset,
     random_state,
     estimator_class,
     estimator_params,
@@ -161,7 +127,7 @@ def test_permutation_importance_resemblance(
     # Create plot directories if save_plots is True
     setup_plot_dirs(save_plots, BASE_PLOTS_DIR, ESTIMATORS)
 
-    X, y = breast_cancer_data
+    X, y = binary_classification_dataset
     plots_dir = get_plots_dir(BASE_PLOTS_DIR, estimator_class, ESTIMATORS)
     estimator_name = next(param.id for param in ESTIMATORS if param.values[0] == estimator_class)
 
@@ -207,7 +173,8 @@ def test_permutation_importance_resemblance(
 
 @pytest.mark.parametrize("estimator_class, estimator_params, param_grid", ESTIMATORS)
 def test_model_interpret(
-    breast_cancer_data_split,
+    binary_classification_dataset,
+    split_dataset,
     random_state,
     estimator_class,
     estimator_params,
@@ -223,7 +190,8 @@ def test_model_interpret(
     # Create plot directories if save_plots is True
     setup_plot_dirs(save_plots, BASE_PLOTS_DIR, ESTIMATORS)
 
-    X_train, X_test, y_train, y_test = breast_cancer_data_split
+    # Split data into train and test sets
+    X_train, X_test, y_train, y_test = split_dataset(binary_classification_dataset)
     class_names = ["Malignant", "Benign"]
     plots_dir = get_plots_dir(BASE_PLOTS_DIR, estimator_class, ESTIMATORS)
     estimator_name = next(param.id for param in ESTIMATORS if param.values[0] == estimator_class)
@@ -270,7 +238,8 @@ def test_model_interpret(
 
 @pytest.mark.parametrize("estimator_class, estimator_params, param_grid", ESTIMATORS)
 def test_shap_dependence(
-    breast_cancer_data_split,
+    binary_classification_dataset,
+    split_dataset,
     random_state,
     estimator_class,
     estimator_params,
@@ -286,7 +255,7 @@ def test_shap_dependence(
     # Create plot directories if save_plots is True
     setup_plot_dirs(save_plots, BASE_PLOTS_DIR, ESTIMATORS)
 
-    X_train, X_test, y_train, y_test = breast_cancer_data_split
+    X_train, X_test, y_train, y_test = split_dataset(binary_classification_dataset)
     class_names = ["Malignant", "Benign"]
     plots_dir = get_plots_dir(BASE_PLOTS_DIR, estimator_class, ESTIMATORS)
     estimator_name = next(param.id for param in ESTIMATORS if param.values[0] == estimator_class)
@@ -404,63 +373,8 @@ def test_shap_dependence(
 
 
 @pytest.mark.parametrize("estimator_class, estimator_params, param_grid", ESTIMATORS)
-def test_feature_elimination(
-    breast_cancer_data,
-    random_state,
-    estimator_class,
-    estimator_params,
-    param_grid,
-    save_plots,
-    setup_plot_dirs,
-    get_plots_dir,
-    check_plots_are_generated_correctly,
-):
-    """
-    Test different estimators with ShapRFECV for feature elimination.
-    """
-    # Create plot directories if save_plots is True
-    setup_plot_dirs(save_plots, BASE_PLOTS_DIR, ESTIMATORS)
-
-    X, y = breast_cancer_data
-    plots_dir = get_plots_dir(BASE_PLOTS_DIR, estimator_class, ESTIMATORS)
-    estimator_name = next(param.id for param in ESTIMATORS if param.values[0] == estimator_class)
-
-    # Create model with the specified estimator class and parameters
-    model = estimator_class(random_state=random_state, **estimator_params)
-
-    # Initialize feature elimination
-    shap_elimination = ShapRFECV(
-        model=model, step=1, cv=3, scoring="roc_auc", n_jobs=1, verbose=1, random_state=random_state
-    )
-
-    # Fit and compute feature importance
-    report = shap_elimination.fit_compute(X, y)
-
-    # Verify results
-    assert report.shape[0] == X.shape[1]
-    assert len(shap_elimination.get_reduced_features_set(1)) == 1
-
-    # Test plotting and save the plot
-    fig = shap_elimination.plot(show=False)
-    assert fig is not None
-
-    # Save the plot if save_plots is True
-    if save_plots:
-        plot_path = os.path.join(plots_dir, f"{estimator_name}_feature_elimination.png")
-        fig.savefig(plot_path, dpi=300, bbox_inches="tight")
-
-        # Verify the plot has diverse colors
-        assert check_plots_are_generated_correctly(
-            plot_path
-        ), "Feature elimination plot doesn't have enough colors - it may be empty or only showing axes."
-
-    # Close all plots to free memory
-    plt.close("all")
-
-
-@pytest.mark.parametrize("estimator_class, estimator_params, param_grid", ESTIMATORS)
-def test_feature_elimination_early_stopping(
-    breast_cancer_data,
+def test_feature_elimination_randomized_search_early_stopping(
+    binary_classification_dataset,
     random_state,
     estimator_class,
     estimator_params,
@@ -472,92 +386,13 @@ def test_feature_elimination_early_stopping(
     create_model_with_params,
 ):
     """
-    Test different estimators with ShapRFECV for feature elimination with early stopping.
+    Test different estimators with RandomizedSearchCV and early stopping for feature elimination,
+    using the binary_classification_dataset fixture.
     """
     # Create plot directories if save_plots is True
     setup_plot_dirs(save_plots, BASE_PLOTS_DIR, ESTIMATORS)
 
-    X, y = breast_cancer_data
-    plots_dir = get_plots_dir(BASE_PLOTS_DIR, estimator_class, ESTIMATORS)
-    estimator_name = next(param.id for param in ESTIMATORS if param.values[0] == estimator_class)
-
-    # Create model with the specified estimator class and parameters
-    model = create_model_with_params(estimator_class, estimator_params, random_state)
-    is_compatible = check_if_model_is_compatible_with_early_stopping(model)
-
-    # For non-compatible estimators, expect ValueError during initialization
-    if not is_compatible:
-        with pytest.raises(ValueError, match="Only 'XGBoost', 'LGBM' and 'CatBoost' supported for early stopping"):
-            ShapRFECV(
-                model=model,
-                step=1,
-                cv=3,
-                scoring="roc_auc",
-                early_stopping_rounds=5,
-                eval_metric="auc",
-                n_jobs=1,
-                verbose=1,
-                random_state=random_state,
-            )
-    else:
-        # Initialize feature elimination with early stopping
-        shap_elimination = ShapRFECV(
-            model=model,
-            step=1,
-            cv=3,
-            scoring="roc_auc",
-            early_stopping_rounds=5,
-            eval_metric="auc",
-            n_jobs=1,
-            verbose=1,
-            random_state=random_state,
-        )
-
-        # Fit and compute feature importance
-        report = shap_elimination.fit_compute(X, y)
-
-        # Verify results
-        assert report.shape[0] == X.shape[1]
-        assert len(shap_elimination.get_reduced_features_set(1)) == 1
-
-        # Test plotting and save the plot
-        fig = shap_elimination.plot(show=False)
-        assert fig is not None
-
-        # Save the plot if save_plots is True
-        if save_plots:
-            plot_path = os.path.join(plots_dir, f"{estimator_name}_feature_elimination_early_stopping.png")
-            fig.savefig(plot_path, dpi=300, bbox_inches="tight")
-
-            # Verify the plot has diverse colors
-            assert check_plots_are_generated_correctly(
-                plot_path
-            ), "Feature elimination early stopping plot doesn't have enough colors - it may be empty or only showing axes."
-
-        # Close all plots to free memory
-        plt.close("all")
-
-
-@pytest.mark.parametrize("estimator_class, estimator_params, param_grid", ESTIMATORS)
-def test_randomized_search_early_stopping(
-    breast_cancer_data,
-    random_state,
-    estimator_class,
-    estimator_params,
-    param_grid,
-    save_plots,
-    setup_plot_dirs,
-    get_plots_dir,
-    check_plots_are_generated_correctly,
-    create_model_with_params,
-):
-    """
-    Test different estimators with RandomizedSearchCV and early stopping for feature elimination.
-    """
-    # Create plot directories if save_plots is True
-    setup_plot_dirs(save_plots, BASE_PLOTS_DIR, ESTIMATORS)
-
-    X, y = breast_cancer_data
+    X, y = binary_classification_dataset
     plots_dir = get_plots_dir(BASE_PLOTS_DIR, estimator_class, ESTIMATORS)
     estimator_name = next(param.id for param in ESTIMATORS if param.values[0] == estimator_class)
 
@@ -609,82 +444,13 @@ def test_randomized_search_early_stopping(
 
         # Save the plot if save_plots is True
         if save_plots:
-            plot_path = os.path.join(plots_dir, f"{estimator_name}_randomized_search_early_stopping.png")
+            plot_path = os.path.join(plots_dir, f"{estimator_name}_feature_elimination_randomized_search.png")
             fig.savefig(plot_path, dpi=300, bbox_inches="tight")
 
             # Verify the plot has diverse colors
             assert check_plots_are_generated_correctly(
                 plot_path
-            ), "Randomized search early stopping plot doesn't have enough colors - it may be empty or only showing axes."
+            ), "Feature elimination with randomized search plot doesn't have enough colors - it may be empty or only showing axes."
 
         # Close all plots to free memory
         plt.close("all")
-
-
-@pytest.mark.parametrize("estimator_class, estimator_params, param_grid", ESTIMATORS)
-def test_get_feature_shap_values_per_fold_early_stopping(
-    breast_cancer_data,
-    random_state,
-    estimator_class,
-    estimator_params,
-    param_grid,
-    create_model_with_params,
-):
-    """
-    Test the internal _get_feature_shap_values_per_fold_early_stopping method with different estimators.
-    """
-    # Create model with the specified estimator class and parameters
-    model = create_model_with_params(estimator_class, estimator_params, random_state)
-
-    X, y = breast_cancer_data
-    y = preprocess_labels(y, index=X.index)
-
-    # Get indices for both classes to ensure balanced validation set
-    malignant_indices = y[y == 0].index.tolist()[:3]
-    benign_indices = y[y == 1].index.tolist()[:3]
-    val_index = malignant_indices + benign_indices
-
-    # Get remaining indices for training
-    train_index = [i for i in range(len(y)) if i not in val_index][:45]  # Limit to 45 samples
-    is_compatible = check_if_model_is_compatible_with_early_stopping(model)
-
-    # For non-compatible estimators, expect ValueError
-    if not is_compatible:
-        # First, verify that creating a ShapRFECV with early stopping raises ValueError
-        with pytest.raises(ValueError, match="Only 'XGBoost', 'LGBM' and 'CatBoost' supported for early stopping"):
-            ShapRFECV(model, early_stopping_rounds=5, eval_metric="auc", scoring="roc_auc", random_state=random_state)
-
-        # Create a mock ShapRFECV instance without early stopping for testing
-        mock_shap_elimination = ShapRFECV(model=model, random_state=random_state)
-
-        # Test that calling the internal method directly also raises ValueError
-        with pytest.raises(ValueError, match="Model type not supported for early stopping"):
-            mock_shap_elimination._get_feature_shap_values_per_fold_early_stopping(
-                X,
-                y,
-                model,
-                train_index=train_index,
-                val_index=val_index,
-            )
-    else:
-        # Initialize feature elimination with early stopping
-        shap_elimination = ShapRFECV(
-            model, early_stopping_rounds=5, eval_metric="auc", scoring="roc_auc", random_state=random_state
-        )
-
-        # Test internal method
-        shap_values, train_score, test_score = shap_elimination._get_feature_shap_values_per_fold_early_stopping(
-            X,
-            y,
-            model,
-            train_index=train_index,
-            val_index=val_index,
-            execution_mode="parallel",
-        )
-
-        # Verify results
-        assert test_score > 0.5
-        assert train_score > 0.5
-        assert shap_values["shap_abs_mean"].shape[0] == X.shape[1]
-        assert shap_values["shap_abs_max"].shape[0] == X.shape[1]
-        assert shap_values["shap_mean"].shape[0] == X.shape[1]

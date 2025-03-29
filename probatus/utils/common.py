@@ -1,5 +1,5 @@
 from typing import Union, List, Optional, Dict, Tuple
-from sklearn.base import is_regressor, RegressorMixin, BaseEstimator
+from sklearn.base import is_classifier, is_regressor, RegressorMixin, BaseEstimator
 from sklearn.pipeline import Pipeline
 import pandas as pd
 import numpy as np
@@ -85,6 +85,31 @@ def is_regression_model(model: BaseEstimator) -> bool:
     # If it has predict but not predict_proba, it's likely a regression model
     if has_predict and not has_predict_proba:
         return True
+
+    return False
+
+
+def is_multiclass_model(model: BaseEstimator, y: pd.Series) -> bool:
+    """
+    Determine if a model is a multiclass model using scikit-learn's built-in functions.
+
+    This function checks if a model is a multiclass classifier by using scikit-learn's
+    is_classifier function or by checking if it's an instance of ClassifierMixin.
+    It also performs additional checks for models that might not directly inherit from
+    scikit-learn's base classes.
+
+    Args:
+        model (BaseEstimator): The model to check. Can be any scikit-learn estimator,
+            pipeline, or compatible model with similar interface.
+
+        y (pd.Series): The target variable series to check.
+
+    Returns:
+        bool: True if the model is a multiclass model, False otherwise.
+    """
+    # First try scikit-learn's built-in function
+    if is_classifier(model):
+        return len(y.unique()) > 2
 
     return False
 

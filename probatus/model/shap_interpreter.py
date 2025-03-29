@@ -22,8 +22,9 @@ from probatus.utils import (
     shap_explanation_to_shap_df,
     extract_shap_multiclass_params,
     prep_shap_related_variables,
+    aggregate_multiclass_shap,
 )
-from probatus.utils.common import get_pipeline_preprocessor_and_estimator
+from probatus.utils.common import get_pipeline_preprocessor_and_estimator, is_multiclass_model
 
 
 class ShapModelInterpreter(BaseFitComputePlotClass):
@@ -137,6 +138,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
         self.fitted = False
         self.class_names: List[str] = None
         self.is_regression = False  # Will be set during fit
+        self.is_multiclass = False  # Will be set during fit
 
     def fit(
         self,
@@ -207,6 +209,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
 
         # Determine if this is a regression model using the utility function
         self.is_regression = is_regression_model(self.model)
+        self.is_multiclass = is_multiclass_model(self.model, self.y_train)
 
         # Use class names for plotting
         self.class_names = handle_class_names(pd.concat([self.y_train, self.y_test]), class_names, self.is_regression)
@@ -242,7 +245,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
             self.y_train,
             column_names=self.column_names,
             class_names=self.class_names,
-            precalc_shap=self.shap_values_train,
+            precalc_shap_explanation=self.shap_explanation_train,
             **shap_kwargs,
         )
 
@@ -264,7 +267,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
             self.y_test,
             column_names=self.column_names,
             class_names=self.class_names,
-            precalc_shap=self.shap_values_test,
+            precalc_shap_explanation=self.shap_explanation_test,
             **shap_kwargs,
         )
 
@@ -626,7 +629,10 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
         else:
             target_shap_values = target_shap_values[:, target_columns_indices]
 
-        # Set up SHAP explanation object
+        if self.is_multiclass:
+            target_shap_values = aggregate_multiclass_shap(target_shap_values, aggregation_method="mean_abs")
+
+        # Set up SHAP explanation object for SHAP plots
         explanation = Explanation(values=target_shap_values, data=target_X.values, feature_names=target_columns)
 
         # Create appropriate plot type
@@ -820,6 +826,9 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
             else:
                 # If it's a numpy array, get the row by position
                 sample_shap_values = target_shap_values[sample_loc, :]
+
+            if self.is_multiclass:
+                sample_shap_values = aggregate_multiclass_shap(sample_shap_values, aggregation_method="mean_abs")
 
             # Create a SHAP Explanation object
             explanation = Explanation(

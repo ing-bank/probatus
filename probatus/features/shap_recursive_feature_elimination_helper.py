@@ -64,8 +64,10 @@ def validate_step_parameter(step: Union[int, float]) -> Union[int, float]:
         ValueError:
             If `step` is not a positive integer or float.
     """
-    if not isinstance(step, (int, np.int64, float, np.float64)) or step <= 0:
-        raise ValueError(f"Invalid step value: {step}. Must be a positive int or float.")
+    if not isinstance(step, (int, np.int64, float, np.float64)):
+        raise TypeError(f"step must be an integer; got {type(step)}.")
+    if step <= 0:
+        raise ValueError(f"min_features_to_select must be > 0; got {step}.")
     return step
 
 
@@ -86,7 +88,7 @@ def validate_min_features_parameter(min_features: int) -> int:
             If min_features is not a positive integer.
     """
     if not isinstance(min_features, (int, np.int64)):
-        raise ValueError(f"min_features_to_select must be an integer; got {min_features}.")
+        raise TypeError(f"min_features_to_select must be an integer; got {type(min_features)}.")
     if min_features <= 0:
         raise ValueError(f"min_features_to_select must be > 0; got {min_features}.")
     return min_features
@@ -161,6 +163,8 @@ def _get_current_features_to_remove(
     - If `step` is an integer: Removes exactly that many lowest-importance features (if available).
     - If `step` is a float: Removes that fraction of the remaining features (rounded down).
 
+    Output order is from worst to best features.
+
     Args:
         shap_importance_df (pd.DataFrame):
             DataFrame containing SHAP importance values for features.
@@ -179,6 +183,7 @@ def _get_current_features_to_remove(
     Returns:
         List[str]:
             A list of feature names selected for removal in the current iteration.
+            The order is from worst to best features.
     """
     # Bounding the variable.
     num_features_to_remove = 0
@@ -214,7 +219,8 @@ def _get_current_features_to_remove(
         return []
 
     # Return the n features with lowest importance
-    return shap_importance_df.iloc[-num_features_to_remove:].index.tolist()
+    # Order: worst features first, best features last
+    return shap_importance_df.iloc[-num_features_to_remove:].index.tolist()[::-1]
 
 
 def filter_and_identify_features_based_on_importance(
@@ -225,10 +231,10 @@ def filter_and_identify_features_based_on_importance(
     current_features_set: List[str],
 ) -> Tuple[List[str], List[str]]:
     """
-    Filters features based on SHAP importance while preserving the original feature order.
-
-    This method determines which features should be kept and which should be removed
-    in the current iteration of feature elimination.
+    Determines which features should be kept and which should be removed based on SHAP importance
+    for current iteration of feature elimination:
+    - The order of the features to keep is preserved.
+    - The order of the features to remove is from worst to best feature.
 
     Args:
         shap_importance_df (pd.DataFrame):
@@ -475,10 +481,12 @@ def get_feature_support(column_names: List[str], feature_names_selected: List[st
 
 def get_feature_ranking(report_df: pd.DataFrame, column_names: Optional[List[str]] = None) -> List[int]:
     """
-    Retrieves the ranking of features based on their elimination order.
+    Retrieves the ranking of features based on their elimination order & metric score.
 
-    Features eliminated earlier receive higher ranks (indicating lower importance),
-    while features that were never eliminated receive a rank of `0` (most important).
+    The ranking is computed as follows:
+    - Features that were never eliminated receive a rank of `1` (most important).
+    - Features eliminated earlier receive higher ranks (indicating lower importance),
+    while features that were never eliminated receive a rank of `1` (most important).
 
     Args:
         report_df (pd.DataFrame):
@@ -493,24 +501,25 @@ def get_feature_ranking(report_df: pd.DataFrame, column_names: Optional[List[str
             A list of feature rankings, where lower values indicate more important features
             and higher values correspond to features eliminated earlier.
     """
-    # Reverse the report DataFrame to process elimination in chronological order
-    flipped_report_df = report_df.iloc[::-1]
-
-    # Features that were never eliminated have the highest importance (rank 0)
-    features_not_eliminated = flipped_report_df["features_set"].iloc[0]
-    features_not_eliminated_dict = {feature: 0 for feature in features_not_eliminated}
-
-    # Features that were eliminated are ranked by their elimination order
-    # Earlier elimination = higher rank number = less important
-    features_eliminated = np.concatenate(flipped_report_df["eliminated_features"].to_numpy())
-    features_eliminated_dict = {feature: idx + 1 for idx, feature in enumerate(features_eliminated)}
-
-    # Combine the dictionaries
-    ranking_dict = {**features_eliminated_dict, **features_not_eliminated_dict}
-
-    # Create the ranking list in the original column order
     if column_names is None:
         raise ValueError("Feature names are not available. The model may not be fitted.")
-    ranking = [ranking_dict.get(col, 0) for col in column_names]
 
-    return ranking
+    # Get features that were never eliminated
+    kept_features = report_df["features_set"].iloc[-1]
+
+    # Get features that were eliminated (best to worst)
+    eliminated_features = [
+        eliminated_feature
+        for eliminated_features_per_run in report_df["eliminated_features"]
+        for eliminated_feature in eliminated_features_per_run
+    ][::-1]
+
+    # Create a dictionary of features and their ranking
+    kept_features_ranking_dict = {feature: 1 for feature in kept_features}
+    eliminated_features_ranking_dict = {feature: idx + 2 for idx, feature in enumerate(eliminated_features)}
+
+    # Create the ranking list in the original column order
+    ranking_dict = {**kept_features_ranking_dict, **eliminated_features_ranking_dict}
+
+    # Return the ranking list in the original column order
+    return [ranking_dict.get(col, 0) for col in column_names]

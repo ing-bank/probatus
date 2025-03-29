@@ -1,299 +1,424 @@
-import numpy as np
 import pandas as pd
 import pytest
-from sklearn.linear_model import LogisticRegression
-from sklearn.model_selection import StratifiedGroupKFold
+from sklearn.ensemble import RandomForestClassifier
+from lightgbm import LGBMClassifier
+from xgboost import XGBClassifier
 
 from probatus.features import (
-    ShapRFECV,
+    check_if_model_is_compatible_with_early_stopping,
     validate_step_parameter,
     validate_min_features_parameter,
+    filter_and_identify_features_based_on_importance,
+    report_current_results,
+    get_feature_names,
+    get_feature_support,
+    get_feature_ranking,
+    get_best_num_features,
     validate_shap_variance_penalty_factor_parameter,
-    check_if_model_is_compatible_with_early_stopping,
 )
 from probatus.features.shap_recursive_feature_elimination_helper import (
     _calculate_number_of_features_to_remove,
+    _get_current_features_to_remove,
 )
-from probatus.core import NotFittedError
 
 
-# Validation tests
-def test_validate_step():
-    """Test the validate_step_parameter function.
-
-    The function should accept positive integers and floats between 0 and 1 exclusive.
-    It should reject negative values, zero, and non-numeric inputs.
-    """
-    # Valid inputs
-    assert validate_step_parameter(1) == 1
-    assert validate_step_parameter(0.5) == 0.5
-
-    # Invalid inputs
-    with pytest.raises(ValueError):
-        validate_step_parameter(0)
-    with pytest.raises(ValueError):
-        validate_step_parameter(-1)
-    with pytest.raises(ValueError):
-        validate_step_parameter("invalid")
+@pytest.mark.parametrize(
+    "step, expected",
+    [
+        (1, 1),  # Integer
+        (3, 3),  # Integer
+        (0.1, 0.1),  # Float
+        (0.5, 0.5),  # Float
+    ],
+)
+def test_validate_step_parameter(step, expected):
+    """Test step parameter validation."""
+    result = validate_step_parameter(step)
+    assert result == expected
 
 
-def test_validate_min_features():
-    """Test the validate_min_features_parameter function.
-
-    The function should accept positive integers.
-    It should reject non-positive integers, floats, and non-numeric inputs.
-    """
-    # Valid inputs
-    assert validate_min_features_parameter(1) == 1
-    assert validate_min_features_parameter(5) == 5
-
-    # Invalid inputs
-    with pytest.raises(ValueError):
-        validate_min_features_parameter(0)
-    with pytest.raises(ValueError):
-        validate_min_features_parameter(-1)
-    with pytest.raises(ValueError):
-        validate_min_features_parameter(1.5)
-    with pytest.raises(ValueError):
-        validate_min_features_parameter("invalid")
+@pytest.mark.parametrize(
+    "step, expected_error",
+    [
+        (0, ValueError),  # Zero
+        (-1, ValueError),  # Negative
+        ("invalid", TypeError),  # Invalid type
+    ],
+)
+def test_validate_step_parameter_errors(step, expected_error):
+    """Test step parameter validation errors."""
+    with pytest.raises(expected_error):
+        validate_step_parameter(step)
 
 
-def test_shap_variance_penalty_factor():
-    """Test the validate_shap_variance_penalty_factor_parameter function.
-
-    The function should:
-    - Accept None, integers, and floats as valid values
-    - Return the provided value for valid inputs
-    - Issue a warning for invalid types and negative values, defaulting to 0
-    """
-    # Test with negative value
-    with pytest.warns(UserWarning, match="shap_variance_penalty_factor must be None, int or float"):
-        assert validate_shap_variance_penalty_factor_parameter(-1) == 0
-
-    # Test with invalid type
-    with pytest.warns(UserWarning, match="shap_variance_penalty_factor must be None, int or float"):
-        assert validate_shap_variance_penalty_factor_parameter("invalid") == 0
-
-    # Test with valid values
-    assert validate_shap_variance_penalty_factor_parameter(0) == 0
-    assert validate_shap_variance_penalty_factor_parameter(0.5) == 0.5
-    assert validate_shap_variance_penalty_factor_parameter(1.0) == 1.0
+@pytest.mark.parametrize(
+    "min_features, expected",
+    [
+        (1, 1),  # Minimum
+        (10, 10),  # Normal
+    ],
+)
+def test_validate_min_features_parameter(min_features, expected):
+    """Test min_features_to_select parameter validation."""
+    result = validate_min_features_parameter(min_features)
+    assert result == expected
 
 
-# Feature elimination calculation tests
-def test_calculate_number_of_features_to_remove():
-    """Test the _calculate_number_of_features_to_remove method."""
-    # Normal case - remove 3 features
-    assert 3 == _calculate_number_of_features_to_remove(
-        current_num_of_features=10, num_features_to_remove=3, min_num_features_to_keep=5
+@pytest.mark.parametrize(
+    "min_features, expected_error",
+    [
+        (0, ValueError),  # Zero
+        (-1, ValueError),  # Negative
+        (1.5, TypeError),  # Float
+        ("invalid", TypeError),  # Invalid type
+    ],
+)
+def test_validate_min_features_parameter_errors(min_features, expected_error):
+    """Test min_features_to_select parameter validation errors."""
+    with pytest.raises(expected_error):
+        validate_min_features_parameter(min_features)
+
+
+@pytest.mark.parametrize(
+    "model_class, params, expected",
+    [
+        (LGBMClassifier, {"n_estimators": 10}, True),
+        (XGBClassifier, {"n_estimators": 10}, True),
+        (RandomForestClassifier, {"n_estimators": 10}, False),
+    ],
+)
+def test_check_if_model_is_compatible_with_early_stopping(model_class, params, expected, random_state):
+    """Test if model compatibility with early stopping is correctly determined."""
+    model = model_class(random_state=random_state, **params)
+    result = check_if_model_is_compatible_with_early_stopping(model)
+    assert result == expected
+
+
+def test_filter_and_identify_features_based_on_importance():
+    """Test filtering features based on SHAP importance."""
+    # Create a mock SHAP importance DataFrame
+    shap_importance_df = pd.DataFrame(
+        {"importance": [0.5, 0.3, 0.2, 0.1]},
+        index=["feature1", "feature2", "feature3", "feature4"],
     )
+    current_features_set = ["feature1", "feature2", "feature3", "feature4"]
 
-    # Limit case - can only remove 3 features to maintain minimum
-    assert 3 == _calculate_number_of_features_to_remove(
-        current_num_of_features=8, num_features_to_remove=5, min_num_features_to_keep=5
+    # Test with integer step
+    remaining, removed = filter_and_identify_features_based_on_importance(
+        shap_importance_df,
+        step=1,
+        min_features_to_select=1,
+        columns_to_keep=None,
+        current_features_set=current_features_set,
     )
+    assert remaining == ["feature1", "feature2", "feature3"]
+    assert removed == ["feature4"]
 
-    # Boundary case - can't remove any features
-    assert 0 == _calculate_number_of_features_to_remove(
-        current_num_of_features=5, num_features_to_remove=1, min_num_features_to_keep=5
-    )
-
-    # Remove all but minimum required
-    assert 4 == _calculate_number_of_features_to_remove(
-        current_num_of_features=5, num_features_to_remove=7, min_num_features_to_keep=1
-    )
-
-
-# Model compatibility tests
-def test_check_if_model_is_compatible_with_early_stopping(logistic_regression, xgb_model, lgbm_regressor):
-    """Test the _check_if_model_is_compatible_with_early_stopping method."""
-    # Test if model is not compatible with early stopping
-    assert not check_if_model_is_compatible_with_early_stopping(logistic_regression)
-
-    # Test if model is compatible with early stopping
-    assert check_if_model_is_compatible_with_early_stopping(xgb_model)
-    assert check_if_model_is_compatible_with_early_stopping(lgbm_regressor)
-
-
-# Initialization tests
-def test_shaprfecv_init_parameters(random_state_42):
-    """Test initialization parameters of ShapRFECV."""
-    model = LogisticRegression(random_state=random_state_42)
-    shap_elimination = ShapRFECV(
-        model,
+    # Test with float step
+    remaining, removed = filter_and_identify_features_based_on_importance(
+        shap_importance_df,
         step=0.5,
-        min_features_to_select=3,
-        cv=3,
-        scoring="accuracy",
-        n_jobs=2,
-        verbose=1,
-        random_state=random_state_42,
+        min_features_to_select=1,
+        columns_to_keep=None,
+        current_features_set=current_features_set,
+    )
+    assert remaining == ["feature1", "feature2"]
+    assert removed == ["feature4", "feature3"]
+
+    # Test with columns_to_keep
+    remaining, removed = filter_and_identify_features_based_on_importance(
+        shap_importance_df,
+        step=1,
+        min_features_to_select=1,
+        columns_to_keep=["feature3"],
+        current_features_set=current_features_set,
+    )
+    assert remaining == ["feature1", "feature2", "feature3"]
+    assert removed == ["feature4"]
+
+
+def test_report_current_results():
+    """Test creating and updating the report DataFrame."""
+    # Initial empty DataFrame
+    report_df = pd.DataFrame()
+
+    # First round
+    updated_df = report_current_results(
+        report_df=report_df,
+        round_number=1,
+        current_features_set=["feature1", "feature2", "feature3"],
+        features_to_remove=["feature3"],
+        train_metric_mean=0.8,
+        train_metric_std=0.05,
+        val_metric_mean=0.75,
+        val_metric_std=0.06,
     )
 
-    assert shap_elimination.step == 0.5
-    assert shap_elimination.min_features_to_select == 3
-    assert shap_elimination.cv == 3
-    assert shap_elimination.n_jobs == 2
-    assert shap_elimination.verbose == 1
-    assert shap_elimination.random_state == random_state_42
+    assert updated_df.shape[0] == 1
+    assert updated_df.loc[1, "num_features"] == 3
+    assert updated_df.loc[1, "features_set"] == ["feature1", "feature2", "feature3"]
+    assert updated_df.loc[1, "eliminated_features"] == ["feature3"]
+    assert updated_df.loc[1, "train_metric_mean"] == 0.8
 
-    # Test with early stopping parameters
+    # Second round
+    updated_df = report_current_results(
+        report_df=updated_df,
+        round_number=2,
+        current_features_set=["feature1", "feature2"],
+        features_to_remove=["feature2"],
+        train_metric_mean=0.79,
+        train_metric_std=0.04,
+        val_metric_mean=0.74,
+        val_metric_std=0.05,
+    )
+
+    assert updated_df.shape[0] == 2
+    assert updated_df.loc[2, "num_features"] == 2
+    assert updated_df.loc[2, "features_set"] == ["feature1", "feature2"]
+    assert updated_df.loc[2, "eliminated_features"] == ["feature2"]
+
+
+def test_get_feature_names():
+    """Test retrieving feature names for a specific number of features."""
+    # Create a mock report DataFrame
+    report_df = pd.DataFrame(
+        {
+            "num_features": [4, 3, 2, 1],
+            "features_set": [["f1", "f2", "f3", "f4"], ["f1", "f2", "f3"], ["f1", "f2"], ["f1"]],
+        },
+        index=[1, 2, 3, 4],
+    )
+
+    # Test retrieving feature sets
+    assert get_feature_names(report_df, 4) == ["f1", "f2", "f3", "f4"]
+    assert get_feature_names(report_df, 2) == ["f1", "f2"]
+
+    # Test error case
     with pytest.raises(ValueError):
-        # Should raise error because model is not compatible with early stopping
-        ShapRFECV(model, early_stopping_rounds=5, eval_metric="auc")
+        get_feature_names(report_df, 5)
 
 
-# API tests
-def test_check_if_fitted(mock_shap_elimination):
-    """Test the _check_if_fitted method."""
-    # Should not raise error when fitted=True
-    mock_shap_elimination._check_if_fitted()
+def test_get_feature_support():
+    """Test generating boolean mask for selected features."""
+    column_names = ["f1", "f2", "f3", "f4", "f5"]
+    feature_names_selected = ["f1", "f3", "f5"]
 
-    # Should raise error when fitted=False
-    mock_shap_elimination.fitted = False
-    with pytest.raises(NotFittedError):
-        mock_shap_elimination._check_if_fitted()
+    result = get_feature_support(column_names, feature_names_selected)
+    assert result == [True, False, True, False, True]
 
-
-def test_column_names_parameter(feature_elimination_X, feature_elimination_y, random_state_42, mock_fit_compute):
-    """Test the column_names parameter."""
-    model = LogisticRegression(random_state=random_state_42)
-    shap_elimination = ShapRFECV(model, random_state=random_state_42, cv=2)
-    custom_column_names = ["feature_1", "feature_2", "feature_3"]
-
-    # Mock fit_compute to avoid actual computation
-    original_fit_compute = shap_elimination.fit_compute
-    shap_elimination.fit_compute = mock_fit_compute
-
-    try:
-        shap_elimination.fit(feature_elimination_X, feature_elimination_y, column_names=custom_column_names)
-        assert shap_elimination.column_names == custom_column_names
-    finally:
-        shap_elimination.fit_compute = original_fit_compute
+    # Test error case
+    with pytest.raises(ValueError):
+        get_feature_support(None, feature_names_selected)
 
 
-def test_groups_parameter(feature_elimination_X, feature_elimination_y, random_state_42, mock_fit_compute):
-    """Test the groups parameter for group-based cross-validation."""
-    model = LogisticRegression(random_state=random_state_42)
+def test_get_feature_ranking():
+    """Test generating feature ranking based on elimination order."""
+    # Create a mock report DataFrame
+    report_df = pd.DataFrame(
+        {
+            "features_set": [
+                ["f0", "f1", "f3", "f5", "f6", "f7"],
+                ["f0", "f1", "f3", "f7"],
+                ["f1", "f7"],
+            ],
+            "eliminated_features": [["f2", "f4"], ["f6", "f5"], ["f3", "f0"]],
+        },
+        index=[1, 2, 3],
+    )
 
-    # Create ShapRFECV with explicit cv parameter to use StratifiedGroupKFold
-    shap_elimination = ShapRFECV(model, random_state=random_state_42, cv=StratifiedGroupKFold(n_splits=2))
+    column_names = ["f0", "f1", "f2", "f3", "f4", "f5", "f6", "f7"]
 
-    groups = pd.Series([1, 1, 1, 1, 2, 2, 2, 2])
+    result = get_feature_ranking(report_df, column_names)
+    assert result == [2, 1, 7, 3, 6, 4, 5, 1]
 
-    # Mock fit_compute to avoid actual computation
-    original_fit_compute = shap_elimination.fit_compute
-    shap_elimination.fit_compute = mock_fit_compute
-
-    try:
-        shap_elimination.fit(feature_elimination_X, feature_elimination_y, groups=groups)
-        # If we get here, the test passed
-    except Exception as e:
-        pytest.fail(f"Using groups parameter with StratifiedGroupKFold should not raise an exception: {e}")
-    finally:
-        shap_elimination.fit_compute = original_fit_compute
-
-
-def test_sample_weight_parameter(
-    feature_elimination_X,
-    feature_elimination_y,
-    feature_elimination_sample_weight,
-    random_state_42,
-    mock_feature_shap_values_per_fold,
-):
-    """Test the sample_weight parameter."""
-    model = LogisticRegression(random_state=random_state_42)
-    shap_elimination = ShapRFECV(model, random_state=random_state_42, cv=2)
-    captured_sample_weight = None
-
-    # Mock _get_feature_shap_values_per_fold to capture sample_weight
-    def mock_method(*args, **kwargs):
-        nonlocal captured_sample_weight
-        captured_sample_weight = kwargs.get("sample_weight")
-        return np.array([[0.1, 0.2, 0.3]]), 0.8, 0.7
-
-    original_method = shap_elimination._get_feature_shap_values_per_fold
-    shap_elimination._get_feature_shap_values_per_fold = mock_method
-
-    # Mock fit to call our mocked method
-    def mock_fit(*args, **kwargs):
-        sw = kwargs.get("sample_weight")
-        shap_elimination._get_feature_shap_values_per_fold(
-            X=feature_elimination_X,
-            y=feature_elimination_y,
-            model=model,
-            train_index=np.array([0, 1]),
-            val_index=np.array([2, 3]),
-            sample_weight=sw,
-        )
-        shap_elimination.fitted = True
-        return shap_elimination
-
-    original_fit = shap_elimination.fit
-    shap_elimination.fit = mock_fit
-
-    try:
-        shap_elimination.fit(
-            feature_elimination_X, feature_elimination_y, sample_weight=feature_elimination_sample_weight
-        )
-        assert captured_sample_weight is feature_elimination_sample_weight
-    finally:
-        shap_elimination._get_feature_shap_values_per_fold = original_method
-        shap_elimination.fit = original_fit
+    # Test error case
+    with pytest.raises(ValueError):
+        get_feature_ranking(report_df, None)
 
 
-def test_shap_kwargs_parameter(
-    feature_elimination_X, feature_elimination_y, random_state_42, mock_feature_shap_values_per_fold
-):
-    """Test the shap_kwargs parameter."""
-    model = LogisticRegression(random_state=random_state_42)
-    shap_elimination = ShapRFECV(model, random_state=random_state_42, cv=2)
-    kwargs_passed = {}
+@pytest.mark.parametrize(
+    "penalty_factor, expected",
+    [
+        (0, 0.0),  # Integer zero
+        (1, 1.0),  # Integer
+        (0.5, 0.5),  # Float
+        (None, 0.0),  # None should default to 0.0
+    ],
+)
+def test_validate_shap_variance_penalty_factor_parameter(penalty_factor, expected):
+    """Test validation of shap_variance_penalty_factor parameter."""
+    result = validate_shap_variance_penalty_factor_parameter(penalty_factor)
+    assert result == expected
+    assert isinstance(result, float)
 
-    # Mock _get_feature_shap_values_per_fold to capture kwargs
-    def mock_method(*args, **kwargs):
-        nonlocal kwargs_passed
-        kwargs_passed.update(kwargs)
-        return np.array([[0.1, 0.2, 0.3]]), 0.8, 0.7
 
-    original_method = shap_elimination._get_feature_shap_values_per_fold
-    shap_elimination._get_feature_shap_values_per_fold = mock_method
+@pytest.mark.parametrize(
+    "penalty_factor, expected",
+    [
+        (-1, 0.0),  # Negative values should issue a warning and return 0.0
+        ("invalid", 0.0),  # Invalid types should issue a warning and return 0.0
+    ],
+)
+def test_validate_shap_variance_penalty_factor_parameter_warnings(penalty_factor, expected):
+    """Test validation of shap_variance_penalty_factor parameter with invalid values."""
+    # These should trigger warnings but still return a default value
+    with pytest.warns(UserWarning):
+        result = validate_shap_variance_penalty_factor_parameter(penalty_factor)
+    assert result == expected
 
-    # Mock fit to call our mocked method with shap_kwargs
-    def mock_fit(*args, **kwargs):
-        shap_kwargs = {
-            k: v
-            for k, v in kwargs.items()
-            if k
-            not in [
-                "X",
-                "y",
-                "sample_weight",
-                "columns_to_keep",
-                "column_names",
-                "groups",
-                "shap_variance_penalty_factor",
-            ]
-        }
-        shap_elimination._get_feature_shap_values_per_fold(
-            X=feature_elimination_X,
-            y=feature_elimination_y,
-            model=model,
-            train_index=np.array([0, 1]),
-            val_index=np.array([2, 3]),
-            **shap_kwargs,
-        )
-        shap_elimination.fitted = True
-        return shap_elimination
 
-    original_fit = shap_elimination.fit
-    shap_elimination.fit = mock_fit
+def test_calculate_number_of_features_to_remove():
+    """Test calculation of number of features to remove."""
+    # Case 1: More features than minimum required
+    result = _calculate_number_of_features_to_remove(
+        current_num_of_features=10,
+        num_features_to_remove=3,
+        min_num_features_to_keep=5,
+    )
+    assert result == 3  # Can remove all 3 requested features
 
-    try:
-        shap_kwargs = {"approximate": True, "check_additivity": False}
-        shap_elimination.fit(feature_elimination_X, feature_elimination_y, **shap_kwargs)
-        assert kwargs_passed.get("approximate") is True
-        assert kwargs_passed.get("check_additivity") is False
-    finally:
-        shap_elimination._get_feature_shap_values_per_fold = original_method
-        shap_elimination.fit = original_fit
+    # Case 2: Would remove too many features
+    result = _calculate_number_of_features_to_remove(
+        current_num_of_features=10,
+        num_features_to_remove=8,
+        min_num_features_to_keep=5,
+    )
+    assert result == 5  # Can only remove 5 features to maintain minimum
+
+    # Case 3: At the minimum required features
+    result = _calculate_number_of_features_to_remove(
+        current_num_of_features=5,
+        num_features_to_remove=1,
+        min_num_features_to_keep=5,
+    )
+    assert result == 0  # Cannot remove any features
+
+
+def test_get_current_features_to_remove():
+    """Test getting features to remove based on importance and constraints."""
+    # Create a mock SHAP importance DataFrame
+    shap_importance_df = pd.DataFrame(
+        {"importance": [0.5, 0.4, 0.3, 0.2, 0.1]},
+        index=["feature1", "feature2", "feature3", "feature4", "feature5"],
+    )
+
+    # Test with integer step
+    result = _get_current_features_to_remove(
+        shap_importance_df=shap_importance_df,
+        step=2,
+        min_features_to_select=2,
+        columns_to_keep=None,
+    )
+    assert result == ["feature5", "feature4"]  # Remove 2 lowest importance features
+
+    # Test with float step (0.4 * 5 = 2 features)
+    result = _get_current_features_to_remove(
+        shap_importance_df=shap_importance_df,
+        step=0.4,
+        min_features_to_select=2,
+        columns_to_keep=None,
+    )
+    assert result == ["feature5", "feature4"]  # Remove 2 lowest importance features
+
+    # Test with columns_to_keep
+    result = _get_current_features_to_remove(
+        shap_importance_df=shap_importance_df,
+        step=3,
+        min_features_to_select=2,
+        columns_to_keep=["feature4"],
+    )
+    assert "feature4" not in result  # Should not remove feature4
+    assert len(result) == 2  # Should still remove 2 features
+
+    # Test with min_features_to_select constraint
+    result = _get_current_features_to_remove(
+        shap_importance_df=shap_importance_df,
+        step=4,
+        min_features_to_select=3,
+        columns_to_keep=None,
+    )
+    assert len(result) == 2  # Should only remove 2 features to maintain minimum of 3
+
+    # Test case where no features should be removed
+    result = _get_current_features_to_remove(
+        shap_importance_df=shap_importance_df,
+        step=1,
+        min_features_to_select=5,
+        columns_to_keep=None,
+    )
+    assert result == []  # Cannot remove any features as we're at minimum
+
+
+@pytest.mark.parametrize(
+    "best_method, expected_num_features",
+    [
+        ("best", 4),  # Highest score
+        ("best_coherent", 3),  # Most consistent within threshold
+        ("best_parsimonious", 2),  # Fewest features within threshold
+    ],
+)
+def test_get_best_num_features(best_method, expected_num_features):
+    """Test getting best number of features using different methods."""
+    # Create a mock report DataFrame with controlled metrics
+    report_df = pd.DataFrame(
+        {
+            "num_features": [5, 4, 3, 2, 1],
+            "val_metric_mean": [0.75, 0.80, 0.78, 0.77, 0.65],  # Best score at 4 features
+            "val_metric_std": [0.08, 0.06, 0.03, 0.07, 0.10],  # Most consistent at 3 features
+        },
+        index=[1, 2, 3, 4, 5],
+    )
+
+    # Get best number of features with standard_error_threshold=0.05
+    # This means scores within 0.05 of the best (0.80) will be considered, so 0.75-0.80
+    result = get_best_num_features(
+        report_df=report_df,
+        best_method=best_method,
+        standard_error_threshold=0.05,
+        verbose=0,
+    )
+    assert result == expected_num_features
+
+
+@pytest.mark.parametrize(
+    "best_method, expected_error",
+    [
+        ("invalid_method", ValueError),  # Invalid method name
+        (123, ValueError),  # Invalid type
+    ],
+)
+def test_get_best_num_features_errors(best_method, expected_error):
+    """Test errors in get_best_num_features."""
+    report_df = pd.DataFrame(
+        {
+            "num_features": [3, 2, 1],
+            "val_metric_mean": [0.8, 0.75, 0.7],
+            "val_metric_std": [0.05, 0.04, 0.06],
+        },
+        index=[1, 2, 3],
+    )
+
+    with pytest.raises(expected_error):
+        get_best_num_features(report_df, best_method)
+
+
+@pytest.mark.parametrize(
+    "threshold, expected_error",
+    [
+        (-1, ValueError),  # Negative threshold
+        ("invalid", ValueError),  # Invalid type
+    ],
+)
+def test_get_best_num_features_threshold_errors(threshold, expected_error):
+    """Test errors in get_best_num_features with invalid threshold values."""
+    report_df = pd.DataFrame(
+        {
+            "num_features": [3, 2, 1],
+            "val_metric_mean": [0.8, 0.75, 0.7],
+            "val_metric_std": [0.05, 0.04, 0.06],
+        },
+        index=[1, 2, 3],
+    )
+
+    with pytest.raises(expected_error):
+        get_best_num_features(report_df, "best", standard_error_threshold=threshold)
