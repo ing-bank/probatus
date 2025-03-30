@@ -5,6 +5,129 @@ from sklearn.base import BaseEstimator
 from sklearn.model_selection._search import BaseSearchCV
 
 
+def _get_fit_params(
+    model: Union[BaseEstimator, BaseSearchCV],
+    X_train: pd.DataFrame,
+    X_val: pd.DataFrame,
+    y_val: pd.Series,
+    sample_weight: Optional[pd.Series] = None,
+    train_index: Optional[np.ndarray] = None,
+    val_index: Optional[np.ndarray] = None,
+    early_stopping_rounds: Optional[int] = None,
+    eval_metric: Optional[str] = None,
+    verbose: Literal[0, 1, 2] = 0,
+) -> Dict[str, Any]:
+    """
+    Generates the appropriate fit parameters based on the model type.
+
+    This method automatically detects the model type and delegates to the corresponding
+    specialized method (`_get_fit_params_XGBoost`, `_get_fit_params_CatBoost`,
+    `_get_fit_params_lightGBM`) to retrieve the correct fit parameters.
+
+    Args:
+        model (Union[BaseEstimator, BaseSearchCV]):
+            The model or hyperparameter search object for which to retrieve fit parameters.
+
+        X_train (pd.DataFrame):
+            Training feature matrix of shape `(n_samples, n_features)`.
+
+        y_train (pd.Series):
+            Training labels of shape `(n_samples,)`.
+
+        X_val (pd.DataFrame):
+            Validation feature matrix of shape `(n_samples, n_features)`.
+
+        y_val (pd.Series):
+            Validation labels of shape `(n_samples,)`.
+
+        sample_weight (Optional[pd.Series], optional):
+            Sample weights for training data, if applicable.
+            Default is `None`.
+
+        train_index (Optional[np.ndarray], optional):
+            Indices of training samples.
+            Default is `None`.
+
+        val_index (Optional[np.ndarray], optional):
+            Indices of validation samples.
+            Default is `None`.
+
+        early_stopping_rounds (Optional[int], optional):
+            Number of early stopping rounds. Default is `None`.
+
+        eval_metric (Optional[str], optional):
+            Evaluation metric. Default is `None`.
+
+        verbose (int, optional):
+            Verbosity level. Default is `0`.
+
+    Returns:
+        Dict[str, Any]:
+            A dictionary of parameters to be passed to the model's `fit` method,
+            including validation data and early stopping settings.
+
+    Raises:
+        ValueError:
+            If the model type is not supported for early stopping.
+    """
+    # Try LightGBM
+    try:
+        from lightgbm import LGBMModel
+
+        if isinstance(model, LGBMModel):
+            return _get_fit_params_lightGBM(
+                X_val=X_val,
+                y_val=y_val,
+                sample_weight=sample_weight,
+                train_index=train_index,
+                val_index=val_index,
+                early_stopping_rounds=early_stopping_rounds,
+                eval_metric=eval_metric,
+                verbose=verbose,
+            )
+    except ImportError:
+        pass
+
+    # Try XGBoost
+    try:
+        from xgboost import XGBModel
+
+        if isinstance(model, XGBModel):
+            return _get_fit_params_XGBoost(
+                X_val=X_val,
+                y_val=y_val,
+                sample_weight=sample_weight,
+                train_index=train_index,
+                val_index=val_index,
+            )
+    except ImportError:
+        pass
+
+    # TODO: Revert this once CatBoost is updated to work with NumPy 2.0
+    try:
+        # Only attempt to import if the model's class name suggests it might be a CatBoost model
+        if hasattr(model, "__class__") and "catboost" in str(model.__class__).lower():
+            try:
+                from catboost import CatBoost
+
+                if isinstance(model, CatBoost):
+                    return _get_fit_params_CatBoost(
+                        X_train=X_train,
+                        X_val=X_val,
+                        y_val=y_val,
+                        sample_weight=sample_weight,
+                        train_index=train_index,
+                        val_index=val_index,
+                    )
+            except ImportError:
+                pass
+    except Exception:
+        # Ignore any errors during this check
+        pass
+
+    raise ValueError("Model type not supported for early stopping")
+
+
 def _get_fit_params_lightGBM(
     X_val: pd.DataFrame,
     y_val: pd.Series,
@@ -190,126 +313,3 @@ def _get_fit_params_CatBoost(
         fit_params["sample_weight"] = sample_weight.iloc[train_index]
 
     return fit_params
-
-
-def get_fit_params(
-    model: Union[BaseEstimator, BaseSearchCV],
-    X_train: pd.DataFrame,
-    X_val: pd.DataFrame,
-    y_val: pd.Series,
-    sample_weight: Optional[pd.Series] = None,
-    train_index: Optional[np.ndarray] = None,
-    val_index: Optional[np.ndarray] = None,
-    early_stopping_rounds: Optional[int] = None,
-    eval_metric: Optional[str] = None,
-    verbose: Literal[0, 1, 2] = 0,
-) -> Dict[str, Any]:
-    """
-    Generates the appropriate fit parameters based on the model type.
-
-    This method automatically detects the model type and delegates to the corresponding
-    specialized method (`_get_fit_params_XGBoost`, `_get_fit_params_CatBoost`,
-    `_get_fit_params_lightGBM`) to retrieve the correct fit parameters.
-
-    Args:
-        model (Union[BaseEstimator, BaseSearchCV]):
-            The model or hyperparameter search object for which to retrieve fit parameters.
-
-        X_train (pd.DataFrame):
-            Training feature matrix of shape `(n_samples, n_features)`.
-
-        y_train (pd.Series):
-            Training labels of shape `(n_samples,)`.
-
-        X_val (pd.DataFrame):
-            Validation feature matrix of shape `(n_samples, n_features)`.
-
-        y_val (pd.Series):
-            Validation labels of shape `(n_samples,)`.
-
-        sample_weight (Optional[pd.Series], optional):
-            Sample weights for training data, if applicable.
-            Default is `None`.
-
-        train_index (Optional[np.ndarray], optional):
-            Indices of training samples.
-            Default is `None`.
-
-        val_index (Optional[np.ndarray], optional):
-            Indices of validation samples.
-            Default is `None`.
-
-        early_stopping_rounds (Optional[int], optional):
-            Number of early stopping rounds. Default is `None`.
-
-        eval_metric (Optional[str], optional):
-            Evaluation metric. Default is `None`.
-
-        verbose (int, optional):
-            Verbosity level. Default is `0`.
-
-    Returns:
-        Dict[str, Any]:
-            A dictionary of parameters to be passed to the model's `fit` method,
-            including validation data and early stopping settings.
-
-    Raises:
-        ValueError:
-            If the model type is not supported for early stopping.
-    """
-    # Try LightGBM
-    try:
-        from lightgbm import LGBMModel
-
-        if isinstance(model, LGBMModel):
-            return _get_fit_params_lightGBM(
-                X_val=X_val,
-                y_val=y_val,
-                sample_weight=sample_weight,
-                train_index=train_index,
-                val_index=val_index,
-                early_stopping_rounds=early_stopping_rounds,
-                eval_metric=eval_metric,
-                verbose=verbose,
-            )
-    except ImportError:
-        pass
-
-    # Try XGBoost
-    try:
-        from xgboost import XGBModel
-
-        if isinstance(model, XGBModel):
-            return _get_fit_params_XGBoost(
-                X_val=X_val,
-                y_val=y_val,
-                sample_weight=sample_weight,
-                train_index=train_index,
-                val_index=val_index,
-            )
-    except ImportError:
-        pass
-
-    # TODO: Revert this once CatBoost is updated to work with NumPy 2.0
-    try:
-        # Only attempt to import if the model's class name suggests it might be a CatBoost model
-        if hasattr(model, "__class__") and "catboost" in str(model.__class__).lower():
-            try:
-                from catboost import CatBoost
-
-                if isinstance(model, CatBoost):
-                    return _get_fit_params_CatBoost(
-                        X_train=X_train,
-                        X_val=X_val,
-                        y_val=y_val,
-                        sample_weight=sample_weight,
-                        train_index=train_index,
-                        val_index=val_index,
-                    )
-            except ImportError:
-                pass
-    except Exception:
-        # Ignore any errors during this check
-        pass
-
-    raise ValueError("Model type not supported for early stopping")

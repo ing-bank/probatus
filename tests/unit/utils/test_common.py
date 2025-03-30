@@ -8,7 +8,7 @@ from probatus.utils import (
     handle_class_names,
     assure_list_of_strings,
     is_regression_model,
-    get_pipeline_preprocessor_and_estimator,
+    get_pipeline_estimator_and_preprocessor,
 )
 
 
@@ -125,7 +125,7 @@ def test_get_pipeline_preprocessor_and_estimator():
     pipeline = Pipeline([("scaler", StandardScaler()), ("model", LogisticRegression())])
 
     # Test with pipeline
-    preprocessor, estimator = get_pipeline_preprocessor_and_estimator(pipeline)
+    preprocessor, estimator = get_pipeline_estimator_and_preprocessor(pipeline)
 
     # Verify preprocessor has the correct steps
     assert isinstance(preprocessor, Pipeline)
@@ -138,7 +138,7 @@ def test_get_pipeline_preprocessor_and_estimator():
 
     # Test with plain estimator
     model = LogisticRegression()
-    preprocessor, estimator = get_pipeline_preprocessor_and_estimator(model)
+    preprocessor, estimator = get_pipeline_estimator_and_preprocessor(model)
 
     # Verify preprocessor is None for plain estimator
     assert preprocessor is None
@@ -148,7 +148,7 @@ def test_get_pipeline_preprocessor_and_estimator():
 
     # Test with single-step pipeline
     single_step_pipeline = Pipeline([("model", LogisticRegression())])
-    preprocessor, estimator = get_pipeline_preprocessor_and_estimator(single_step_pipeline)
+    preprocessor, estimator = get_pipeline_estimator_and_preprocessor(single_step_pipeline)
 
     # Verify preprocessor is None for single-step pipeline
     assert preprocessor is None

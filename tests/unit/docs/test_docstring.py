@@ -7,9 +7,9 @@ import matplotlib
 import matplotlib.pyplot as plt
 import pytest
 
-import probatus.features
+import probatus.selection
 import probatus.model
-import probatus.dataset
+import probatus.data_comparison
 import probatus.utils
 
 # Turn off interactive mode in plots
@@ -17,10 +17,10 @@ plt.ioff()
 matplotlib.use("Agg")
 
 CLASSES_TO_TEST = [
-    probatus.features.ShapRFECV,
+    probatus.selection.ShapRFECV,
     probatus.model.DependencePlotter,
-    probatus.dataset.SHAPImportanceResemblance,
-    probatus.dataset.PermutationImportanceResemblance,
+    probatus.data_comparison.SHAPImportanceResemblance,
+    probatus.data_comparison.PermutationImportanceResemblance,
     probatus.utils.Scorer,
     probatus.model.ShapModelInterpreter,
 ]
@@ -65,7 +65,7 @@ def test_class_docstrings_lgbm():
     The test is skipped if the environment does not support LightGBM correctly, such as macos.
     """
     # Test ShapRFECV with early stopping parameters
-    handle_docstring(probatus.features.ShapRFECV.__doc__, indent=4)
+    handle_docstring(probatus.selection.ShapRFECV.__doc__, indent=4)
 
 
 @pytest.mark.parametrize("f", FUNCTIONS_TO_TEST)

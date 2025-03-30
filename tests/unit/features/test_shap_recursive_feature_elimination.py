@@ -4,19 +4,23 @@ from sklearn.ensemble import RandomForestClassifier
 from lightgbm import LGBMClassifier
 from xgboost import XGBClassifier
 
-from probatus.features import (
-    check_if_model_is_compatible_with_early_stopping,
-    validate_step_parameter,
-    validate_min_features_parameter,
-    filter_and_identify_features_based_on_importance,
-    report_current_results,
-    get_feature_names,
-    get_feature_support,
-    get_feature_ranking,
-    get_best_num_features,
-    validate_shap_variance_penalty_factor_parameter,
+from probatus.selection import (
+    _filter_and_identify_features_based_on_importance,
 )
-from probatus.features.shap_recursive_feature_elimination_helper import (
+from probatus.selection._reporting._results import (
+    _get_best_num_features,
+    _get_feature_names,
+    _get_feature_ranking,
+    _get_feature_support,
+    _report_current_results,
+)
+from probatus.selection._validation._parameters import _validate_model_compatibility_with_early_stopping_parameter
+from probatus.selection._validation._parameters import (
+    _validate_min_features_parameter,
+    _validate_shap_variance_penalty_factor_parameter,
+    _validate_step_parameter,
+)
+from probatus.selection._shap._importance import (
     _calculate_number_of_features_to_remove,
     _get_current_features_to_remove,
 )
@@ -33,7 +37,7 @@ from probatus.features.shap_recursive_feature_elimination_helper import (
 )
 def test_validate_step_parameter(step, expected):
     """Test step parameter validation."""
-    result = validate_step_parameter(step)
+    result = _validate_step_parameter(step)
     assert result == expected
 
 
@@ -48,7 +52,7 @@ def test_validate_step_parameter(step, expected):
 def test_validate_step_parameter_errors(step, expected_error):
     """Test step parameter validation errors."""
     with pytest.raises(expected_error):
-        validate_step_parameter(step)
+        _validate_step_parameter(step)
 
 
 @pytest.mark.parametrize(
@@ -60,7 +64,7 @@ def test_validate_step_parameter_errors(step, expected_error):
 )
 def test_validate_min_features_parameter(min_features, expected):
     """Test min_features_to_select parameter validation."""
-    result = validate_min_features_parameter(min_features)
+    result = _validate_min_features_parameter(min_features)
     assert result == expected
 
 
@@ -76,7 +80,7 @@ def test_validate_min_features_parameter(min_features, expected):
 def test_validate_min_features_parameter_errors(min_features, expected_error):
     """Test min_features_to_select parameter validation errors."""
     with pytest.raises(expected_error):
-        validate_min_features_parameter(min_features)
+        _validate_min_features_parameter(min_features)
 
 
 @pytest.mark.parametrize(
@@ -90,7 +94,7 @@ def test_validate_min_features_parameter_errors(min_features, expected_error):
 def test_check_if_model_is_compatible_with_early_stopping(model_class, params, expected, random_state):
     """Test if model compatibility with early stopping is correctly determined."""
     model = model_class(random_state=random_state, **params)
-    result = check_if_model_is_compatible_with_early_stopping(model)
+    result = _validate_model_compatibility_with_early_stopping_parameter(model)
     assert result == expected
 
 
@@ -104,7 +108,7 @@ def test_filter_and_identify_features_based_on_importance():
     current_features_set = ["feature1", "feature2", "feature3", "feature4"]
 
     # Test with integer step
-    remaining, removed = filter_and_identify_features_based_on_importance(
+    remaining, removed = _filter_and_identify_features_based_on_importance(
         shap_importance_df,
         step=1,
         min_features_to_select=1,
@@ -115,7 +119,7 @@ def test_filter_and_identify_features_based_on_importance():
     assert removed == ["feature4"]
 
     # Test with float step
-    remaining, removed = filter_and_identify_features_based_on_importance(
+    remaining, removed = _filter_and_identify_features_based_on_importance(
         shap_importance_df,
         step=0.5,
         min_features_to_select=1,
@@ -126,7 +130,7 @@ def test_filter_and_identify_features_based_on_importance():
     assert removed == ["feature4", "feature3"]
 
     # Test with columns_to_keep
-    remaining, removed = filter_and_identify_features_based_on_importance(
+    remaining, removed = _filter_and_identify_features_based_on_importance(
         shap_importance_df,
         step=1,
         min_features_to_select=1,
@@ -143,7 +147,7 @@ def test_report_current_results():
     report_df = pd.DataFrame()
 
     # First round
-    updated_df = report_current_results(
+    updated_df = _report_current_results(
         report_df=report_df,
         round_number=1,
         current_features_set=["feature1", "feature2", "feature3"],
@@ -161,7 +165,7 @@ def test_report_current_results():
     assert updated_df.loc[1, "train_metric_mean"] == 0.8
 
     # Second round
-    updated_df = report_current_results(
+    updated_df = _report_current_results(
         report_df=updated_df,
         round_number=2,
         current_features_set=["feature1", "feature2"],
@@ -190,12 +194,12 @@ def test_get_feature_names():
     )
 
     # Test retrieving feature sets
-    assert get_feature_names(report_df, 4) == ["f1", "f2", "f3", "f4"]
-    assert get_feature_names(report_df, 2) == ["f1", "f2"]
+    assert _get_feature_names(report_df, 4) == ["f1", "f2", "f3", "f4"]
+    assert _get_feature_names(report_df, 2) == ["f1", "f2"]
 
     # Test error case
     with pytest.raises(ValueError):
-        get_feature_names(report_df, 5)
+        _get_feature_names(report_df, 5)
 
 
 def test_get_feature_support():
@@ -203,12 +207,12 @@ def test_get_feature_support():
     column_names = ["f1", "f2", "f3", "f4", "f5"]
     feature_names_selected = ["f1", "f3", "f5"]
 
-    result = get_feature_support(column_names, feature_names_selected)
+    result = _get_feature_support(column_names, feature_names_selected)
     assert result == [True, False, True, False, True]
 
     # Test error case
     with pytest.raises(ValueError):
-        get_feature_support(None, feature_names_selected)
+        _get_feature_support(None, feature_names_selected)
 
 
 def test_get_feature_ranking():
@@ -228,12 +232,12 @@ def test_get_feature_ranking():
 
     column_names = ["f0", "f1", "f2", "f3", "f4", "f5", "f6", "f7"]
 
-    result = get_feature_ranking(report_df, column_names)
+    result = _get_feature_ranking(report_df, column_names)
     assert result == [2, 1, 7, 3, 6, 4, 5, 1]
 
     # Test error case
     with pytest.raises(ValueError):
-        get_feature_ranking(report_df, None)
+        _get_feature_ranking(report_df, None)
 
 
 @pytest.mark.parametrize(
@@ -247,7 +251,7 @@ def test_get_feature_ranking():
 )
 def test_validate_shap_variance_penalty_factor_parameter(penalty_factor, expected):
     """Test validation of shap_variance_penalty_factor parameter."""
-    result = validate_shap_variance_penalty_factor_parameter(penalty_factor)
+    result = _validate_shap_variance_penalty_factor_parameter(penalty_factor)
     assert result == expected
     assert isinstance(result, float)
 
@@ -263,7 +267,7 @@ def test_validate_shap_variance_penalty_factor_parameter_warnings(penalty_factor
     """Test validation of shap_variance_penalty_factor parameter with invalid values."""
     # These should trigger warnings but still return a default value
     with pytest.warns(UserWarning):
-        result = validate_shap_variance_penalty_factor_parameter(penalty_factor)
+        result = _validate_shap_variance_penalty_factor_parameter(penalty_factor)
     assert result == expected
 
 
@@ -371,7 +375,7 @@ def test_get_best_num_features(best_method, expected_num_features):
 
     # Get best number of features with standard_error_threshold=0.05
     # This means scores within 0.05 of the best (0.80) will be considered, so 0.75-0.80
-    result = get_best_num_features(
+    result = _get_best_num_features(
         report_df=report_df,
         best_method=best_method,
         standard_error_threshold=0.05,
@@ -399,7 +403,7 @@ def test_get_best_num_features_errors(best_method, expected_error):
     )
 
     with pytest.raises(expected_error):
-        get_best_num_features(report_df, best_method)
+        _get_best_num_features(report_df, best_method)
 
 
 @pytest.mark.parametrize(
@@ -421,4 +425,4 @@ def test_get_best_num_features_threshold_errors(threshold, expected_error):
     )
 
     with pytest.raises(expected_error):
-        get_best_num_features(report_df, "best", standard_error_threshold=threshold)
+        _get_best_num_features(report_df, "best", standard_error_threshold=threshold)

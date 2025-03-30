@@ -21,7 +21,7 @@ from .common import (
     is_regression_model,
     is_multiclass_model,
     handle_class_names,
-    get_pipeline_preprocessor_and_estimator,
+    get_pipeline_estimator_and_preprocessor,
     preprocess_using_pipeline,
 )
 
@@ -41,7 +41,7 @@ __all__ = [
     "handle_class_names",
     "extract_shap_multiclass_params",
     "prep_shap_related_variables",
-    "get_pipeline_preprocessor_and_estimator",
+    "get_pipeline_estimator_and_preprocessor",
     "preprocess_using_pipeline",
     "format_shap_values",
     "calculate_base_shap_statistics",

@@ -9,7 +9,7 @@ from shap.utils import sample
 from sklearn.base import BaseEstimator
 from sklearn.pipeline import Pipeline
 
-from probatus.utils.common import get_pipeline_preprocessor_and_estimator, preprocess_using_pipeline
+from probatus.utils.common import get_pipeline_estimator_and_preprocessor, preprocess_using_pipeline
 
 
 def calculate_shap_explanation(
@@ -104,14 +104,13 @@ def calculate_shap_explanation(
 
     if isinstance(model, Pipeline):
         # Get the preprocessor and estimator from the pipeline
-        preprocessor, estimator = get_pipeline_preprocessor_and_estimator(model)
+        model, preprocessor = get_pipeline_estimator_and_preprocessor(model)
 
         if preprocessor is not None and verbose > 1:
             warnings.warn("Applying preprocessing steps from pipeline before calculating SHAP values.")
 
         # Apply preprocessing to X if a preprocessor exists
         X = preprocess_using_pipeline(X, model)
-        model = estimator
 
         if verbose > 1:
             warnings.warn(f"Using final estimator from pipeline: {type(model).__name__}")

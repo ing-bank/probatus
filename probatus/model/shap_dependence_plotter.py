@@ -20,7 +20,7 @@ from probatus.utils import (
     shap_explanation_to_shap_df,
     is_multiclass_model,
 )
-from probatus.utils.common import get_pipeline_preprocessor_and_estimator
+from probatus.utils.common import get_pipeline_estimator_and_preprocessor
 
 
 class DependencePlotter(BaseFitComputePlotClass):
@@ -105,12 +105,7 @@ class DependencePlotter(BaseFitComputePlotClass):
                 Random state for reproducibility. If None, results may not be reproducible.
                 Default is None.
         """
-        if isinstance(model, Pipeline):
-            self.pipeline, self.preprocessor = get_pipeline_preprocessor_and_estimator(model)
-        else:
-            self.pipeline = None
-            self.preprocessor = None
-        self.model: BaseEstimator = model
+        self.model, self.preprocessor = get_pipeline_estimator_and_preprocessor(model)
         self.verbose: Literal[0, 1, 2] = verbose
         self.random_state: Optional[int] = random_state
         self.fitted: bool = False
@@ -172,9 +167,9 @@ class DependencePlotter(BaseFitComputePlotClass):
             ValueError: If input data formats are invalid.
         """
         # Transform data if model is a Pipeline
-        if self.pipeline is not None:
+        if self.preprocessor is not None:
             column_names = X.columns if column_names is None else column_names
-            X = self.pipeline.transform(X)
+            X = self.preprocessor.transform(X)
 
         self.X, self.column_names = preprocess_data(X, X_name="X", column_names=column_names, verbose=self.verbose)
         self.y = preprocess_labels(y, index=self.X.index)

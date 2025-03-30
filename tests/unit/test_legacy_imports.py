@@ -2,6 +2,9 @@
 Test that legacy imports still work correctly.
 """
 
+from probatus.data_comparison._base import BaseResemblanceModel
+from probatus.data_comparison.permutation.importance import PermutationImportanceResemblance
+
 
 def test_legacy_sample_similarity_imports():
     """Test that legacy sample_similarity imports work."""
@@ -35,9 +38,11 @@ def test_legacy_feature_elimination_imports():
 def test_new_imports():
     """Test that new imports work correctly."""
     from probatus.core import BaseFitComputeClass, BaseFitComputePlotClass
-    from probatus.dataset import BaseResemblanceModel, PermutationImportanceResemblance, SHAPImportanceResemblance
+    from probatus.data_comparison.shap.importance import (
+        SHAPImportanceResemblance,
+    )
     from probatus.model import ShapModelInterpreter, DependencePlotter
-    from probatus.features import ShapRFECV, EarlyStoppingShapRFECV
+    from probatus.selection import ShapRFECV, EarlyStoppingShapRFECV
 
     # Just verify that imports work, no need to check module names as these are the actual locations
     assert BaseFitComputeClass  # type: ignore[truthy-function]

@@ -12,10 +12,11 @@ from sklearn.model_selection import RandomizedSearchCV
 from sklearn.datasets import load_diabetes, load_linnerud
 from sklearn.model_selection import train_test_split
 
-from probatus.features import ShapRFECV, check_if_model_is_compatible_with_early_stopping
+from probatus.selection import ShapRFECV
 from probatus.model import ShapModelInterpreter
-from probatus.dataset import SHAPImportanceResemblance
-from probatus.dataset import PermutationImportanceResemblance
+from probatus.data_comparison.shap.importance import SHAPImportanceResemblance
+from probatus.data_comparison.permutation.importance import PermutationImportanceResemblance
+from probatus.selection._validation._parameters import _validate_model_compatibility_with_early_stopping_parameter
 
 # Turn off interactive mode in plots
 plt.ioff()
@@ -413,7 +414,7 @@ def test_feature_elimination(
 
     # Create RandomizedSearchCV with the appropriate param_grid
     search = RandomizedSearchCV(model, param_grid, cv=2, n_iter=2, random_state=random_state)
-    is_compatible = check_if_model_is_compatible_with_early_stopping(search)
+    is_compatible = _validate_model_compatibility_with_early_stopping_parameter(search)
 
     # For non-compatible estimators, expect ValueError during initialization
     if not is_compatible:
@@ -448,7 +449,7 @@ def test_feature_elimination(
 
         # Verify results
         assert report.shape[0] == X.shape[1]
-        assert len(shap_elimination.get_reduced_features_set(1)) == 1
+        assert len(shap_elimination.get_optimal_feature_selection(1)) == 1
 
         # Test plotting and save the plot
         fig = shap_elimination.plot(show=False)
@@ -494,7 +495,7 @@ def test_get_feature_shap_values_per_fold_early_stopping(
     train_index = train_index[: min(45, len(train_index))]
 
     # Check if model is compatible with early stopping
-    is_compatible = check_if_model_is_compatible_with_early_stopping(model)
+    is_compatible = _validate_model_compatibility_with_early_stopping_parameter(model)
 
     # For non-compatible estimators, expect ValueError
     if not is_compatible:

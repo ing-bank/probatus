@@ -181,9 +181,9 @@ def handle_class_names(
         )
 
 
-def get_pipeline_preprocessor_and_estimator(
+def get_pipeline_estimator_and_preprocessor(
     model: Union[BaseEstimator, Pipeline],
-) -> Tuple[Optional[Pipeline], BaseEstimator]:
+) -> Tuple[BaseEstimator, Optional[Pipeline]]:
     """
     Split a scikit-learn pipeline into preprocessing steps and the final estimator.
 
@@ -199,27 +199,26 @@ def get_pipeline_preprocessor_and_estimator(
             A scikit-learn estimator or pipeline.
 
     Returns:
-        Tuple[Optional[Pipeline], BaseEstimator]:
-            A tuple containing:
-            - Preprocessor: A Pipeline with all steps except the last one, or None if model is not a Pipeline
-            - Estimator: The final estimator from the pipeline, or the original model if not a Pipeline
+        Tuple[BaseEstimator, Optional[Pipeline]]:
+            - The final estimator from the pipeline, or the original model if not a Pipeline
+            - The preprocessor part of the pipeline, or None if model is not a Pipeline
     """
     if isinstance(model, Pipeline):
         if len(model.steps) <= 1:
             # Pipeline with only one step (the estimator) - no preprocessor
-            return None, model.steps[0][1]
+            return model.steps[0][1], None
         else:
             # Extract all steps except the last one as preprocessor
             preprocessor_steps = model.steps[:-1]
             preprocessor = Pipeline(steps=preprocessor_steps)
 
             # Extract the final estimator
-            final_estimator = model.steps[-1][1]
+            model = model.steps[-1][1]
 
-            return preprocessor, final_estimator
+            return model, preprocessor
     else:
         # If it's not a pipeline, return None as preprocessor and the model as estimator
-        return None, model
+        return model, None
 
 
 def preprocess_using_pipeline(
@@ -249,7 +248,7 @@ def preprocess_using_pipeline(
             Transformed data if model is a pipeline with preprocessing steps,
             otherwise the original data.
     """
-    preprocessor, _ = get_pipeline_preprocessor_and_estimator(model)
+    preprocessor, _ = get_pipeline_estimator_and_preprocessor(model)
 
     if preprocessor is not None:
         # Apply preprocessing steps to the data

@@ -9,39 +9,37 @@ from loguru import logger
 from sklearn.base import BaseEstimator, clone, is_classifier
 from sklearn.model_selection import check_cv
 from sklearn.model_selection._search import BaseSearchCV
-from sklearn.pipeline import Pipeline
 from tqdm.auto import tqdm
 
 from probatus.core import BaseFitComputePlotClass
-from probatus.features.shap_recursive_feature_elimination_helper import (
-    check_if_model_is_compatible_with_early_stopping,
-    get_feature_names,
-    validate_shap_variance_penalty_factor_parameter,
-    validate_step_parameter,
-    validate_min_features_parameter,
-    filter_and_identify_features_based_on_importance,
-    report_current_results,
-    get_best_num_features,
-    get_feature_support,
-    get_feature_ranking,
+from probatus.selection._reporting._results import (
+    _get_best_num_features,
+    _get_feature_names,
+    _get_feature_ranking,
+    _get_feature_support,
+    _report_current_results,
 )
-from probatus.features.shap_early_stopping_recursive_feature_elimination_helper import (
-    get_fit_params,
+from probatus.selection._shap._processing import _process_shap_fold_values, _process_shap_values
+from probatus.selection._validation._parameters import (
+    _validate_min_features_parameter,
+    _validate_shap_variance_penalty_factor_parameter,
+    _validate_step_parameter,
+    _validate_model_compatibility_with_early_stopping_parameter,
+)
+from probatus.selection._shap._importance import (
+    _filter_and_identify_features_based_on_importance,
+)
+from probatus.selection.feature_elimination._early_stopping import (
+    _get_fit_params,
 )
 from probatus.utils import (
     assure_pandas_series,
     preprocess_data,
     preprocess_labels,
     get_single_scorer,
-    calculate_shap_explanation,
     Scorer,
-    extract_shap_multiclass_params,
-    format_shap_values,
-    calculate_base_shap_statistics,
-    create_importance_dataframe,
+    get_pipeline_estimator_and_preprocessor,
 )
-from probatus.utils.common import get_pipeline_preprocessor_and_estimator
-from probatus.utils.shap import calculate_shap_importance, shap_explanation_to_shap_df
 
 
 class ShapRFECV(BaseFitComputePlotClass):
@@ -82,7 +80,7 @@ class ShapRFECV(BaseFitComputePlotClass):
     ```python
     import numpy as np
     import pandas as pd
-    from probatus.feature_elimination import ShapRFECV
+    from probatus.selection import ShapRFECV
     from sklearn.datasets import make_classification
     from sklearn.model_selection import train_test_split
     from sklearn.ensemble import RandomForestClassifier
@@ -206,21 +204,6 @@ class ShapRFECV(BaseFitComputePlotClass):
                 - If the model is not compatible with early stopping.
 
         """
-        if isinstance(model, Pipeline):
-            self.pipeline, self.preprocessor = get_pipeline_preprocessor_and_estimator(model)
-        else:
-            self.pipeline = None
-            self.preprocessor = None
-        self.model = model
-        self.search_model = isinstance(model, BaseSearchCV)
-        self.step = validate_step_parameter(step)
-        self.min_features_to_select = validate_min_features_parameter(min_features_to_select)
-        self.cv = cv
-        self.scorer = get_single_scorer(scoring)
-        self.n_jobs = n_jobs
-        self.verbose = verbose
-        self.random_state = random_state
-
         # Handle early stopping configuration
         if early_stopping_rounds:
             if not eval_metric:
@@ -232,9 +215,18 @@ class ShapRFECV(BaseFitComputePlotClass):
             if not isinstance(early_stopping_rounds, int) or early_stopping_rounds <= 0:
                 raise ValueError(f"early_stopping_rounds must be a positive integer; got {early_stopping_rounds}.")
 
-            if not check_if_model_is_compatible_with_early_stopping(model):
-                raise ValueError("Only 'XGBoost', 'LGBM' and 'CatBoost' supported for early stopping.")
+            if not _validate_model_compatibility_with_early_stopping_parameter(model):
+                raise TypeError("Only 'XGBoost', 'LGBM' and 'CatBoost' supported for early stopping.")
 
+        self.model, self.preprocessor = get_pipeline_estimator_and_preprocessor(model)
+        self.search_model = isinstance(model, BaseSearchCV)
+        self.step = _validate_step_parameter(step)
+        self.min_features_to_select = _validate_min_features_parameter(min_features_to_select)
+        self.cv = cv
+        self.scorer = get_single_scorer(scoring)
+        self.n_jobs = n_jobs
+        self.verbose = verbose
+        self.random_state = random_state
         self.early_stopping_rounds = early_stopping_rounds
         self.eval_metric = eval_metric
 
@@ -253,6 +245,7 @@ class ShapRFECV(BaseFitComputePlotClass):
             pd.DataFrame: DataFrame with results of feature elimination for each round.
         """
         self._check_if_fitted()
+
         return self.report_df
 
     def fit_compute(
@@ -376,6 +369,7 @@ class ShapRFECV(BaseFitComputePlotClass):
             execution_mode=execution_mode,
             **shap_kwargs,
         )
+
         return self.compute()
 
     def fit(
@@ -501,9 +495,9 @@ class ShapRFECV(BaseFitComputePlotClass):
             len_columns_to_keep = len(columns_to_keep)
 
         # Transform data if model is a Pipeline
-        if self.pipeline is not None:
+        if self.preprocessor is not None:
             column_names = X.columns if column_names is None else column_names
-            X = self.pipeline.transform(X)
+            X = self.preprocessor.transform(X)
 
         # Preprocess input data & reset report_df
         self.X, self.column_names = preprocess_data(X, X_name="X", column_names=column_names, verbose=self.verbose)
@@ -531,7 +525,7 @@ class ShapRFECV(BaseFitComputePlotClass):
             sample_weight = assure_pandas_series(sample_weight, index=self.X.index)
 
         # Validate and set shap_variance_penalty_factor
-        shap_variance_penalty_factor: float = validate_shap_variance_penalty_factor_parameter(
+        shap_variance_penalty_factor: float = _validate_shap_variance_penalty_factor_parameter(
             shap_variance_penalty_factor
         )
 
@@ -610,7 +604,7 @@ class ShapRFECV(BaseFitComputePlotClass):
                     )
 
                 # Process fold results based on execution mode
-                shap_importance_df, scores_train, scores_val = self._process_fold_results(
+                shap_importance_df, scores_train, scores_val = _process_shap_fold_values(
                     results_per_fold=results_per_fold,
                     execution_mode=execution_mode,
                     remaining_removeable_features=remaining_removeable_features,
@@ -618,12 +612,12 @@ class ShapRFECV(BaseFitComputePlotClass):
                 )
 
                 # Determine which features to keep and which to remove
-                remaining_features, features_to_remove = filter_and_identify_features_based_on_importance(
+                remaining_features, features_to_remove = _filter_and_identify_features_based_on_importance(
                     shap_importance_df, self.step, self.min_features_to_select, columns_to_keep, current_features_set
                 )
 
                 # Record results for this round
-                self.report_df: pd.DataFrame = report_current_results(
+                self.report_df: pd.DataFrame = _report_current_results(
                     report_df=self.report_df,
                     round_number=round_number,
                     current_features_set=current_features_set,
@@ -764,7 +758,81 @@ class ShapRFECV(BaseFitComputePlotClass):
 
         return fig
 
-    # TODO: Move to helper class
+    def get_optimal_feature_selection(
+        self,
+        num_features: Union[int, Literal["best", "best_coherent", "best_parsimonious"]],
+        standard_error_threshold: float = 1.0,
+        return_type: Literal["feature_names", "support", "ranking"] = "feature_names",
+    ) -> Union[List[str], List[bool], List[int]]:
+        """
+        Retrieves the optimal set of selected features after feature elimination.
+
+        Feature selection can be based on a fixed number of features or an automatic
+        strategy that considers validation performance and stability.
+
+        Args:
+            num_features (Union[int, Literal["best", "best_coherent", "best_parsimonious"]]):
+                Specifies how many features to select:
+                - If `int`: Selects exactly that many features. If 'int' does not exactly match,
+                    returns closest. If both lower and higher has the same number of features,
+                    returns the lower one.
+                - If `str`: Uses one of the following automatic selection strategies:
+                    - `"best"`: Chooses features from the iteration with the highest validation score.
+                    - `"best_coherent"`: Among iterations within `standard_error_threshold` of the best score,
+                    selects the iteration with the lowest standard deviation.
+                    - `"best_parsimonious"`: Among iterations within `standard_error_threshold` of the best score,
+                    selects the iteration with the fewest features.
+
+            standard_error_threshold (float, optional):
+                The threshold for considering an iteration as sufficiently close to the best score.
+                Used only when `num_features` is `"best_coherent"` or `"best_parsimonious"`.
+                Default is `1.0`.
+
+            return_type (Literal["feature_names", "support", "ranking"], optional):
+                Specifies the format of the returned feature selection result:
+                - `"feature_names"` (default): Returns a list of selected feature names.
+                - `"support"`: Returns a boolean mask where `True` indicates selected features.
+                - `"ranking"`: Returns a numeric ranking where lower values indicate more important features.
+
+        Returns:
+            Union[List[str], List[bool], List[int]]:
+                The selected features in the format specified by `return_type`.
+
+        Raises:
+            ValueError:
+                - If `num_features` is not a valid integer or one of `"best"`, `"best_coherent"`, or `"best_parsimonious"`.
+                - If `return_type` is not one of `"feature_names"`, `"support"`, or `"ranking"`.
+        """
+        self._check_if_fitted()
+
+        # Determine the best number of features based on the method specified
+        if isinstance(num_features, str):
+            num_features = _get_best_num_features(
+                report_df=self.report_df,
+                best_method=num_features,
+                standard_error_threshold=standard_error_threshold,
+                verbose=self.verbose,
+            )
+        elif isinstance(num_features, (int, np.int64)):
+            num_features = int(num_features)
+        else:
+            raise ValueError(
+                "Parameter num_features must be an int or one of: 'best', 'best_coherent', 'best_parsimonious'"
+            )
+
+        # Get feature names for the determined number of features
+        feature_names_selected = _get_feature_names(report_df=self.report_df, num_features=num_features)
+
+        # Return based on the requested return type
+        if return_type == "feature_names":
+            return feature_names_selected
+        elif return_type == "support":
+            return _get_feature_support(column_names=self.column_names, feature_names_selected=feature_names_selected)
+        elif return_type == "ranking":
+            return _get_feature_ranking(report_df=self.report_df, column_names=self.column_names)
+        else:
+            raise ValueError("Invalid return_type. Must be 'feature_names', 'support', or 'ranking'.")
+
     def _get_feature_shap_values_per_fold(
         self,
         X: pd.DataFrame,
@@ -838,142 +906,17 @@ class ShapRFECV(BaseFitComputePlotClass):
         score_val = self.scorer.score(model, X_val, y_val)
 
         # Process SHAP values and return results based on execution mode
-        return self._process_shap_values(
+        return _process_shap_values(
             model=model,
             X_val=X_val,
             score_train=score_train,
             score_val=score_val,
+            verbose=self.verbose,
+            random_state=self.random_state,
             execution_mode=execution_mode,
             **shap_kwargs,
         )
 
-    # TODO: Move to helper class
-    @staticmethod
-    def _summarize_shap_statistics(shap_fold_statistics: list[dict[str, np.ndarray]]) -> dict[str, np.ndarray]:
-        """
-        Aggregates SHAP statistics across multiple cross-validation folds.
-
-        This method combines SHAP statistics from different folds by:
-        1. Collecting all statistics for each metric across folds
-        2. Computing appropriate aggregations (mean or max) for each statistic type
-
-        Args:
-            shap_fold_statistics (list[dict[str, np.ndarray]]):
-                List of dictionaries containing SHAP statistics for each fold.
-                Each dictionary should contain the following keys:
-                - 'shap_abs_mean': Mean absolute SHAP values
-                - 'shap_abs_std': Standard deviation of absolute SHAP values
-                - 'shap_abs_max': Maximum absolute SHAP values
-                - 'shap_mean': Mean SHAP values
-                - 'shap_std': Standard deviation of SHAP values
-
-        Returns:
-            dict[str, np.ndarray]:
-                Dictionary containing aggregated SHAP statistics across all folds:
-                - 'shap_abs_mean': Mean of absolute SHAP values across folds
-                - 'shap_abs_std': Mean of standard deviations of absolute SHAP values
-                - 'shap_abs_max': Maximum absolute SHAP values across folds
-                - 'shap_mean': Mean of SHAP values across folds
-                - 'shap_std': Mean of standard deviations of SHAP values
-
-        Note:
-            - For 'shap_abs_max', the maximum value across folds is used
-            - For all other statistics, the mean across folds is used
-        """
-        # Initialize a dictionary to store the aggregated statistics
-        aggregated_statistics = {}
-
-        # Gather all the SHAP statistics for each fold
-        for fold_stats in shap_fold_statistics:
-            # Create a list of all the SHAP statistics for each fold
-            for key, value in fold_stats.items():
-                if key not in aggregated_statistics:
-                    aggregated_statistics[key] = []
-                aggregated_statistics[key].append(value)
-
-        # Calculate the mean and max for each aggregated statistic
-        for key, values in aggregated_statistics.items():
-            if key == "shap_abs_max":
-                aggregated_statistics[key] = np.max(values, axis=0)
-            else:
-                aggregated_statistics[key] = np.mean(values, axis=0)
-
-        return aggregated_statistics
-
-    def get_reduced_features_set(
-        self,
-        num_features: Union[int, Literal["best", "best_coherent", "best_parsimonious"]],
-        standard_error_threshold: float = 1.0,
-        return_type: Literal["feature_names", "support", "ranking"] = "feature_names",
-    ) -> Union[List[str], List[bool], List[int]]:
-        """
-        Retrieves the optimal set of selected features after feature elimination.
-
-        Feature selection can be based on a fixed number of features or an automatic
-        strategy that considers validation performance and stability.
-
-        Args:
-            num_features (Union[int, Literal["best", "best_coherent", "best_parsimonious"]]):
-                Specifies how many features to select:
-                - If `int`: Selects exactly that many features.
-                - If `str`: Uses one of the following automatic selection strategies:
-                    - `"best"`: Chooses features from the iteration with the highest validation score.
-                    - `"best_coherent"`: Among iterations within `standard_error_threshold` of the best score,
-                    selects the iteration with the lowest standard deviation.
-                    - `"best_parsimonious"`: Among iterations within `standard_error_threshold` of the best score,
-                    selects the iteration with the fewest features.
-
-            standard_error_threshold (float, optional):
-                The threshold for considering an iteration as sufficiently close to the best score.
-                Used only when `num_features` is `"best_coherent"` or `"best_parsimonious"`.
-                Default is `1.0`.
-
-            return_type (Literal["feature_names", "support", "ranking"], optional):
-                Specifies the format of the returned feature selection result:
-                - `"feature_names"` (default): Returns a list of selected feature names.
-                - `"support"`: Returns a boolean mask where `True` indicates selected features.
-                - `"ranking"`: Returns a numeric ranking where lower values indicate more important features.
-
-        Returns:
-            Union[List[str], List[bool], List[int]]:
-                The selected features in the format specified by `return_type`.
-
-        Raises:
-            ValueError:
-                - If `num_features` is not a valid integer or one of `"best"`, `"best_coherent"`, or `"best_parsimonious"`.
-                - If `return_type` is not one of `"feature_names"`, `"support"`, or `"ranking"`.
-        """
-        self._check_if_fitted()
-
-        # Determine the best number of features based on the method specified
-        if isinstance(num_features, str):
-            num_features = get_best_num_features(
-                report_df=self.report_df,
-                best_method=num_features,
-                standard_error_threshold=standard_error_threshold,
-                verbose=self.verbose,
-            )
-        elif isinstance(num_features, (int, np.int64)):
-            num_features = int(num_features)
-        else:
-            raise ValueError(
-                "Parameter num_features must be an int or one of: 'best', 'best_coherent', 'best_parsimonious'"
-            )
-
-        # Get feature names for the determined number of features
-        feature_names_selected = get_feature_names(report_df=self.report_df, num_features=num_features)
-
-        # Return based on the requested return type
-        if return_type == "feature_names":
-            return feature_names_selected
-        elif return_type == "support":
-            return get_feature_support(column_names=self.column_names, feature_names_selected=feature_names_selected)
-        elif return_type == "ranking":
-            return get_feature_ranking(report_df=self.report_df, column_names=self.column_names)
-        else:
-            raise ValueError("Invalid return_type. Must be 'feature_names', 'support', or 'ranking'.")
-
-    # TODO: Move to helper class
     def _get_feature_shap_values_per_fold_early_stopping(
         self,
         X: pd.DataFrame,
@@ -1036,7 +979,7 @@ class ShapRFECV(BaseFitComputePlotClass):
         y_train, y_val = y.iloc[train_index], y.iloc[val_index]
 
         # Get appropriate fit parameters for the model type
-        fit_params = get_fit_params(
+        fit_params = _get_fit_params(
             model=model,
             X_train=X_train,
             X_val=X_val,
@@ -1082,170 +1025,13 @@ class ShapRFECV(BaseFitComputePlotClass):
         score_val = self.scorer.score(model, X_val, y_val)
 
         # Process SHAP values and return results based on execution mode
-        return self._process_shap_values(
+        return _process_shap_values(
             model=model,
             X_val=X_val,
             score_train=score_train,
             score_val=score_val,
+            verbose=self.verbose,
+            random_state=self.random_state,
             execution_mode=execution_mode,
             **shap_kwargs,
         )
-
-    # TODO: Move to helper class
-    def _process_fold_results(
-        self,
-        results_per_fold: list[Tuple[Union[np.ndarray, dict[str, np.ndarray]], float, float]],
-        execution_mode: Literal["parallel", "vectorized"],
-        remaining_removeable_features: List[str],
-        shap_variance_penalty_factor: float,
-    ) -> Tuple[pd.DataFrame, float, float]:
-        """
-        Processes the results from cross-validation folds to calculate SHAP feature importance.
-
-        This method extracts SHAP values and performance scores from the cross-validation results,
-        then calculates feature importance based on the specified execution mode.
-
-        Two execution modes are supported:
-        - "vectorized": Concatenates SHAP values from all folds before aggregation, then
-           calculates importance. More efficient for smaller datasets with balanced folds.
-        - "parallel": First aggregates SHAP statistics within each fold, then combines statistics
-           across folds. Better reflects the fold structure and is more memory-efficient for
-           large datasets, especially with unbalanced folds.
-
-        Args:
-            results_per_fold (list[Tuple[Union[np.ndarray, dict[str, np.ndarray]], float, float]]):
-                List of tuples, each containing:
-                - SHAP values or statistics from a CV fold
-                - Training score for that fold
-                - Validation score for that fold
-
-            execution_mode (Literal["parallel", "vectorized"]):
-                The mode for processing SHAP values across folds.
-
-            remaining_removeable_features (List[str]):
-                List of feature names that are currently active in the model.
-
-            shap_variance_penalty_factor (float):
-                Penalty factor applied to SHAP values with high variance.
-                Formula: penalized_importance = mean_importance - (std_importance * factor)
-                Used to reduce the influence of features with unstable importance.
-
-        Returns:
-            Tuple[pd.DataFrame, float, float]:
-                A tuple containing:
-                - DataFrame with SHAP importance for each feature
-                - Mean training score across all folds
-                - Mean validation score across all folds
-        """
-        if execution_mode == "vectorized":
-            # Extract SHAP statistics & scores from results
-            shap_values = np.concatenate([current_result[0] for current_result in results_per_fold], axis=0)
-            scores_train = [current_result[1] for current_result in results_per_fold]
-            scores_val = [current_result[2] for current_result in results_per_fold]
-
-            # Calculate SHAP importance for features
-            shap_importance_df = calculate_shap_importance(
-                shap_values,
-                remaining_removeable_features,
-                shap_variance_penalty_factor=shap_variance_penalty_factor,
-            )
-        else:
-            # Extract SHAP statistics & scores from results
-            shap_fold_statistics = [current_result[0] for current_result in results_per_fold]
-            scores_train = [current_result[1] for current_result in results_per_fold]
-            scores_val = [current_result[2] for current_result in results_per_fold]
-
-            # Aggregate SHAP statistics across folds
-            aggregated_shap_statistics = self._summarize_shap_statistics(shap_fold_statistics)
-
-            # Create the output DataFrame with the calculated metrics
-            shap_importance_df = create_importance_dataframe(
-                aggregated_shap_statistics,
-                remaining_removeable_features,
-                shap_variance_penalty_factor=shap_variance_penalty_factor,
-            )
-
-        return shap_importance_df, float(np.mean(scores_train)), float(np.mean(scores_val))
-
-    # TODO: Move to helper class
-    def _process_shap_values(
-        self,
-        model: Union[BaseEstimator, BaseSearchCV],
-        X_val: pd.DataFrame,
-        score_train: float,
-        score_val: float,
-        execution_mode: Literal["parallel", "vectorized"],
-        **shap_kwargs: Any,
-    ) -> Tuple[Union[np.ndarray, dict[str, np.ndarray]], float, float]:
-        """
-        Processes SHAP values for the validation set based on the specified execution mode.
-
-        This method handles the calculation and formatting of SHAP values, applying
-        appropriate transformations based on whether vectorized or parallel execution
-        is selected.
-
-        Args:
-            model (Union[BaseEstimator, BaseSearchCV]):
-                The trained model to use for SHAP value calculation.
-
-            X_val (pd.DataFrame):
-                Validation dataset for SHAP value calculation.
-
-            score_train (float):
-                Model performance score on the training set.
-
-            score_val (float):
-                Model performance score on the validation set.
-
-            execution_mode (Literal["parallel", "vectorized"]):
-                The execution mode determining how SHAP values are processed:
-                - "vectorized": Concatenates SHAP values across folds before aggregation.
-                - "parallel": Aggregates SHAP values within each fold first.
-
-            **shap_kwargs (Any):
-                Additional keyword arguments for SHAP calculation and processing.
-
-        Returns:
-            Tuple[Union[np.ndarray, dict[str, np.ndarray]], float, float]:
-                A tuple containing:
-                - SHAP values or statistics for validation samples
-                - Training score
-                - Validation score
-        """
-        # Split arguments for multi-classification
-        multi_class_kwargs, shap_kwargs = extract_shap_multiclass_params(shap_kwargs)
-
-        # Calculate SHAP values for validation set
-        shap_explanation_val = calculate_shap_explanation(
-            model,
-            X_val,
-            return_explainer=False,
-            verbose=self.verbose,
-            random_state=self.random_state,
-            **shap_kwargs,
-        )
-
-        if execution_mode == "vectorized":
-            shap_values_val = shap_explanation_to_shap_df(
-                shap_explanation=shap_explanation_val,
-                model=model,
-                X=X_val,
-                **multi_class_kwargs,
-            )
-
-            return shap_values_val, score_train, score_val
-        else:
-            # Get SHAP variance penalty factor & remove from multi_class_kwargs
-            shap_variance_penalty_factor = multi_class_kwargs.pop("shap_variance_penalty_factor", 0)
-
-            # Format SHAP values for validation set (& perform aggregations if multi-class and provided)
-            shap_values_val: np.ndarray = format_shap_values(
-                shap_explanation=shap_explanation_val, **multi_class_kwargs
-            )
-
-            # Calculate base SHAP statistics
-            shap_statistics: dict[str, np.ndarray] = calculate_base_shap_statistics(
-                shap_values_val, shap_variance_penalty_factor
-            )
-
-            return shap_statistics, score_train, score_val

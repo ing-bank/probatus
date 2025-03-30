@@ -24,7 +24,7 @@ from probatus.utils import (
     prep_shap_related_variables,
     aggregate_multiclass_shap,
 )
-from probatus.utils.common import get_pipeline_preprocessor_and_estimator, is_multiclass_model
+from probatus.utils.common import get_pipeline_estimator_and_preprocessor, is_multiclass_model
 
 
 class ShapModelInterpreter(BaseFitComputePlotClass):
@@ -126,12 +126,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
                 Random state for reproducibility. If None, results will not be reproducible.
                 For reproducible results, set it to an integer.
         """
-        if isinstance(model, Pipeline):
-            self.pipeline, self.preprocessor = get_pipeline_preprocessor_and_estimator(model)
-        else:
-            self.pipeline = None
-            self.preprocessor = None
-        self.model = model
+        self.model, self.preprocessor = get_pipeline_estimator_and_preprocessor(model)
         self.scorer = get_single_scorer(scoring)
         self.verbose = verbose
         self.random_state = random_state
@@ -193,10 +188,10 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
             ValueError: If input data cannot be properly preprocessed
         """
         # Transform data if model is a Pipeline
-        if self.pipeline is not None:
+        if self.preprocessor is not None:
             column_names = X_train.columns if column_names is None else column_names
-            X_train = self.pipeline.transform(X_train)
-            X_test = self.pipeline.transform(X_test)
+            X_train = self.preprocessor.transform(X_train)
+            X_test = self.preprocessor.transform(X_test)
 
         # Preprocess input data and ensure consistent format
         self.X_train, self.column_names = preprocess_data(

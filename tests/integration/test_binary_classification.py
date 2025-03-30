@@ -8,9 +8,11 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import RandomizedSearchCV
 from xgboost import XGBClassifier
 
-from probatus.dataset import SHAPImportanceResemblance, PermutationImportanceResemblance
+from probatus.data_comparison.shap.importance import SHAPImportanceResemblance
+from probatus.data_comparison.permutation.importance import PermutationImportanceResemblance
 from probatus.model import ShapModelInterpreter
-from probatus.features import ShapRFECV, check_if_model_is_compatible_with_early_stopping
+from probatus.selection import ShapRFECV
+from probatus.selection._validation._parameters import _validate_model_compatibility_with_early_stopping_parameter
 
 # Turn off interactive mode in plots
 plt.ioff()
@@ -401,7 +403,7 @@ def test_feature_elimination_randomized_search_early_stopping(
 
     # Create RandomizedSearchCV with the appropriate param_grid
     search = RandomizedSearchCV(model, param_grid, cv=2, n_iter=2, random_state=random_state)
-    is_compatible = check_if_model_is_compatible_with_early_stopping(search)
+    is_compatible = _validate_model_compatibility_with_early_stopping_parameter(search)
 
     # For non-compatible estimators, expect ValueError during initialization
     if not is_compatible:
@@ -436,7 +438,7 @@ def test_feature_elimination_randomized_search_early_stopping(
 
         # Verify results
         assert report.shape[0] == X.shape[1]
-        assert len(shap_elimination.get_reduced_features_set(1)) == 1
+        assert len(shap_elimination.get_optimal_feature_selection(1)) == 1
 
         # Test plotting and save the plot
         fig = shap_elimination.plot(show=False)
