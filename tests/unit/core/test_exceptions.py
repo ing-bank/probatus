@@ -1,5 +1,5 @@
 import pytest
-from probatus.core import NotFittedError
+from probatus._core import NotFittedError
 
 
 def test_not_fitted_error():

@@ -12,11 +12,11 @@ from sklearn.model_selection import RandomizedSearchCV
 from sklearn.datasets import load_diabetes, load_linnerud
 from sklearn.model_selection import train_test_split
 
-from probatus.selection import ShapRFECV
-from probatus.model import ShapModelInterpreter
+from probatus.features import ShapRFECV
+from probatus.model_interpretation import ShapModelInterpreter
 from probatus.data_comparison.shap.importance import SHAPImportanceResemblance
 from probatus.data_comparison.permutation.importance import PermutationImportanceResemblance
-from probatus.selection._validation._parameters import _validate_model_compatibility_with_early_stopping_parameter
+from probatus.features._validation._parameters import _validate_model_compatibility_with_early_stopping_parameter
 
 # Turn off interactive mode in plots
 plt.ioff()
@@ -416,9 +416,9 @@ def test_feature_elimination(
     search = RandomizedSearchCV(model, param_grid, cv=2, n_iter=2, random_state=random_state)
     is_compatible = _validate_model_compatibility_with_early_stopping_parameter(search)
 
-    # For non-compatible estimators, expect ValueError during initialization
+    # For non-compatible estimators, expect TypeError during initialization
     if not is_compatible:
-        with pytest.raises(ValueError, match="Only 'XGBoost', 'LGBM' and 'CatBoost' supported for early stopping"):
+        with pytest.raises(TypeError, match="Only 'XGBoost', 'LGBM' and 'CatBoost' supported for early stopping"):
             ShapRFECV(
                 search,
                 step=1,
@@ -497,17 +497,17 @@ def test_get_feature_shap_values_per_fold_early_stopping(
     # Check if model is compatible with early stopping
     is_compatible = _validate_model_compatibility_with_early_stopping_parameter(model)
 
-    # For non-compatible estimators, expect ValueError
+    # For non-compatible estimators, expect TypeError
     if not is_compatible:
-        # First, verify that creating a ShapRFECV with early stopping raises ValueError
-        with pytest.raises(ValueError, match="Only 'XGBoost', 'LGBM' and 'CatBoost' supported for early stopping"):
+        # First, verify that creating a ShapRFECV with early stopping raises TypeError
+        with pytest.raises(TypeError, match="Only 'XGBoost', 'LGBM' and 'CatBoost' supported for early stopping"):
             ShapRFECV(model, early_stopping_rounds=5, eval_metric="rmse", scoring="r2", random_state=random_state)
 
         # Create a mock ShapRFECV instance without early stopping for testing
         mock_shap_elimination = ShapRFECV(model=model, random_state=random_state)
 
-        # Test that calling the internal method directly also raises ValueError
-        with pytest.raises(ValueError, match="Model type not supported for early stopping"):
+        # Test that calling the internal method directly also raises TypeError
+        with pytest.raises(TypeError, match="Model type not supported for early stopping"):
             mock_shap_elimination._get_feature_shap_values_per_fold_early_stopping(
                 X,
                 y,

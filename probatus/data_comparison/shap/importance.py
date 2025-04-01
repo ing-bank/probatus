@@ -1,11 +1,11 @@
 from probatus.data_comparison._base import BaseResemblanceModel
-from probatus.utils import (
-    Scorer,
+from probatus._wrapper import (
     calculate_shap_explanation,
-    calculate_shap_importance,
-    extract_shap_multiclass_params,
-    shap_explanation_to_shap_df,
+    calculate_shap_importance_dataframe,
+    extract_multiclass_shap_parameters,
+    shap_explanation_to_shap_values,
 )
+from probatus.metrics import Scorer
 
 
 import matplotlib.pyplot as plt
@@ -169,7 +169,7 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
         super().fit(X1=X1, X2=X2, column_names=column_names, class_names=class_names)
 
         # Split arguments for multi-classification
-        multi_class_kwargs, shap_kwargs = extract_shap_multiclass_params(shap_kwargs)
+        multi_class_kwargs, shap_kwargs = extract_multiclass_shap_parameters(shap_kwargs)
 
         # Calculate SHAP values for test set
         # SHAP values explain each feature's contribution to model predictions
@@ -181,7 +181,7 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
             random_state=self.random_state,
             **shap_kwargs,
         )
-        self.shap_values_test = shap_explanation_to_shap_df(
+        self.shap_values_test = shap_explanation_to_shap_values(
             shap_explanation=self.shap_explanation_test,
             model=self.model,
             X=self.X_test,
@@ -190,7 +190,7 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
 
         # Calculate feature importance from SHAP values
         shap_df = pd.DataFrame(self.shap_values_test, columns=self.column_names)
-        self.report_df = calculate_shap_importance(shap_df, self.column_names)
+        self.report_df = calculate_shap_importance_dataframe(shap_df, self.column_names)
 
         return self
 

@@ -10,49 +10,17 @@ from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.datasets import make_classification
 
-from probatus.utils.shap import (
-    _validate_shap_inputs,
-    _create_shap_explainer,
-    _compute_shap_values,
-    format_shap_values,
+from probatus._wrapper import (
     calculate_shap_explanation,
-    _shap_values_to_df,
-    calculate_shap_importance,
-    shap_explanation_to_shap_df,
-    _get_shap_values_for_class,
+    calculate_shap_importance_dataframe,
+    create_importance_dataframe,
+    calculate_base_shap_statistics,
+    aggregate_multiclass_shap_values_values,
+    extract_multiclass_shap_parameters,
+    process_shap_values,
+    shap_explanation_to_shap_values,
 )
-
-
-@pytest.mark.parametrize(
-    "model_fixture, expected_valid",
-    [
-        ("tree_model", True),
-        ("linear_model", True),
-        ("pipeline_model", True),  # Now pipelines are supported
-    ],
-)
-def test_validate_shap_inputs(request, binary_classification_data, model_fixture, expected_valid):
-    """Test _validate_shap_inputs with various model types."""
-    model = request.getfixturevalue(model_fixture)
-    X, _ = binary_classification_data
-
-    # Test validation
-    is_valid, error_message = _validate_shap_inputs(model, X, verbose=0)
-    assert is_valid is expected_valid
-
-    # Pipeline should now generate a warning, not an error
-    if model_fixture == "pipeline_model":
-        with pytest.warns(UserWarning, match="SHAP does not directly support pipelines"):
-            _validate_shap_inputs(model, X, verbose=1)
-
-
-def test_validate_shap_inputs_non_dataframe(tree_model, binary_classification_data):
-    """Test _validate_shap_inputs with non-DataFrame input."""
-    X, _ = binary_classification_data
-    X_array = X.values
-
-    with pytest.warns(UserWarning, match="not a pandas DataFrame"):
-        _validate_shap_inputs(tree_model, X_array, verbose=1)
+from probatus._wrapper.shap.values import _get_shap_values_for_class, _apply_class_weighting
 
 
 @pytest.mark.parametrize(
@@ -186,8 +154,8 @@ def test_compute_shap_values(request, approximate, check_additivity, dataset_typ
         (None, 1),  # Specific class by index
     ],
 )
-def test_format_shap_values_multiclass(multi_classification_data, multiclass_aggregation, class_selection):
-    """Test multiclass aggregation in both _format_shap_values and shap_explanation_to_shap_df."""
+def test_process_shap_values_multiclass(multi_classification_data, multiclass_aggregation, class_selection):
+    """Test multiclass aggregation in both _process_shap_values and shap_explanation_to_shap_values."""
     # Use real multiclass data and get SHAP explanation
     X, y = multi_classification_data
 
@@ -198,8 +166,8 @@ def test_format_shap_values_multiclass(multi_classification_data, multiclass_agg
     # Generate SHAP values
     shap_explanation = calculate_shap_explanation(model=model, X=X, return_explainer=False, random_state=42)
 
-    # 1. Test _format_shap_values function
-    formatted = format_shap_values(
+    # 1. Test _process_shap_values function
+    formatted = process_shap_values(
         shap_explanation=shap_explanation,
         classes=model.classes_,
         class_selection=class_selection,
@@ -230,11 +198,11 @@ def test_format_shap_values_multiclass(multi_classification_data, multiclass_agg
         expected = shap_explanation.values
         np.testing.assert_array_equal(formatted, expected)
 
-    # 2. Test corresponding functionality in shap_explanation_to_shap_df
+    # 2. Test corresponding functionality in shap_explanation_to_shap_values
     # Only run this part for scenarios with multiclass_aggregation but no class_selection
     if class_selection is None:
         # Convert to DataFrame with the same aggregation method
-        shap_df = shap_explanation_to_shap_df(
+        shap_df = shap_explanation_to_shap_values(
             shap_explanation=shap_explanation, model=model, X=X, multiclass_aggregation=multiclass_aggregation
         )
 
@@ -248,15 +216,15 @@ def test_format_shap_values_multiclass(multi_classification_data, multiclass_agg
             assert list(shap_df.index) == list(X.index)
 
 
-def test_shap_explanation_to_shap_df_basic(tree_model, binary_classification_data):
-    """Test basic functionality of shap_explanation_to_shap_df function."""
+def test_shap_explanation_to_shap_values_basic(tree_model, binary_classification_data):
+    """Test basic functionality of shap_explanation_to_shap_values function."""
     X, _ = binary_classification_data
 
     # Generate SHAP values
     shap_explanation = calculate_shap_explanation(model=tree_model, X=X, return_explainer=False, random_state=42)
 
     # Convert to DataFrame with default settings
-    shap_df = shap_explanation_to_shap_df(shap_explanation=shap_explanation, model=tree_model, X=X)
+    shap_df = shap_explanation_to_shap_values(shap_explanation=shap_explanation, model=tree_model, X=X)
 
     # Check output
     assert isinstance(shap_df, pd.DataFrame)
@@ -272,8 +240,8 @@ def test_shap_explanation_to_shap_df_basic(tree_model, binary_classification_dat
         ({0: 1.0, 1: 0.0, 2: 0.0}, "any_weight"),  # Any custom weights should be accepted
     ],
 )
-def test_format_shap_values_with_weights(multi_classification_data, weights, expected_weight_effect):
-    """Test _format_shap_values with different weighting strategies using real data."""
+def test_process_shap_values_with_weights(multi_classification_data, weights, expected_weight_effect):
+    """Test _process_shap_values with different weighting strategies using real data."""
     X, y = multi_classification_data
 
     # Create and train a multiclass model
@@ -287,7 +255,7 @@ def test_format_shap_values_with_weights(multi_classification_data, weights, exp
     unweighted_values = shap_explanation.values[:, :, 0].copy()
 
     # Test weighted values
-    weighted_values = format_shap_values(shap_explanation=shap_explanation, weights=weights)
+    weighted_values = process_shap_values(shap_explanation=shap_explanation, weights=weights)
 
     # Check that the output has the correct shape for all weighting methods
     assert isinstance(weighted_values, np.ndarray)
@@ -305,8 +273,8 @@ def test_format_shap_values_with_weights(multi_classification_data, weights, exp
     assert len(weighted_values.shape) == 2
 
 
-def test_format_shap_values_invalid_weights(multi_classification_data):
-    """Test _format_shap_values with an invalid weights."""
+def test_process_shap_values_invalid_weights(multi_classification_data):
+    """Test _process_shap_values with an invalid weights."""
     # Create a real multiclass model and SHAP explanation instead of a mock
     X, y = multi_classification_data
     model = RandomForestClassifier(random_state=42, n_estimators=2)
@@ -317,11 +285,11 @@ def test_format_shap_values_invalid_weights(multi_classification_data):
 
     # Try to format with an invalid weights
     with pytest.raises(ValueError, match="Unsupported weights: invalid_type. Use a dictionary of weights."):
-        format_shap_values(shap_explanation, weights="invalid_type", classes=model.classes_)
+        process_shap_values(shap_explanation, weights="invalid_type", classes=model.classes_)
 
 
-def test_format_shap_values_invalid_class_selection(multi_classification_data):
-    """Test _format_shap_values with an invalid class selection."""
+def test_process_shap_values_invalid_class_selection(multi_classification_data):
+    """Test _process_shap_values with an invalid class selection."""
     # Create a real multiclass model and SHAP explanation instead of a mock
     X, y = multi_classification_data
     model = RandomForestClassifier(random_state=42, n_estimators=2)
@@ -336,7 +304,7 @@ def test_format_shap_values_invalid_class_selection(multi_classification_data):
 
     # Try to format with an invalid class selection
     with pytest.raises(IndexError, match="index 5 is out of bounds for axis 2 with size 5"):
-        format_shap_values(shap_explanation, class_selection=invalid_class, classes=model.classes_)
+        process_shap_values(shap_explanation, class_selection=invalid_class, classes=model.classes_)
 
 
 @pytest.mark.parametrize(
@@ -408,10 +376,10 @@ def test_shap_values_with_pipeline(pipeline_model, binary_classification_data):
         ({1: 2.0, 0: 1.0}, None, "binary", "custom"),  # Custom weights with binary
     ],
 )
-def test_shap_explanation_to_shap_df_with_weights(
+def test_shap_explanation_to_shap_values_with_weights(
     request, tree_model, weights, class_selection, data_type, expected_effect
 ):
-    """Test shap_explanation_to_shap_df and _shap_values_to_df functions with weighting for all data types."""
+    """Test shap_explanation_to_shap_values and _shap_values_to_df functions with weighting for all data types."""
     # Get appropriate data based on data_type
     if data_type == "multiclass":
         X, y = request.getfixturevalue("multi_classification_data")
@@ -427,10 +395,10 @@ def test_shap_explanation_to_shap_df_with_weights(
 
     # For comparison in binary cases or custom weighting tests
     if data_type == "binary" or expected_effect == "custom":
-        unweighted_df = shap_explanation_to_shap_df(shap_explanation=shap_explanation, model=model, X=X)
+        unweighted_df = shap_explanation_to_shap_values(shap_explanation=shap_explanation, model=model, X=X)
 
     # Create weighted/class-selected version
-    weighted_df = shap_explanation_to_shap_df(
+    weighted_df = shap_explanation_to_shap_values(
         shap_explanation=shap_explanation, model=model, X=X, weights=weights, class_selection=class_selection
     )
 
@@ -568,7 +536,7 @@ def test_calculate_shap_importance_comprehensive(
             columns = None
 
         # Calculate importance
-        importance = calculate_shap_importance(shap_values, columns=columns, **kwargs)
+        importance = calculate_shap_importance_dataframe(shap_values, columns=columns, **kwargs)
 
         # Check results
         assert isinstance(importance, pd.DataFrame)
@@ -619,7 +587,7 @@ def test_calculate_shap_importance_comprehensive(
         assert shap_explanation.values.shape[1] == len(feature_names)
 
         # Calculate importance
-        importance = calculate_shap_importance(shap_explanation.values, columns=feature_names, **kwargs)
+        importance = calculate_shap_importance_dataframe(shap_explanation.values, columns=feature_names, **kwargs)
 
         # Check results
         assert isinstance(importance, pd.DataFrame)
@@ -644,7 +612,7 @@ def test_calculate_shap_importance_dimension_mismatch(shap_input_data):
     wrong_columns = [f"feature_{i}" for i in range(shap_values.shape[1] - 1)]  # One fewer column
 
     with pytest.raises(ValueError, match="Dimension mismatch"):
-        calculate_shap_importance(shap_values, columns=wrong_columns)
+        calculate_shap_importance_dataframe(shap_values, columns=wrong_columns)
 
 
 def test_calculate_shap_explanation_with_pipeline():

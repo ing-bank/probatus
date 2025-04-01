@@ -4,23 +4,23 @@ from sklearn.ensemble import RandomForestClassifier
 from lightgbm import LGBMClassifier
 from xgboost import XGBClassifier
 
-from probatus.selection import (
+from probatus.features._shap._importance import (
     _filter_and_identify_features_based_on_importance,
 )
-from probatus.selection._reporting._results import (
+from probatus.features._reporting._results import (
     _get_best_num_features,
     _get_feature_names,
     _get_feature_ranking,
     _get_feature_support,
     _report_current_results,
 )
-from probatus.selection._validation._parameters import _validate_model_compatibility_with_early_stopping_parameter
-from probatus.selection._validation._parameters import (
+from probatus.features._validation._parameters import _validate_model_compatibility_with_early_stopping_parameter
+from probatus.features._validation._parameters import (
     _validate_min_features_parameter,
     _validate_shap_variance_penalty_factor_parameter,
     _validate_step_parameter,
 )
-from probatus.selection._shap._importance import (
+from probatus.features._shap._importance import (
     _calculate_number_of_features_to_remove,
     _get_current_features_to_remove,
 )
@@ -86,7 +86,7 @@ def test_validate_min_features_parameter_errors(min_features, expected_error):
 @pytest.mark.parametrize(
     "model_class, params, expected",
     [
-        (LGBMClassifier, {"n_estimators": 10}, True),
+        (LGBMClassifier, {"n_estimators": 10, "verbose": -1}, True),
         (XGBClassifier, {"n_estimators": 10}, True),
         (RandomForestClassifier, {"n_estimators": 10}, False),
     ],
@@ -199,7 +199,7 @@ def test_get_feature_names():
 
     # Test error case
     with pytest.raises(ValueError):
-        _get_feature_names(report_df, 5)
+        _get_feature_names(report_df, 5, True)
 
 
 def test_get_feature_support():

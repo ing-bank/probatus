@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from probatus.utils import assure_pandas_df, preprocess_data, preprocess_labels, assure_pandas_series
+from probatus._common import assure_pandas_df, preprocess_data, preprocess_labels, assure_pandas_series
 
 # Fixtures are now imported from conftest.py
 

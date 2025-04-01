@@ -1,5 +1,5 @@
 from probatus.data_comparison._base import BaseResemblanceModel
-from probatus.utils import Scorer
+from probatus.metrics import Scorer
 
 
 import matplotlib

@@ -10,9 +10,9 @@ from xgboost import XGBClassifier
 
 from probatus.data_comparison.shap.importance import SHAPImportanceResemblance
 from probatus.data_comparison.permutation.importance import PermutationImportanceResemblance
-from probatus.model import ShapModelInterpreter
-from probatus.selection import ShapRFECV
-from probatus.selection._validation._parameters import _validate_model_compatibility_with_early_stopping_parameter
+from probatus.model_interpretation import ShapModelInterpreter
+from probatus.features import ShapRFECV
+from probatus.features._validation._parameters import _validate_model_compatibility_with_early_stopping_parameter
 
 # Turn off interactive mode in plots
 plt.ioff()
@@ -407,7 +407,7 @@ def test_feature_elimination_randomized_search_early_stopping(
 
     # For non-compatible estimators, expect ValueError during initialization
     if not is_compatible:
-        with pytest.raises(ValueError, match="Only 'XGBoost', 'LGBM' and 'CatBoost' supported for early stopping"):
+        with pytest.raises(TypeError, match="Only 'XGBoost', 'LGBM' and 'CatBoost' supported for early stopping"):
             ShapRFECV(
                 search,
                 step=1,

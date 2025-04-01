@@ -1,8 +1,8 @@
 import numpy as np
 import pandas as pd
 
-from probatus.model import ShapModelInterpreter
-from probatus.utils import Scorer
+from probatus.model_interpretation import ShapModelInterpreter
+from probatus.metrics import Scorer
 
 
 def test_init_parameters(random_state_42):

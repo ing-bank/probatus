@@ -4,7 +4,7 @@ from sklearn.linear_model import LinearRegression, LogisticRegression
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
-from probatus.utils import (
+from probatus._common import (
     handle_class_names,
     assure_list_of_strings,
     is_regression_model,
@@ -165,7 +165,7 @@ def test_preprocess_using_pipeline():
     from sklearn.preprocessing import StandardScaler, OneHotEncoder
     from sklearn.compose import ColumnTransformer
     from sklearn.linear_model import LogisticRegression
-    from probatus.utils import preprocess_using_pipeline
+    from probatus._common import preprocess_using_pipeline
 
     # Create a simple dataset with numeric and categorical features
     X = pd.DataFrame(

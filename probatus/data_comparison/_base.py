@@ -1,12 +1,10 @@
-from probatus.core import BaseFitComputePlotClass
-from probatus.utils import (
-    Scorer,
+from probatus._core import BaseFitComputePlotClass
+from probatus._common import (
     get_pipeline_estimator_and_preprocessor,
-    get_single_scorer,
     preprocess_data,
     preprocess_labels,
 )
-
+from probatus.metrics import Scorer, get_single_scorer
 
 import numpy as np
 import pandas as pd

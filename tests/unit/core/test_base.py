@@ -1,6 +1,6 @@
-from probatus.model import ShapModelInterpreter
+from probatus.model_interpretation import ShapModelInterpreter
 import pytest
-from probatus.core import NotFittedError
+from probatus._core import NotFittedError
 from lightgbm import LGBMClassifier
 
 

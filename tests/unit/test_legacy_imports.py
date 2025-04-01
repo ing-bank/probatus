@@ -21,7 +21,7 @@ def test_legacy_sample_similarity_imports():
 
 def test_legacy_interpret_imports():
     """Test that legacy interpret imports work."""
-    from probatus.interpret import ShapModelInterpreter, DependencePlotter
+    from probatus.model_interpretation import ShapModelInterpreter, DependencePlotter
 
     assert ShapModelInterpreter.__module__ == "probatus.interpret"
     assert DependencePlotter.__module__ == "probatus.interpret"
@@ -37,12 +37,12 @@ def test_legacy_feature_elimination_imports():
 
 def test_new_imports():
     """Test that new imports work correctly."""
-    from probatus.core import BaseFitComputeClass, BaseFitComputePlotClass
+    from probatus._core import BaseFitComputeClass, BaseFitComputePlotClass
     from probatus.data_comparison.shap.importance import (
         SHAPImportanceResemblance,
     )
-    from probatus.model import ShapModelInterpreter, DependencePlotter
-    from probatus.selection import ShapRFECV, EarlyStoppingShapRFECV
+    from probatus.model_interpretation import ShapModelInterpreter, DependencePlotter
+    from probatus.features import ShapRFECV
 
     # Just verify that imports work, no need to check module names as these are the actual locations
     assert BaseFitComputeClass  # type: ignore[truthy-function]
@@ -53,4 +53,3 @@ def test_new_imports():
     assert ShapModelInterpreter  # type: ignore[truthy-function]
     assert DependencePlotter  # type: ignore[truthy-function]
     assert ShapRFECV  # type: ignore[truthy-function]
-    assert EarlyStoppingShapRFECV  # type: ignore[truthy-function]

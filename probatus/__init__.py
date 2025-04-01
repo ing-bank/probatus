@@ -38,13 +38,13 @@ sys.modules["probatus.interpret"] = type("LegacyModule", (), {})
 sys.modules["probatus.feature_elimination"] = type("LegacyModule", (), {})
 
 # Import directly from implementation files to avoid circular imports
-from probatus.core.base import BaseFitComputeClass, BaseFitComputePlotClass
+from probatus._wrapper.base import BaseFitComputeClass, BaseFitComputePlotClass
 from probatus.data_comparison.shap.importance import (
     SHAPImportanceResemblance,
 )
-from probatus.model.shap_interpreter import ShapModelInterpreter
-from probatus.model.shap_dependence_plotter import DependencePlotter
-from probatus.selection.feature_elimination.rfe import ShapRFECV
+from probatus.model_interpretation.shap_interpreter import ShapModelInterpreter
+from probatus.model_interpretation.shap_dependence_plotter import DependencePlotter
+from probatus.features.feature_elimination.rfe import ShapRFECV
 
 # Map classes to their legacy module paths
 sys.modules["probatus.sample_similarity"].BaseResemblanceModel = BaseResemblanceModel
