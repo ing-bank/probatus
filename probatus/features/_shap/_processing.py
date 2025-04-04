@@ -1,9 +1,9 @@
-from probatus._wrapper import (
+from probatus.wrapper import (
     calculate_base_shap_statistics,
     calculate_shap_explanation,
     calculate_shap_importance_dataframe,
     create_importance_dataframe,
-    extract_multiclass_shap_parameters,
+    extract_multi_class_shap_parameters,
     shap_explanation_to_shap_values,
     process_shap_values,
 )
@@ -71,7 +71,7 @@ def create_shap_values(
             - Validation score
     """
     # Split arguments for multi-classification
-    multi_class_kwargs, shap_kwargs = extract_multiclass_shap_parameters(shap_kwargs)
+    multi_class_kwargs, shap_kwargs = extract_multi_class_shap_parameters(shap_kwargs)
 
     # Calculate SHAP values for validation set
     shap_explanation_val = calculate_shap_explanation(

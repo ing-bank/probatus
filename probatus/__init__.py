@@ -38,20 +38,20 @@ sys.modules["probatus.interpret"] = type("LegacyModule", (), {})
 sys.modules["probatus.feature_elimination"] = type("LegacyModule", (), {})
 
 # Import directly from implementation files to avoid circular imports
-from probatus._wrapper.base import BaseFitComputeClass, BaseFitComputePlotClass
+from probatus.wrapper.base import BaseFitComputeClass, BaseFitComputePlotClass
 from probatus.data_comparison.shap.importance import (
-    SHAPImportanceResemblance,
+    ShapImportanceResemblance,
 )
-from probatus.model_interpretation.shap_interpreter import ShapModelInterpreter
-from probatus.model_interpretation.shap_dependence_plotter import DependencePlotter
+from probatus.model_interpretation.interpreter import ShapModelInterpreter
+from probatus.model_interpretation.dependence_plotter import ShapDependencePlotter
 from probatus.features.feature_elimination.rfe import ShapRFECV
 
 # Map classes to their legacy module paths
 sys.modules["probatus.sample_similarity"].BaseResemblanceModel = BaseResemblanceModel
 sys.modules["probatus.sample_similarity"].PermutationImportanceResemblance = PermutationImportanceResemblance
-sys.modules["probatus.sample_similarity"].SHAPImportanceResemblance = SHAPImportanceResemblance
+sys.modules["probatus.sample_similarity"].SHAPImportanceResemblance = ShapImportanceResemblance
 sys.modules["probatus.interpret"].ShapModelInterpreter = ShapModelInterpreter
-sys.modules["probatus.interpret"].DependencePlotter = DependencePlotter
+sys.modules["probatus.interpret"].DependencePlotter = ShapDependencePlotter
 sys.modules["probatus.feature_elimination"].ShapRFECV = ShapRFECV
 sys.modules["probatus.feature_elimination"].EarlyStoppingShapRFECV = ShapRFECV
 
@@ -72,9 +72,9 @@ __all__ = [
     "BaseFitComputePlotClass",
     "BaseResemblanceModel",
     "PermutationImportanceResemblance",
-    "SHAPImportanceResemblance",
+    "ShapImportanceResemblance",
     "ShapModelInterpreter",
-    "DependencePlotter",
+    "ShapDependencePlotter",
     "ShapRFECV",
     "EarlyStoppingShapRFECV",
 ]

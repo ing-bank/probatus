@@ -1,11 +1,11 @@
 from probatus.data_comparison._base import BaseResemblanceModel
-from probatus._wrapper import (
+from probatus.wrapper import (
     calculate_shap_explanation,
     calculate_shap_importance_dataframe,
-    extract_multiclass_shap_parameters,
+    extract_multi_class_shap_parameters,
     shap_explanation_to_shap_values,
 )
-from probatus.metrics import Scorer
+from probatus.wrapper import Scorer
 
 
 import matplotlib.pyplot as plt
@@ -20,7 +20,7 @@ from sklearn.base import BaseEstimator
 from typing import Any, List, Literal, Optional, Union
 
 
-class SHAPImportanceResemblance(BaseResemblanceModel):
+class ShapImportanceResemblance(BaseResemblanceModel):
     """
     Resemblance model using SHAP values to identify key distinguishing features.
 
@@ -121,7 +121,7 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
         column_names: Optional[List[str]] = None,
         class_names: Optional[List[str]] = None,
         **shap_kwargs: Any,
-    ) -> "SHAPImportanceResemblance":
+    ) -> "ShapImportanceResemblance":
         """
         Fit the model and calculate SHAP importance values.
 
@@ -169,7 +169,7 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
         super().fit(X1=X1, X2=X2, column_names=column_names, class_names=class_names)
 
         # Split arguments for multi-classification
-        multi_class_kwargs, shap_kwargs = extract_multiclass_shap_parameters(shap_kwargs)
+        multi_class_kwargs, shap_kwargs = extract_multi_class_shap_parameters(shap_kwargs)
 
         # Calculate SHAP values for test set
         # SHAP values explain each feature's contribution to model predictions
@@ -239,7 +239,7 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
             ValueError: If plot is not one of "bar", "beeswarm", or an integer.
             ValueError: If required data is missing or improperly formatted.
         """
-        self._check_if_fitted()
+        self.check_if_fitted()
 
         # Setup and validate
         was_interactive = plt.isinteractive()

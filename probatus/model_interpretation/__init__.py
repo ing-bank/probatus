@@ -1,4 +1,4 @@
-from .shap_interpreter import ShapModelInterpreter
-from .shap_dependence_plotter import DependencePlotter
+from .interpreter import ShapModelInterpreter
+from .dependence_plotter import ShapDependencePlotter
 
-__all__ = ["ShapModelInterpreter", "DependencePlotter"]
+__all__ = ["ShapModelInterpreter", "ShapDependencePlotter"]

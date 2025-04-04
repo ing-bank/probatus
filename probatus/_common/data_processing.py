@@ -89,7 +89,7 @@ def is_regression_model(model: BaseEstimator) -> bool:
     return False
 
 
-def is_multiclass_model(model: BaseEstimator, y: pd.Series) -> bool:
+def is_multi_classifier(model: BaseEstimator, y: Optional[pd.Series] = None) -> Optional[bool]:
     """
     Determine if a model is a multiclass model using scikit-learn's built-in functions.
 
@@ -102,19 +102,26 @@ def is_multiclass_model(model: BaseEstimator, y: pd.Series) -> bool:
         model (BaseEstimator): The model to check. Can be any scikit-learn estimator,
             pipeline, or compatible model with similar interface.
 
-        y (pd.Series): The target variable series to check.
+        y (pd.Series, optional): The target variable series to check.
+            If provided, the number of unique values in y will be used to determine
+            if the model is a multiclass model.
+            If not provided, the function will return None.
 
     Returns:
         bool: True if the model is a multiclass model, False otherwise.
+        None: If y is not provided.
     """
     # First try scikit-learn's built-in function
     if is_classifier(model):
-        return len(y.unique()) > 2
+        if y is None:
+            return None
+        else:
+            return len(y.unique()) > 2
 
     return False
 
 
-def handle_class_names(
+def preprocess_class_names(
     y: pd.Series,
     class_names: Optional[Union[List[str], Dict[Union[int, str], str]]] = None,
     is_regression: bool = False,
@@ -181,6 +188,7 @@ def handle_class_names(
         )
 
 
+# TODO: Remove
 def get_pipeline_estimator_and_preprocessor(
     model: Union[BaseEstimator, Pipeline],
 ) -> Tuple[BaseEstimator, Optional[Pipeline]]:
@@ -219,6 +227,61 @@ def get_pipeline_estimator_and_preprocessor(
     else:
         # If it's not a pipeline, return None as preprocessor and the model as estimator
         return model, None
+
+
+def get_estimator(
+    model: Union[BaseEstimator, Pipeline],
+) -> BaseEstimator:
+    """
+    Get the final estimator from a pipeline or return the model if it's not a pipeline.
+
+    Args:
+        model (Union[BaseEstimator, Pipeline]):
+            A scikit-learn estimator or pipeline.
+
+    Returns:
+        BaseEstimator:
+            The final estimator from the pipeline, or the original model if not a Pipeline
+    """
+    if isinstance(model, Pipeline):
+        if len(model.steps) <= 1:
+            # Pipeline with only one step (the estimator)
+            return model.steps[0][1]
+        else:
+            # Extract the final estimator
+            return model.steps[-1][1]
+
+    # If it's not a pipeline, return the model as estimator
+    return model
+
+
+def get_preprocessor(
+    model: Union[BaseEstimator, Pipeline],
+) -> Optional[Pipeline]:
+    """
+    Get the preprocessor from a pipeline or return None if the model is not a pipeline.
+
+    Args:
+        model (Union[BaseEstimator, Pipeline]):
+            A scikit-learn estimator or pipeline.
+
+    Returns:
+        Optional[Pipeline]:
+            The preprocessor part of the pipeline, or None if model is not a Pipeline
+    """
+    if isinstance(model, Pipeline):
+        if len(model.steps) <= 1:
+            # Pipeline with only one step (the estimator) - no preprocessor
+            return None
+        else:
+            # Extract all steps except the last one as preprocessor
+            preprocessor_steps = model.steps[:-1]
+            preprocessor = Pipeline(steps=preprocessor_steps)
+
+            return preprocessor
+
+    # If it's not a pipeline, return None as preprocessor and the model as estimator
+    return None
 
 
 def preprocess_using_pipeline(

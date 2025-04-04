@@ -13,7 +13,7 @@ def test_init_parameters(random_state_42):
     assert shap_interpret.scorer.metric_name == "roc_auc"
     assert shap_interpret.verbose == 0
     assert shap_interpret.random_state is None
-    assert shap_interpret.fitted is False
+    assert shap_interpret.is_fitted is False
 
     # Test with custom parameters
     custom_scorer = Scorer(metric_name="custom_metric", custom_scorer=lambda y_true, y_pred: 0.5)
@@ -24,7 +24,7 @@ def test_init_parameters(random_state_42):
     assert shap_interpret.scorer.metric_name == "custom_metric"
     assert shap_interpret.verbose == 1
     assert shap_interpret.random_state == random_state_42
-    assert shap_interpret.fitted is False
+    assert shap_interpret.is_fitted is False
 
 
 def test_fit_with_custom_column_names(fitted_tree, X_train, y_train, X_test, y_test, random_state):
@@ -90,7 +90,7 @@ def test_fit_compute_logistic_regression(
     shap_interpret = ShapModelInterpreter(fitted_logistic_regression, random_state=random_state)
     importance_df = shap_interpret.fit_compute(X_train, X_test, y_train, y_test, class_names=class_names)
 
-    assert shap_interpret.fitted is True
+    assert shap_interpret.is_fitted is True
     assert shap_interpret.class_names == class_names
     assert shap_interpret.train_score == 1
     assert shap_interpret.test_score == 1.0
@@ -111,7 +111,7 @@ def test_fit_compute_with_shap_kwargs(fitted_tree, X_train, y_train, X_test, y_t
         X_train, X_test, y_train, y_test, approximate=True, check_additivity=False
     )
 
-    assert shap_interpret.fitted is True
+    assert shap_interpret.is_fitted is True
     assert importance_df is not None
 
 

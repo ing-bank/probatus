@@ -11,7 +11,7 @@ from sklearn.model_selection import check_cv
 from sklearn.model_selection._search import BaseSearchCV
 from tqdm.auto import tqdm
 
-from probatus._core import BaseFitComputePlotClass
+from probatus.wrapper import BaseFitComputePlotClass
 from probatus.features._reporting._results import (
     _get_best_num_features,
     _get_feature_names,
@@ -38,7 +38,7 @@ from probatus._common import (
     preprocess_labels,
     get_pipeline_estimator_and_preprocessor,
 )
-from probatus.metrics import Scorer, get_single_scorer
+from probatus.wrapper import Scorer, get_single_scorer
 
 
 class ShapRFECV(BaseFitComputePlotClass):
@@ -243,7 +243,7 @@ class ShapRFECV(BaseFitComputePlotClass):
         Returns:
             pd.DataFrame: DataFrame with results of feature elimination for each round.
         """
-        self._check_if_fitted()
+        self.check_if_fitted()
 
         return self.report_df
 
@@ -493,6 +493,14 @@ class ShapRFECV(BaseFitComputePlotClass):
                 raise ValueError("All elements in columns_to_keep must be strings.")
             len_columns_to_keep = len(columns_to_keep)
 
+        # Validate column names
+        if column_names and not all(x in column_names for x in list(X.columns)):
+            raise ValueError("Column names in columns_to_keep and column_names do not match.")
+
+        # Validate total number of columns to select against the total number of columns
+        if column_names and columns_to_keep and (self.min_features_to_select + len_columns_to_keep) > len(column_names):
+            raise ValueError("Minimum features to select plus columns_to_keep exceeds total number of features.")
+
         # Transform data if model is a Pipeline
         if self.preprocessor is not None:
             column_names = X.columns if column_names is None else column_names
@@ -502,18 +510,6 @@ class ShapRFECV(BaseFitComputePlotClass):
         self.X, self.column_names = preprocess_data(X, X_name="X", column_names=column_names, verbose=self.verbose)
         self.y = preprocess_labels(y, index=self.X.index)
         self.report_df = pd.DataFrame()
-
-        # Validate column names
-        if column_names and not all(x in column_names for x in list(X.columns)):
-            raise ValueError("Column names in columns_to_keep and column_names do not match.")
-
-        # Validate total number of columns to select against the total number of columns
-        if (
-            column_names
-            and columns_to_keep
-            and (self.min_features_to_select + len_columns_to_keep) > len(self.column_names)
-        ):
-            raise ValueError("Minimum features to select plus columns_to_keep exceeds total number of features.")
 
         # Process sample weights if provided
         if sample_weight is not None:
@@ -677,7 +673,7 @@ class ShapRFECV(BaseFitComputePlotClass):
             RuntimeError:
                 If called before the `fit` method is executed.
         """
-        self._check_if_fitted()
+        self.check_if_fitted()
 
         # Control matplotlib interactive state
         was_interactive = plt.isinteractive()
@@ -807,7 +803,7 @@ class ShapRFECV(BaseFitComputePlotClass):
                 - If `num_features` is not a valid integer or one of `"best"`, `"best_coherent"`, or `"best_parsimonious"`.
                 - If `return_type` is not one of `"feature_names"`, `"support"`, or `"ranking"`.
         """
-        self._check_if_fitted()
+        self.check_if_fitted()
 
         # Determine the best number of features based on the method specified
         if isinstance(num_features, str):

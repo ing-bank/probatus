@@ -1,10 +1,9 @@
-from probatus._core import BaseFitComputePlotClass
 from probatus._common import (
     get_pipeline_estimator_and_preprocessor,
     preprocess_data,
     preprocess_labels,
 )
-from probatus.metrics import Scorer, get_single_scorer
+from probatus.wrapper import Scorer, get_single_scorer, BaseFitComputePlotClass
 
 import numpy as np
 import pandas as pd
@@ -49,7 +48,6 @@ class BaseResemblanceModel(BaseFitComputePlotClass):
         self,
         model: Union[BaseEstimator, Pipeline],
         scoring: Union[str, Scorer] = "roc_auc",
-        test_prc: float = 0.25,
         n_jobs: int = 1,
         verbose: Literal[0, 1, 2] = 0,
         random_state: Optional[int] = None,
@@ -69,10 +67,6 @@ class BaseResemblanceModel(BaseFitComputePlotClass):
                 or a `probatus.utils.Scorer` object for custom scoring.
                 Defaults to `"roc_auc"`.
 
-            test_prc (float, optional):
-                Fraction of data used for testing, in the range (0, 1].
-                Defaults to `0.25`.
-
             n_jobs (int, optional):
                 Number of parallel processes to use. Set to `-1` to use all available cores.
                 Defaults to `1`.
@@ -89,18 +83,18 @@ class BaseResemblanceModel(BaseFitComputePlotClass):
                 or `None` for non-reproducible behavior. Defaults to `None`.
         """
         self.model, self.preprocessor = get_pipeline_estimator_and_preprocessor(model)
-        self.test_prc = test_prc
         self.n_jobs = n_jobs
         self.random_state = random_state
         self.verbose = verbose
         self.scorer = get_single_scorer(scoring)
-        self.fitted = False
+        self.is_fitted = False
         self.report_df: Optional[pd.DataFrame] = None
 
     def fit(
         self,
         X1: pd.DataFrame,
         X2: pd.DataFrame,
+        X_test_size: float = 0.25,
         column_names: Optional[List[str]] = None,
         class_names: Optional[List[str]] = None,
     ) -> "BaseResemblanceModel":
@@ -121,6 +115,10 @@ class BaseResemblanceModel(BaseFitComputePlotClass):
             X2 (pd.DataFrame): Second sample to compare.
                 Must have same number of columns as X1.
                 Shape: (n_samples_2, n_features)
+
+            X_test_size (float, optional):
+                Fraction of data used for testing, in the range (0, 1].
+                Defaults to `0.25`.
 
             column_names (Optional[List[str]], optional): Feature names for the samples.
                 If provided, overwrites existing feature names.
@@ -173,7 +171,7 @@ class BaseResemblanceModel(BaseFitComputePlotClass):
         self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(
             self.X,
             self.y,
-            test_size=self.test_prc,
+            test_size=X_test_size,
             random_state=self.random_state,
             shuffle=True,
             stratify=self.y,
@@ -199,7 +197,7 @@ class BaseResemblanceModel(BaseFitComputePlotClass):
                 f"Consider adding regularization to the model."
             )
 
-        self.fitted = True
+        self.is_fitted = True
         return self
 
     def compute(self, return_scores: bool = False) -> Union[pd.DataFrame, Tuple[pd.DataFrame, float, float]]:
@@ -227,7 +225,7 @@ class BaseResemblanceModel(BaseFitComputePlotClass):
         Raises:
             ValueError: If the model has not been fitted yet. Call fit() before computing results.
         """
-        self._check_if_fitted()
+        self.check_if_fitted()
 
         if return_scores:
             return self.report_df, cast(float, self.train_score), cast(float, self.test_score)

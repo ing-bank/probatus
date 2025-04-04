@@ -8,24 +8,24 @@ from matplotlib.figure import Figure
 from sklearn.base import BaseEstimator
 from sklearn.pipeline import Pipeline
 
-from probatus.model_interpretation.shap_dependence_plotter import DependencePlotter
-from probatus._core import BaseFitComputePlotClass
+from probatus.model_interpretation.dependence_plotter import ShapDependencePlotter
+from probatus.wrapper import BaseFitComputePlotClass, Scorer, get_single_scorer
+
 from probatus._common import (
     assure_list_of_strings,
     preprocess_data,
     preprocess_labels,
     is_regression_model,
-    handle_class_names,
+    preprocess_class_names,
 )
-from probatus._wrapper import (
+from probatus.wrapper import (
     calculate_shap_importance_dataframe,
     shap_explanation_to_shap_values,
-    extract_multiclass_shap_parameters,
+    extract_multi_class_shap_parameters,
     calculate_shap_and_expected_values,
     aggregate_multiclass_shap_values_values,
 )
-from probatus._common.data_processing import get_pipeline_estimator_and_preprocessor, is_multiclass_model
-from probatus.metrics import Scorer, get_single_scorer
+from probatus._common.data_processing import get_pipeline_estimator_and_preprocessor, is_multi_classifier
 
 
 class ShapModelInterpreter(BaseFitComputePlotClass):
@@ -131,7 +131,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
         self.scorer = get_single_scorer(scoring)
         self.verbose = verbose
         self.random_state = random_state
-        self.fitted = False
+        self.is_fitted = False
         self.class_names: List[str] = None
         self.is_regression = False  # Will be set during fit
         self.is_multiclass = False  # Will be set during fit
@@ -205,10 +205,12 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
 
         # Determine if this is a regression model using the utility function
         self.is_regression = is_regression_model(self.model)
-        self.is_multiclass = is_multiclass_model(self.model, self.y_train)
+        self.is_multiclass = is_multi_classifier(self.model, self.y_train)
 
         # Use class names for plotting
-        self.class_names = handle_class_names(pd.concat([self.y_train, self.y_test]), class_names, self.is_regression)
+        self.class_names = preprocess_class_names(
+            pd.concat([self.y_train, self.y_test]), class_names, self.is_regression
+        )
 
         # Calculate model performance metrics
         self.train_score = self.scorer.score(self.model, self.X_train, self.y_train)
@@ -221,7 +223,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
         )
 
         # Split arguments for multi-classification
-        multi_class_kwargs, shap_kwargs = extract_multiclass_shap_parameters(shap_kwargs)
+        multi_class_kwargs, shap_kwargs = extract_multi_class_shap_parameters(shap_kwargs)
 
         # Calculate SHAP values and related variables for training data
         self.shap_explanation_train, self.expected_value_train = calculate_shap_and_expected_values(
@@ -236,7 +238,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
         )
 
         # Initialize and fit the dependence plotter for training data
-        self.tdp_train = DependencePlotter(self.model, verbose=self.verbose).fit(
+        self.tdp_train = ShapDependencePlotter(self.model, verbose=self.verbose).fit(
             self.X_train,
             self.y_train,
             column_names=self.column_names,
@@ -258,7 +260,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
         )
 
         # Initialize and fit the dependence plotter for test data
-        self.tdp_test = DependencePlotter(self.model, verbose=self.verbose).fit(
+        self.tdp_test = ShapDependencePlotter(self.model, verbose=self.verbose).fit(
             self.X_test,
             self.y_test,
             column_names=self.column_names,
@@ -267,7 +269,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
             **shap_kwargs,
         )
 
-        self.fitted = True
+        self.is_fitted = True
 
         # Return self for method chaining
         return self
@@ -300,7 +302,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
         Raises:
             ValueError: If the interpreter has not been fitted
         """
-        self._check_if_fitted()
+        self.check_if_fitted()
 
         # Compute SHAP importance
         self.importance_df_train = calculate_shap_importance_dataframe(
@@ -466,7 +468,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
             ValueError: If samples_index is not provided for 'sample' plots
             TypeError: If samples_index has an invalid type for 'sample' plots
         """
-        self._check_if_fitted()
+        self.check_if_fitted()
 
         # Prepare data and select appropriate dataset
         target_columns = self._prepare_target_columns(target_columns)
@@ -693,7 +695,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
         return fig
 
     def _create_dependence_plots(
-        self, target_columns: List[str], target_tdp: DependencePlotter, show: bool = False, **plot_kwargs: Any
+        self, target_columns: List[str], target_tdp: ShapDependencePlotter, show: bool = False, **plot_kwargs: Any
     ) -> Union[Figure, List[Figure]]:
         """
         Create dependence plots to visualize feature interactions.

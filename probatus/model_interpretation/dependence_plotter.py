@@ -9,23 +9,23 @@ from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 from shap import Explanation
 
-from probatus._core import BaseFitComputePlotClass
+from probatus.wrapper import BaseFitComputePlotClass
 from probatus._common import (
     preprocess_data,
     preprocess_labels,
     is_regression_model,
-    handle_class_names,
-    is_multiclass_model,
+    preprocess_class_names,
+    is_multi_classifier,
 )
-from probatus._wrapper.shap import (
+from probatus.wrapper.shap import (
     calculate_shap_explanation,
     shap_explanation_to_shap_values,
-    extract_multiclass_shap_parameters,
+    extract_multi_class_shap_parameters,
 )
 from probatus._common.data_processing import get_pipeline_estimator_and_preprocessor
 
 
-class DependencePlotter(BaseFitComputePlotClass):
+class ShapDependencePlotter(BaseFitComputePlotClass):
     """
     Plotter used to plot SHAP dependence plot together with the target rates.
 
@@ -122,7 +122,7 @@ class DependencePlotter(BaseFitComputePlotClass):
         class_names: Optional[Union[List[str], Dict[Union[int, str], str]]] = None,
         precalc_shap_explanation: Optional[Explanation] = None,
         **shap_kwargs: Any,
-    ) -> "DependencePlotter":
+    ) -> "ShapDependencePlotter":
         """
         Fits the plotter to the model and data by computing the SHAP values.
 
@@ -178,13 +178,13 @@ class DependencePlotter(BaseFitComputePlotClass):
 
         # Determine if this is a regression model
         self.is_regression = is_regression_model(self.model)
-        self.is_multiclass = is_multiclass_model(self.model, self.y)
+        self.is_multiclass = is_multi_classifier(self.model, self.y)
 
         # Use class names for plotting
-        self.class_names = handle_class_names(self.y, class_names, self.is_regression)
+        self.class_names = preprocess_class_names(self.y, class_names, self.is_regression)
 
         # Split arguments for multi-classification
-        multi_class_kwargs, shap_kwargs = extract_multiclass_shap_parameters(shap_kwargs)
+        multi_class_kwargs, shap_kwargs = extract_multi_class_shap_parameters(shap_kwargs)
 
         # Calculate SHAP values
         if precalc_shap_explanation is not None:
@@ -231,7 +231,7 @@ class DependencePlotter(BaseFitComputePlotClass):
         Raises:
             RuntimeError: If called before the model is fitted.
         """
-        self._check_if_fitted()
+        self.check_if_fitted()
         return self.shap_values
 
     def fit_compute(
@@ -359,7 +359,7 @@ class DependencePlotter(BaseFitComputePlotClass):
             RuntimeError:
                 - If called before the model is fitted
         """
-        self._check_if_fitted()
+        self.check_if_fitted()
 
         # Validate input parameters
         if min_q >= max_q:
@@ -659,7 +659,7 @@ class DependencePlotter(BaseFitComputePlotClass):
             ValueError: If feature is not found in the data.
             RuntimeError: If called before the model is fitted.
         """
-        self._check_if_fitted()
+        self.check_if_fitted()
         if feature not in self.X.columns:
             raise ValueError(f"Feature '{feature}' not found in data")
 

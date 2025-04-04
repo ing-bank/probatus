@@ -10,17 +10,17 @@ from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.datasets import make_classification
 
-from probatus._wrapper import (
+from probatus.wrapper import (
     calculate_shap_explanation,
     calculate_shap_importance_dataframe,
     create_importance_dataframe,
     calculate_base_shap_statistics,
     aggregate_multiclass_shap_values_values,
-    extract_multiclass_shap_parameters,
+    extract_multi_class_shap_parameters,
     process_shap_values,
     shap_explanation_to_shap_values,
 )
-from probatus._wrapper.shap.values import _get_shap_values_for_class, _apply_class_weighting
+from probatus.wrapper.shap.values import _get_shap_values_for_class, _apply_class_weighting
 
 
 @pytest.mark.parametrize(

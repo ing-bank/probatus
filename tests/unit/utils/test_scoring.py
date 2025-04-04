@@ -1,7 +1,7 @@
 import pytest
 from sklearn.metrics import make_scorer, accuracy_score
 
-from probatus.metrics.scoring import get_single_scorer, Scorer
+from probatus.wrapper.scoring import get_single_scorer, Scorer
 
 
 def test_get_single_scorer():

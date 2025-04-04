@@ -25,11 +25,11 @@ def test_fitted_exception(binary_classification_dataset, split_dataset, random_s
 
     # Before fit it should raise an exception
     with pytest.raises(NotFittedError):
-        shap_interpret._check_if_fitted()
+        shap_interpret.check_if_fitted()
 
     # Fit the interpreter
     shap_interpret.fit(X_train, X_test, y_train, y_test, class_names=class_names)
 
     # Check parameters
-    assert shap_interpret.fitted
-    shap_interpret._check_if_fitted()  # No exception should be raised
+    assert shap_interpret.is_fitted
+    shap_interpret.check_if_fitted()  # No exception should be raised

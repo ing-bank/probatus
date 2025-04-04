@@ -3,14 +3,14 @@ import pandas as pd
 import pytest
 import matplotlib.pyplot as plt
 
-from probatus.model_interpretation.shap_dependence_plotter import DependencePlotter
-from probatus._core import NotFittedError
+from probatus.model_interpretation.dependence_plotter import ShapDependencePlotter
+from probatus.wrapper.base import NotFittedError
 
 
 def test_dependence_plotter_fit(dependencies_classification_model, dependencies_binary_classification_data):
     """Test fitting the plotter with a classification model."""
     X, y = dependencies_binary_classification_data
-    plotter = DependencePlotter(dependencies_classification_model)
+    plotter = ShapDependencePlotter(dependencies_classification_model)
 
     # Test basic fit
     fitted_plotter = plotter.fit(X, y)
@@ -23,7 +23,7 @@ def test_dependence_plotter_fit(dependencies_classification_model, dependencies_
 
     # Test fit with precalculated SHAP values
     precalc_shap = pd.DataFrame(np.random.rand(*X.shape), columns=X.columns)
-    plotter = DependencePlotter(dependencies_classification_model)
+    plotter = ShapDependencePlotter(dependencies_classification_model)
     plotter.fit(X, y, precalc_shap_explanation=precalc_shap)
     if isinstance(plotter.shap_values, np.ndarray):
         assert np.array_equal(plotter.shap_values, precalc_shap.values)
@@ -39,22 +39,22 @@ def test_class_names_integration(dependencies_classification_model, dependencies
     multi_y = pd.Series(np.random.choice([0, 1, 2], size=len(y)))
 
     # Test with None (default labels)
-    plotter = DependencePlotter(dependencies_classification_model)
+    plotter = ShapDependencePlotter(dependencies_classification_model)
     plotter.fit(X, multi_y)
     assert plotter.class_names == ["label_0", "label_1", "label_2"]
 
     # Test with list of class names
-    plotter = DependencePlotter(dependencies_classification_model)
+    plotter = ShapDependencePlotter(dependencies_classification_model)
     plotter.fit(X, multi_y, class_names=["Ape", "Lion", "Bear"])
     assert plotter.class_names == ["Ape", "Lion", "Bear"]
 
     # Test with dictionary of class names
-    plotter = DependencePlotter(dependencies_classification_model)
+    plotter = ShapDependencePlotter(dependencies_classification_model)
     plotter.fit(X, multi_y, class_names={1: "Ape", 2: "Lion", 0: "Bear"})
     assert plotter.class_names == ["Bear", "Ape", "Lion"]
 
     # Test with string keys in dictionary
-    plotter = DependencePlotter(dependencies_classification_model)
+    plotter = ShapDependencePlotter(dependencies_classification_model)
     plotter.fit(X, multi_y, class_names={"0": "Ape", "2": "Bear", "1": "Lion"})
     assert plotter.class_names == ["Ape", "Lion", "Bear"]
 
@@ -146,6 +146,6 @@ def test_dependence_plotter_get_X_y_shap_with_q_cut(
         dependencies_fitted_classifier_plotter._get_X_y_shap_with_q_cut(feature="invalid_feature")
 
     # Test with not fitted plotter
-    plotter = DependencePlotter(dependencies_fitted_classifier_plotter.model)
+    plotter = ShapDependencePlotter(dependencies_fitted_classifier_plotter.model)
     with pytest.raises(NotFittedError, match="not fitted yet"):
         plotter._get_X_y_shap_with_q_cut(feature=feature)

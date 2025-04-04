@@ -8,9 +8,9 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import RandomizedSearchCV
 from xgboost import XGBClassifier
 
-from probatus.data_comparison.shap.importance import SHAPImportanceResemblance
+from probatus.data_comparison.shap.importance import ShapImportanceResemblance
 from probatus.data_comparison.permutation.importance import PermutationImportanceResemblance
-from probatus.model_interpretation import ShapModelInterpreter, DependencePlotter
+from probatus.model_interpretation import ShapModelInterpreter, ShapDependencePlotter
 from probatus.features import ShapRFECV
 from probatus.features._validation._parameters import _validate_model_compatibility_with_early_stopping_parameter
 
@@ -82,7 +82,7 @@ def test_sample_similarity(
     model = estimator_class(random_state=random_state, **estimator_params)
 
     # Initialize resemblance model
-    resemblance = SHAPImportanceResemblance(model=model, test_prc=0.3, n_jobs=1, verbose=1, random_state=random_state)
+    resemblance = ShapImportanceResemblance(model=model, test_prc=0.3, n_jobs=1, verbose=1, random_state=random_state)
 
     # Fit and compute importance
     importance_df = resemblance.fit_compute(X1=X1, X2=X2, class_names=["Class 0", "Class 1"])
@@ -271,7 +271,7 @@ def test_shap_dependence(
     model.fit(X_train, y_train)
 
     # Initialize DependencePlotter
-    dependence_plotter = DependencePlotter(model, verbose=1, random_state=random_state)
+    dependence_plotter = ShapDependencePlotter(model, verbose=1, random_state=random_state)
 
     # Fit the plotter directly
     dependence_plotter.fit(X_test, y_test, class_names=class_names, approximate=False, check_additivity=False)

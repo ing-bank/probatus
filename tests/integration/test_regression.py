@@ -14,7 +14,7 @@ from sklearn.model_selection import train_test_split
 
 from probatus.features import ShapRFECV
 from probatus.model_interpretation import ShapModelInterpreter
-from probatus.data_comparison.shap.importance import SHAPImportanceResemblance
+from probatus.data_comparison.shap.importance import ShapImportanceResemblance
 from probatus.data_comparison.permutation.importance import PermutationImportanceResemblance
 from probatus.features._validation._parameters import _validate_model_compatibility_with_early_stopping_parameter
 
@@ -87,7 +87,7 @@ def test_sample_similarity(
     model = estimator_class(random_state=random_state, **estimator_params)
 
     # Initialize resemblance model with r2 scoring for regression
-    resemblance = SHAPImportanceResemblance(
+    resemblance = ShapImportanceResemblance(
         model=model,
         test_prc=0.3,
         n_jobs=1,

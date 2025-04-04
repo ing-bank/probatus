@@ -1,5 +1,5 @@
 from probatus.data_comparison._base import BaseResemblanceModel
-from probatus.metrics import Scorer
+from probatus.wrapper import Scorer
 
 
 import matplotlib
@@ -246,7 +246,7 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
             ValueError: If top_n is provided but not positive.
             ValueError: If top_n is larger than the number of features.
         """
-        self._check_if_fitted()
+        self.check_if_fitted()
 
         # Setup plotting environment
         was_interactive = plt.isinteractive()

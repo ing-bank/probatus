@@ -6,6 +6,9 @@ from probatus.data_comparison._base import BaseResemblanceModel
 from probatus.data_comparison.permutation.importance import PermutationImportanceResemblance
 
 
+# TODO: Add legacy imports for renamed methods
+
+
 def test_legacy_sample_similarity_imports():
     """Test that legacy sample_similarity imports work."""
     from probatus.sample_similarity import (
@@ -21,10 +24,10 @@ def test_legacy_sample_similarity_imports():
 
 def test_legacy_interpret_imports():
     """Test that legacy interpret imports work."""
-    from probatus.model_interpretation import ShapModelInterpreter, DependencePlotter
+    from probatus.model_interpretation import ShapModelInterpreter, ShapDependencePlotter
 
     assert ShapModelInterpreter.__module__ == "probatus.interpret"
-    assert DependencePlotter.__module__ == "probatus.interpret"
+    assert ShapDependencePlotter.__module__ == "probatus.interpret"
 
 
 def test_legacy_feature_elimination_imports():
@@ -39,9 +42,9 @@ def test_new_imports():
     """Test that new imports work correctly."""
     from probatus._core import BaseFitComputeClass, BaseFitComputePlotClass
     from probatus.data_comparison.shap.importance import (
-        SHAPImportanceResemblance,
+        ShapImportanceResemblance,
     )
-    from probatus.model_interpretation import ShapModelInterpreter, DependencePlotter
+    from probatus.model_interpretation import ShapModelInterpreter, ShapDependencePlotter
     from probatus.features import ShapRFECV
 
     # Just verify that imports work, no need to check module names as these are the actual locations
@@ -49,7 +52,7 @@ def test_new_imports():
     assert BaseFitComputePlotClass  # type: ignore[truthy-function]
     assert BaseResemblanceModel  # type: ignore[truthy-function]
     assert PermutationImportanceResemblance  # type: ignore[truthy-function]
-    assert SHAPImportanceResemblance  # type: ignore[truthy-function]
+    assert ShapImportanceResemblance  # type: ignore[truthy-function]
     assert ShapModelInterpreter  # type: ignore[truthy-function]
-    assert DependencePlotter  # type: ignore[truthy-function]
+    assert ShapDependencePlotter  # type: ignore[truthy-function]
     assert ShapRFECV  # type: ignore[truthy-function]

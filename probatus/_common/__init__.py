@@ -7,8 +7,8 @@ from .array_operations import (
 from .data_processing import (
     assure_list_of_strings,
     is_regression_model,
-    is_multiclass_model,
-    handle_class_names,
+    is_multi_classifier,
+    preprocess_class_names,
     get_pipeline_estimator_and_preprocessor,
     preprocess_using_pipeline,
 )
@@ -20,8 +20,8 @@ __all__ = [
     "preprocess_data",
     "preprocess_labels",
     "is_regression_model",
-    "is_multiclass_model",
-    "handle_class_names",
+    "is_multi_classifier",
+    "preprocess_class_names",
     "get_pipeline_estimator_and_preprocessor",
     "preprocess_using_pipeline",
 ]

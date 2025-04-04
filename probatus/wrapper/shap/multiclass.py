@@ -1,5 +1,5 @@
 import numpy as np
-
+import warnings
 
 from typing import Any, Dict, Literal, Optional, Tuple, Union
 
@@ -63,8 +63,10 @@ def aggregate_multiclass_shap_values_values(
         raise ValueError(f"Unsupported aggregation method: {aggregation_method}. Use 'mean', 'max_abs' or 'mean_abs'.")
 
 
-def extract_multiclass_shap_parameters(
-    shap_kwargs: Dict[str, Any], default_aggregation_method: Optional[Literal["mean", "max_abs", "mean_abs"]] = None
+def extract_multi_class_shap_parameters(
+    shap_kwargs: Dict[str, Any],
+    default_aggregation_method: Optional[Literal["mean", "max_abs", "mean_abs"]] = None,
+    verbose: Literal[0, 1, 2] = 0,
 ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     """
     Extract parameters related to multi-class SHAP value conversions from shap_kwargs.
@@ -79,6 +81,10 @@ def extract_multiclass_shap_parameters(
         default_aggregation_method (Optional[Literal["mean", "max_abs", "mean_abs"]], optional):
             Default aggregation method to use if not specified in shap_kwargs.
             Default is None (no default aggregation method).
+
+        verbose (Literal[0, 1, 2], optional):
+            Verbosity level for logging.
+            Default is 0 (no logging).
 
     Returns:
         Tuple[Dict[str, Any], Dict[str, Any]]:
@@ -104,5 +110,12 @@ def extract_multiclass_shap_parameters(
     for param_name in multiclass_params:
         if param_name in filtered_kwargs:
             extracted_params[param_name] = filtered_kwargs.pop(param_name)
+
+    if verbose > 0:
+        if extracted_params.keys() == multiclass_params.keys():
+            warnings.warn(
+                "No multi-class parameters provided. Default values passed to the SHAP explainer.",
+                UserWarning,
+            )
 
     return extracted_params, filtered_kwargs

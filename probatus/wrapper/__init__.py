@@ -2,7 +2,7 @@ from .shap import (
     calculate_shap_explanation,
     shap_explanation_to_shap_values,
     calculate_shap_importance_dataframe,
-    extract_multiclass_shap_parameters,
+    extract_multi_class_shap_parameters,
     process_shap_values,
     calculate_base_shap_statistics,
     create_importance_dataframe,
@@ -12,12 +12,13 @@ from .shap import (
 
 from .exceptions import NotFittedError
 from .base import BaseFitComputeClass, BaseFitComputePlotClass
+from .scoring import Scorer, get_single_scorer
 
 __all__ = [
     "calculate_shap_explanation",
     "shap_explanation_to_shap_values",
     "calculate_shap_importance_dataframe",
-    "extract_multiclass_shap_parameters",
+    "extract_multi_class_shap_parameters",
     "process_shap_values",
     "calculate_base_shap_statistics",
     "create_importance_dataframe",
@@ -26,4 +27,6 @@ __all__ = [
     "NotFittedError",
     "BaseFitComputeClass",
     "BaseFitComputePlotClass",
+    "get_single_scorer",
+    "Scorer",
 ]

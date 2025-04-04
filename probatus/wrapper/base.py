@@ -1,10 +1,35 @@
 from abc import ABC, abstractmethod
 from typing import Any
 
-from probatus._core import NotFittedError
+from probatus.wrapper.exceptions import NotFittedError
 
 
-class BaseFitComputeClass(ABC):
+class BaseFitClass(ABC):
+    """
+    Abstract base class that defines the interface for classes with fit functionality.
+    """
+
+    # Flag to track if the instance has been fitted
+    is_fitted: bool = False
+
+    def check_if_fitted(self) -> None:
+        """
+        Checks if the object has been fitted.
+
+        Raises:
+            NotFittedError: If the object has not been fitted yet.
+        """
+        if not self.is_fitted:
+            raise NotFittedError("This estimator is not fitted yet. Call 'fit' before using this method.")
+
+    def set_fitted(self) -> None:
+        """
+        Set the fitted flag to True.
+        """
+        self.is_fitted = True
+
+
+class BaseFitComputeClass(BaseFitClass):
     """
     Abstract base class that defines the interface for classes with fit and compute functionality.
 
@@ -15,19 +40,6 @@ class BaseFitComputeClass(ABC):
 
     All subclasses must implement these three methods.
     """
-
-    # Flag to track if the instance has been fitted
-    fitted: bool = False
-
-    def _check_if_fitted(self) -> None:
-        """
-        Checks if the object has been fitted.
-
-        Raises:
-            NotFittedError: If the object has not been fitted yet.
-        """
-        if not self.fitted:
-            raise NotFittedError("This estimator is not fitted yet. Call 'fit' before using this method.")
 
     @abstractmethod
     def fit(self, *args: Any, **kwargs: Any) -> "BaseFitComputeClass":
