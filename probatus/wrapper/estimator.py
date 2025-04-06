@@ -16,6 +16,7 @@ from typing import Union, Optional
 from probatus._common.data_processing import (
     get_estimator,
     is_multi_classifier,
+    get_preprocessor,
 )
 from probatus.features._validation._parameters import _validate_model_compatibility_with_early_stopping_parameter
 from probatus.wrapper.scoring import Scorer, get_single_scorer
@@ -52,11 +53,30 @@ class BaseModel(BaseFitClass):
                 The model to wrap. Can be a scikit-learn estimator, search CV object, or pipeline.
         """
         self.has_pipeline: bool = isinstance(model, Pipeline)
-        self.model = get_estimator(model)
+        self.estimator = get_estimator(model)
+        self.preprocessor = get_preprocessor(model)
         self.is_search_model: bool = isinstance(model, BaseSearchCV)
-        self.is_classifier: bool = is_classifier(self.model)
-        self.is_regressor: bool = is_regressor(self.model)
+        self.is_classifier: bool = is_classifier(self.estimator)
+        self.is_regressor: bool = is_regressor(self.estimator)
         self.is_multi_classifier: Optional[bool] = None
+        self.is_fitted: bool = False
+
+    def fit(
+        self,
+        X: pd.DataFrame,
+        y: pd.Series,
+    ) -> "BaseModel":
+        """
+        Fit the estimator.
+        """
+        # Determine if the model is a multi-class classifier
+        self.determine_multi_classifier(y)
+
+        # Fit the estimator
+        self.estimator = self.estimator.fit(X, y)
+        self.set_fitted()
+
+        return self
 
     def determine_multi_classifier(
         self,
@@ -74,7 +94,7 @@ class BaseModel(BaseFitClass):
                 is used to determine if the model is multi-class.
                 Defaults to None.
         """
-        self.is_multi_classifier: Optional[bool] = is_multi_classifier(self.model, y)
+        self.is_multi_classifier: Optional[bool] = is_multi_classifier(self.estimator, y)
 
 
 class BaseScoringModel(BaseModel):

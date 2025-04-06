@@ -20,7 +20,7 @@ from probatus.wrapper import (
     process_shap_values,
     shap_explanation_to_shap_values,
 )
-from probatus.wrapper.shap.values import _get_shap_values_for_class, _apply_class_weighting
+from probatus.wrapper._shap.values import _get_shap_values_for_class, _apply_class_weighting
 
 
 @pytest.mark.parametrize(

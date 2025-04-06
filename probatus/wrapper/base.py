@@ -28,6 +28,12 @@ class BaseFitClass(ABC):
         """
         self.is_fitted = True
 
+    def set_not_fitted(self) -> None:
+        """
+        Set the fitted flag to False.
+        """
+        self.is_fitted = False
+
 
 class BaseFitComputeClass(BaseFitClass):
     """

@@ -7,8 +7,10 @@ from typing import Any, Dict, List, Optional, Tuple, Union, Literal
 from matplotlib.figure import Figure
 from sklearn.base import BaseEstimator
 from sklearn.pipeline import Pipeline
+from loguru import logger
+import warnings
 
-from probatus.model_interpretation.dependence_plotter import ShapDependencePlotter
+from probatus.model_interpretation.dependence_plotter import ShapDependencePlotter, ShapInterpreterDependencePlotter
 from probatus.wrapper import BaseFitComputePlotClass, Scorer, get_single_scorer
 
 from probatus._common import (
@@ -26,6 +28,9 @@ from probatus.wrapper import (
     aggregate_multiclass_shap_values_values,
 )
 from probatus._common.data_processing import get_pipeline_estimator_and_preprocessor, is_multi_classifier
+from probatus.wrapper.data import ModelInterpreterDataManager
+from probatus.wrapper.estimator import BaseScoringModel
+from probatus.wrapper.shap import SHAPInstance, SHAPManager
 
 
 class ShapModelInterpreter(BaseFitComputePlotClass):
@@ -127,14 +132,10 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
                 Random state for reproducibility. If None, results will not be reproducible.
                 For reproducible results, set it to an integer.
         """
-        self.model, self.preprocessor = get_pipeline_estimator_and_preprocessor(model)
-        self.scorer = get_single_scorer(scoring)
-        self.verbose = verbose
-        self.random_state = random_state
-        self.is_fitted = False
-        self.class_names: List[str] = None
-        self.is_regression = False  # Will be set during fit
-        self.is_multiclass = False  # Will be set during fit
+        self.model: BaseScoringModel = BaseScoringModel(model, scoring=scoring)
+        self.random_state: Optional[int] = random_state
+        self.verbose: Literal[0, 1, 2] = verbose
+        self.is_fitted: bool = False
 
     def fit(
         self,
@@ -188,90 +189,99 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
         Raises:
             ValueError: If input data cannot be properly preprocessed
         """
-        # Transform data if model is a Pipeline
-        if self.preprocessor is not None:
-            column_names = X_train.columns if column_names is None else column_names
-            X_train = self.preprocessor.transform(X_train)
-            X_test = self.preprocessor.transform(X_test)
-
-        # Preprocess input data and ensure consistent format
-        self.X_train, self.column_names = preprocess_data(
-            X_train, X_name="X_train", column_names=column_names, verbose=self.verbose
+        self.data_manager: ModelInterpreterDataManager = ModelInterpreterDataManager(
+            X_train=X_train,
+            X_test=X_test,
+            y_train=y_train,
+            y_test=y_test,
+            model=self.model,
+            column_names=column_names,
+            class_names=class_names,
         )
 
-        self.X_test, _ = preprocess_data(X_test, X_name="X_test", column_names=column_names, verbose=self.verbose)
-        self.y_train = preprocess_labels(y_train, index=self.X_train.index)
-        self.y_test = preprocess_labels(y_test, index=self.X_test.index)
-
-        # Determine if this is a regression model using the utility function
-        self.is_regression = is_regression_model(self.model)
-        self.is_multiclass = is_multi_classifier(self.model, self.y_train)
-
-        # Use class names for plotting
-        self.class_names = preprocess_class_names(
-            pd.concat([self.y_train, self.y_test]), class_names, self.is_regression
-        )
+        # Fit the estimator
+        self.model.fit(self.data_manager.X_train, self.data_manager.y_train)
+        self.set_fitted()
 
         # Calculate model performance metrics
-        self.train_score = self.scorer.score(self.model, self.X_train, self.y_train)
-        self.test_score = self.scorer.score(self.model, self.X_test, self.y_test)
+        self.train_score: float = self.model.score(self.data_manager.X_train, self.data_manager.y_train)
+        self.test_score: float = self.model.score(self.data_manager.X_test, self.data_manager.y_test)
 
         # Format results text for display in plots
-        self.results_text = (
-            f"Train {self.scorer.metric_name}: {np.round(self.train_score, 3)},\n"
-            f"Test {self.scorer.metric_name}: {np.round(self.test_score, 3)}."
-        )
+        if self.verbose > 0:
+            results_text = (
+                f"Train {self.model.scoring.metric_name}: {np.round(self.train_score, 3)},\n"
+                f"Test {self.model.scoring.metric_name}: {np.round(self.test_score, 3)}."
+            )
+
+            logger.info(f"Finished model training: \n{results_text}")
+
+            # Warn about potential overfitting
+            if self.train_score > self.test_score:
+                warnings.warn(
+                    f"Train {self.model.scoring.metric_name} > Test {self.model.scoring.metric_name}, which might indicate "
+                    f"overfitting. This could lead to misleading feature importance. "
+                    f"Consider adding regularization to the model."
+                )
 
         # Split arguments for multi-classification
         multi_class_kwargs, shap_kwargs = extract_multi_class_shap_parameters(shap_kwargs)
 
-        # Calculate SHAP values and related variables for training data
-        self.shap_explanation_train, self.expected_value_train = calculate_shap_and_expected_values(
-            model=self.model,
-            X=self.X_train,
+        # Initialize SHAP manager and instance
+        self.shap_manager: SHAPManager = SHAPManager(random_state=self.random_state)
+
+        # Get SHAP train instance and aggregated values
+        self.train_shap_instance: SHAPInstance = self.shap_manager.get_instance(
+            model=self.model.estimator,
+            data_manager=self.data_manager,
+            split_selection="train",
             verbose=self.verbose,
-            random_state=self.random_state,
             **shap_kwargs,
         )
-        self.shap_values_train = shap_explanation_to_shap_values(
-            self.shap_explanation_train, self.model, self.X_train, **multi_class_kwargs
-        )
-
-        # Initialize and fit the dependence plotter for training data
-        self.tdp_train = ShapDependencePlotter(self.model, verbose=self.verbose).fit(
-            self.X_train,
-            self.y_train,
-            column_names=self.column_names,
-            class_names=self.class_names,
-            precalc_shap_explanation=self.shap_explanation_train,
-            **shap_kwargs,
-        )
-
-        # Calculate SHAP values and related variables for test data
-        self.shap_explanation_test, self.expected_value_test = calculate_shap_and_expected_values(
-            model=self.model,
-            X=self.X_test,
+        self.train_aggregated_shap_values: np.ndarray = self.shap_manager.get_aggregated_values(
+            shap_instance=self.train_shap_instance,
+            data_manager=self.data_manager,
+            split_selection="train",
             verbose=self.verbose,
-            random_state=self.random_state,
+            **multi_class_kwargs,
+        )
+        self.tdp_train: ShapInterpreterDependencePlotter = ShapInterpreterDependencePlotter(
+            self.model, verbose=self.verbose
+        ).fit(
+            data_manager=self.data_manager,
+            shap_manager=self.shap_manager,
+            shap_instance=self.train_shap_instance,
+            split_selection="train",
+            **multi_class_kwargs,
+        )
+
+        # Get SHAP test instance and aggregated values
+        self.test_shap_instance: SHAPInstance = self.shap_manager.get_instance(
+            model=self.model.estimator,
+            data_manager=self.data_manager,
+            split_selection="test",
+            verbose=self.verbose,
             **shap_kwargs,
         )
-        self.shap_values_test = shap_explanation_to_shap_values(
-            self.shap_explanation_test, self.model, self.X_test, **multi_class_kwargs
+        self.test_aggregated_shap_values: np.ndarray = self.shap_manager.get_aggregated_values(
+            shap_instance=self.test_shap_instance,
+            data_manager=self.data_manager,
+            split_selection="test",
+            verbose=self.verbose,
+            **multi_class_kwargs,
+        )
+        self.tdp_test: ShapInterpreterDependencePlotter = ShapInterpreterDependencePlotter(
+            self.model, verbose=self.verbose
+        ).fit(
+            data_manager=self.data_manager,
+            shap_manager=self.shap_manager,
+            shap_instance=self.test_shap_instance,
+            split_selection="test",
+            **multi_class_kwargs,
         )
 
-        # Initialize and fit the dependence plotter for test data
-        self.tdp_test = ShapDependencePlotter(self.model, verbose=self.verbose).fit(
-            self.X_test,
-            self.y_test,
-            column_names=self.column_names,
-            class_names=self.class_names,
-            precalc_shap_explanation=self.shap_explanation_test,
-            **shap_kwargs,
-        )
+        self.set_fitted()
 
-        self.is_fitted = True
-
-        # Return self for method chaining
         return self
 
     def compute(
@@ -304,6 +314,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
         """
         self.check_if_fitted()
 
+        # TODO: Implement importance DF calculation in wrapper/shap_new/importance.py
         # Compute SHAP importance
         self.importance_df_train = calculate_shap_importance_dataframe(
             self.shap_values_train,
@@ -627,7 +638,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
         else:
             target_shap_values = target_shap_values[:, target_columns_indices]
 
-        if self.is_multiclass:
+        if self.is_multi_class:
             target_shap_values = aggregate_multiclass_shap_values_values(
                 target_shap_values, aggregation_method="mean_abs"
             )
@@ -666,17 +677,6 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
         for spine in ax.spines.values():
             spine.set_edgecolor("lightgray")
             spine.set_linewidth(0.8)
-
-        # Add model performance metrics as annotation
-        ax.annotate(
-            self.results_text,
-            (0, 0),
-            (0, -50),
-            fontsize=12,
-            xycoords="axes fraction",
-            textcoords="offset points",
-            va="top",
-        )
 
         # Layout adjustments
         fig.tight_layout()
@@ -827,7 +827,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
                 # If it's a numpy array, get the row by position
                 sample_shap_values = target_shap_values[sample_loc, :]
 
-            if self.is_multiclass:
+            if self.is_multi_class:
                 sample_shap_values = aggregate_multiclass_shap_values_values(
                     sample_shap_values, aggregation_method="mean_abs"
                 )

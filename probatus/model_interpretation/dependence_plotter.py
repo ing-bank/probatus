@@ -7,22 +7,18 @@ from sklearn.preprocessing import KBinsDiscretizer
 from typing import Any, List, Optional, Tuple, Union, Literal, Dict, cast
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
-from shap import Explanation
 
 from probatus.wrapper import BaseFitComputePlotClass
-from probatus._common import (
-    preprocess_data,
-    preprocess_labels,
-    is_regression_model,
-    preprocess_class_names,
-    is_multi_classifier,
-)
-from probatus.wrapper.shap import (
-    calculate_shap_explanation,
-    shap_explanation_to_shap_values,
+from probatus.wrapper._shap import (
     extract_multi_class_shap_parameters,
 )
-from probatus._common.data_processing import get_pipeline_estimator_and_preprocessor
+from probatus.wrapper.estimator import BaseModel
+from probatus.wrapper.data import (
+    DependenceDataManager,
+    ModelInterpreterDataManager,
+    ModelInterpreterDependenceDataManager,
+)
+from probatus.wrapper.shap import SHAPInstance, SHAPManager
 
 
 class ShapDependencePlotter(BaseFitComputePlotClass):
@@ -86,7 +82,7 @@ class ShapDependencePlotter(BaseFitComputePlotClass):
     """
 
     def __init__(
-        self, model: Union[BaseEstimator, Pipeline], verbose: Literal[0, 1, 2] = 0, random_state: Optional[int] = None
+        self, model: Union[BaseEstimator, Pipeline], random_state: Optional[int] = None, verbose: Literal[0, 1, 2] = 0
     ) -> None:
         """
         Initializes the DependencePlotter class.
@@ -107,12 +103,10 @@ class ShapDependencePlotter(BaseFitComputePlotClass):
                 Random state for reproducibility. If None, results may not be reproducible.
                 Default is None.
         """
-        self.model, self.preprocessor = get_pipeline_estimator_and_preprocessor(model)
-        self.verbose: Literal[0, 1, 2] = verbose
+        self.model: BaseModel = BaseModel(model)
         self.random_state: Optional[int] = random_state
-        self.fitted: bool = False
-        self.class_names: List[str] = None
-        self.is_regression: bool = False
+        self.verbose: Literal[0, 1, 2] = verbose
+        self.is_fitted: bool = False
 
     def fit(
         self,
@@ -120,7 +114,6 @@ class ShapDependencePlotter(BaseFitComputePlotClass):
         y: pd.Series,
         column_names: Optional[List[str]] = None,
         class_names: Optional[Union[List[str], Dict[Union[int, str], str]]] = None,
-        precalc_shap_explanation: Optional[Explanation] = None,
         **shap_kwargs: Any,
     ) -> "ShapDependencePlotter":
         """
@@ -149,11 +142,6 @@ class ShapDependencePlotter(BaseFitComputePlotClass):
                 If None, default labels will be 'label_0', 'label_1', etc. for classification
                 or 'Regression Output' for regression. Default is None.
 
-            precalc_shap_explanation (Optional[Explanation], optional):
-                Precalculated SHAP explanation object.
-                If provided, it is used directly instead of computing new ones.
-                Default is None.
-
             **shap_kwargs (Any):
                 Additional arguments passed to:
                 1. SHAP Explainer - parameters like 'approximate' and 'check_additivity'
@@ -168,53 +156,44 @@ class ShapDependencePlotter(BaseFitComputePlotClass):
         Raises:
             ValueError: If input data formats are invalid.
         """
-        # Transform data if model is a Pipeline
-        if self.preprocessor is not None:
-            column_names = X.columns if column_names is None else column_names
-            X = self.preprocessor.transform(X)
-
-        self.X, self.column_names = preprocess_data(X, X_name="X", column_names=column_names, verbose=self.verbose)
-        self.y = preprocess_labels(y, index=self.X.index)
-
-        # Determine if this is a regression model
-        self.is_regression = is_regression_model(self.model)
-        self.is_multiclass = is_multi_classifier(self.model, self.y)
-
-        # Use class names for plotting
-        self.class_names = preprocess_class_names(self.y, class_names, self.is_regression)
+        self.data_manager: DependenceDataManager = DependenceDataManager(
+            X=X,
+            y=y,
+            model=self.model.estimator,
+            column_names=column_names,
+            class_names=class_names,
+        )
 
         # Split arguments for multi-classification
         multi_class_kwargs, shap_kwargs = extract_multi_class_shap_parameters(shap_kwargs)
 
-        # Calculate SHAP values
-        if precalc_shap_explanation is not None:
-            # Use precalculated SHAP values
-            self.shap_explanation = precalc_shap_explanation
-        else:
-            # Calculate SHAP values
-            self.shap_explanation = calculate_shap_explanation(
-                self.model,
-                self.X,
-                return_explainer=False,
-                verbose=self.verbose,
-                random_state=self.random_state,
-                **shap_kwargs,
-            )
+        # Initialize SHAP manager and instance
+        self.shap_manager: SHAPManager = SHAPManager(random_state=self.random_state)
+        self.shap_instance: SHAPInstance = self.shap_manager.get_instance(
+            model=self.model.estimator,
+            data_manager=self.data_manager,
+            split_selection="test",
+            verbose=self.verbose,
+            **shap_kwargs,
+        )
 
-        # Set the SHAP values param
-        self.shap_values = shap_explanation_to_shap_values(
-            shap_explanation=self.shap_explanation,
-            model=self.model,
-            X=self.X,
+        # Get aggregated SHAP values for plotting purposes
+        self.aggregated_shap_values: np.ndarray = self.shap_manager.get_aggregated_values(
+            shap_instance=self.shap_instance,
+            data_manager=self.data_manager,
+            split_selection="test",
+            verbose=self.verbose,
             **multi_class_kwargs,
         )
 
         # Set default values for quantile range and alpha
+        # TODO: Probably remove this - move to plot method(?)
         self.min_q: float = 0.0
         self.max_q: float = 1.0
         self.alpha: float = 1.0
 
-        self.fitted = True
+        self.set_fitted()
+
         return self
 
     def compute(self) -> pd.DataFrame:
@@ -232,7 +211,8 @@ class ShapDependencePlotter(BaseFitComputePlotClass):
             RuntimeError: If called before the model is fitted.
         """
         self.check_if_fitted()
-        return self.shap_values
+
+        return self.shap_instance.values
 
     def fit_compute(
         self,
@@ -240,7 +220,6 @@ class ShapDependencePlotter(BaseFitComputePlotClass):
         y: pd.Series,
         column_names: Optional[List[str]] = None,
         class_names: Optional[Union[List[str], Dict[Union[int, str], str]]] = None,
-        precalc_shap: Optional[pd.DataFrame] = None,
         **shap_kwargs: Any,
     ) -> pd.DataFrame:
         """
@@ -268,11 +247,6 @@ class ShapDependencePlotter(BaseFitComputePlotClass):
                 If None, default labels will be 'label_0', 'label_1', etc. for classification
                 or 'Regression Output' for regression. Default is None.
 
-            precalc_shap (Optional[pd.DataFrame], optional):
-                Precalculated SHAP values of shape (n_samples, n_features).
-                If provided, they are used directly instead of computing new ones.
-                Default is None.
-
             **shap_kwargs (Any):
                 Additional arguments passed to:
                 1. SHAP Explainer - parameters like 'approximate' and 'check_additivity'
@@ -294,7 +268,6 @@ class ShapDependencePlotter(BaseFitComputePlotClass):
             y,
             column_names=column_names,
             class_names=class_names,
-            precalc_shap_explanation=precalc_shap,
             **shap_kwargs,
         )
         return self.compute()
@@ -686,3 +659,49 @@ class ShapDependencePlotter(BaseFitComputePlotClass):
 
         # Filter and return data
         return x[filter_mask], y[filter_mask], shap_val[filter_mask]
+
+
+class ShapInterpreterDependencePlotter(ShapDependencePlotter):
+    def __init__(
+        self,
+        model: BaseModel,
+        random_state: Optional[int] = None,
+        verbose: Literal[0, 1, 2] = 0,
+    ) -> None:
+        self.model: BaseModel = model
+        self.random_state: Optional[int] = random_state
+        self.verbose: Literal[0, 1, 2] = verbose
+        self.is_fitted: bool = False
+
+    def fit(
+        self,
+        data_manager: ModelInterpreterDataManager,
+        shap_manager: SHAPManager,
+        shap_instance: SHAPInstance,
+        split_selection: Literal["full", "train", "test"] = "test",
+        **multi_class_kwargs: Any,
+    ) -> None:
+        self.data_manager: ModelInterpreterDependenceDataManager = ModelInterpreterDependenceDataManager(
+            model=self.model, data_manager=data_manager, split_selection=split_selection
+        )
+
+        # Initialize SHAP manager and instance
+        self.shap_manager: SHAPManager = shap_manager
+        self.shap_instance: SHAPInstance = shap_instance
+
+        # Get aggregated SHAP values for plotting purposes
+        self.aggregated_shap_values: np.ndarrShaay = self.shap_manager.get_aggregated_values(
+            shap_instance=self.shap_instance,
+            data_manager=self.data_manager,
+            split_selection=split_selection,
+            verbose=self.verbose,
+            **multi_class_kwargs,
+        )
+
+        # Set default values for quantile range and alpha
+        # TODO: Probably remove this - move to plot method(?)
+        self.min_q: float = 0.0
+        self.max_q: float = 1.0
+        self.alpha: float = 1.0
+
+        self.set_fitted()

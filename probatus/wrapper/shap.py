@@ -12,27 +12,36 @@ class SHAPInstance:
         self,
         model: BaseModel,
         data_manager: BaseDataManager,
+        split_selection: Literal["full", "train", "test"] = "test",
         random_state: Optional[int] = None,
         **shap_kwargs,
     ):
         self.explainer: shap.Explainer = self._create_explainer(
-            model=model, data_manager=data_manager, random_state=random_state, **shap_kwargs
+            model=model,
+            data_manager=data_manager,
+            split_selection=split_selection,
+            random_state=random_state,
+            **shap_kwargs,
         )
         self.expected_value: np.ndarray = self.explainer.expected_value
         self.explanation: shap.Explanation = SHAPInstance._calculate_explanation(
-            data_manager=data_manager, **shap_kwargs
+            data_manager=data_manager, split_selection=split_selection, **shap_kwargs
         )
         self.values: np.ndarray = self.explanation.values
 
     @staticmethod
     def _create_explainer(
-        model: BaseModel, data_manager: BaseDataManager, random_state: Optional[int] = None, **shap_kwargs
+        model: BaseModel,
+        data_manager: BaseDataManager,
+        split_selection: Literal["full", "train", "test"] = "test",
+        random_state: Optional[int] = None,
+        **shap_kwargs,
     ) -> shap.Explainer:
         # TODO: Fix explainer creation; filter out kwargs that are not valid for the explainer
         # such as the approximate parameter
         return shap.Explainer(
-            model=model.model,
-            masker=data_manager.X,
+            model=model.estimator,
+            masker=data_manager.get_X(split_selection),
             output_names=data_manager.class_names,
             feature_names=data_manager.column_names,
             seed=random_state,
@@ -43,31 +52,41 @@ class SHAPInstance:
     def _calculate_explanation(
         explainer: shap.Explainer,
         data_manager: BaseDataManager,
+        split_selection: Literal["full", "train", "test"] = "test",
         **shap_kwargs,
     ) -> shap.Explanation:
         # Create explanation object without recalculating shap_values
-        return explainer(data_manager.X, **shap_kwargs)
+        return explainer(data_manager.get_X(split_selection), **shap_kwargs)
 
 
 class SHAPManager:
     def __init__(
         self,
         random_state: Optional[int] = None,
+        cache: bool = True,
     ):
         self.random_state: int = random_state
-        self.shap_instances: dict[tuple, SHAPInstance] = {}
-        self.aggregated_values_cache: dict[tuple, np.ndarray] = {}
+        self.cache: bool = cache
 
-    def get_shap_instance(
+        if self.cache:
+            self.shap_instances: dict[tuple, SHAPInstance] = {}
+            self.aggregated_values_cache: dict[tuple, np.ndarray] = {}
+
+    def get_instance(
         self,
         model: BaseModel,
         data_manager: BaseDataManager,
+        split_selection: Literal["full", "train", "test"] = "test",
         random_state: Optional[int] = None,
         verbose: Literal[0, 1, 2] = 0,
-        cache: bool = True,
+        cache: Optional[bool] = None,
+        **shap_kwargs,
     ) -> SHAPInstance:
         # Create SHAP key, based on only the feature names
-        shap_instance_key = SHAPManager._create_shap_instance_key(data_manager)
+        shap_instance_key = SHAPManager._create_shap_instance_key(data_manager, split_selection)
+
+        # If cache is not provided, use the class cache
+        cache = cache if cache is not None else self.cache
 
         if cache:
             # Add SHAP instance to the cache & use cache if it exists
@@ -78,31 +97,38 @@ class SHAPManager:
                     )
 
                 # Create SHAP instance
-                self.shap_instances[shap_instance_key] = SHAPInstance(model, data_manager, random_state)
+                self.shap_instances[shap_instance_key] = SHAPInstance(
+                    model, data_manager, split_selection, random_state, **shap_kwargs
+                )
 
             return self.shap_instances[shap_instance_key]
         else:
-            return SHAPInstance(model, data_manager, random_state)
+            return SHAPInstance(model, data_manager, split_selection, random_state, **shap_kwargs)
 
     def get_aggregated_values(
         self,
-        explanation: shap.Explanation,
+        shap_instance: SHAPInstance,
         data_manager: BaseDataManager,
+        split_selection: Literal["full", "train", "test"] = "test",
         class_selection: Optional[Any] = None,
         weights: Optional[Dict[Any, float]] = None,
         multi_class_aggregation: Optional[Literal["max_abs", "mean", "mean_abs"]] = None,
         shap_variance_penalty_factor: Union[int, float] = 0,
         verbose: Literal[0, 1, 2] = 0,
-        cache: bool = True,
+        cache: Optional[bool] = None,
     ) -> np.ndarray:
         # Create a key for the aggregated values
         key = SHAPManager._create_aggregation_values_key(
             data_manager=data_manager,
+            split_selection=split_selection,
             class_selection=class_selection,
             weights=weights,
             multi_class_aggregation=multi_class_aggregation,
             shap_variance_penalty_factor=shap_variance_penalty_factor,
         )
+
+        # If cache is not provided, use the class cache
+        cache = cache if cache is not None else self.cache
 
         if cache:
             # If the key is not in the aggregated values dictionary, calculate the aggregated values
@@ -112,7 +138,7 @@ class SHAPManager:
 
                 # Calculate the aggregated values
                 self.aggregated_values_cache[key] = SHAPManager._calculate_aggregated_values(
-                    explanation=explanation,
+                    shap_instance=shap_instance,
                     class_selection=class_selection,
                     weights=weights,
                     multi_class_aggregation=multi_class_aggregation,
@@ -122,7 +148,7 @@ class SHAPManager:
             return self.aggregated_values_cache[key]
         else:
             return SHAPManager._calculate_aggregated_values(
-                explanation=explanation,
+                shap_instance=shap_instance,
                 class_selection=class_selection,
                 weights=weights,
                 multi_class_aggregation=multi_class_aggregation,
@@ -131,8 +157,9 @@ class SHAPManager:
 
     def get_class_values(
         self,
-        explanation: shap.Explanation,
+        shap_instance: SHAPInstance,
         data_manager: BaseDataManager,
+        split_selection: Literal["full", "train", "test"] = "test",
         class_selection: Optional[Any] = None,
         verbose: Literal[0, 1, 2] = 0,
         cache: bool = True,
@@ -140,6 +167,7 @@ class SHAPManager:
         # Create a key for the aggregated values
         key = SHAPManager._create_aggregation_values_key(
             data_manager=data_manager,
+            split_selection=split_selection,
             class_selection=class_selection,
             weights=None,
             multi_class_aggregation=None,
@@ -154,7 +182,7 @@ class SHAPManager:
 
                 # Calculate the aggregated values
                 self.aggregated_values_cache[key] = SHAPManager._calculate_aggregated_values(
-                    explanation=explanation,
+                    shap_instance=shap_instance,
                     class_selection=class_selection,
                     weights=None,
                     multi_class_aggregation=None,
@@ -164,7 +192,7 @@ class SHAPManager:
             return self.aggregated_values_cache[key]
         else:
             return SHAPManager._calculate_aggregated_values(
-                explanation=explanation,
+                shap_instance=shap_instance,
                 class_selection=class_selection,
                 weights=None,
                 multi_class_aggregation=None,
@@ -173,7 +201,7 @@ class SHAPManager:
 
     @staticmethod
     def _calculate_aggregated_values(
-        explanation: shap.Explanation,
+        shap_instance: SHAPInstance,
         class_selection: Optional[Any] = None,
         weights: Optional[Dict[Any, float]] = None,
         multi_class_aggregation: Optional[Literal["max_abs", "mean", "mean_abs"]] = None,
@@ -181,22 +209,25 @@ class SHAPManager:
     ) -> np.ndarray:
         # TODO: fix the aggregation function
         # At the very least requires aggregation across ...
-        return np.sum(explanation.values, axis=0)
+        return np.sum(shap_instance.values, axis=0)
 
     @staticmethod
     def _create_shap_instance_key(
         data_manager: BaseDataManager,
+        split_selection: Literal["full", "train", "test"] = "test",
     ) -> str:
-        return SHAPManager._convert_feature_names_list_to_str(data_manager)
+        return f"{split_selection}_{SHAPManager._convert_feature_names_list_to_str(data_manager)}"
 
     @staticmethod
     def _create_aggregation_values_key(
         data_manager: BaseDataManager,
+        split_selection: Literal["full", "train", "test"] = "test",
         class_selection: Optional[Any] = None,
         weights: Optional[Dict[Any, float]] = None,
         multi_class_aggregation: Optional[Literal["max_abs", "mean", "mean_abs"]] = None,
-        shap_variance_penalty_factor: Union[int, float] = None,
+        shap_variance_penalty_factor: Union[int, float] = 0,
     ) -> tuple[
+        str,  # split_selection
         List[str],  # Class names
         Union[str, int],  # Class selection
         str,  # Weights (dict formatted as a ordered string)
@@ -209,6 +240,7 @@ class SHAPManager:
 
         # Create a key for the aggregated values
         return (
+            split_selection,
             class_names_str,
             class_selection if class_selection else "_",
             weights_str if weights_str else "_",

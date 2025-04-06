@@ -1,4 +1,4 @@
-from .shap import (
+from ._shap import (
     calculate_shap_explanation,
     shap_explanation_to_shap_values,
     calculate_shap_importance_dataframe,

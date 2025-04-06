@@ -6,7 +6,8 @@ These classes handle data preprocessing, validation, and transformation to ensur
 consistent interfaces for various analysis methods.
 """
 
-from typing import Iterable, List, Optional, Literal, Tuple, Union
+from abc import abstractmethod
+from typing import Iterable, List, Optional, Literal, Tuple, Union, Any
 import warnings
 import pandas as pd
 from sklearn.base import BaseEstimator, is_classifier, is_regressor
@@ -60,6 +61,7 @@ class BaseDataManager:
     @staticmethod
     def _preprocess_features_and_column_names(
         X: pd.DataFrame,
+        X_name: Literal["X", "X_train", "X_test"],
         column_names: Optional[List[str]] = None,
         verbose: Literal[0, 1, 2] = 0,
         preprocessor: Optional[Pipeline] = None,
@@ -73,6 +75,10 @@ class BaseDataManager:
         Args:
             X (pd.DataFrame):
                 Input features to preprocess.
+
+            X_name (Literal["X", "X_train", "X_test"], optional):
+                Name of the input features.
+                Defaults to "X".
 
             column_names (Optional[List[str]], optional):
                 Custom column names to use. If None, uses existing column names or generates default ones.
@@ -94,10 +100,10 @@ class BaseDataManager:
                 - List of column names
         """
         if preprocessor is None:
-            return preprocess_data(X, X_name="X", column_names=column_names, verbose=verbose)
+            return preprocess_data(X, X_name=X_name if X_name else "X", column_names=column_names, verbose=verbose)
         else:
-            X = preprocessor.transform(X)
-            return preprocess_data(X, X_name="X", column_names=column_names, verbose=verbose)
+            X: pd.DataFrame = preprocessor.transform(X)
+            return preprocess_data(X, X_name=X_name if X_name else "X", column_names=column_names, verbose=verbose)
 
     @staticmethod
     def _preprocess_class_names(
@@ -163,6 +169,20 @@ class BaseDataManager:
         else:
             return y
 
+    @abstractmethod
+    def get_X(self, *args: Any) -> Any:
+        """
+        Get the feature data.
+        """
+        pass
+
+    @abstractmethod
+    def get_y(self, *args: Any) -> Any:
+        """
+        Get the target data.
+        """
+        pass
+
 
 class DependenceDataManager(BaseDataManager):
     """
@@ -218,8 +238,8 @@ class DependenceDataManager(BaseDataManager):
 
         # Transform data if model is a Pipeline
         if self.preprocessor is not None:
-            column_names = X.columns if column_names is None else column_names
-            X = self.preprocessor.transform(X)
+            column_names: List[str] = X.columns if column_names is None else column_names
+            X: pd.DataFrame = self.preprocessor.transform(X)
 
         # Preprocess input data
         self.X, self.column_names = self._preprocess_features_and_column_names(
@@ -227,6 +247,24 @@ class DependenceDataManager(BaseDataManager):
         )
         self.y: pd.Series = self._preprocess_labels(y, class_names, self.is_regressor)
         self.class_names: List[str] = self._preprocess_class_names(self.y, class_names, self.is_regressor)
+
+    def get_X(self, split_selection: Literal["full", "train", "test"]) -> pd.DataFrame:
+        """
+        Get the feature data.
+        """
+        if split_selection == "full":
+            return self.X
+        else:
+            raise ValueError(f"Invalid split_selection: {split_selection}, only full, train and test are supported.")
+
+    def get_y(self, split_selection: Literal["full", "train", "test"]) -> pd.Series:
+        """
+        Get the target data.
+        """
+        if split_selection == "full":
+            return self.y
+        else:
+            raise ValueError(f"Invalid split_selection: {split_selection}, only full, train and test are supported.")
 
     @staticmethod
     def _validate_X_and_y(X: pd.DataFrame, y: pd.Series) -> None:
@@ -419,9 +457,45 @@ class ModelInterpreterDataManager(BaseDataManager):
         self.X_test, _ = self._preprocess_features_and_column_names(
             X_test, X_name="X_test", column_names=column_names, verbose=verbose, preprocessor=self.preprocessor
         )
-        self.y_train = self._preprocess_labels(y_train, class_names, self.is_regressor)
-        self.y_test = self._preprocess_labels(y_test, class_names, self.is_regressor)
+        self.y_train: pd.Series = self._preprocess_labels(y_train, class_names, self.is_regressor)
+        self.y_test: pd.Series = self._preprocess_labels(y_test, class_names, self.is_regressor)
         self.class_names: List[str] = self._preprocess_class_names(pd.concat([self.y_train, self.y_test]), class_names)
+
+    def get_X(self, split_selection: Literal["full", "train", "test"]) -> pd.DataFrame:
+        """
+        Get the feature data.
+        """
+        if split_selection == "full":
+            return pd.concat([self.X_train, self.X_test])
+        elif split_selection == "train":
+            return self.X_train
+        elif split_selection == "test":
+            return self.X_test
+        else:
+            raise ValueError(f"Invalid split_selection: {split_selection}, only full, train and test are supported.")
+
+    def get_y(self, split_selection: Literal["full", "train", "test"]) -> pd.Series:
+        """
+        Get the target data.
+        """
+        if split_selection == "full":
+            return pd.concat([self.y_train, self.y_test])
+        elif split_selection == "train":
+            return self.y_train
+        elif split_selection == "test":
+            return self.y_test
+        else:
+            raise ValueError(f"Invalid split_selection: {split_selection}, only full, train and test are supported.")
+
+    def convert_to_dependence_data_manager(self) -> DependenceDataManager:
+        return DependenceDataManager(
+            X=pd.concat([self.X_train, self.X_test]),
+            y=pd.concat([self.y_train, self.y_test]),
+            model=self.model,
+            column_names=self.column_names,
+            class_names=self.class_names,
+            verbose=self.verbose,
+        )
 
     @staticmethod
     def _validate_X_and_y(
@@ -475,7 +549,7 @@ class ImportanceDataManager(BaseDataManager):
         self,
         X1: pd.DataFrame,
         X2: pd.DataFrame,
-        model: Union[BaseEstimator, BaseSearchCV, Pipeline],
+        model: BaseModel,
         X_test_size: float = 0.25,
         column_names: Optional[List[str]] = None,
         class_names: Optional[List[str]] = None,
@@ -519,17 +593,17 @@ class ImportanceDataManager(BaseDataManager):
         super().__init__(model, verbose)
 
         # Transform data if model is a Pipeline
-        if self.preprocessor is not None:
+        if self.model.preprocessor is not None:
             column_names = X1.columns if column_names is None else column_names
-            X1 = self.preprocessor.transform(X1)
-            X2 = self.preprocessor.transform(X2)
+            X1 = self.model.preprocessor.transform(X1)
+            X2 = self.model.preprocessor.transform(X2)
 
         # Preprocess input data
         X1, self.column_names = self._preprocess_features_and_column_names(
-            X1, X_name="X1", column_names=column_names, verbose=verbose, preprocessor=self.preprocessor
+            X1, X_name="X1", column_names=column_names, verbose=verbose, preprocessor=self.model.preprocessor
         )
         X2, _ = self._preprocess_features_and_column_names(
-            X2, X_name="X2", column_names=column_names, verbose=verbose, preprocessor=self.preprocessor
+            X2, X_name="X2", column_names=column_names, verbose=verbose, preprocessor=self.model.preprocessor
         )
 
         # Create binary dataset & split it into train and test sets
@@ -538,6 +612,32 @@ class ImportanceDataManager(BaseDataManager):
                 X1, X2, X_test_size, class_names, random_state
             )
         )
+
+    def get_X(self, split_selection: Literal["full", "train", "test"]) -> pd.DataFrame:
+        """
+        Get the feature data.
+        """
+        if split_selection == "full":
+            return pd.concat([self.X_train, self.X_test])
+        elif split_selection == "train":
+            return self.X_train
+        elif split_selection == "test":
+            return self.X_test
+        else:
+            raise ValueError(f"Invalid split_selection: {split_selection}, only full, train and test are supported.")
+
+    def get_y(self, split_selection: Literal["full", "train", "test"]) -> pd.Series:
+        """
+        Get the target data.
+        """
+        if split_selection == "full":
+            return pd.concat([self.y_train, self.y_test])
+        elif split_selection == "train":
+            return self.y_train
+        elif split_selection == "test":
+            return self.y_test
+        else:
+            raise ValueError(f"Invalid split_selection: {split_selection}, only full, train and test are supported.")
 
     @staticmethod
     def _validate_X(X1: pd.DataFrame, X2: pd.DataFrame) -> None:
@@ -591,6 +691,68 @@ class ImportanceDataManager(BaseDataManager):
         class_names: List[str] = ImportanceDataManager._preprocess_class_names(y, class_names, False)
 
         return X_train, X_test, y_train, y_test, class_names
+
+
+class ModelInterpreterDependenceDataManager(DependenceDataManager):
+    """
+    Data manager for feature dependence analysis.
+
+    This class handles data preparation for analyzing how model predictions
+    depend on specific features. It validates input data, applies preprocessing,
+    and ensures proper formatting of features and target variables.
+
+    Attributes:
+        X (pd.DataFrame): Preprocessed feature data.
+        y (pd.Series): Preprocessed target variable.
+        column_names (List[str]): Names of features in X.
+        class_names (List[str]): Names of classes in y.
+    """
+
+    def __init__(
+        self,
+        model: BaseModel,
+        data_manager: ModelInterpreterDataManager,
+        split_selection: Literal["full", "train", "test"] = "test",
+    ) -> None:
+        """
+        Initialize the ModelInterpreterDependenceDataManager.
+
+        Args:
+            model (BaseModel):
+                Model to use for dependence analysis.
+
+            data_manager (ModelInterpreterDataManager):
+                Data manager to convert to DependenceDataManager.
+
+            split_selection (Literal["full", "train", "test"], optional):
+                Split selection for the data.
+                Defaults to "test".
+        """
+        # Allow SHAP cache to work when using split_selection, since we are
+        # using the same data manager for both train and test for multiple classes,
+        # namely ShapModelInterpreter with ShapInterpreterDependencePlotter when used
+        # in conjunction. Otherwise ShapDependencePlotter is used independently, which
+        # does not require split_selection, but works with X and y naming.
+        if split_selection not in ["full", "train", "test"]:
+            raise ValueError(f"Invalid split_selection: {split_selection}, only full, train and test are supported.")
+        if split_selection == "full":
+            self.X: pd.DataFrame = pd.concat([data_manager.X_train, data_manager.X_test])
+            self.y: pd.Series = pd.concat([data_manager.y_train, data_manager.y_test])
+        elif split_selection == "train":
+            self.X = self.X_train = data_manager.X_train
+            self.y = self.y_train = data_manager.y_train
+        elif split_selection == "test":
+            self.X = self.X_test = data_manager.X_test
+            self.y = self.y_test = data_manager.y_test
+
+        # Validate data
+        self._validate_X_and_y(self.X, self.y, self.verbose)
+
+        # Set attributes
+        self.model: BaseModel = model
+        self.verbose: Literal[0, 1, 2] = model.verbose
+        self.column_names: List[str] = data_manager.column_names
+        self.class_names: List[str] = data_manager.class_names
 
 
 def _validate_sample_weight(
