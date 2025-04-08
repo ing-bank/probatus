@@ -733,6 +733,8 @@ class ModelInterpreterDependenceDataManager(DependenceDataManager):
         # namely ShapModelInterpreter with ShapInterpreterDependencePlotter when used
         # in conjunction. Otherwise ShapDependencePlotter is used independently, which
         # does not require split_selection, but works with X and y naming.
+        # TODO: Rethink how plots are instantiated. When loosely decoupled, this subclass might be removed
+        # because we are now able to instantiate the plotter separate from Probatus main classes.
         if split_selection not in ["full", "train", "test"]:
             raise ValueError(f"Invalid split_selection: {split_selection}, only full, train and test are supported.")
         if split_selection == "full":

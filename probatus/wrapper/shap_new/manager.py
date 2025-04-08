@@ -1,62 +1,16 @@
-import warnings
 import shap
-import numpy as np
-from typing import Any, Dict, Literal, Optional, Union, List
-
 from probatus.wrapper.data import BaseDataManager
 from probatus.wrapper.estimator import BaseModel
+from probatus.wrapper.shap_new.aggregation import calculate_aggregated_values
+from probatus.wrapper.shap_new.cache import create_aggregation_values_key, create_shap_instance_key
+from probatus.wrapper.shap_new.instance import SHAPInstance
 
 
-class SHAPInstance:
-    def __init__(
-        self,
-        model: BaseModel,
-        data_manager: BaseDataManager,
-        split_selection: Literal["full", "train", "test"] = "test",
-        random_state: Optional[int] = None,
-        **shap_kwargs,
-    ):
-        self.explainer: shap.Explainer = self._create_explainer(
-            model=model,
-            data_manager=data_manager,
-            split_selection=split_selection,
-            random_state=random_state,
-            **shap_kwargs,
-        )
-        self.expected_value: np.ndarray = self.explainer.expected_value
-        self.explanation: shap.Explanation = SHAPInstance._calculate_explanation(
-            data_manager=data_manager, split_selection=split_selection, **shap_kwargs
-        )
-        self.values: np.ndarray = self.explanation.values
+import numpy as np
 
-    @staticmethod
-    def _create_explainer(
-        model: BaseModel,
-        data_manager: BaseDataManager,
-        split_selection: Literal["full", "train", "test"] = "test",
-        random_state: Optional[int] = None,
-        **shap_kwargs,
-    ) -> shap.Explainer:
-        # TODO: Fix explainer creation; filter out kwargs that are not valid for the explainer
-        # such as the approximate parameter
-        return shap.Explainer(
-            model=model.estimator,
-            masker=data_manager.get_X(split_selection),
-            output_names=data_manager.class_names,
-            feature_names=data_manager.column_names,
-            seed=random_state,
-            **shap_kwargs,
-        )
 
-    @staticmethod
-    def _calculate_explanation(
-        explainer: shap.Explainer,
-        data_manager: BaseDataManager,
-        split_selection: Literal["full", "train", "test"] = "test",
-        **shap_kwargs,
-    ) -> shap.Explanation:
-        # Create explanation object without recalculating shap_values
-        return explainer(data_manager.get_X(split_selection), **shap_kwargs)
+import warnings
+from typing import Any, Dict, Literal, Optional, Union
 
 
 class SHAPManager:
@@ -83,7 +37,7 @@ class SHAPManager:
         **shap_kwargs,
     ) -> SHAPInstance:
         # Create SHAP key, based on only the feature names
-        shap_instance_key = SHAPManager._create_shap_instance_key(data_manager, split_selection)
+        shap_instance_key = create_shap_instance_key(data_manager, split_selection)
 
         # If cache is not provided, use the class cache
         cache = cache if cache is not None else self.cache
@@ -118,7 +72,7 @@ class SHAPManager:
         cache: Optional[bool] = None,
     ) -> np.ndarray:
         # Create a key for the aggregated values
-        key = SHAPManager._create_aggregation_values_key(
+        key = create_aggregation_values_key(
             data_manager=data_manager,
             split_selection=split_selection,
             class_selection=class_selection,
@@ -137,7 +91,7 @@ class SHAPManager:
                     warnings.warn(f"Aggregation not found in cache. Calculating aggregated values for key: {key}")
 
                 # Calculate the aggregated values
-                self.aggregated_values_cache[key] = SHAPManager._calculate_aggregated_values(
+                self.aggregated_values_cache[key] = calculate_aggregated_values(
                     shap_instance=shap_instance,
                     class_selection=class_selection,
                     weights=weights,
@@ -147,7 +101,7 @@ class SHAPManager:
 
             return self.aggregated_values_cache[key]
         else:
-            return SHAPManager._calculate_aggregated_values(
+            return calculate_aggregated_values(
                 shap_instance=shap_instance,
                 class_selection=class_selection,
                 weights=weights,
@@ -165,7 +119,7 @@ class SHAPManager:
         cache: bool = True,
     ) -> dict[str, np.ndarray]:
         # Create a key for the aggregated values
-        key = SHAPManager._create_aggregation_values_key(
+        key = create_aggregation_values_key(
             data_manager=data_manager,
             split_selection=split_selection,
             class_selection=class_selection,
@@ -181,7 +135,7 @@ class SHAPManager:
                     warnings.warn(f"Aggregation not found in cache. Calculating aggregated values for key: {key}")
 
                 # Calculate the aggregated values
-                self.aggregated_values_cache[key] = SHAPManager._calculate_aggregated_values(
+                self.aggregated_values_cache[key] = calculate_aggregated_values(
                     shap_instance=shap_instance,
                     class_selection=class_selection,
                     weights=None,
@@ -191,7 +145,7 @@ class SHAPManager:
 
             return self.aggregated_values_cache[key]
         else:
-            return SHAPManager._calculate_aggregated_values(
+            return calculate_aggregated_values(
                 shap_instance=shap_instance,
                 class_selection=class_selection,
                 weights=None,
@@ -199,63 +153,31 @@ class SHAPManager:
                 shap_variance_penalty_factor=0,
             )
 
-    @staticmethod
-    def _calculate_aggregated_values(
+    def get_explanation_for_plot(
+        self,
         shap_instance: SHAPInstance,
-        class_selection: Optional[Any] = None,
-        weights: Optional[Dict[Any, float]] = None,
-        multi_class_aggregation: Optional[Literal["max_abs", "mean", "mean_abs"]] = None,
-        shap_variance_penalty_factor: Optional[Union[int, float]] = 0,
-    ) -> np.ndarray:
-        # TODO: fix the aggregation function
-        # At the very least requires aggregation across ...
-        return np.sum(shap_instance.values, axis=0)
-
-    @staticmethod
-    def _create_shap_instance_key(
-        data_manager: BaseDataManager,
-        split_selection: Literal["full", "train", "test"] = "test",
-    ) -> str:
-        return f"{split_selection}_{SHAPManager._convert_feature_names_list_to_str(data_manager)}"
-
-    @staticmethod
-    def _create_aggregation_values_key(
         data_manager: BaseDataManager,
         split_selection: Literal["full", "train", "test"] = "test",
         class_selection: Optional[Any] = None,
         weights: Optional[Dict[Any, float]] = None,
         multi_class_aggregation: Optional[Literal["max_abs", "mean", "mean_abs"]] = None,
         shap_variance_penalty_factor: Union[int, float] = 0,
-    ) -> tuple[
-        str,  # split_selection
-        List[str],  # Class names
-        Union[str, int],  # Class selection
-        str,  # Weights (dict formatted as a ordered string)
-        Union[str, Literal["mean", "mean_abs", "max_abs"]],  # Aggregation method
-        Union[str, float, int],  # Penalty factor
-    ]:
-        # Convert complex objects to strings
-        class_names_str = SHAPManager._convert_feature_names_list_to_str(data_manager)
-        weights_str = SHAPManager._convert_weights_dict_to_str(weights)
-
-        # Create a key for the aggregated values
-        return (
+        verbose: Literal[0, 1, 2] = 0,
+        cache: Optional[bool] = None,
+    ) -> shap.Explanation:
+        aggregated_values = self.get_aggregated_values(
+            shap_instance,
+            data_manager,
             split_selection,
-            class_names_str,
-            class_selection if class_selection else "_",
-            weights_str if weights_str else "_",
-            multi_class_aggregation if multi_class_aggregation else "_",
-            shap_variance_penalty_factor if shap_variance_penalty_factor else 0,
+            class_selection,
+            weights,
+            multi_class_aggregation,
+            shap_variance_penalty_factor,
+            verbose,
+            cache,
         )
 
-    @staticmethod
-    def _convert_weights_dict_to_str(weights: dict[Any, float]) -> str:
-        # First order the dictionary by key
-        sorted_dictionary = dict(sorted(weights.items()))
-
-        # Then convert to a string
-        return "".join(f"{k}:{v}" for k, v in sorted_dictionary.items())
-
-    @staticmethod
-    def _convert_feature_names_list_to_str(data_manager: BaseDataManager) -> str:
-        return "_-_".join(data_manager.column_names)
+        return shap.Explanation(
+            values=aggregated_values,
+            feature_names=data_manager.column_names,
+        )

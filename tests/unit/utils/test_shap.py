@@ -16,7 +16,7 @@ from probatus.wrapper import (
     create_importance_dataframe,
     calculate_base_shap_statistics,
     aggregate_multiclass_shap_values_values,
-    extract_multi_class_shap_parameters,
+    extract_shap_parameters,
     process_shap_values,
     shap_explanation_to_shap_values,
 )

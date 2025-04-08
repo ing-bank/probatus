@@ -1,9 +1,8 @@
+from sklearn.pipeline import Pipeline
 from probatus.data_comparison._base import BaseResemblanceModel
 from probatus.wrapper import (
-    calculate_shap_explanation,
     calculate_shap_importance_dataframe,
-    extract_multi_class_shap_parameters,
-    shap_explanation_to_shap_values,
+    extract_shap_parameters,
 )
 from probatus.wrapper import Scorer
 
@@ -16,8 +15,11 @@ from shap import Explanation
 from shap.plots import bar, beeswarm, waterfall
 from sklearn.base import BaseEstimator
 
+from probatus.wrapper.shap_new.manager import SHAPManager
 
 from typing import Any, List, Literal, Optional, Union
+
+from probatus.wrapper.shap_new.instance import SHAPInstance
 
 
 class ShapImportanceResemblance(BaseResemblanceModel):
@@ -68,10 +70,9 @@ class ShapImportanceResemblance(BaseResemblanceModel):
 
     def __init__(
         self,
-        model: BaseEstimator,
+        model: Union[BaseEstimator, Pipeline],
         scoring: Union[str, Scorer] = "roc_auc",
         test_prc: float = 0.25,
-        n_jobs: int = 1,
         verbose: Literal[0, 1, 2] = 0,
         random_state: Optional[int] = None,
     ) -> None:
@@ -79,19 +80,19 @@ class ShapImportanceResemblance(BaseResemblanceModel):
         Initialize the SHAPImportanceResemblance model.
 
         Args:
-            model: Machine learning model (classifier) to distinguish between samples.
-                Must implement fit() and predict() or predict_proba() methods.
-                Currently only works with tree-based models.
+            model (Union[BaseEstimator, Pipeline]):
+                A machine learning classifier used to distinguish between samples.
+                Must implement `fit()` and either `predict()` or `predict_proba()`.
 
-            scoring: Metric for model performance evaluation.
+            scoring (Union[str, Scorer], optional):
+                Metric for model performance evaluation.
                 Can be a string matching sklearn's classification metrics
                 or a probatus.utils.Scorer object for custom metrics.
                 'roc_auc' is recommended for this class.
 
-            test_prc: Percentage of data used for testing (default: 0.25).
-
-            n_jobs: Number of parallel jobs to run.
-                Set to -1 to use all available cores (default: 1).
+            test_prc (float, optional):
+                Fraction of data used for testing, in the range `(0, 1]`.
+                Defaults to `0.25`.
 
             verbose (Literal[0, 1, 2], optional):
                 Controls the level of output messages:
@@ -107,12 +108,9 @@ class ShapImportanceResemblance(BaseResemblanceModel):
             model=model,
             scoring=scoring,
             test_prc=test_prc,
-            n_jobs=n_jobs,
             verbose=verbose,
             random_state=random_state,
         )
-
-        self.plot_title = "SHAP summary plot"
 
     def fit(
         self,
@@ -169,28 +167,30 @@ class ShapImportanceResemblance(BaseResemblanceModel):
         super().fit(X1=X1, X2=X2, column_names=column_names, class_names=class_names)
 
         # Split arguments for multi-classification
-        multi_class_kwargs, shap_kwargs = extract_multi_class_shap_parameters(shap_kwargs)
+        multi_class_kwargs, shap_kwargs = extract_shap_parameters(shap_kwargs)
 
-        # Calculate SHAP values for test set
-        # SHAP values explain each feature's contribution to model predictions
-        self.shap_explanation_test = calculate_shap_explanation(
-            self.model,
-            self.X_test,
-            return_explainer=False,
+        # Initialize SHAP manager and instance
+        self.shap_manager: SHAPManager = SHAPManager(random_state=self.random_state)
+        self.shap_instance: SHAPInstance = self.shap_manager.get_instance(
+            model=self.model.estimator,
+            data_manager=self.data_manager,
+            split_selection="test",
             verbose=self.verbose,
-            random_state=self.random_state,
             **shap_kwargs,
         )
-        self.shap_values_test = shap_explanation_to_shap_values(
-            shap_explanation=self.shap_explanation_test,
-            model=self.model,
-            X=self.X_test,
+
+        # Get aggregated SHAP values for plotting purposes
+        self.aggregated_shap_values: np.ndarray = self.shap_manager.get_aggregated_values(
+            shap_instance=self.shap_instance,
+            data_manager=self.data_manager,
+            split_selection="test",
+            verbose=self.verbose,
             **multi_class_kwargs,
         )
 
         # Calculate feature importance from SHAP values
-        shap_df = pd.DataFrame(self.shap_values_test, columns=self.column_names)
-        self.report_df = calculate_shap_importance_dataframe(shap_df, self.column_names)
+        shap_df: pd.DataFrame = pd.DataFrame(self.aggregated_shap_values, columns=self.column_names)
+        self.report_df: pd.DataFrame = calculate_shap_importance_dataframe(shap_df, self.column_names)
 
         return self
 
@@ -250,7 +250,7 @@ class ShapImportanceResemblance(BaseResemblanceModel):
 
         # Get feature names and prepare plot parameters
         feature_names = self.column_names or (
-            self.X_test.columns.tolist() if isinstance(self.X_test, pd.DataFrame) else None
+            self.data_manager.X_test.columns.tolist() if isinstance(self.data_manager.X_test, pd.DataFrame) else None
         )
         actual_plot_type = "waterfall" if isinstance(plot, (int, np.int64)) else plot
         plot_kwargs["max_display"] = min(
@@ -258,7 +258,7 @@ class ShapImportanceResemblance(BaseResemblanceModel):
         )
 
         # Create visualization
-        explanation = self._create_explanation(self.shap_values_test, self.X_test, feature_names, plot)
+        explanation = self._create_explanation(self.shap_values_test, self.data_manager.X_test, feature_names, plot)
         fig = plt.figure(figsize=(10, max(6, 0.4 * plot_kwargs.get("max_display"))))
         plot_funcs = {"bar": bar, "beeswarm": beeswarm, "waterfall": waterfall}
         plot_funcs[actual_plot_type](explanation, show=False, **plot_kwargs)

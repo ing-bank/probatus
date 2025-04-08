@@ -1,20 +1,16 @@
-from probatus._common import (
-    get_pipeline_estimator_and_preprocessor,
-    preprocess_data,
-    preprocess_labels,
-)
-from probatus.wrapper import Scorer, get_single_scorer, BaseFitComputePlotClass
+from probatus.wrapper import Scorer, BaseFitComputePlotClass
 
-import numpy as np
 import pandas as pd
 from loguru import logger
 from sklearn.base import BaseEstimator
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection._search import BaseSearchCV
 from sklearn.pipeline import Pipeline
 
-
 import warnings
-from typing import Any, List, Literal, Tuple, cast, Optional, Union
+from typing import Any, List, Literal, Tuple, Optional, Union, cast
+
+from probatus.wrapper.data import ImportanceDataManager
+from probatus.wrapper.estimator import BaseScoringModel
 
 
 class BaseResemblanceModel(BaseFitComputePlotClass):
@@ -46,9 +42,8 @@ class BaseResemblanceModel(BaseFitComputePlotClass):
 
     def __init__(
         self,
-        model: Union[BaseEstimator, Pipeline],
+        model: Union[BaseEstimator, BaseSearchCV, Pipeline],
         scoring: Union[str, Scorer] = "roc_auc",
-        n_jobs: int = 1,
         verbose: Literal[0, 1, 2] = 0,
         random_state: Optional[int] = None,
     ) -> None:
@@ -64,12 +59,8 @@ class BaseResemblanceModel(BaseFitComputePlotClass):
                 Metric used to evaluate model performance.
                 Can be a string referring to a scikit-learn classification metric
                 (see: https://scikit-learn.org/stable/modules/model_evaluation.html)
-                or a `probatus.utils.Scorer` object for custom scoring.
+                or a `probatus.wrapper.Scorer` object for custom scoring.
                 Defaults to `"roc_auc"`.
-
-            n_jobs (int, optional):
-                Number of parallel processes to use. Set to `-1` to use all available cores.
-                Defaults to `1`.
 
             verbose (Literal[0, 1, 2], optional):
                 Controls the level of output messages:
@@ -82,12 +73,10 @@ class BaseResemblanceModel(BaseFitComputePlotClass):
                 Random seed for reproducibility. Use an integer for deterministic results
                 or `None` for non-reproducible behavior. Defaults to `None`.
         """
-        self.model, self.preprocessor = get_pipeline_estimator_and_preprocessor(model)
-        self.n_jobs = n_jobs
-        self.random_state = random_state
-        self.verbose = verbose
-        self.scorer = get_single_scorer(scoring)
-        self.is_fitted = False
+        self.model: BaseScoringModel = BaseScoringModel(model, scoring=scoring)
+        self.random_state: Optional[int] = random_state
+        self.verbose: Literal[0, 1, 2] = verbose
+        self.is_fitted: bool = False
         self.report_df: Optional[pd.DataFrame] = None
 
     def fit(
@@ -139,65 +128,35 @@ class BaseResemblanceModel(BaseFitComputePlotClass):
             Warning: If train score is significantly higher than test score,
                     indicating potential overfitting.
         """
-        # Set class names for the two samples
-        self.class_names = ["First Sample", "Second Sample"] if class_names is None else class_names
-
-        # Transform data if model is a Pipeline
-        if self.preprocessor is not None:
-            column_names = X1.columns if column_names is None else column_names
-            X1 = self.preprocessor.transform(X1)
-            X2 = self.preprocessor.transform(X2)
-
-        self.X1, self.column_names = preprocess_data(X1, X_name="X1", column_names=column_names, verbose=self.verbose)
-        self.X2, _ = preprocess_data(X2, X_name="X2", column_names=column_names, verbose=self.verbose)
-
-        # Create binary classification dataset:
-        # - Combine both samples
-        # - Label X1 as class 0, X2 as class 1
-        self.X = pd.DataFrame(pd.concat([self.X1, self.X2], axis=0), columns=self.column_names).reset_index(drop=True)
-        self.y = pd.Series(
-            np.concatenate(
-                [
-                    np.zeros(self.X1.shape[0]),  # Label 0 for all rows from X1
-                    np.ones(self.X2.shape[0]),  # Label 1 for all rows from X2
-                ]
-            )
-        ).reset_index(drop=True)
-
-        # Ensure labels are properly formatted
-        self.y = preprocess_labels(self.y, index=self.X.index)
-
-        # Split data into training and test sets, stratifying by class to maintain class balance
-        self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(
-            self.X,
-            self.y,
-            test_size=X_test_size,
-            random_state=self.random_state,
-            shuffle=True,
-            stratify=self.y,
+        # Prepare data for processing
+        self.data_manager: ImportanceDataManager = ImportanceDataManager(
+            X1=X1, X2=X2, model=self.model, X_test_size=X_test_size, column_names=column_names, class_names=class_names
         )
 
-        # Train the model to distinguish between the two samples
-        self.model.fit(self.X_train, self.y_train)
+        # Fit the estimator
+        self.model.fit(self.data_manager.X_train, self.data_manager.y_train)
+        self.set_fitted()
 
-        self.train_score = np.round(self.scorer.score(self.model, self.X_train, self.y_train), 3)
-        self.test_score = np.round(self.scorer.score(self.model, self.X_test, self.y_test), 3)
+        # Calculate scores
+        self.train_score: float = self.model.score(self.data_manager.X_train, self.data_manager.y_train)
+        self.test_score: float = self.model.score(self.data_manager.X_test, self.data_manager.y_test)
 
-        self.results_text = (
-            f"Train {self.scorer.metric_name}: {self.train_score},\nTest {self.scorer.metric_name}: {self.test_score}."
-        )
         if self.verbose > 0:
-            logger.info(f"Finished model training: \n{self.results_text}")
-
-        # Warn about potential overfitting
-        if self.verbose > 0 and self.train_score > self.test_score:
-            warnings.warn(
-                f"Train {self.scorer.metric_name} > Test {self.scorer.metric_name}, which might indicate "
-                f"overfitting. This could lead to misleading feature importance. "
-                f"Consider adding regularization to the model."
+            results_text = (
+                f"Train {self.model.scoring.metric_name}: {round(self.train_score, 4)},"
+                + f"\nTest {self.model.scoring.metric_name}: {round(self.test_score, 4)}."
             )
 
-        self.is_fitted = True
+            logger.info(f"Finished model training: \n{results_text}")
+
+            # Warn about potential overfitting
+            if self.train_score > self.test_score:
+                warnings.warn(
+                    f"Train {self.model.scoring.metric_name} > Test {self.model.scoring.metric_name}, which might indicate "
+                    f"overfitting. This could lead to misleading feature importance. "
+                    f"Consider adding regularization to the model."
+                )
+
         return self
 
     def compute(self, return_scores: bool = False) -> Union[pd.DataFrame, Tuple[pd.DataFrame, float, float]]:

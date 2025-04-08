@@ -63,11 +63,11 @@ def aggregate_multiclass_shap_values_values(
         raise ValueError(f"Unsupported aggregation method: {aggregation_method}. Use 'mean', 'max_abs' or 'mean_abs'.")
 
 
-def extract_multi_class_shap_parameters(
+# TODO: Remove since its duplicate (update code)
+def extract_shap_parameters(
     shap_kwargs: Dict[str, Any],
-    default_aggregation_method: Optional[Literal["mean", "max_abs", "mean_abs"]] = None,
     verbose: Literal[0, 1, 2] = 0,
-) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+) -> Tuple[Dict[str, Any], Dict[str, Any], Dict[str, Any]]:
     """
     Extract parameters related to multi-class SHAP value conversions from shap_kwargs.
 
@@ -92,30 +92,33 @@ def extract_multi_class_shap_parameters(
             - Second dict: Parameters for SHAP explainer
     """
     # Parameters that are used only for multi-class SHAP value conversion
-    multiclass_params = {
+    default_multi_class_params = {
         "class_selection": None,
         "multiclass_aggregation": None,
         "weights": None,
         "shap_variance_penalty_factor": None,
     }
 
-    # If default aggregation method is provided, use it as the default aggregation method
-    if default_aggregation_method is not None:
-        multiclass_params["multiclass_aggregation"] = default_aggregation_method
-
     # Extract parameters related to multi-class conversion
-    extracted_params = {}
-    filtered_kwargs = shap_kwargs.copy()
+    multi_class_params = {}
+    shap_explanation_kwargs = {}
+    shap_explainer_kwargs = shap_kwargs.copy()
 
-    for param_name in multiclass_params:
-        if param_name in filtered_kwargs:
-            extracted_params[param_name] = filtered_kwargs.pop(param_name)
+    # Multi-class parameters
+    for param_name in default_multi_class_params:
+        if param_name in shap_explainer_kwargs:
+            multi_class_params[param_name] = shap_explainer_kwargs.pop(param_name)
+
+    # SHAP explanation parameters
+    for param_name in shap_explainer_kwargs:
+        if param_name == "approximate":
+            shap_explanation_kwargs[param_name] = shap_explainer_kwargs.pop(param_name)
 
     if verbose > 0:
-        if extracted_params.keys() == multiclass_params.keys():
+        if multi_class_params.keys() == default_multi_class_params.keys():
             warnings.warn(
                 "No multi-class parameters provided. Default values passed to the SHAP explainer.",
                 UserWarning,
             )
 
-    return extracted_params, filtered_kwargs
+    return multi_class_params, shap_explainer_kwargs, shap_explanation_kwargs

@@ -10,7 +10,7 @@ from matplotlib.figure import Figure
 
 from probatus.wrapper import BaseFitComputePlotClass
 from probatus.wrapper._shap import (
-    extract_multi_class_shap_parameters,
+    extract_shap_parameters,
 )
 from probatus.wrapper.estimator import BaseModel
 from probatus.wrapper.data import (
@@ -18,10 +18,14 @@ from probatus.wrapper.data import (
     ModelInterpreterDataManager,
     ModelInterpreterDependenceDataManager,
 )
-from probatus.wrapper.shap import SHAPInstance, SHAPManager
+from probatus.wrapper.shap_new.manager import SHAPManager
+from probatus.wrapper.shap_new.instance import SHAPInstance
 
 
 class ShapDependencePlotter(BaseFitComputePlotClass):
+    # TODO: Remove this class. Extract the plots. Integrate with Interpreter.
+    # By making plots modular we might be able to instantiate them separately
+    # from Probatus main classes.
     """
     Plotter used to plot SHAP dependence plot together with the target rates.
 
@@ -165,7 +169,7 @@ class ShapDependencePlotter(BaseFitComputePlotClass):
         )
 
         # Split arguments for multi-classification
-        multi_class_kwargs, shap_kwargs = extract_multi_class_shap_parameters(shap_kwargs)
+        multi_class_kwargs, shap_kwargs = extract_shap_parameters(shap_kwargs)
 
         # Initialize SHAP manager and instance
         self.shap_manager: SHAPManager = SHAPManager(random_state=self.random_state)
@@ -662,6 +666,7 @@ class ShapDependencePlotter(BaseFitComputePlotClass):
 
 
 class ShapInterpreterDependencePlotter(ShapDependencePlotter):
+    # TODO: This class might in the future be removed.
     def __init__(
         self,
         model: BaseModel,
@@ -690,7 +695,7 @@ class ShapInterpreterDependencePlotter(ShapDependencePlotter):
         self.shap_instance: SHAPInstance = shap_instance
 
         # Get aggregated SHAP values for plotting purposes
-        self.aggregated_shap_values: np.ndarrShaay = self.shap_manager.get_aggregated_values(
+        self.aggregated_shap_values: np.ndarray = self.shap_manager.get_aggregated_values(
             shap_instance=self.shap_instance,
             data_manager=self.data_manager,
             split_selection=split_selection,

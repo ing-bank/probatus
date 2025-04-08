@@ -1,3 +1,4 @@
+from sklearn.pipeline import Pipeline
 from probatus.data_comparison._base import BaseResemblanceModel
 from probatus.wrapper import Scorer
 
@@ -58,7 +59,7 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
 
     def __init__(
         self,
-        model: BaseEstimator,
+        model: Union[BaseEstimator, Pipeline],
         iterations: int = 100,
         scoring: Union[str, Scorer] = "roc_auc",
         test_prc: float = 0.25,
@@ -70,7 +71,7 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
         Initializes the PermutationImportanceResemblance model.
 
         Args:
-            model (BaseEstimator):
+            model (Union[BaseEstimator, Pipeline]):
                 A machine learning classifier used to distinguish between samples.
                 Must implement `fit()` and either `predict()` or `predict_proba()`.
 
@@ -109,23 +110,21 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
             model=model,
             scoring=scoring,
             test_prc=test_prc,
-            n_jobs=n_jobs,
             verbose=verbose,
             random_state=random_state,
         )
-
-        self.iterations = iterations
+        self.n_jobs: int = n_jobs
+        self.iterations: int = iterations
 
         # Initialize dataframe to store iteration results
-        self.iterations_results = pd.DataFrame(
+        self.importance_iterations_df: pd.DataFrame = pd.DataFrame(
             {"feature": pd.Series(dtype="object"), "importance": pd.Series(dtype="float64")}
         )
-        self.iterations_columns = self.iterations_results.columns
 
-        # Set plot labels
-        self.plot_x_label = "Permutation Feature Importance"
-        self.plot_y_label = "Feature Name"
-        self.plot_title = "Permutation Feature Importance of Resemblance Model"
+        # Create report dataframe
+        self.report_df: pd.DataFrame = pd.DataFrame(
+            index=self.column_names, columns=["mean_importance", "std_importance"], dtype=float
+        )
 
     def fit(
         self,
@@ -174,18 +173,14 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
 
         # Calculate permutation importance
         # This measures how model performance decreases when a feature is randomly shuffled
-        permutation_result = permutation_importance(
-            self.model,
-            self.X_test,
-            self.y_test,
+        permutation_result: pd.DataFrame = permutation_importance(
+            self.model.estimator,
+            self.data_manager.X_test,
+            self.data_manager.y_test,
             scoring=self.scorer.scorer,
             n_repeats=self.iterations,
             n_jobs=self.n_jobs,
         )
-
-        # Create report dataframe
-        self.report_columns = ["mean_importance", "std_importance"]
-        self.report_df = pd.DataFrame(index=self.column_names, columns=self.report_columns, dtype=float)
 
         # Process results for each feature
         for feature_index, feature_name in enumerate(self.column_names):
@@ -193,8 +188,9 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
             self.report_df.loc[feature_name, "mean_importance"] = permutation_result["importances_mean"][feature_index]
             self.report_df.loc[feature_name, "std_importance"] = permutation_result["importances_std"][feature_index]
 
-            # Store individual iteration results for visualization
-            feature_iterations = pd.DataFrame(
+            # Set for all iterations for this feature its importance such that we can
+            # calculate the mean and std of the feature importance
+            feature_iterations: pd.DataFrame = pd.DataFrame(
                 {
                     "feature": np.repeat(feature_name, self.iterations),
                     "importance": permutation_result["importances"][feature_index, :].reshape((self.iterations,)),
@@ -203,14 +199,17 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
 
             # Append to overall results
             if not feature_iterations.empty:
-                self.iterations_results = pd.concat([self.iterations_results, feature_iterations])
+                self.importance_iterations_df: pd.DataFrame = pd.concat(
+                    [self.importance_iterations_df, feature_iterations]
+                )
 
         # Sort features by importance (descending)
         self.report_df.sort_values(by="mean_importance", ascending=False, inplace=True)
 
         return self
 
-    def plot(self, top_n: Optional[int] = None, show: bool = False, **plot_kwargs: Any) -> Figure:
+    def plot(self, plot_title: str, top_n: Optional[int] = None, show: bool = False, **plot_kwargs: Any) -> Figure:
+        # TODO: Move to plot class
         """
         Plot feature importance as boxplots showing the distribution of importance values.
 
@@ -221,6 +220,8 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
         - Performance metrics are annotated below the plot
 
         Args:
+            plot_title (str): Title of the plot.
+
             top_n (Optional[int], optional): Number of top features to include in the plot.
                 If None, includes all features.
                 If provided, must be positive and <= number of features.
@@ -277,7 +278,9 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
         # Create boxplots for each feature
         for position, feature in enumerate(sorted_features):
             # Get importance values for this feature
-            feature_values = self.iterations_results[self.iterations_results["feature"] == feature]["importance"]
+            feature_values = self.importance_iterations_df[self.importance_iterations_df["feature"] == feature][
+                "importance"
+            ]
 
             # TODO: Remove this once we drop support for matplotlib < 3.10
             # Create horizontal boxplot
@@ -314,9 +317,7 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
 
         ax.set_yticks(range(len(sorted_features)))
         ax.set_yticklabels(sorted_features)
-        ax.set_xlabel(self.plot_x_label, fontsize=11, fontweight="bold")
-        ax.set_ylabel(self.plot_y_label, fontsize=11, fontweight="bold")
-        ax.set_title(self.plot_title, fontsize=13, fontweight="bold", pad=15)
+        ax.set_title(plot_title, fontsize=13, fontweight="bold", pad=15)
 
         # Add performance metrics annotation
         ax.annotate(
@@ -336,9 +337,6 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
 
         # Adjust figure margins to make room for annotations
         plt.subplots_adjust(bottom=0.2)
-
-        # Adjust layout to make sure everything fits
-        plt.tight_layout()
 
         # Finalize and handle display
         plt.tight_layout()

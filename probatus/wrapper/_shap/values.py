@@ -1,5 +1,5 @@
 from .explanation import calculate_shap_explanation
-from .multiclass import aggregate_multiclass_shap_values_values, extract_multi_class_shap_parameters
+from .multiclass import aggregate_multiclass_shap_values_values, extract_shap_parameters
 
 
 import numpy as np
@@ -193,7 +193,7 @@ def calculate_shap_and_expected_values(
             - Expected value of the explainer
     """
     # Split arguments for multi-classification
-    _, filtered_shap_kwargs = extract_multi_class_shap_parameters(shap_kwargs)
+    _, filtered_shap_kwargs = extract_shap_parameters(shap_kwargs)
 
     # Calculate SHAP values for validation set
     shap_explanation, shap_explainer = calculate_shap_explanation(
