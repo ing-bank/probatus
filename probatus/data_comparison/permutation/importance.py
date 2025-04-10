@@ -109,7 +109,6 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
         super().__init__(
             model=model,
             scoring=scoring,
-            test_prc=test_prc,
             verbose=verbose,
             random_state=random_state,
         )
@@ -123,7 +122,7 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
 
         # Create report dataframe
         self.report_df: pd.DataFrame = pd.DataFrame(
-            index=self.column_names, columns=["mean_importance", "std_importance"], dtype=float
+            index=self.data_manager.column_names, columns=["mean_importance", "std_importance"], dtype=float
         )
 
     def fit(
@@ -177,13 +176,13 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
             self.model.estimator,
             self.data_manager.X_test,
             self.data_manager.y_test,
-            scoring=self.scorer.scorer,
+            scoring=self.model.scorer,
             n_repeats=self.iterations,
             n_jobs=self.n_jobs,
         )
 
         # Process results for each feature
-        for feature_index, feature_name in enumerate(self.column_names):
+        for feature_index, feature_name in enumerate(self.data_manager.column_names):
             # Store summary statistics
             self.report_df.loc[feature_name, "mean_importance"] = permutation_result["importances_mean"][feature_index]
             self.report_df.loc[feature_name, "std_importance"] = permutation_result["importances_std"][feature_index]
@@ -247,7 +246,7 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
             ValueError: If top_n is provided but not positive.
             ValueError: If top_n is larger than the number of features.
         """
-        self.check_if_fitted()
+        self.check_if_computed()
 
         # Setup plotting environment
         was_interactive = plt.isinteractive()

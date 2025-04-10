@@ -1,11 +1,17 @@
 from typing import Any, Dict, List, Optional, Union, Literal
 
 from matplotlib import pyplot as plt
-from probatus._visualization._base_plot import BasePlot
+from probatus._common.parameters import extract_parameters
+from probatus._visualization._base_plot import BasePlot, DEFAULT_BASE_PLOT_PARAMS, DEFAULT_BASE_AGGREGATION_PARAMS
 from probatus._visualization.enum import PlotTypeEnum
 from probatus.wrapper.data import BaseDataManager
 from probatus.wrapper.estimator import BaseModel
 from probatus.wrapper.shap_new.instance import SHAPInstance
+import pandas as pd
+
+DEFAULT_PERMUTATION_PLOT_PARAMS: dict = {
+    "top_n": 10,
+}
 
 
 class PermutationPlot(BasePlot):
@@ -21,30 +27,51 @@ class PermutationPlot(BasePlot):
 
     def plot(
         self,
-        shap_instance: SHAPInstance,
         plot_type: PlotTypeEnum,
         split_selection: Literal["full", "train", "test"] = "test",
-        class_selection: Optional[Any] = None,
-        weights: Optional[Dict[Any, float]] = None,
-        multi_class_aggregation: Optional[Literal["max_abs", "mean", "mean_abs"]] = None,
-        shap_variance_penalty_factor: Union[int, float] = 0,
+        feature_report: pd.DataFrame = pd.DataFrame(),
+        importance_iterations_df: pd.DataFrame = pd.DataFrame(),
         show: bool = False,
         **kwargs,
     ) -> plt.Figure | List[plt.Figure]:
         # TODO: Perhaps distinguish between different type of available kwargs per step
+        # Filter out various kwargs properties
+        kwargs, plot_params, aggregation_params, permutation_params = extract_parameters(
+            kwargs=kwargs,
+            default_kwarg_dicts=[
+                DEFAULT_BASE_PLOT_PARAMS,
+                DEFAULT_BASE_AGGREGATION_PARAMS,
+                DEFAULT_PERMUTATION_PLOT_PARAMS,
+            ],
+        )
 
-        # Prepare data for plotting
-        was_interactive = self._prepare_environment()
-        # Prepare styling
+        #
+
+        # Prepare environment for plotting
+        was_interactive = self._init_environment()
+
+        # Prepare data
+        self._prepare_data(feature_report=feature_report, top_n=top_n)
+
         # Create plot
-        # Show plot (or not)
-        self._restore_environment(was_interactive)
+        self._create_plot()
+
+        # Apply styling
+        self._apply_styling()
+
+        # Show plot (or not) # TODO: pass fig
+        self._restore_environment(was_interactive=was_interactive, fig=None)
 
         # Return plot
         pass
 
-    def _prepare_data(self):
-        pass
+    def _prepare_data(self, feature_report: pd.DataFrame, top_n: Optional[int] = None):
+        sorted_features = feature_report["mean_importance"].sort_values(ascending=True).index.values
+
+        if top_n is not None and top_n > 0:
+            sorted_features = sorted_features[-top_n:]
+
+        return sorted_features
 
     def _create_plot(self):
         pass

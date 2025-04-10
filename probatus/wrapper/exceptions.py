@@ -18,3 +18,25 @@ class NotFittedError(Exception):
         self.message = message
 
         super().__init__(message)
+
+
+class NotComputedError(Exception):
+    """
+    Exception raised when a method is called on an estimator that has not been computed yet.
+
+    This error is typically raised when a method that requires a computed model results
+    (such as report dataframe, ...) is called before the fit method.
+    """
+
+    def __init__(self, message: str) -> None:
+        """
+        Initialize the NotComputedError with a descriptive message.
+
+        Args:
+            message (str):
+                A descriptive error message explaining which estimator or method
+                was called before computed.
+        """
+        self.message = message
+
+        super().__init__(message)

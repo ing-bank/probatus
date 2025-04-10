@@ -2,6 +2,7 @@ import warnings
 from typing import Any, Dict, Literal, Tuple
 
 
+# TODO: Replace by the new one in common
 def extract_shap_parameters(
     shap_kwargs: Dict[str, Any],
     verbose: Literal[0, 1, 2] = 0,

@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Any
 
-from probatus.wrapper.exceptions import NotFittedError
+from probatus.wrapper.exceptions import NotFittedError, NotComputedError
 
 
 class BaseFitClass(ABC):
@@ -46,6 +46,9 @@ class BaseFitComputeClass(BaseFitClass):
 
     All subclasses must implement these three methods.
     """
+
+    # Flag to track if the instance has been computed
+    is_computed: bool = False
 
     @abstractmethod
     def fit(self, *args: Any, **kwargs: Any) -> "BaseFitComputeClass":
@@ -102,6 +105,29 @@ class BaseFitComputeClass(BaseFitClass):
             Any: The computed results.
         """
         pass
+
+    def check_if_computed(self) -> None:
+        """
+        Checks if the object has been computed.
+
+        Raises:
+            NotComputedError: If the object has not been computed yet.
+        """
+        if not self.is_computed:
+            raise NotComputedError("This estimator is not computed yet. Call 'compute' before using this method.")
+
+    def set_computed(self) -> None:
+        """
+        Set the computed flag to True.
+        """
+        self.check_if_fitted()
+        self.is_computed = True
+
+    def set_not_computed(self) -> None:
+        """
+        Set the computed flag to False.
+        """
+        self.is_computed = False
 
 
 class BaseFitComputePlotClass(BaseFitComputeClass):

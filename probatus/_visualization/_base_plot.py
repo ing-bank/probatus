@@ -7,6 +7,19 @@ from probatus._visualization.enum import PlotTypeEnum
 from probatus.wrapper.data import BaseDataManager
 from probatus.wrapper.estimator import BaseModel
 from probatus.wrapper.shap_new.instance import SHAPInstance
+from probatus.wrapper.shap_new.manager import SHAPManager
+
+DEFAULT_BASE_PLOT_PARAMS: dict = {
+    "plot_title": None,
+    "figsize": None,
+}
+
+DEFAULT_BASE_AGGREGATION_PARAMS: dict = {
+    "class_selection": None,
+    "weights": None,
+    "multi_class_aggregation": None,
+    "shap_variance_penalty_factor": 0,
+}
 
 
 class BasePlot(ABC):
@@ -14,58 +27,62 @@ class BasePlot(ABC):
         self,
         model: BaseModel,
         data_manager: BaseDataManager,
+        shap_manager: SHAPManager,
         show: bool = False,
         **kwargs,
     ):
         # TODO: Perhaps distinguish between different type of available kwargs per step
         self.model = model
         self.data_manager = data_manager
+        self.shap_manager = shap_manager
         self.show = show
         self.kwargs = kwargs
 
     @abstractmethod
     def plot(
         self,
-        shap_instance: SHAPInstance,
         plot_type: PlotTypeEnum,
         split_selection: Literal["full", "train", "test"] = "test",
-        class_selection: Optional[Any] = None,
-        weights: Optional[Dict[Any, float]] = None,
-        multi_class_aggregation: Optional[Literal["max_abs", "mean", "mean_abs"]] = None,
-        shap_variance_penalty_factor: Union[int, float] = 0,
         show: bool = False,
         **kwargs,
     ) -> plt.Figure | List[plt.Figure]:
-        # TODO: Perhaps distinguish between different type of available kwargs per step
+        # Load right SHAP data
+
+        # verify all params required are given
 
         # Prepare data for plotting
+
         # Prepare styling
+
         # Create plot
+
         # Show plot (or not)
+
         # Return plot
         pass
 
-    def _prepare_environment(self) -> bool:
-        # Setup plotting environment
+    def _init_environment(self) -> bool:
+        # Setup plotting environment & prevent always showing figure
+        # so that it should only be shown when requested.
         was_interactive = plt.isinteractive()
         plt.ioff()
 
         return was_interactive
 
     @abstractmethod
-    def _prepare_data(self):
+    def _prepare_data(self, *args: Any):
         pass
 
     @abstractmethod
-    def _create_plot(self):
+    def _create_plot(self, *args: Any):
         pass
 
     @abstractmethod
-    def _apply_styling(self):
+    def _apply_styling(self, *args: Any):
         pass
 
     @abstractmethod
-    def _create_labels(self):
+    def _create_labels(self, *args: Any):
         pass
 
     def _restore_environment(self, was_interactive: bool, fig: plt.Figure) -> None:
@@ -76,6 +93,6 @@ class BasePlot(ABC):
         else:
             plt.close(fig)
 
-        # Restore interactive state
+        # Restore previous plotting and environment showing figure settings.
         if was_interactive:
             plt.ion()

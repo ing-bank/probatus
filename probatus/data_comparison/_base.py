@@ -138,13 +138,13 @@ class BaseResemblanceModel(BaseFitComputePlotClass):
         self.set_fitted()
 
         # Calculate scores
-        self.train_score: float = self.model.score(self.data_manager.X_train, self.data_manager.y_train)
-        self.test_score: float = self.model.score(self.data_manager.X_test, self.data_manager.y_test)
+        self.train_score: float = self.model.scorer.score(self.data_manager.X_train, self.data_manager.y_train)
+        self.test_score: float = self.model.scorer.score(self.data_manager.X_test, self.data_manager.y_test)
 
         if self.verbose > 0:
             results_text = (
-                f"Train {self.model.scoring.metric_name}: {round(self.train_score, 4)},"
-                + f"\nTest {self.model.scoring.metric_name}: {round(self.test_score, 4)}."
+                f"Train {self.model.scorer.scoring.metric_name}: {round(self.train_score, 4)},"
+                + f"\nTest {self.model.scorer.scoring.metric_name}: {round(self.test_score, 4)}."
             )
 
             logger.info(f"Finished model training: \n{results_text}")
@@ -152,7 +152,7 @@ class BaseResemblanceModel(BaseFitComputePlotClass):
             # Warn about potential overfitting
             if self.train_score > self.test_score:
                 warnings.warn(
-                    f"Train {self.model.scoring.metric_name} > Test {self.model.scoring.metric_name}, which might indicate "
+                    f"Train {self.model.scorer.scoring.metric_name} > Test {self.model.scorer.scoring.metric_name}, which might indicate "
                     f"overfitting. This could lead to misleading feature importance. "
                     f"Consider adding regularization to the model."
                 )
