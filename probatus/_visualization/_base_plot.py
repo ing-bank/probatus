@@ -1,14 +1,15 @@
-from typing import Any, Dict, List, Optional, Union, Literal
+from abc import ABC, abstractmethod
+from typing import Any, Dict, Literal, Optional, Union, List
 
 from matplotlib import pyplot as plt
-from probatus._visualization._base_plot import BasePlot
+
 from probatus._visualization.enum import PlotTypeEnum
 from probatus.wrapper.data import BaseDataManager
 from probatus.wrapper.estimator import BaseModel
 from probatus.wrapper.shap_new.instance import SHAPInstance
 
 
-class PermutationPlot(BasePlot):
+class BasePlot(ABC):
     def __init__(
         self,
         model: BaseModel,
@@ -16,9 +17,13 @@ class PermutationPlot(BasePlot):
         show: bool = False,
         **kwargs,
     ):
-        # Add some specific kwargs for permutation plots
-        super().__init__(model, data_manager, show, **kwargs)
+        # TODO: Perhaps distinguish between different type of available kwargs per step
+        self.model = model
+        self.data_manager = data_manager
+        self.show = show
+        self.kwargs = kwargs
 
+    @abstractmethod
     def plot(
         self,
         shap_instance: SHAPInstance,
@@ -34,23 +39,43 @@ class PermutationPlot(BasePlot):
         # TODO: Perhaps distinguish between different type of available kwargs per step
 
         # Prepare data for plotting
-        was_interactive = self._prepare_environment()
         # Prepare styling
         # Create plot
         # Show plot (or not)
-        self._restore_environment(was_interactive)
-
         # Return plot
         pass
 
+    def _prepare_environment(self) -> bool:
+        # Setup plotting environment
+        was_interactive = plt.isinteractive()
+        plt.ioff()
+
+        return was_interactive
+
+    @abstractmethod
     def _prepare_data(self):
         pass
 
+    @abstractmethod
     def _create_plot(self):
         pass
 
+    @abstractmethod
     def _apply_styling(self):
         pass
 
+    @abstractmethod
     def _create_labels(self):
         pass
+
+    def _restore_environment(self, was_interactive: bool, fig: plt.Figure) -> None:
+        # Finalize and handle display
+        plt.tight_layout()
+        if self.show:
+            plt.show(block=False)
+        else:
+            plt.close(fig)
+
+        # Restore interactive state
+        if was_interactive:
+            plt.ion()
