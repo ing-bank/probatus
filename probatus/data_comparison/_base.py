@@ -138,19 +138,19 @@ class BaseResemblanceModel(BaseFitComputePlotClass):
         self.set_fitted()
 
         # Calculate scores
-        self.train_score: float = self.model.scorer.score(self.data_manager.X_train, self.data_manager.y_train)
-        self.test_score: float = self.model.scorer.score(self.data_manager.X_test, self.data_manager.y_test)
+        self.model.train_score = self.model.scorer.score(self.data_manager.X_train, self.data_manager.y_train)
+        self.model.test_score = self.model.scorer.score(self.data_manager.X_test, self.data_manager.y_test)
 
         if self.verbose > 0:
             results_text = (
-                f"Train {self.model.scorer.scoring.metric_name}: {round(self.train_score, 4)},"
-                + f"\nTest {self.model.scorer.scoring.metric_name}: {round(self.test_score, 4)}."
+                f"Train {self.model.scorer.scoring.metric_name}: {round(self.model.train_score, 4)},"
+                + f"\nTest {self.model.scorer.scoring.metric_name}: {round(self.model.test_score, 4)}."
             )
 
             logger.info(f"Finished model training: \n{results_text}")
 
             # Warn about potential overfitting
-            if self.train_score > self.test_score:
+            if self.model.train_score > self.model.test_score:
                 warnings.warn(
                     f"Train {self.model.scorer.scoring.metric_name} > Test {self.model.scorer.scoring.metric_name}, which might indicate "
                     f"overfitting. This could lead to misleading feature importance. "
@@ -187,7 +187,7 @@ class BaseResemblanceModel(BaseFitComputePlotClass):
         self.check_if_fitted()
 
         if return_scores:
-            return self.report_df, cast(float, self.train_score), cast(float, self.test_score)
+            return self.report_df, cast(float, self.model.train_score), cast(float, self.model.test_score)
         else:
             return self.report_df
 

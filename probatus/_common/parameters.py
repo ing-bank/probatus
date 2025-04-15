@@ -1,28 +1,26 @@
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, List
+import inspect
+from typing import get_origin, get_args, Union
 
 
 def extract_parameters(
     kwargs: Dict[str, Any],
     default_kwarg_dicts: list[Dict[str, Any]],
-) -> Tuple[Dict[str, Any], Dict[str, Any], Dict[str, Any]]:
+) -> List[Dict[str, Any]]:
+    # TODO: Remove this function
     """
-    Extract parameters related to multi-class SHAP value conversions from plot_kwargs.
-
-    This helper function separates parameters that are passed to the SHAP explainer
-    from parameters that control multi-class SHAP value conversion.
+    Extract parameters
 
     Args:
-        plot_kwargs (Dict[str, Any]):
-            Dictionary of keyword arguments for SHAP and multi-class processing.
+        kwargs (Dict[str, Any]):
+            Dictionary of keyword arguments.
 
-        default_aggregation_method (Optional[Literal["mean", "max_abs", "mean_abs"]], optional):
-            Default aggregation method to use if not specified in plot_kwargs.
-            Default is None (no default aggregation method).
+        default_kwarg_dicts (List[Dict[str, Any]]):
+            List of dictionaries with default parameters.
 
     Returns:
-        Tuple[Dict[str, Any], Dict[str, Any]]:
-            - First dict: Parameters for multi-class SHAP values conversion
-            - Second dict: Parameters for SHAP explainer
+        List[Dict[str, Any]]:
+            List of dictionaries with parameters.
     """
     dict_list = []
 
@@ -38,3 +36,28 @@ def extract_parameters(
         dict_list.append(temp_dict)
 
     return kwargs, *dict_list
+
+
+def get_valid_kwargs(func, kwargs):
+    sig = inspect.signature(func)
+    valid_kwargs = {}
+    for name, value in kwargs.items():
+        if name in sig.parameters and value is not None:
+            param = sig.parameters[name]
+            if _type_matches(value, param.annotation):
+                valid_kwargs[name] = value
+            else:
+                raise ValueError(f"Invalid type for parameter {name}: {type(value)}")
+
+    return valid_kwargs
+
+
+def _type_matches(value, annotation):
+    # No type defined, so assume valid.
+    if annotation is inspect.Parameter.empty:
+        return True
+    # Handle Union types (including Optional)
+    if get_origin(annotation) is Union:
+        return any(isinstance(value, arg) for arg in get_args(annotation))
+    # Regular type checking.
+    return isinstance(value, annotation)

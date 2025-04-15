@@ -246,14 +246,13 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
             ValueError: If top_n is provided but not positive.
             ValueError: If top_n is larger than the number of features.
         """
-        self.check_if_computed()
+        self.check_if_fitted()
 
         # Setup plotting environment
         was_interactive = plt.isinteractive()
         plt.ioff()
 
-        feature_report: pd.DataFrame = self.compute(return_scores=False)
-        sorted_features = feature_report["mean_importance"].sort_values(ascending=True).index.values
+        sorted_features = self.report_df["mean_importance"].sort_values(ascending=True).index.values
 
         if top_n is not None and top_n > 0:
             sorted_features = sorted_features[-top_n:]
