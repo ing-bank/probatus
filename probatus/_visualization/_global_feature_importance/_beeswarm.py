@@ -50,7 +50,7 @@ class BeeswarmPlot(SHAPGlobalPlot):
 
     def _init_parameters(self, model: BaseModel, shap_instance: SHAPInstance, show: bool, **kwargs):
         # Init parameters
-        kwargs = kwargs | DEFAULT_BASE_PARAMS | DEFAULT_SHAP_GLOBAL_PARAMS | DEFAULT_SHAP_BEE_SWARM_PARAMS
+        kwargs = DEFAULT_BASE_PARAMS | DEFAULT_SHAP_GLOBAL_PARAMS | DEFAULT_SHAP_BEE_SWARM_PARAMS | kwargs
         plot_kwargs = DEFAULT_BASE_PLOT_PARAMS
 
         # Add some specific kwargs for permutation plots
@@ -59,48 +59,3 @@ class BeeswarmPlot(SHAPGlobalPlot):
 
         # Verify the parameters
         self._verify_parameters()
-
-    def _verify_parameters(self):
-        # TODO: Duplicate with BarPlot
-        # Verify the cohort parameter
-        if self.kwargs["cohort"] is not None:
-            if not isinstance(self.kwargs["cohort"], int):
-                raise TypeError(f"Cohort must be an integer, got {type(self.kwargs['cohort'])}")
-
-            elif self.kwargs["order"] not in ["abs_mean", "abs_max"]:
-                raise ValueError(f"Invalid order: {self.kwargs['order']}")
-
-            elif self.kwargs["order"] == "abs_mean":
-                self.kwargs["cohort_aggregation"] = self.shap_instance.explanation.cohorts(
-                    self.kwargs["cohort"]
-                ).abs.mean(0)
-
-            elif self.kwargs["order"] == "abs_max":
-                self.kwargs["cohort_aggregation"] = self.shap_instance.explanation.cohorts(
-                    self.kwargs["cohort"]
-                ).abs.max(0)
-
-        # Verify the order parameter
-        if self.kwargs["order"] is not None:
-
-            if self.kwargs["order"] not in ["abs_mean", "abs_max"]:
-                raise ValueError(f"Invalid order: {self.kwargs['order']}")
-
-            elif self.kwargs["order"] == "abs_mean":
-                self.kwargs["order"] = self.shap_instance.explanation.abs.mean(0)
-
-            elif self.kwargs["order"] == "abs_max":
-                self.kwargs["order"] = self.shap_instance.explanation.abs.max(0)
-
-        # Verify the sample_index parameter
-        if self.kwargs["sample_index"] is not None:
-            if not isinstance(self.kwargs["sample_index"], int):
-                raise TypeError(f"Sample index must be an integer, got {type(self.kwargs['sample_index'])}")
-
-            elif (
-                self.kwargs["sample_index"] < 0
-                or self.kwargs["sample_index"] >= self.shap_instance.explanation.data.shape[0]
-            ):
-                raise ValueError(
-                    f"Sample index must be between 0 and {self.shap_instance.explanation.data.shape[0] - 1}, got {self.kwargs['sample_index']}"
-                )

@@ -4,13 +4,13 @@ from probatus._visualization._base_plot import BasePlot
 from probatus.wrapper.estimator import BaseModel, BaseScoringModel
 from probatus.wrapper.shap_new.instance import SHAPInstance
 
-DEFAULT_SHAP_GLOBAL_PARAMS: dict = {
+DEFAULT_SHAP_LOCAL_PARAMS: dict = {
     "max_display": 10,
-    "plot_title": "SHAP Global Feature Importance",
+    "plot_title": "SHAP Sample Feature Explanation",
 }
 
 
-class SHAPGlobalPlot(BasePlot):
+class SHAPLocalPlot(BasePlot):
     def __init__(
         self,
         model: Union[BaseModel, BaseScoringModel],
@@ -79,47 +79,3 @@ class SHAPGlobalPlot(BasePlot):
             f"Train {self.model.scorer.scoring.metric_name}: {round(self.model.train_score, 4)},"
             + f"\nTest {self.model.scorer.scoring.metric_name}: {round(self.model.test_score, 4)}."
         )
-
-    def _verify_parameters(self):
-        # Verify the cohort parameter
-        if self.kwargs["cohort"] is not None:
-            if not isinstance(self.kwargs["cohort"], int):
-                raise TypeError(f"Cohort must be an integer, got {type(self.kwargs['cohort'])}")
-
-            elif self.kwargs["order"] not in ["abs_mean", "abs_max"]:
-                raise ValueError(f"Invalid order: {self.kwargs['order']}")
-
-            elif self.kwargs["order"] == "abs_mean":
-                self.kwargs["cohort_aggregation"] = self.shap_instance.explanation.cohorts(
-                    self.kwargs["cohort"]
-                ).abs.mean(0)
-
-            elif self.kwargs["order"] == "abs_max":
-                self.kwargs["cohort_aggregation"] = self.shap_instance.explanation.cohorts(
-                    self.kwargs["cohort"]
-                ).abs.max(0)
-
-        # Verify the order parameter
-        if self.kwargs["order"] is not None:
-
-            if self.kwargs["order"] not in ["abs_mean", "abs_max"]:
-                raise ValueError(f"Invalid order: {self.kwargs['order']}")
-
-            elif self.kwargs["order"] == "abs_mean":
-                self.kwargs["order"] = self.shap_instance.explanation.abs.mean(0)
-
-            elif self.kwargs["order"] == "abs_max":
-                self.kwargs["order"] = self.shap_instance.explanation.abs.max(0)
-
-        # Verify the sample_index parameter
-        if self.kwargs["sample_index"] is not None:
-            if not isinstance(self.kwargs["sample_index"], int):
-                raise TypeError(f"Sample index must be an integer, got {type(self.kwargs['sample_index'])}")
-
-            elif (
-                self.kwargs["sample_index"] < 0
-                or self.kwargs["sample_index"] >= self.shap_instance.explanation.data.shape[0]
-            ):
-                raise ValueError(
-                    f"Sample index must be between 0 and {self.shap_instance.explanation.data.shape[0] - 1}, got {self.kwargs['sample_index']}"
-                )

@@ -4,9 +4,9 @@ from probatus._visualization._base_plot import BasePlot, DEFAULT_BASE_PLOT_PARAM
 from probatus.wrapper.estimator import BaseModel, BaseScoringModel
 from probatus.wrapper.shap_new.instance import SHAPInstance
 
-DEFAULT_SHAP_GLOBAL_PARAMS: dict = {
+DEFAULT_SHAP_INTERACTIONS_PARAMS: dict = {
     "max_display": 10,
-    "plot_title": "SHAP Global Feature Importance",
+    "plot_title": "SHAP Feature Interactions",
 }
 
 
@@ -25,7 +25,7 @@ class SHAPInteractionsPlot(BasePlot):
         was_interactive = self._init_environment()
 
         # Create plot
-        fig = self._create_plot(shap_instance)
+        fig = self._create_plot()
 
         # Apply styling
         self._apply_styling(fig)
@@ -38,7 +38,7 @@ class SHAPInteractionsPlot(BasePlot):
 
     def _init_parameters(self, model: BaseModel, shap_instance: SHAPInstance, show: bool, **kwargs):
         # Init parameters
-        kwargs = kwargs | DEFAULT_BASE_PARAMS | DEFAULT_SHAP_GLOBAL_PARAMS
+        kwargs = DEFAULT_BASE_PARAMS | DEFAULT_SHAP_INTERACTIONS_PARAMS | kwargs
         plot_kwargs = DEFAULT_BASE_PLOT_PARAMS
 
         # Add some specific kwargs for permutation plots

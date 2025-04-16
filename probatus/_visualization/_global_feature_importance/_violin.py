@@ -34,7 +34,7 @@ class ViolinPlot(SHAPGlobalPlot):
 
     def _init_parameters(self, model: BaseModel, shap_instance: SHAPInstance, show: bool, **kwargs):
         # Init parameters
-        kwargs = kwargs | DEFAULT_BASE_PARAMS | DEFAULT_SHAP_GLOBAL_PARAMS | DEFAULT_SHAP_VIOLIN_PARAMS
+        kwargs = DEFAULT_BASE_PARAMS | DEFAULT_SHAP_GLOBAL_PARAMS | DEFAULT_SHAP_VIOLIN_PARAMS | kwargs
         plot_kwargs = DEFAULT_BASE_PLOT_PARAMS
 
         # Add some specific kwargs for permutation plots

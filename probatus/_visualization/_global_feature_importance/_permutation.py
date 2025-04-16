@@ -47,7 +47,7 @@ class PermutationPlot(BasePlot):
 
     def _init_parameters(self, model: BaseModel, show: bool, **kwargs):
         # Init parameters
-        kwargs = kwargs | DEFAULT_BASE_PARAMS | DEFAULT_PERMUTATION_PARAMS
+        kwargs = DEFAULT_BASE_PARAMS | DEFAULT_PERMUTATION_PARAMS | kwargs
         plot_kwargs = DEFAULT_BASE_PLOT_PARAMS
 
         # Add some specific kwargs for permutation plots
