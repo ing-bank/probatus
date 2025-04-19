@@ -252,6 +252,7 @@ class ShapRFECV(BaseFitComputePlotClass):
         sample_weight=None,
         columns_to_keep=None,
         column_names=None,
+        groups=None,
         shap_variance_penalty_factor=None,
         **shap_kwargs,
     ):
@@ -314,6 +315,7 @@ class ShapRFECV(BaseFitComputePlotClass):
             sample_weight=sample_weight,
             columns_to_keep=columns_to_keep,
             column_names=column_names,
+            groups=groups,
             shap_variance_penalty_factor=shap_variance_penalty_factor,
             **shap_kwargs,
         )
@@ -452,7 +454,7 @@ class ShapRFECV(BaseFitComputePlotClass):
 
             # Optimize parameters
             if self.search_model:
-                current_search_model = clone(self.model).fit(current_X, self.y)
+                current_search_model = clone(self.model).fit(X=current_X, y=self.y, groups=groups)
                 current_model = current_search_model.estimator.set_params(**current_search_model.best_params_)
             else:
                 current_model = clone(self.model)
