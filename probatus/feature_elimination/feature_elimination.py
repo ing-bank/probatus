@@ -919,20 +919,24 @@ class ShapRFECV(BaseFitComputePlotClass):
 
         elif best_method == "best_coherent":
             # Selects within a threshold but prioritizes lower standard deviation
-            highest_score = shap_report["val_metric_mean"].max()
+            index_highest_score = shap_report["val_metric_mean"].idxmax()
+            highest_score = shap_report.loc[index_highest_score, "val_metric_mean"]
+            highest_score_std = shap_report.loc[index_highest_score, "val_metric_std"]
             within_threshold = shap_report[
                 shap_report["val_metric_mean"]
-                >= highest_score - standard_error_threshold * shap_report["val_metric_std"]
+                >= highest_score - standard_error_threshold * highest_score_std
             ]
             lowest_std_index = within_threshold["val_metric_std"].idxmin()
             best_num_features = within_threshold.loc[lowest_std_index, "num_features"]
 
         elif best_method == "best_parsimonious":
             # Selects the fewest number of features within the threshold of the highest score
-            highest_score = shap_report["val_metric_mean"].max()
+            index_highest_score = shap_report["val_metric_mean"].idxmax()
+            highest_score = shap_report.loc[index_highest_score, "val_metric_mean"]
+            highest_score_std = shap_report.loc[index_highest_score, "val_metric_std"]
             within_threshold = shap_report[
                 shap_report["val_metric_mean"]
-                >= highest_score - standard_error_threshold * shap_report["val_metric_std"]
+                >= (highest_score - standard_error_threshold * highest_score_std)
             ]
             fewest_features_index = within_threshold["num_features"].idxmin()
             best_num_features = within_threshold.loc[fewest_features_index, "num_features"]
