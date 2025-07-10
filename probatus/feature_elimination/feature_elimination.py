@@ -249,6 +249,8 @@ class ShapRFECV(BaseFitComputePlotClass):
         self,
         X,
         y,
+        X_test=None,
+        y_test=None,
         sample_weight=None,
         columns_to_keep=None,
         column_names=None,
@@ -312,6 +314,8 @@ class ShapRFECV(BaseFitComputePlotClass):
         self.fit(
             X,
             y,
+            X_test=X_test,
+            y_test=y_test,
             sample_weight=sample_weight,
             columns_to_keep=columns_to_keep,
             column_names=column_names,
@@ -325,6 +329,8 @@ class ShapRFECV(BaseFitComputePlotClass):
         self,
         X,
         y,
+        X_test=None,
+        y_test=None,
         sample_weight=None,
         columns_to_keep=None,
         column_names=None,
@@ -408,6 +414,9 @@ class ShapRFECV(BaseFitComputePlotClass):
             and (self.min_features_to_select + len_columns_to_keep) > len(self.column_names)
         ):
             raise ValueError("Minimum features to select plus columns_to_keep exceeds total number of features.")
+        
+        if (X_test is None) != (y_test is None):
+            raise ValueError("both X_test and y_test have to be given or none of them")
 
         # Check shap_variance_penalty_factor has acceptable value
         if isinstance(shap_variance_penalty_factor, (float, int)) and shap_variance_penalty_factor >= 0:
@@ -420,6 +429,7 @@ class ShapRFECV(BaseFitComputePlotClass):
             _shap_variance_penalty_factor = 0
 
         self.X, self.column_names = preprocess_data(X, X_name="X", column_names=column_names, verbose=self.verbose)
+        
         self.y = preprocess_labels(y, y_name="y", index=self.X.index, verbose=self.verbose)
         if sample_weight is not None:
             if self.verbose > 0:
@@ -427,7 +437,15 @@ class ShapRFECV(BaseFitComputePlotClass):
                     "sample_weight is passed only to the fit method of the model, not the evaluation metrics."
                 )
             sample_weight = assure_pandas_series(sample_weight, index=self.X.index)
-        self.cv = check_cv(self.cv, self.y, classifier=is_classifier(self.model))
+
+        if X_test is not None:
+            X_test, column_names_test = preprocess_data(X_test, X_name="X_test", column_names=column_names, verbose=self.verbose)
+
+            if set(self.column_names) != set(column_names_test):
+                raise ValueError("available columns of X and X_test differ")
+            y_test = preprocess_labels(y_test, y_name="y_test", index=X_test.index, verbose=self.verbose)
+
+        self.cv = self._check_cv(self.X, self.y, X_test=X_test, y_test=y_test)
 
         remaining_features = current_features_set = self.column_names
         round_number = 0
@@ -452,12 +470,23 @@ class ShapRFECV(BaseFitComputePlotClass):
             # Current dataset
             current_X = self.X[remaining_removeable_features]
 
+            current_X_test = self.X[remaining_removeable_features] if X_test is None else X_test[remaining_removeable_features]
+
             # Optimize parameters
             if self.search_model:
                 current_search_model = clone(self.model).fit(X=current_X, y=self.y, groups=groups)
                 current_model = current_search_model.estimator.set_params(**current_search_model.best_params_)
             else:
                 current_model = clone(self.model)
+
+
+            index_it = self._get_index_it(
+                groups, 
+                current_X, 
+                self.y, 
+                current_X_test=current_X_test, 
+                y_test=y_test
+            )
 
             # Early stopping enabled (or not)
             if not (self.early_stopping_rounds and self.eval_metric):
@@ -466,13 +495,15 @@ class ShapRFECV(BaseFitComputePlotClass):
                     delayed(self._get_feature_shap_values_per_fold)(
                         X=current_X,
                         y=self.y,
+                        X_test=current_X_test,
+                        y_test=self.y if y_test is None else y_test,
                         model=current_model,
                         train_index=train_index,
                         val_index=val_index,
                         sample_weight=sample_weight,
                         **shap_kwargs,
                     )
-                    for train_index, val_index in self.cv.split(current_X, self.y, groups)
+                    for train_index, val_index in index_it
                 )
             else:
                 # Perform CV to estimate feature importance with SHAP
@@ -486,7 +517,7 @@ class ShapRFECV(BaseFitComputePlotClass):
                         sample_weight=sample_weight,
                         **shap_kwargs,
                     )
-                    for train_index, val_index in self.cv.split(current_X, self.y, groups)
+                    for train_index, val_index in index_it
                 )
 
             if self.y.nunique() == 2 or is_regressor(current_model):
@@ -529,6 +560,31 @@ class ShapRFECV(BaseFitComputePlotClass):
                 )
         self.fitted = True
         return self
+
+    def _check_cv(self, X, y, X_test=None, y_test=None):
+        return check_cv(self.cv, self.y, classifier=is_classifier(self.model))
+        
+
+    def _get_index_it(self, groups, current_X, y, current_X_test=None, y_test=None):
+        assert self.cv is not None
+        if current_X_test is None or y_test is None:
+            # no separate test data set given - use the regular splits
+            return self.cv.split(current_X, y, groups)
+        
+        if groups is not None:
+            raise ValueError("groups are not supported wiht seperate test set")
+
+        # separate dataset: use two splits, one for the train set, one for the test
+        # set and merge them together.
+        train_split = self.cv.split(current_X, y, groups=None)
+        test_split = self.cv.split(current_X_test, y_test, groups=None)
+
+        def it():
+            for (i_train, i_val), (i_train_test, i_val_test) in zip(train_split, test_split):
+                yield i_train, i_train_test
+        return it()
+        
+
 
     def plot(self, show=True, **figure_kwargs):
         """
@@ -736,6 +792,8 @@ class ShapRFECV(BaseFitComputePlotClass):
         self,
         X,
         y,
+        X_test,
+        y_test,
         model,
         train_index,
         val_index,
@@ -778,8 +836,8 @@ class ShapRFECV(BaseFitComputePlotClass):
             (np.array, float, float):
                 Tuple with the results: Shap Values on validation fold, train score, validation score.
         """
-        X_train, X_val = X.iloc[train_index, :], X.iloc[val_index, :]
-        y_train, y_val = y.iloc[train_index], y.iloc[val_index]
+        X_train, X_val = X.iloc[train_index, :], X_test.iloc[val_index, :]
+        y_train, y_val = y.iloc[train_index], y_test.iloc[val_index]
 
         if sample_weight is not None:
             model = model.fit(X_train, y_train, sample_weight=sample_weight.iloc[train_index])
@@ -924,7 +982,7 @@ class ShapRFECV(BaseFitComputePlotClass):
             highest_score_std = shap_report.loc[index_highest_score, "val_metric_std"]
             within_threshold = shap_report[
                 shap_report["val_metric_mean"]
-                >= highest_score - standard_error_threshold * highest_score_std
+                >= (highest_score - standard_error_threshold * highest_score_std)
             ]
             lowest_std_index = within_threshold["val_metric_std"].idxmin()
             best_num_features = within_threshold.loc[lowest_std_index, "num_features"]
