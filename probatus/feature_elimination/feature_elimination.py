@@ -454,7 +454,7 @@ class ShapRFECV(BaseFitComputePlotClass):
 
             # Optimize parameters
             if self.search_model:
-                current_search_model = clone(self.model).fit(X=current_X, y=self.y, groups=groups)
+                current_search_model = clone(self.model).fit(current_X, self.y)
                 current_model = current_search_model.estimator.set_params(**current_search_model.best_params_)
             else:
                 current_model = clone(self.model)
