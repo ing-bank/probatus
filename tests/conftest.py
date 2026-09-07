@@ -102,7 +102,8 @@ def complex_fitted_lightgbm(complex_data_split_with_categorical, complex_lightgb
 
 @pytest.fixture(scope="function")
 def catboost_classifier(random_state):
-    model = CatBoostClassifier(random_seed=random_state)
+    # Parallel CV workers can race over CatBoost's shared training directory on Windows.
+    model = CatBoostClassifier(random_seed=random_state, allow_writing_files=False)
     return model
 
 
