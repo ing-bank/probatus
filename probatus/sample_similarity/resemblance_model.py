@@ -1,15 +1,17 @@
+import logging
 import warnings
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from loguru import logger
 from shap import summary_plot
 from sklearn.inspection import permutation_importance
 from sklearn.model_selection import train_test_split
 
-from probatus.utils import BaseFitComputePlotClass, preprocess_data, preprocess_labels, get_single_scorer
+from probatus.utils import BaseFitComputePlotClass, get_single_scorer, preprocess_data, preprocess_labels
 from probatus.utils.shap_helpers import calculate_shap_importance, shap_calc
+
+logger = logging.getLogger(__name__)
 
 
 class BaseResemblanceModel(BaseFitComputePlotClass):
@@ -58,7 +60,9 @@ class BaseResemblanceModel(BaseFitComputePlotClass):
 
                 - 0 - neither prints nor warnings are shown
                 - 1 - only most important warnings
-                - 2 - shows all prints and all warnings.
+                - 2 - logs progress at INFO level and shows all warnings.
+
+                Configure Python logging (e.g. `logging.basicConfig(level=logging.INFO)`) to display progress logs.
 
             random_state (int, optional):
                 Random state set at each round of feature elimination. If it is None, the results will not be
@@ -155,7 +159,7 @@ class BaseResemblanceModel(BaseFitComputePlotClass):
             f"Test {self.scorer.metric_name}: {np.round(self.test_score, 3)}."
         )
         if self.verbose > 1:
-            logger.info(f"Finished model training: \n{self.results_text}")
+            logger.info("Finished model training: \n%s", self.results_text)
 
         if self.verbose > 0:
             if self.train_score > self.test_score:
@@ -320,7 +324,9 @@ class PermutationImportanceResemblance(BaseResemblanceModel):
 
                 - 0 - neither prints nor warnings are shown
                 - 1 - only most important warnings
-                - 2 - shows all prints and all warnings.
+                - 2 - logs progress at INFO level and shows all warnings.
+
+                Configure Python logging (e.g. `logging.basicConfig(level=logging.INFO)`) to display progress logs.
 
             random_state (int, optional):
                 Random state set at each round of feature elimination. If it is None, the results will not be
@@ -548,7 +554,9 @@ class SHAPImportanceResemblance(BaseResemblanceModel):
 
                 - 0 - neither prints nor warnings are shown
                 - 1 - only most important warnings
-                - 2 - shows all prints and all warnings.
+                - 2 - logs progress at INFO level and shows all warnings.
+
+                Configure Python logging (e.g. `logging.basicConfig(level=logging.INFO)`) to display progress logs.
 
             random_state (int, optional):
                 Random state set at each round of feature elimination. If it is None, the results will not be

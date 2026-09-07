@@ -1,7 +1,6 @@
 # This approach is adapted from, and explained in: https://calmcode.io/docs/epic.html
 
 import os
-from typing import List
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -28,7 +27,7 @@ CLASSES_TO_TEST_LGBM = [
     probatus.feature_elimination.EarlyStoppingShapRFECV,
 ]
 
-FUNCTIONS_TO_TEST: List = []
+FUNCTIONS_TO_TEST: list = []
 
 
 def handle_docstring(doc, indent):

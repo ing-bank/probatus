@@ -1,8 +1,8 @@
 import os
 from pathlib import Path
 
-import pytest
 import nbformat
+import pytest
 from nbconvert.preprocessors import ExecutePreprocessor
 
 TIMEOUT_SECONDS = 1800

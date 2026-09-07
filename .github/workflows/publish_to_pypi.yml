@@ -8,26 +8,19 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@master
-    - name: Set up Python
-      uses: actions/setup-python@master
-      with:
-        python-version: "3.10"
-    - name: Install dependencies
-      run: |
-        pip3 install --upgrade setuptools pip
-        pip3 install ".[all]"
-    - name: Run unit tests and linters
-      run: |
-        pytest
-    - name: Build package & publish to PyPi
-      env:
-        TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
-        TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
-      run: |
-        pip3 install --upgrade wheel twine build
-        python -m build
-        twine upload dist/*
-    - name: Deploy mkdocs site
-      run: |
-        mkdocs gh-deploy --force
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v8.1.0
+        with:
+          version: "0.12.7"
+          python-version: "3.10"
+      - name: Run shared checks
+        run: uv run --locked --all-extras python scripts/check.py
+      - name: Build package & publish to PyPI
+        env:
+          TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
+          TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+        run: |
+          uv build
+          uvx twine upload dist/*
+      - name: Deploy mkdocs site
+        run: uv run --locked --all-extras mkdocs gh-deploy --force

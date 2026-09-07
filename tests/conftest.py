@@ -3,13 +3,12 @@ from unittest.mock import Mock
 import numpy as np
 import pandas as pd
 import pytest
-from sklearn.datasets import make_classification
-from sklearn.model_selection import train_test_split
-from sklearn.tree import DecisionTreeClassifier
 from catboost import CatBoostClassifier
 from lightgbm import LGBMClassifier
+from sklearn.datasets import make_classification
 from sklearn.linear_model import LogisticRegression
-from sklearn.model_selection import RandomizedSearchCV
+from sklearn.model_selection import RandomizedSearchCV, train_test_split
+from sklearn.tree import DecisionTreeClassifier
 
 
 @pytest.fixture(scope="function")
@@ -103,7 +102,8 @@ def complex_fitted_lightgbm(complex_data_split_with_categorical, complex_lightgb
 
 @pytest.fixture(scope="function")
 def catboost_classifier(random_state):
-    model = CatBoostClassifier(random_seed=random_state)
+    # Parallel CV workers can race over CatBoost's shared training directory on Windows.
+    model = CatBoostClassifier(random_seed=random_state, allow_writing_files=False)
     return model
 
 

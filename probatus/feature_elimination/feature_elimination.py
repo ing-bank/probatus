@@ -1,10 +1,10 @@
+import logging
 import warnings
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from joblib import Parallel, delayed
-from loguru import logger
 from sklearn.base import clone, is_classifier, is_regressor
 from sklearn.model_selection import check_cv
 from sklearn.model_selection._search import BaseSearchCV
@@ -13,11 +13,13 @@ from probatus.utils import (
     BaseFitComputePlotClass,
     assure_pandas_series,
     calculate_shap_importance,
+    get_single_scorer,
     preprocess_data,
     preprocess_labels,
-    get_single_scorer,
     shap_calc,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class ShapRFECV(BaseFitComputePlotClass):
@@ -159,7 +161,9 @@ class ShapRFECV(BaseFitComputePlotClass):
 
                 - 0 - neither prints nor warnings are shown
                 - 1 - only most important warnings
-                - 2 - shows all prints and all warnings.
+                - 2 - logs progress at INFO level and shows all warnings.
+
+                Configure Python logging (e.g. `logging.basicConfig(level=logging.INFO)`) to display progress logs.
 
             random_state (int, optional):
                 Random state set at each round of feature elimination. If it is None, the results will not be
@@ -938,7 +942,7 @@ class ShapRFECV(BaseFitComputePlotClass):
 
         # Log shap_report for users who want to inspect / debug
         if self.verbose > 1:
-            logger.info(shap_report)
+            logger.info("%s", shap_report)
 
         return best_num_features
 

@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "probatus"
 version = "3.1.3"
-requires-python= ">=3.9"
+requires-python = ">=3.10,<3.14"
 description = "Validation of regression & classifiers and data used to develop them"
 readme = { file = "README.md", content-type = "text/markdown" }
 authors = [
@@ -16,24 +16,23 @@ classifiers = [
     "Intended Audience :: Developers",
     "Intended Audience :: Science/Research",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Scientific/Engineering",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    "scikit-learn>=0.22.2",
-    "pandas>=1.0.0",
-    "matplotlib>=3.1.1",
-    "joblib>=0.13.2",
-    "shap>=0.43.0",
-    "numpy>=1.23.2,<2.0.0",
-    "numba>=0.57.0",
-    "loguru>=0.7.2",
+    "scikit-learn>=1.4.2",
+    "pandas>=2.2.2",
+    "matplotlib>=3.8.4",
+    "joblib>=1.3.2",
+    "shap>=0.49.1; python_version < '3.11'",
+    "shap>=0.50.0; python_version >= '3.11'",
+    "numpy>=1.26.4",
 ]
 
 [project.urls]
@@ -46,78 +45,60 @@ Changelog = "https://github.com/ing-bank/probatus/blob/main/CHANGELOG.md"
 
 
 dev = [
-    "black>=19.10b0",
-    "mypy>=0.770",
-    "pytest>=6.0.0",
-    "pytest-cov>=2.10.0",
-    "pyflakes",
-    "joblib>=0.13.2",
-    "jupyter>=1.0.0",
-    "nbconvert>=6.0.7",
-    "pre-commit>=2.7.1",
-    "isort>=5.12.0",
-    "codespell>=2.2.4",
-    "ruff>=0.2.2",
-    "lightgbm>=3.3.0",
-    "catboost>=1.2",
-    "xgboost>=1.5.0",
+    "mypy>=2.3.1",
+    "pytest>=9.1.1",
+    "pytest-cov>=7.1.0",
+    "ipykernel>=7.3.0",
+    "nbformat>=5.11.1",
+    "nbconvert>=7.17.1",
+    "pre-commit>=4.6.2",
+    "codespell>=2.4.3",
+    "ruff>=0.16.6",
+    "lightgbm>=4.7.0",
+    "catboost>=1.2.10",
+    # SHAP 0.49 is the last release for Python 3.10 and cannot load XGBoost 3.1+ models.
+    "xgboost>=3.0.0,<3.1; python_version < '3.11'",
+    # XGBoost 3.3+ enables categorical handling by default, which SHAP 0.52 rejects for interventional explanations.
+    "xgboost>=3.2.0,<3.3; python_version >= '3.11'",
 ]
 docs = [
-    "mkdocs>=1.5.3",
-    "mkdocs-jupyter>=0.24.3",
-    "mkdocs-material>=9.5.13",
-    "mkdocstrings>=0.24.1",
-    "mkdocstrings-python>=1.8.0",
+    "mkdocs>=1.6.1",
+    "mkdocs-jupyter>=0.26.3",
+    "mkdocs-material>=9.7.7",
+    "mkdocstrings>=1.0.6",
+    "mkdocstrings-python>=2.0.8",
 ]
 
 # Separating these allow for more install flexibility.
 all = ["probatus[dev,docs]"]
 
 [tool.setuptools.packages.find]
-exclude = ["tests", "notebooks", "docs"]
-
-[tool.nbqa.addopts]
-# E402: Ignores imports not at the top of file for IPYNB since this makes copy-pasting easier.
-ruff = ["--fix", "--ignore=E402"]
-isort = ["--profile=black"]
-black = ["--line-length=120"]
+exclude = ["tests", "notebooks", "docs", "scripts"]
 
 [tool.mypy]
-python_version = "3.9"
+# Match the running interpreter so dependency stubs use the correct Python syntax.
+# Ruff still targets Python 3.10 for project code.
 ignore_missing_imports = true
 namespace_packages = true
 pretty = true
 
 [tool.ruff]
 line-length = 120
-extend-exclude = ["docs", "mkdocs.yml", ".github", "*md", "LICENCE", ".pre-commit-config.yaml", ".gitignore"]
+target-version = "py310"
 force-exclude = true
+# nbQA creates these temporary files while type-checking notebook and Markdown cells.
+extend-exclude = ["*_nbqa_ipynb.py", "*_nbqa_md.py"]
 
 [tool.ruff.lint]
-# D100 requires all Python files (modules) to have a "public" docstring even if all functions within have a docstring.
-# D104 requires __init__ files to have a docstring
-# D202 No blank lines allowed after function docstring
-# D212
-# D200
-# D411 Missing blank line before section
-# D412 No blank lines allowed between a section header and its content
-# D417 Missing argument descriptions in the docstring # Only ignored because of false positve when using multiline args.
-# E203
-# E731 do not assign a lambda expression, use a def
-# W293 blank line contains whitespace
-ignore = ["D100", "D104", "D202", "D212", "D200", "E203", "E731", "W293", "D412", "D417", "D411", "RUF100"]
+# Syntax and Pyflakes checks, import sorting, and Python 3.10 syntax upgrades.
+select = ["E4", "E7", "E9", "F", "I", "UP"]
+ignore = ["E731"]
 
-[tool.ruff.lint.pydocstyle]
-convention = "google"
-
-[tool.isort]
-line_length = "120"
-profile = "black"
-filter_files = true
-extend_skip = ["__init__.py", "docs"]
+[tool.ruff.lint.per-file-ignores]
+# Public re-exports have dependency-sensitive ordering, as in the previous isort configuration.
+"__init__.py" = ["I001"]
+# Notebook examples deliberately introduce imports next to the cells that use them.
+"*.ipynb" = ["E402"]
 
 [tool.codespell]
 skip = "**.egg-info*"
-
-[tool.black]
-line-length = 120
