@@ -1,23 +1,28 @@
 """Static API contract checks, run by mypy as part of scripts/check.py."""
 
 from collections.abc import Hashable
-from typing import Any
 
 import pandas as pd
+from catboost import CatBoostClassifier
+from lightgbm import LGBMClassifier
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
-from numpy.typing import NDArray
+from sklearn.ensemble import RandomForestClassifier
 from typing_extensions import assert_type
+from xgboost import XGBClassifier
 
+from probatus._typing import Estimator, FloatArray, ShapExplainer
 from probatus.feature_elimination import EarlyStoppingShapRFECV, ShapRFECV
 from probatus.interpret import DependencePlotter, ShapModelInterpreter
 from probatus.sample_similarity import PermutationImportanceResemblance, SHAPImportanceResemblance
-from probatus.utils import Scorer, assure_pandas_df, preprocess_data, shap_calc, shap_to_df
+from probatus.utils import Scorer, assure_pandas_df, assure_pandas_series, preprocess_data, shap_calc, shap_to_df
 
 
-def check_public_api(model: Any, X: pd.DataFrame, y: pd.Series[Any], flag: bool) -> None:
+def check_public_api(model: Estimator, X: pd.DataFrame, y: pd.Series, flag: bool) -> None:
     """Check concrete defaults, flag-dependent returns, and rejected arguments."""
     names: list[str] = ["first", "second"]
+    sample_ids: list[int] = [0, 1]
+    assert_type(assure_pandas_series([0, 1], index=sample_ids), pd.Series)
     selector = ShapRFECV(model, scoring=Scorer("roc_auc"))
     assert_type(selector.fit(X, y, column_names=names), ShapRFECV)
     assert_type(selector.compute(), pd.DataFrame)
@@ -35,6 +40,8 @@ def check_public_api(model: Any, X: pd.DataFrame, y: pd.Series[Any], flag: bool)
 
     interpreter = ShapModelInterpreter(model)
     assert_type(interpreter.fit(X, X, y, y, column_names=names), None)
+    interpreter.plot("summary", target_columns=names, show=False)
+    interpreter.plot("sample", samples_index=sample_ids, show=False)
     assert_type(interpreter.compute(), pd.DataFrame)
     assert_type(interpreter.compute(return_scores=True), tuple[pd.DataFrame, float, float])
     assert_type(interpreter.compute(return_scores=flag), pd.DataFrame | tuple[pd.DataFrame, float, float])
@@ -48,12 +55,12 @@ def check_public_api(model: Any, X: pd.DataFrame, y: pd.Series[Any], flag: bool)
     resemblance = SHAPImportanceResemblance(model)
     assert_type(resemblance.fit_compute(X, X), pd.DataFrame)
     assert_type(resemblance.compute(return_scores=True), tuple[pd.DataFrame, float, float])
-    assert_type(resemblance.get_shap_values(), NDArray[Any])
+    assert_type(resemblance.get_shap_values(), FloatArray)
 
     assert_type(assure_pandas_df([[1, 2]], column_names=names), pd.DataFrame)
     assert_type(preprocess_data(X), tuple[pd.DataFrame, list[Hashable]])
-    assert_type(shap_calc(model, X), NDArray[Any])
-    assert_type(shap_calc(model, X, return_explainer=True), tuple[NDArray[Any], Any])
+    assert_type(shap_calc(model, X), FloatArray)
+    assert_type(shap_calc(model, X, return_explainer=True), tuple[FloatArray, ShapExplainer])
     assert_type(shap_to_df(model, X), pd.DataFrame)
 
     # Unused-ignore checking ensures these mistakes continue to be rejected.
@@ -61,3 +68,19 @@ def check_public_api(model: Any, X: pd.DataFrame, y: pd.Series[Any], flag: bool)
     ShapRFECV(model, step="one")  # type: ignore[arg-type]
     selector.fit(X, "invalid labels")  # type: ignore[arg-type]
     interpreter.compute(return_scores="yes")  # type: ignore[call-overload]
+
+
+def check_estimator_compatibility(X: pd.DataFrame, y: pd.Series) -> None:
+    """Check real model signatures, including typed optional dependencies."""
+    models: list[Estimator] = [RandomForestClassifier(), LGBMClassifier(), XGBClassifier(), CatBoostClassifier()]
+    for model in models:
+        assert_type(ShapRFECV(model).fit_compute(X, y, check_additivity=False), pd.DataFrame)
+
+
+def check_invalid_options(model: Estimator, X: pd.DataFrame, y: pd.Series) -> None:
+    """Ensure model protocols and option dictionaries reject incorrect inputs."""
+    ShapRFECV(object())  # type: ignore[arg-type]
+    ShapRFECV(model).fit(X, y, check_additivity="off")  # type: ignore[arg-type]
+    ShapRFECV(model).plot(figsize="large")  # type: ignore[arg-type]
+    ShapModelInterpreter(model).plot("summary", max_display="all")  # type: ignore[arg-type]
+    shap_calc(model, X, algorithm=9)  # type: ignore[call-overload]

@@ -3,18 +3,27 @@ from __future__ import annotations
 import logging
 import warnings
 from collections.abc import Sequence
-from typing import Any, Generic, Literal, TypeVar, cast, overload
+from typing import Generic, Literal, TypeVar, cast, overload
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from matplotlib.axes import Axes
-from numpy.typing import NDArray
 from shap import summary_plot
 from sklearn.inspection import permutation_importance
 from sklearn.model_selection import train_test_split
+from typing_extensions import Unpack
 
-from probatus._typing import Data, Feature
+from probatus._typing import (
+    Data,
+    Estimator,
+    Feature,
+    FigureOptions,
+    FloatArray,
+    ResemblanceFit,
+    ShapOptions,
+    SummaryOptions,
+)
 from probatus.utils import BaseFitComputePlotClass, get_single_scorer, preprocess_data, preprocess_labels
 from probatus.utils.scoring import Scorer
 from probatus.utils.shap_helpers import calculate_shap_importance, shap_calc
@@ -25,7 +34,7 @@ logger = logging.getLogger(__name__)
 Report = TypeVar("Report", pd.DataFrame, None)
 
 
-class BaseResemblanceModel(BaseFitComputePlotClass, Generic[Report]):
+class BaseResemblanceModel(BaseFitComputePlotClass[..., ..., Report | tuple[Report, float, float]], Generic[Report]):
     """
     This model checks for the similarity of two samples.
 
@@ -39,7 +48,7 @@ class BaseResemblanceModel(BaseFitComputePlotClass, Generic[Report]):
 
     def __init__(
         self,
-        model: Any,
+        model: Estimator,
         scoring: str | Scorer = "roc_auc",
         test_prc: float = 0.25,
         n_jobs: int | None = 1,
@@ -238,7 +247,7 @@ class BaseResemblanceModel(BaseFitComputePlotClass, Generic[Report]):
         column_names: Sequence[Feature] | None = ...,
         class_names: list[str] | None = ...,
         return_scores: Literal[False] = ...,
-        **fit_kwargs: Any,
+        **fit_kwargs: Unpack[ShapOptions],
     ) -> Report: ...
 
     @overload
@@ -249,7 +258,7 @@ class BaseResemblanceModel(BaseFitComputePlotClass, Generic[Report]):
         column_names: Sequence[Feature] | None = ...,
         class_names: list[str] | None = ...,
         return_scores: Literal[True] = ...,
-        **fit_kwargs: Any,
+        **fit_kwargs: Unpack[ShapOptions],
     ) -> tuple[Report, float, float]: ...
 
     @overload
@@ -260,7 +269,7 @@ class BaseResemblanceModel(BaseFitComputePlotClass, Generic[Report]):
         column_names: Sequence[Feature] | None = ...,
         class_names: list[str] | None = ...,
         return_scores: bool = ...,
-        **fit_kwargs: Any,
+        **fit_kwargs: Unpack[ShapOptions],
     ) -> Report | tuple[Report, float, float]: ...
 
     def fit_compute(
@@ -270,7 +279,7 @@ class BaseResemblanceModel(BaseFitComputePlotClass, Generic[Report]):
         column_names: Sequence[Feature] | None = None,
         class_names: list[str] | None = None,
         return_scores: bool = False,
-        **fit_kwargs: Any,
+        **fit_kwargs: Unpack[ShapOptions],
     ) -> Report | tuple[Report, float, float]:
         """
         Fits the resemblance model and computes the report regarding feature importance.
@@ -303,7 +312,8 @@ class BaseResemblanceModel(BaseFitComputePlotClass, Generic[Report]):
                 Depending on value of return_tuple either returns a tuple (feature importances, train AUC, test AUC), or
                 feature importances.
         """
-        self.fit(X1, X2, column_names=column_names, class_names=class_names, **fit_kwargs)
+        # Subclasses choose which forwarded options they support; retain normal dispatch/errors.
+        cast(ResemblanceFit, self.fit)(X1, X2, column_names=column_names, class_names=class_names, **fit_kwargs)
         return self.compute(return_scores=return_scores)
 
     def plot(self) -> Axes:
@@ -347,7 +357,7 @@ class PermutationImportanceResemblance(BaseResemblanceModel[pd.DataFrame]):
 
     def __init__(
         self,
-        model: Any,
+        model: Estimator,
         iterations: int = 100,
         scoring: str | Scorer = "roc_auc",
         test_prc: float = 0.25,
@@ -483,7 +493,9 @@ class PermutationImportanceResemblance(BaseResemblanceModel[pd.DataFrame]):
 
         return self
 
-    def plot(self, ax: Axes | None = None, top_n: int | None = None, show: bool = True, **plot_kwargs: Any) -> Axes:
+    def plot(
+        self, ax: Axes | None = None, top_n: int | None = None, show: bool = True, **plot_kwargs: Unpack[FigureOptions]
+    ) -> Axes:
         """
         Plots the resulting AUC of the model as well as the feature importances.
 
@@ -510,7 +522,7 @@ class PermutationImportanceResemblance(BaseResemblanceModel[pd.DataFrame]):
         assert isinstance(feature_report, pd.DataFrame)
         self.iterations_results["importance"] = self.iterations_results["importance"].astype(float)
 
-        sorted_features: NDArray[Any] = feature_report["mean_importance"].sort_values(ascending=True).index.values
+        sorted_features: list[Feature] = list(feature_report["mean_importance"].sort_values(ascending=True).index)
         if top_n is not None and top_n > 0:
             sorted_features = sorted_features[-top_n:]
 
@@ -525,7 +537,7 @@ class PermutationImportanceResemblance(BaseResemblanceModel[pd.DataFrame]):
             )
 
         ax.set_yticks(range(position + 1))
-        ax.set_yticklabels(sorted_features)
+        ax.set_yticklabels([str(feature) for feature in sorted_features])
         ax.set_xlabel(self.plot_x_label)
         ax.set_ylabel(self.plot_y_label)
         ax.set_title(self.plot_title)
@@ -585,7 +597,7 @@ class SHAPImportanceResemblance(BaseResemblanceModel[pd.DataFrame]):
 
     def __init__(
         self,
-        model: Any,
+        model: Estimator,
         scoring: str | Scorer = "roc_auc",
         test_prc: float = 0.25,
         n_jobs: int | None = 1,
@@ -643,7 +655,7 @@ class SHAPImportanceResemblance(BaseResemblanceModel[pd.DataFrame]):
         X2: Data,
         column_names: Sequence[Feature] | None = None,
         class_names: list[str] | None = None,
-        **shap_kwargs: Any,
+        **shap_kwargs: Unpack[ShapOptions],
     ) -> SHAPImportanceResemblance:
         """
         This function assigns labels to each sample, 0 to the first sample, 1 to the second.
@@ -689,7 +701,7 @@ class SHAPImportanceResemblance(BaseResemblanceModel[pd.DataFrame]):
         self.report = calculate_shap_importance(self.shap_values_test, self.column_names)
         return self
 
-    def plot(self, plot_type: str = "bar", show: bool = True, **summary_plot_kwargs: Any) -> Axes:
+    def plot(self, plot_type: str = "bar", show: bool = True, **summary_plot_kwargs: Unpack[SummaryOptions]) -> Axes:
         """
         Plots the resulting AUC of the model as well as the feature importances.
 
@@ -740,7 +752,7 @@ class SHAPImportanceResemblance(BaseResemblanceModel[pd.DataFrame]):
 
         return ax
 
-    def get_shap_values(self) -> NDArray[Any]:
+    def get_shap_values(self) -> FloatArray:
         """
         Gets the SHAP values generated on the test set.
 

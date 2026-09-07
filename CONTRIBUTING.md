@@ -89,8 +89,12 @@ Mypy checks every function in `probatus/`, including private helpers, and reject
 Run it directly with `uv run --locked --all-extras mypy probatus`, or use
 `python scripts/check.py --checks types` in the development environment. Pandas stubs are installed
 with the development extra. The wheel includes `py.typed` so downstream type checkers can use the hints.
-Array elements, third-party estimators, and library-specific keyword arguments use `Any` where
-probatus cannot impose a single concrete type. Keep ordinary inputs and return values specific.
+Use estimator/explainer protocols, numeric array aliases, and typed option dictionaries from
+`probatus._typing` instead of untyped placeholders. Ruff rejects imports of `typing.Any`.
+Data arrays can contain arbitrary NumPy scalar dtypes because tabular inputs include categorical values;
+SHAP arrays and split indices have separate floating-point and integer contracts. Model-specific
+hyperparameter values use `object`, and callback argument lists vary between boosting libraries.
+Public API checks exercise real model signatures and reject invalid model and option types.
 nbQA also runs mypy on notebook examples.
 
 Coverage uses `source = ["probatus"]` and branch measurement in `pyproject.toml`, so new modules are

@@ -1,20 +1,27 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import Any, cast
+from typing import cast
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from matplotlib.axes import Axes
-from numpy.typing import NDArray
 from sklearn.preprocessing import KBinsDiscretizer
+from typing_extensions import Unpack
 
-from probatus._typing import Data, Feature, Labels
+from probatus._typing import (
+    Data,
+    Estimator,
+    Feature,
+    FloatArray,
+    Labels,
+    ShapOptions,
+)
 from probatus.utils import BaseFitComputePlotClass, preprocess_data, preprocess_labels, shap_to_df
 
 
-class DependencePlotter(BaseFitComputePlotClass):
+class DependencePlotter(BaseFitComputePlotClass[..., ..., pd.DataFrame]):
     """
     Plotter used to plot SHAP dependence plot together with the target rates.
 
@@ -40,7 +47,7 @@ class DependencePlotter(BaseFitComputePlotClass):
     <img src="../img/model_interpret_dep.png"/>
     """
 
-    def __init__(self, model: Any, verbose: int = 0, random_state: int | None = None) -> None:
+    def __init__(self, model: Estimator, verbose: int = 0, random_state: int | None = None) -> None:
         """
         Initializes the class.
 
@@ -75,8 +82,8 @@ class DependencePlotter(BaseFitComputePlotClass):
         y: Labels,
         column_names: Sequence[Feature] | None = None,
         class_names: list[str] | None = None,
-        precalc_shap: NDArray[Any] | None = None,
-        **shap_kwargs: Any,
+        precalc_shap: FloatArray | None = None,
+        **shap_kwargs: Unpack[ShapOptions],
     ) -> DependencePlotter:
         """
         Fits the plotter to the model and data by computing the shap values.
@@ -140,8 +147,8 @@ class DependencePlotter(BaseFitComputePlotClass):
         y: Labels,
         column_names: Sequence[Feature] | None = None,
         class_names: list[str] | None = None,
-        precalc_shap: NDArray[Any] | None = None,
-        **shap_kwargs: Any,
+        precalc_shap: FloatArray | None = None,
+        **shap_kwargs: Unpack[ShapOptions],
     ) -> pd.DataFrame:
         """
         Fits the plotter to the model and data by computing the shap values.
@@ -183,7 +190,7 @@ class DependencePlotter(BaseFitComputePlotClass):
         self,
         feature: Feature,
         figsize: tuple[float, float] = (15, 10),
-        bins: int | list[float] | NDArray[Any] = 10,
+        bins: int | list[float] | FloatArray = 10,
         show: bool = True,
         min_q: float = 0,
         max_q: float = 1,
@@ -277,8 +284,8 @@ class DependencePlotter(BaseFitComputePlotClass):
         return ax
 
     def _target_rate_plot(
-        self, feature: Feature, bins: int | list[float] | NDArray[Any] = 10, ax: Axes | None = None
-    ) -> tuple[list[float] | NDArray[Any], Axes, pd.Series]:
+        self, feature: Feature, bins: int | list[float] | FloatArray = 10, ax: Axes | None = None
+    ) -> tuple[list[float] | FloatArray, Axes, pd.Series]:
         """
         Plots the distributions of the specific features, as well as the target rate as function of the feature.
 
@@ -305,7 +312,7 @@ class DependencePlotter(BaseFitComputePlotClass):
             simple_binner = KBinsDiscretizer(n_bins=bins, encode="ordinal", strategy="uniform").fit(
                 np.array(x).reshape(-1, 1)
             )
-            bins = cast(NDArray[Any], simple_binner.bin_edges_[0])
+            bins = cast(FloatArray, simple_binner.bin_edges_[0])
             bins[0], bins[-1] = -np.inf, np.inf
 
         # Determine bin for datapoints

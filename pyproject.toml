@@ -30,6 +30,7 @@ dependencies = [
     "pandas>=2.2.2",
     "matplotlib>=3.8.4",
     "joblib>=1.3.2",
+    "typing-extensions>=4.8.0",
     "shap>=0.49.1; python_version < '3.11'",
     "shap>=0.50.0; python_version >= '3.11'",
     "numpy>=1.26.4",
@@ -109,8 +110,11 @@ extend-exclude = ["*_nbqa_ipynb.py", "*_nbqa_md.py"]
 
 [tool.ruff.lint]
 # Syntax and Pyflakes checks, import sorting, and Python 3.10 syntax upgrades.
-select = ["E4", "E7", "E9", "F", "I", "UP"]
+select = ["E4", "E7", "E9", "F", "I", "UP", "TID251"]
 ignore = ["E731"]
+
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"typing.Any".msg = "Use concrete data types, protocols, generics, or typed option dictionaries."
 
 [tool.ruff.lint.per-file-ignores]
 # Public re-exports have dependency-sensitive ordering, as in the previous isort configuration.

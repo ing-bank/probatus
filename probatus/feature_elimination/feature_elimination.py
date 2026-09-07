@@ -2,20 +2,36 @@ from __future__ import annotations
 
 import logging
 import warnings
-from collections.abc import Callable, Sequence
-from typing import Any, Literal, cast, overload
+from collections.abc import Sequence
+from typing import Literal, cast, overload
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from joblib import Parallel, delayed
 from matplotlib.figure import Figure
-from numpy.typing import NDArray
 from sklearn.base import clone, is_classifier, is_regressor
 from sklearn.model_selection import check_cv
 from sklearn.model_selection._search import BaseSearchCV
+from typing_extensions import Unpack
 
-from probatus._typing import CV, Data, Feature, Labels
+from probatus._typing import (
+    CV,
+    BoostingFitParams,
+    CatBoostFitParams,
+    Data,
+    EarlyStoppingEstimator,
+    Estimator,
+    EvalMetric,
+    Feature,
+    FigureOptions,
+    FloatArray,
+    IndexArray,
+    Labels,
+    SearchEstimator,
+    SearchFitParams,
+    ShapOptions,
+)
 from probatus.utils import (
     BaseFitComputePlotClass,
     assure_pandas_series,
@@ -30,7 +46,7 @@ from probatus.utils.scoring import Scorer
 logger = logging.getLogger(__name__)
 
 
-class ShapRFECV(BaseFitComputePlotClass):
+class ShapRFECV(BaseFitComputePlotClass[..., ..., pd.DataFrame]):
     """
     This class performs Backwards Recursive Feature Elimination, using SHAP feature importance.
 
@@ -113,7 +129,7 @@ class ShapRFECV(BaseFitComputePlotClass):
 
     def __init__(
         self,
-        model: Any,
+        model: Estimator,
         step: int | float = 1,
         min_features_to_select: int = 1,
         cv: CV = None,
@@ -122,7 +138,7 @@ class ShapRFECV(BaseFitComputePlotClass):
         verbose: int = 0,
         random_state: int | None = None,
         early_stopping_rounds: int | None = None,
-        eval_metric: str | Callable[..., Any] | None = None,
+        eval_metric: EvalMetric | None = None,
     ) -> None:
         """
         This method initializes the class.
@@ -220,7 +236,7 @@ class ShapRFECV(BaseFitComputePlotClass):
 
         self.report_df = pd.DataFrame()
 
-    def _check_if_model_is_compatible_with_early_stopping(self, model: Any) -> bool:
+    def _check_if_model_is_compatible_with_early_stopping(self, model: Estimator) -> bool:
         """
         Check if the model or the estimator of the cv is compatible with early stopping.
 
@@ -266,7 +282,7 @@ class ShapRFECV(BaseFitComputePlotClass):
         column_names: Sequence[Feature] | None = None,
         groups: Labels | None = None,
         shap_variance_penalty_factor: float | None = None,
-        **shap_kwargs: Any,
+        **shap_kwargs: Unpack[ShapOptions],
     ) -> pd.DataFrame:
         """
         Fits the object with the provided data.
@@ -342,7 +358,7 @@ class ShapRFECV(BaseFitComputePlotClass):
         column_names: Sequence[Feature] | None = None,
         groups: Labels | None = None,
         shap_variance_penalty_factor: float | None = None,
-        **shap_kwargs: Any,
+        **shap_kwargs: Unpack[ShapOptions],
     ) -> ShapRFECV:
         """
         Fits the object with the provided data.
@@ -465,11 +481,13 @@ class ShapRFECV(BaseFitComputePlotClass):
             if self.search_model:
                 # With metadata routing enabled, searches without a group-aware consumer
                 # reject even groups=None. Keep passing real groups for group-aware CV.
-                search_fit_kwargs = {} if groups is None else {"groups": groups}
-                current_search_model = clone(self.model).fit(X=current_X, y=self.y, **search_fit_kwargs)
+                search_fit_kwargs: SearchFitParams = {} if groups is None else {"groups": groups}
+                current_search_model = cast(SearchEstimator, clone(self.model)).fit(
+                    X=current_X, y=self.y, **search_fit_kwargs
+                )
                 current_model = current_search_model.estimator.set_params(**current_search_model.best_params_)
             else:
-                current_model = clone(self.model)
+                current_model = cast(Estimator, clone(self.model))
 
             # Early stopping enabled (or not)
             if not (self.early_stopping_rounds and self.eval_metric):
@@ -542,7 +560,7 @@ class ShapRFECV(BaseFitComputePlotClass):
         self.fitted = True
         return self
 
-    def plot(self, show: bool = True, **figure_kwargs: Any) -> Figure:
+    def plot(self, show: bool = True, **figure_kwargs: Unpack[FigureOptions]) -> Figure:
         """
         Generates plot of the model performance for each iteration of feature elimination.
 
@@ -750,12 +768,12 @@ class ShapRFECV(BaseFitComputePlotClass):
         self,
         X: pd.DataFrame,
         y: pd.Series,
-        model: Any,
-        train_index: NDArray[Any],
-        val_index: NDArray[Any],
+        model: Estimator,
+        train_index: IndexArray,
+        val_index: IndexArray,
         sample_weight: pd.Series | None = None,
-        **shap_kwargs: Any,
-    ) -> tuple[NDArray[Any], float, float]:
+        **shap_kwargs: Unpack[ShapOptions],
+    ) -> tuple[FloatArray, float, float]:
         """
         This function calculates the shap values on validation set, and Train and Val score.
 
@@ -1067,9 +1085,9 @@ class ShapRFECV(BaseFitComputePlotClass):
         X_val: pd.DataFrame,
         y_val: pd.Series,
         sample_weight: pd.Series | None = None,
-        train_index: NDArray[Any] | None = None,
-        val_index: NDArray[Any] | None = None,
-    ) -> dict[str, Any]:
+        train_index: IndexArray | None = None,
+        val_index: IndexArray | None = None,
+    ) -> BoostingFitParams:
         """Get the fit parameters for for a LightGBM Model.
 
         Args:
@@ -1109,7 +1127,7 @@ class ShapRFECV(BaseFitComputePlotClass):
 
         assert self.early_stopping_rounds is not None
 
-        fit_params: dict[str, Any] = {
+        fit_params: BoostingFitParams = {
             "X": X_train,
             "y": y_train,
             "eval_set": [(X_val, y_val)],
@@ -1134,9 +1152,9 @@ class ShapRFECV(BaseFitComputePlotClass):
         X_val: pd.DataFrame,
         y_val: pd.Series,
         sample_weight: pd.Series | None = None,
-        train_index: NDArray[Any] | None = None,
-        val_index: NDArray[Any] | None = None,
-    ) -> dict[str, Any]:
+        train_index: IndexArray | None = None,
+        val_index: IndexArray | None = None,
+    ) -> BoostingFitParams:
         """Get the fit parameters for for a XGBoost Model.
 
         Args:
@@ -1172,7 +1190,7 @@ class ShapRFECV(BaseFitComputePlotClass):
         Returns:
             dict: fit parameters
         """
-        fit_params: dict[str, Any] = {
+        fit_params: BoostingFitParams = {
             "X": X_train,
             "y": y_train,
             "eval_set": [(X_val, y_val)],
@@ -1191,9 +1209,9 @@ class ShapRFECV(BaseFitComputePlotClass):
         X_val: pd.DataFrame,
         y_val: pd.Series,
         sample_weight: pd.Series | None = None,
-        train_index: NDArray[Any] | None = None,
-        val_index: NDArray[Any] | None = None,
-    ) -> dict[str, Any]:
+        train_index: IndexArray | None = None,
+        val_index: IndexArray | None = None,
+    ) -> CatBoostFitParams:
         """Get the fit parameters for for a CatBoost Model.
 
         Args:
@@ -1232,7 +1250,7 @@ class ShapRFECV(BaseFitComputePlotClass):
         from catboost import Pool
 
         cat_features = [col for col in X_train.select_dtypes(include=["category"]).columns]
-        fit_params: dict[str, Any] = {
+        fit_params: CatBoostFitParams = {
             "X": Pool(X_train, y_train, cat_features=cat_features),
             "eval_set": Pool(X_val, y_val, cat_features=cat_features),
             # Evaluation metric should be passed during initialization
@@ -1246,15 +1264,15 @@ class ShapRFECV(BaseFitComputePlotClass):
 
     def _get_fit_params(
         self,
-        model: Any,
+        model: Estimator,
         X_train: pd.DataFrame,
         y_train: pd.Series,
         X_val: pd.DataFrame,
         y_val: pd.Series,
         sample_weight: pd.Series | None = None,
-        train_index: NDArray[Any] | None = None,
-        val_index: NDArray[Any] | None = None,
-    ) -> dict[str, Any]:
+        train_index: IndexArray | None = None,
+        val_index: IndexArray | None = None,
+    ) -> BoostingFitParams | CatBoostFitParams:
         """Get the fit parameters for the specified classifier or regressor.
 
         Args:
@@ -1346,12 +1364,12 @@ class ShapRFECV(BaseFitComputePlotClass):
         self,
         X: pd.DataFrame,
         y: pd.Series,
-        model: Any,
-        train_index: NDArray[Any],
-        val_index: NDArray[Any],
+        model: Estimator,
+        train_index: IndexArray,
+        val_index: IndexArray,
         sample_weight: pd.Series | None = None,
-        **shap_kwargs: Any,
-    ) -> tuple[NDArray[Any], float, float]:
+        **shap_kwargs: Unpack[ShapOptions],
+    ) -> tuple[FloatArray, float, float]:
         """
         This function calculates the shap values on validation set, and Train and Val score.
 
@@ -1419,7 +1437,7 @@ class ShapRFECV(BaseFitComputePlotClass):
             pass
 
         # Train the model
-        model = model.fit(**fit_params)
+        model = cast(EarlyStoppingEstimator, model).fit(**fit_params)
 
         # Score the model
         score_train = self.scorer.score(model, X_train, y_train)

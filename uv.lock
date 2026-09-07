@@ -2250,6 +2250,7 @@ dependencies = [
     { name = "shap", version = "0.49.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "shap", version = "0.50.0", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version == '3.11.*' and platform_machine != 'x86_64') or (python_full_version >= '3.11' and platform_machine == 'x86_64' and sys_platform == 'darwin') or (python_full_version == '3.11.*' and sys_platform != 'darwin')" },
     { name = "shap", version = "0.52.0", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.12' and platform_machine != 'x86_64') or (python_full_version >= '3.12' and sys_platform != 'darwin')" },
+    { name = "typing-extensions" },
 ]
 
 [package.optional-dependencies]
@@ -2327,6 +2328,7 @@ requires-dist = [
     { name = "scikit-learn", specifier = ">=1.4.2" },
     { name = "shap", marker = "python_full_version < '3.11'", specifier = ">=0.49.1" },
     { name = "shap", marker = "python_full_version >= '3.11'", specifier = ">=0.50.0" },
+    { name = "typing-extensions", specifier = ">=4.8.0" },
     { name = "xgboost", marker = "python_full_version >= '3.11' and extra == 'dev'", specifier = ">=3.2.0,<3.3" },
     { name = "xgboost", marker = "python_full_version < '3.11' and extra == 'dev'", specifier = ">=3.0.0,<3.1" },
 ]

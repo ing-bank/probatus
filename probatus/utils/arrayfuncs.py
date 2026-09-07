@@ -1,14 +1,18 @@
 from __future__ import annotations
 
 import warnings
-from collections.abc import Sequence
-from typing import Any
+from collections.abc import Hashable, Sequence
 
 import numpy as np
 import pandas as pd
-from numpy.typing import NDArray
 
-from probatus._typing import Data, Feature, Labels
+from probatus._typing import (
+    Array,
+    Data,
+    DataSequence,
+    Feature,
+    Labels,
+)
 
 
 def assure_pandas_df(x: Data, column_names: Sequence[Feature] | None = None) -> pd.DataFrame:
@@ -32,7 +36,7 @@ def assure_pandas_df(x: Data, column_names: Sequence[Feature] | None = None) -> 
     return x
 
 
-def assure_pandas_series(x: Labels, index: pd.Index | list[Any] | NDArray[Any] | None = None) -> pd.Series:
+def assure_pandas_series(x: Labels, index: pd.Index | DataSequence[Hashable] | Array | None = None) -> pd.Series:
     """
     Returns x as pandas Series. X can be a list, numpy array, or pandas Series.
 
@@ -42,10 +46,11 @@ def assure_pandas_series(x: Labels, index: pd.Index | list[Any] | NDArray[Any] |
     Returns:
         pandas Series
     """
+    normalized_index = index if index is None or isinstance(index, (pd.Index, np.ndarray)) else list(index)
     if isinstance(x, pd.Series):
-        if index is None:
+        if normalized_index is None:
             return x
-        target_index = pd.Index(index)
+        target_index = pd.Index(normalized_index)
         current_x_index = pd.Index(x.index.values)
         if current_x_index.equals(target_index):
             # If exact match then keep it as it is
@@ -57,8 +62,8 @@ def assure_pandas_series(x: Labels, index: pd.Index | list[Any] | NDArray[Any] |
             # If indexes have different values, overwrite
             x.index = target_index
             return x
-    elif any([isinstance(x, (np.ndarray, list))]):
-        return pd.Series(x, index=index)
+    elif isinstance(x, (np.ndarray, list)):
+        return pd.Series(x, index=normalized_index)
     else:
         raise TypeError("Please supply a list, numpy array, pandas Series")
 
@@ -132,7 +137,7 @@ def preprocess_data(
 def preprocess_labels(
     y: Labels,
     y_name: str | None = None,
-    index: pd.Index | list[Any] | NDArray[Any] | None = None,
+    index: pd.Index | DataSequence[Hashable] | Array | None = None,
     verbose: int = 0,
 ) -> pd.Series:
     """

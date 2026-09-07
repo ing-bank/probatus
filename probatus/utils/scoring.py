@@ -1,11 +1,13 @@
 from __future__ import annotations
 
-from collections.abc import Callable
-from typing import Any
-
 from sklearn.metrics import get_scorer
 
-from probatus._typing import Data, Labels
+from probatus._typing import (
+    Data,
+    Estimator,
+    Labels,
+    ScorerCallable,
+)
 
 
 def get_single_scorer(scoring: str | Scorer) -> Scorer:
@@ -71,7 +73,7 @@ class Scorer:
     ```
     """
 
-    def __init__(self, metric_name: str, custom_scorer: Callable[..., float] | None = None) -> None:
+    def __init__(self, metric_name: str, custom_scorer: ScorerCallable | None = None) -> None:
         """
         Initializes the class.
 
@@ -84,12 +86,13 @@ class Scorer:
                 that can score samples.
         """
         self.metric_name = metric_name
+        self.scorer: ScorerCallable
         if custom_scorer is not None:
             self.scorer = custom_scorer
         else:
             self.scorer = get_scorer(self.metric_name)
 
-    def score(self, model: Any, X: Data, y: Labels) -> float:
+    def score(self, model: Estimator, X: Data, y: Labels) -> float:
         """
         Scores the samples model based on the provided metric name.
 

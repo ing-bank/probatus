@@ -1,12 +1,19 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import Generic, ParamSpec, TypeVar
+
+from matplotlib.axes import Axes
+from matplotlib.figure import Figure
 
 from probatus.utils import NotFittedError
 
+FitParams = ParamSpec("FitParams")
+ComputeParams = ParamSpec("ComputeParams")
+Result = TypeVar("Result")
 
-class BaseFitComputeClass(ABC):
+
+class BaseFitComputeClass(ABC, Generic[FitParams, ComputeParams, Result]):
     """
     Placeholder that must be overwritten by subclass.
     """
@@ -21,34 +28,34 @@ class BaseFitComputeClass(ABC):
             raise (NotFittedError("The object has not been fitted. Please run fit() method first"))
 
     @abstractmethod
-    def fit(self, *args: Any, **kwargs: Any) -> Any:
+    def fit(self, *args: FitParams.args, **kwargs: FitParams.kwargs) -> object:
         """
         Placeholder that must be overwritten by subclass.
         """
         pass
 
     @abstractmethod
-    def compute(self, *args: Any, **kwargs: Any) -> Any:
+    def compute(self, *args: ComputeParams.args, **kwargs: ComputeParams.kwargs) -> Result:
         """
         Placeholder that must be overwritten by subclass.
         """
         pass
 
     @abstractmethod
-    def fit_compute(self, *args: Any, **kwargs: Any) -> Any:
+    def fit_compute(self, *args: FitParams.args, **kwargs: FitParams.kwargs) -> Result:
         """
         Placeholder that must be overwritten by subclass.
         """
         pass
 
 
-class BaseFitComputePlotClass(BaseFitComputeClass):
+class BaseFitComputePlotClass(BaseFitComputeClass[FitParams, ComputeParams, Result]):
     """
     Base class.
     """
 
     @abstractmethod
-    def plot(self, *args: Any, **kwargs: Any) -> Any:
+    def plot(self, *args: FitParams.args, **kwargs: FitParams.kwargs) -> Figure | Axes | list[Axes] | list[list[Axes]]:
         """
         Placeholder method for plotting.
         """

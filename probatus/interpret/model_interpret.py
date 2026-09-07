@@ -1,17 +1,28 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
-from typing import Any, Literal, overload
+from collections.abc import Hashable, Sequence
+from typing import Literal, cast, overload
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from matplotlib.axes import Axes
-from numpy.typing import NDArray
 from shap import summary_plot
 from shap.plots._waterfall import waterfall_legacy
+from typing_extensions import Unpack
 
-from probatus._typing import Data, Feature, Labels
+from probatus._typing import (
+    Data,
+    DataSequence,
+    DependenceOptions,
+    Estimator,
+    Feature,
+    FloatArray,
+    InterpretPlotOptions,
+    Labels,
+    ShapOptions,
+    ShapOptionsWithoutApproximation,
+)
 from probatus.interpret import DependencePlotter
 from probatus.utils import (
     BaseFitComputePlotClass,
@@ -25,7 +36,7 @@ from probatus.utils import (
 from probatus.utils.scoring import Scorer
 
 
-class ShapModelInterpreter(BaseFitComputePlotClass):
+class ShapModelInterpreter(BaseFitComputePlotClass[..., ..., pd.DataFrame | tuple[pd.DataFrame, float, float]]):
     """
     This class is a wrapper that allows to easily analyse a model's features.
 
@@ -70,7 +81,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
     """
 
     def __init__(
-        self, model: Any, scoring: str | Scorer = "roc_auc", verbose: int = 0, random_state: int | None = None
+        self, model: Estimator, scoring: str | Scorer = "roc_auc", verbose: int = 0, random_state: int | None = None
     ) -> None:
         """
         Initializes the class.
@@ -109,7 +120,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
         y_test: Labels,
         column_names: Sequence[Feature] | None = None,
         class_names: list[str] | None = None,
-        **shap_kwargs: Any,
+        **shap_kwargs: Unpack[ShapOptions],
     ) -> None:
         """
         Fits the object and calculates the shap values for the provided datasets.
@@ -197,7 +208,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
 
     @staticmethod
     def _prep_shap_related_variables(
-        model: Any,
+        model: Estimator,
         X: pd.DataFrame,
         y: pd.Series,
         approximate: bool = False,
@@ -205,8 +216,8 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
         random_state: int | None = None,
         column_names: Sequence[Feature] | None = None,
         class_names: list[str] | None = None,
-        **shap_kwargs: Any,
-    ) -> tuple[NDArray[Any], float, DependencePlotter]:
+        **shap_kwargs: Unpack[ShapOptionsWithoutApproximation],
+    ) -> tuple[FloatArray, float, DependencePlotter]:
         """
         The function prepares the variables related to shap that are used to interpret the model.
 
@@ -323,7 +334,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
         class_names: list[str] | None = ...,
         return_scores: Literal[False] = ...,
         shap_variance_penalty_factor: float | None = ...,
-        **shap_kwargs: Any,
+        **shap_kwargs: Unpack[ShapOptions],
     ) -> pd.DataFrame: ...
 
     @overload
@@ -337,7 +348,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
         class_names: list[str] | None = ...,
         return_scores: Literal[True] = ...,
         shap_variance_penalty_factor: float | None = ...,
-        **shap_kwargs: Any,
+        **shap_kwargs: Unpack[ShapOptions],
     ) -> tuple[pd.DataFrame, float, float]: ...
 
     @overload
@@ -351,7 +362,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
         class_names: list[str] | None = ...,
         return_scores: bool = ...,
         shap_variance_penalty_factor: float | None = ...,
-        **shap_kwargs: Any,
+        **shap_kwargs: Unpack[ShapOptions],
     ) -> pd.DataFrame | tuple[pd.DataFrame, float, float]: ...
 
     def fit_compute(
@@ -364,7 +375,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
         class_names: list[str] | None = None,
         return_scores: bool = False,
         shap_variance_penalty_factor: float | None = None,
-        **shap_kwargs: Any,
+        **shap_kwargs: Unpack[ShapOptions],
     ) -> pd.DataFrame | tuple[pd.DataFrame, float, float]:
         """
         Fits the object and calculates the shap values for the provided datasets.
@@ -431,10 +442,10 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
         self,
         plot_type: str,
         target_set: str = "test",
-        target_columns: str | list[Feature] | None = None,
-        samples_index: int | str | list[Any] | pd.Index | None = None,
+        target_columns: str | DataSequence[Feature] | None = None,
+        samples_index: int | str | DataSequence[Hashable] | pd.Index | None = None,
         show: bool = True,
-        **plot_kwargs: Any,
+        **plot_kwargs: Unpack[InterpretPlotOptions],
     ) -> Axes | list[Axes] | list[list[Axes]]:
         """
         Plots the appropriate SHAP plot.
@@ -477,7 +488,9 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
         if target_columns is None:
             target_columns = self.column_names
 
-        selected_columns = assure_list_of_strings(target_columns, "target_columns")
+        selected_columns = assure_list_of_strings(
+            target_columns if isinstance(target_columns, str) else list(target_columns), "target_columns"
+        )
         target_columns_indices = [self.column_names.index(target_column) for target_column in selected_columns]
 
         # Choose the correct dataset
@@ -531,7 +544,9 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
                 plt.close()
         elif plot_type == "dependence":
             ax = [
-                target_tdp.plot(feature=feature_name, figsize=(10, 7), show=show, **plot_kwargs)
+                target_tdp.plot(
+                    feature=feature_name, figsize=(10, 7), show=show, **cast(DependenceOptions, plot_kwargs)
+                )
                 for feature_name in selected_columns
             ]
 
@@ -551,7 +566,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
                 waterfall_legacy(
                     target_expected_value,
                     target_shap_values[sample_loc, :],
-                    target_X.loc[sample_index],
+                    target_X.iloc[sample_loc],
                     show=False,
                     **plot_kwargs,
                 )

@@ -2,72 +2,80 @@ from __future__ import annotations
 
 import warnings
 from collections.abc import Sequence
-from typing import Any, Literal, overload
+from typing import Literal, cast, overload
 
 import numpy as np
 import pandas as pd
-from numpy.typing import NDArray
 from shap import Explainer
 from shap.explainers import TreeExplainer
 from shap.utils import sample
 from sklearn.pipeline import Pipeline
+from typing_extensions import Unpack
 
-from probatus._typing import Feature
+from probatus._typing import (
+    Array,
+    Estimator,
+    ExplainerOptions,
+    Feature,
+    FloatArray,
+    ShapCalculationOptions,
+    ShapExplainer,
+)
 
 
 @overload
 def shap_calc(
-    model: Any,
-    X: pd.DataFrame | NDArray[Any],
+    model: Estimator,
+    X: pd.DataFrame | Array,
     return_explainer: Literal[False] = False,
     verbose: int = 0,
     random_state: int | None = None,
     sample_size: int = 100,
     approximate: bool = False,
     check_additivity: bool = True,
-    **shap_kwargs: Any,
-) -> NDArray[Any]: ...
+    **shap_kwargs: Unpack[ExplainerOptions],
+) -> FloatArray: ...
 
 
 @overload
 def shap_calc(
-    model: Any,
-    X: pd.DataFrame | NDArray[Any],
+    model: Estimator,
+    X: pd.DataFrame | Array,
     return_explainer: Literal[True],
     verbose: int = 0,
     random_state: int | None = None,
     sample_size: int = 100,
     approximate: bool = False,
     check_additivity: bool = True,
-    **shap_kwargs: Any,
-) -> tuple[NDArray[Any], Any]: ...
+    **shap_kwargs: Unpack[ExplainerOptions],
+) -> tuple[FloatArray, ShapExplainer]: ...
 
 
 @overload
 def shap_calc(
-    model: Any,
-    X: pd.DataFrame | NDArray[Any],
+    model: Estimator,
+    X: pd.DataFrame | Array,
     return_explainer: bool,
     verbose: int = 0,
     random_state: int | None = None,
     sample_size: int = 100,
     approximate: bool = False,
     check_additivity: bool = True,
-    **shap_kwargs: Any,
-) -> NDArray[Any] | tuple[NDArray[Any], Any]: ...
+    **shap_kwargs: Unpack[ExplainerOptions],
+) -> FloatArray | tuple[FloatArray, ShapExplainer]: ...
 
 
 def shap_calc(
-    model: Any,
-    X: pd.DataFrame | NDArray[Any],
+    model: Estimator,
+    X: pd.DataFrame | Array,
     return_explainer: bool = False,
     verbose: int = 0,
     random_state: int | None = None,
     sample_size: int = 100,
     approximate: bool = False,
     check_additivity: bool = True,
-    **shap_kwargs: Any,
-) -> NDArray[Any] | tuple[NDArray[Any], Any]:
+    **shap_kwargs: Unpack[ExplainerOptions],
+) -> FloatArray | tuple[FloatArray, ShapExplainer]:
     """
     Helper function to calculate the shapley values for a given model.
 
@@ -112,6 +120,9 @@ def shap_calc(
             "data transformations before running the probatus module."
         )
 
+    explainer: ShapExplainer
+    shap_values: FloatArray | list[FloatArray]
+
     # Suppress warnings regarding XGboost and Lightgbm models.
     with warnings.catch_warnings():
         warnings.simplefilter("ignore" if verbose <= 1 else "default")
@@ -154,13 +165,17 @@ def shap_calc(
             )
             shap_values = shap_values[1]
 
+    values = cast(FloatArray, np.asarray(shap_values))
     if return_explainer:
-        return shap_values, explainer
-    return shap_values
+        return values, explainer
+    return values
 
 
 def shap_to_df(
-    model: Any, X: pd.DataFrame | NDArray[Any], precalc_shap: NDArray[Any] | None = None, **kwargs: Any
+    model: Estimator,
+    X: pd.DataFrame | Array,
+    precalc_shap: FloatArray | None = None,
+    **kwargs: Unpack[ShapCalculationOptions],
 ) -> pd.DataFrame:
     """
     Calculates the shap values and return the pandas DataFrame with the columns and the index of the original.
@@ -191,7 +206,7 @@ def shap_to_df(
 
 
 def calculate_shap_importance(
-    shap_values: NDArray[Any],
+    shap_values: FloatArray,
     columns: Sequence[Feature],
     output_columns_suffix: str = "",
     shap_variance_penalty_factor: float | None = None,
