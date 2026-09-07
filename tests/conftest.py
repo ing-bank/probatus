@@ -3,13 +3,12 @@ from unittest.mock import Mock
 import numpy as np
 import pandas as pd
 import pytest
-from sklearn.datasets import make_classification
-from sklearn.model_selection import train_test_split
-from sklearn.tree import DecisionTreeClassifier
 from catboost import CatBoostClassifier
 from lightgbm import LGBMClassifier
+from sklearn.datasets import make_classification
 from sklearn.linear_model import LogisticRegression
-from sklearn.model_selection import RandomizedSearchCV
+from sklearn.model_selection import RandomizedSearchCV, train_test_split
+from sklearn.tree import DecisionTreeClassifier
 
 
 @pytest.fixture(scope="function")

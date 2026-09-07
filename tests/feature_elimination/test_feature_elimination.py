@@ -10,7 +10,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVC
 from xgboost import XGBClassifier, XGBRegressor
 
-from probatus.feature_elimination import ShapRFECV, EarlyStoppingShapRFECV
+from probatus.feature_elimination import EarlyStoppingShapRFECV, ShapRFECV
 from probatus.utils import preprocess_labels
 
 

@@ -33,8 +33,6 @@ dependencies = [
     "shap>=0.49.1; python_version < '3.11'",
     "shap>=0.50.0; python_version >= '3.11'",
     "numpy>=1.26.4",
-    "numba>=0.60.0",
-    "loguru>=0.7.3",
 ]
 
 [project.urls]
@@ -47,15 +45,13 @@ Changelog = "https://github.com/ing-bank/probatus/blob/main/CHANGELOG.md"
 
 
 dev = [
-    "black>=26.5.1",
     "mypy>=2.3.1",
     "pytest>=9.1.1",
     "pytest-cov>=7.1.0",
-    "pyflakes>=3.4.0",
-    "jupyter>=1.1.1",
+    "ipykernel>=7.3.0",
+    "nbformat>=5.11.1",
     "nbconvert>=7.17.1",
     "pre-commit>=4.6.2",
-    "isort>=9.0.1",
     "codespell>=2.4.3",
     "ruff>=0.16.6",
     "lightgbm>=4.7.0",
@@ -79,12 +75,6 @@ all = ["probatus[dev,docs]"]
 [tool.setuptools.packages.find]
 exclude = ["tests", "notebooks", "docs"]
 
-[tool.nbqa.addopts]
-# E402: Ignores imports not at the top of file for IPYNB since this makes copy-pasting easier.
-ruff = ["--fix", "--ignore=E402"]
-isort = ["--profile=black"]
-black = ["--line-length=120"]
-
 [tool.mypy]
 python_version = "3.10"
 ignore_missing_imports = true
@@ -93,34 +83,21 @@ pretty = true
 
 [tool.ruff]
 line-length = 120
-extend-exclude = ["docs", "mkdocs.yml", ".github", "*md", "LICENCE", ".pre-commit-config.yaml", ".gitignore"]
+target-version = "py310"
 force-exclude = true
+# nbQA creates these temporary files while type-checking notebook and Markdown cells.
+extend-exclude = ["*_nbqa_ipynb.py", "*_nbqa_md.py"]
 
 [tool.ruff.lint]
-# D100 requires all Python files (modules) to have a "public" docstring even if all functions within have a docstring.
-# D104 requires __init__ files to have a docstring
-# D202 No blank lines allowed after function docstring
-# D212
-# D200
-# D411 Missing blank line before section
-# D412 No blank lines allowed between a section header and its content
-# D417 Missing argument descriptions in the docstring # Only ignored because of false positve when using multiline args.
-# E203
-# E731 do not assign a lambda expression, use a def
-# W293 blank line contains whitespace
-ignore = ["D100", "D104", "D202", "D212", "D200", "E203", "E731", "W293", "D412", "D417", "D411", "RUF100"]
+# Syntax and Pyflakes checks, import sorting, and Python 3.10 syntax upgrades.
+select = ["E4", "E7", "E9", "F", "I", "UP"]
+ignore = ["E731"]
 
-[tool.ruff.lint.pydocstyle]
-convention = "google"
-
-[tool.isort]
-line_length = "120"
-profile = "black"
-filter_files = true
-extend_skip = ["__init__.py", "docs"]
+[tool.ruff.lint.per-file-ignores]
+# Public re-exports have dependency-sensitive ordering, as in the previous isort configuration.
+"__init__.py" = ["I001"]
+# Notebook examples deliberately introduce imports next to the cells that use them.
+"*.ipynb" = ["E402"]
 
 [tool.codespell]
 skip = "**.egg-info*"
-
-[tool.black]
-line-length = 120

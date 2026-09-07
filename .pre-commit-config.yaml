@@ -13,36 +13,30 @@ repos:
   - repo: https://github.com/nbQA-dev/nbQA
     rev: 1.9.1
     hooks:
-      - id: nbqa-ruff
-        name: "ruff nb: Check for errors, styling issues and complexity"
       - id: nbqa-mypy
         name: "mypy nb: Static type checking"
-      - id: nbqa-isort
-        name: "isort nb: Sort file imports"
-      - id: nbqa-pyupgrade
-        name: "pyupgrade nb: Updates code to Python 3.10+ code convention"
-        args: [&py_version --py310-plus]
-      - id: nbqa-black
-        name: "black nb: PEP8 compliant code formatter"
   - repo: local
     hooks:
       - id: mypy
         name: "mypy: Static type checking"
         entry: mypy
         language: system
+        require_serial: true
         types: [python]
         files: ^probatus/
   - repo: local
     hooks:
       - id: ruff-check
-        name: "Ruff: Check for errors, styling issues and complexity, and fixes issues if possible (including import order)"
+        name: "Ruff: Lint Python and notebooks"
         entry: ruff check
         language: system
+        types_or: [python, pyi, jupyter]
         args: [--fix, --no-cache]
       - id: ruff-format
-        name: "Ruff: format code in line with PEP8"
+        name: "Ruff: Format Python, notebooks and Markdown"
         entry: ruff format
         language: system
+        types_or: [python, pyi, jupyter, markdown]
         args: [--no-cache]
   - repo: local
     hooks:
@@ -52,9 +46,3 @@ repos:
         language: system
         types: [python]
         args: [-L mot] # Skip the word "mot"
-  - repo: https://github.com/asottile/pyupgrade
-    rev: v3.21.2
-    hooks:
-      - id: pyupgrade
-        name: "pyupgrade: Updates code to Python 3.10+ code convention"
-        args: [*py_version]

@@ -57,6 +57,26 @@ pre-commit run --all-files
 
 This will allow you to quickly see if the work you made contains some adaptions that you still might need to make before a pull request is accepted.
 
+Ruff handles linting, import sorting, Python syntax upgrades, and formatting for both Python files and notebooks:
+
+```shell
+uv run --all-extras ruff check --fix .
+uv run --all-extras ruff format .
+```
+
+The development dependencies include notebook execution support. To edit notebooks in JupyterLab, run
+`uv run --all-extras --with jupyterlab jupyter lab`.
+Mypy remains the type checker; nbQA runs it on notebooks.
+
+Probatus uses Python's standard `logging` module. To display informational messages from estimators with
+`verbose=2`, configure logging in your application:
+
+```python
+import logging
+
+logging.basicConfig(level=logging.INFO)
+```
+
 ## Standards
 
 - Python 3.10–3.13

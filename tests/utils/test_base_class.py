@@ -1,5 +1,6 @@
-from probatus.interpret import ShapModelInterpreter
 import pytest
+
+from probatus.interpret import ShapModelInterpreter
 from probatus.utils import NotFittedError
 
 
