@@ -73,10 +73,11 @@ docs = [
 all = ["probatus[dev,docs]"]
 
 [tool.setuptools.packages.find]
-exclude = ["tests", "notebooks", "docs"]
+exclude = ["tests", "notebooks", "docs", "scripts"]
 
 [tool.mypy]
-python_version = "3.10"
+# Match the running interpreter so dependency stubs use the correct Python syntax.
+# Ruff still targets Python 3.10 for project code.
 ignore_missing_imports = true
 namespace_packages = true
 pretty = true

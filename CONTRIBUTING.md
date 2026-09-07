@@ -20,14 +20,42 @@ Starting out with open source? See the guide [How to Contribute to Open Source](
 
 ## Setup
 
-Development install:
+Install [uv](https://docs.astral.sh/uv/getting-started/installation/). GitHub Actions uses uv 0.12.7.
+On macOS, install the OpenMP runtime for LightGBM with `brew install libomp`.
+
+Run the same checks as GitHub Actions from the repository root:
 
 ```shell
-pip install -e '.[all]'
+uv run --locked --all-extras python scripts/check.py
 ```
 
-For the reproducible environment recorded in `uv.lock`, use `uv sync --all-extras`.
-Refresh it with `uv lock --upgrade`, then run the tests and `uv run --all-extras mkdocs build`.
+This installs the environment from `uv.lock`, then runs all pre-commit hooks, the test suite
+with coverage for the whole package, and the documentation build. Checks stop at the first failure.
+Hooks can fix files; review their changes and rerun the command when that happens.
+`--locked` rejects an outdated lockfile instead of silently changing dependencies.
+
+To select checks or a Python version:
+
+```shell
+uv run --locked --all-extras python scripts/check.py --checks lint
+uv run --locked --all-extras --python 3.13 python scripts/check.py
+uv run --locked --all-extras python scripts/check.py --checks tests --notebooks
+```
+
+Notebook execution tests are skipped by default, just as in CI; `--notebooks` enables them.
+Local checks use your operating system. GitHub additionally runs the same command across
+Python 3.10–3.13 on Linux, macOS, and Windows. Coverage uploads and publishing remain GitHub steps.
+The workflow definitions share `.github/workflows/checks.yml`; the actual validation commands
+live in `scripts/check.py` so local checks and CI stay in sync.
+
+To reproduce the weekly dependency-upgrade job:
+
+```shell
+uv lock --upgrade
+uv run --locked --all-extras python scripts/check.py
+```
+
+This updates `uv.lock`; review the resulting dependency changes before committing them.
 The minimum versions in `pyproject.toml` allow newer releases; the lockfile records the resolved versions for each supported Python version.
 
 Python 3.10 uses SHAP 0.49.x and XGBoost 3.0.x: SHAP 0.50 dropped Python 3.10 support,
@@ -37,25 +65,16 @@ handling by default, which SHAP 0.52 rejects for interventional explanations eve
 Recheck these compatibility limits when upgrading SHAP.
 See the [SHAP release notes](https://shap.readthedocs.io/en/stable/release_notes.html).
 
-Unit testing:
+Install the Git hooks once for each clone:
 
 ```shell
-pytest
+uv run --locked --all-extras pre-commit install
 ```
 
-We use [pre-commit](https://pre-commit.com/) hooks to ensure code styling. Install with:
-
-```shell
-pre-commit install
-```
-
-Now if you install it (which you are encouraged to do), you are encouraged to do the following command before committing your work:
-
-```shell
-pre-commit run --all-files
-```
-
-This will allow you to quickly see if the work you made contains some adaptions that you still might need to make before a pull request is accepted.
+This installs both pre-commit and pre-push hooks. Commits run the existing lint and type checks;
+every push runs `scripts/check.py` with locked dependencies and is blocked if any check fails.
+If a hook fixes files, review and commit the changes before pushing again.
+The pre-push hook checks your local OS and Python version; GitHub still checks the full matrix.
 
 Ruff handles linting, import sorting, Python syntax upgrades, and formatting for both Python files and notebooks:
 
