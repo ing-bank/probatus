@@ -46,6 +46,7 @@ Changelog = "https://github.com/ing-bank/probatus/blob/main/CHANGELOG.md"
 
 dev = [
     "mypy>=2.3.1",
+    "pandas-stubs>=2.2.2",
     "pytest>=9.1.1",
     "pytest-cov>=7.1.0",
     "ipykernel>=7.3.0",
@@ -81,6 +82,23 @@ exclude = ["tests", "notebooks", "docs", "scripts"]
 ignore_missing_imports = true
 namespace_packages = true
 pretty = true
+files = ["probatus", "tests/typing"]
+warn_unused_ignores = true
+
+[[tool.mypy.overrides]]
+module = ["probatus", "probatus.*"]
+disallow_untyped_defs = true
+check_untyped_defs = true
+
+[tool.setuptools.package-data]
+probatus = ["py.typed"]
+
+[tool.coverage.run]
+source = ["probatus"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
 
 [tool.ruff]
 line-length = 120

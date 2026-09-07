@@ -1,14 +1,21 @@
+from __future__ import annotations
+
 import logging
 import warnings
+from collections.abc import Callable, Sequence
+from typing import Any, Literal, cast, overload
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from joblib import Parallel, delayed
+from matplotlib.figure import Figure
+from numpy.typing import NDArray
 from sklearn.base import clone, is_classifier, is_regressor
 from sklearn.model_selection import check_cv
 from sklearn.model_selection._search import BaseSearchCV
 
+from probatus._typing import CV, Data, Feature, Labels
 from probatus.utils import (
     BaseFitComputePlotClass,
     assure_pandas_series,
@@ -18,6 +25,7 @@ from probatus.utils import (
     preprocess_labels,
     shap_calc,
 )
+from probatus.utils.scoring import Scorer
 
 logger = logging.getLogger(__name__)
 
@@ -105,17 +113,17 @@ class ShapRFECV(BaseFitComputePlotClass):
 
     def __init__(
         self,
-        model,
-        step=1,
-        min_features_to_select=1,
-        cv=None,
-        scoring="roc_auc",
-        n_jobs=-1,
-        verbose=0,
-        random_state=None,
-        early_stopping_rounds=None,
-        eval_metric=None,
-    ):
+        model: Any,
+        step: int | float = 1,
+        min_features_to_select: int = 1,
+        cv: CV = None,
+        scoring: str | Scorer = "roc_auc",
+        n_jobs: int | None = -1,
+        verbose: int = 0,
+        random_state: int | None = None,
+        early_stopping_rounds: int | None = None,
+        eval_metric: str | Callable[..., Any] | None = None,
+    ) -> None:
         """
         This method initializes the class.
 
@@ -212,7 +220,7 @@ class ShapRFECV(BaseFitComputePlotClass):
 
         self.report_df = pd.DataFrame()
 
-    def _check_if_model_is_compatible_with_early_stopping(self, model):
+    def _check_if_model_is_compatible_with_early_stopping(self, model: Any) -> bool:
         """
         Check if the model or the estimator of the cv is compatible with early stopping.
 
@@ -235,7 +243,7 @@ class ShapRFECV(BaseFitComputePlotClass):
 
         return False
 
-    def compute(self):
+    def compute(self) -> pd.DataFrame:
         """
         Checks if fit() method has been run.
 
@@ -251,15 +259,15 @@ class ShapRFECV(BaseFitComputePlotClass):
 
     def fit_compute(
         self,
-        X,
-        y,
-        sample_weight=None,
-        columns_to_keep=None,
-        column_names=None,
-        groups=None,
-        shap_variance_penalty_factor=None,
-        **shap_kwargs,
-    ):
+        X: Data,
+        y: Labels,
+        sample_weight: Labels | None = None,
+        columns_to_keep: list[str] | None = None,
+        column_names: Sequence[Feature] | None = None,
+        groups: Labels | None = None,
+        shap_variance_penalty_factor: float | None = None,
+        **shap_kwargs: Any,
+    ) -> pd.DataFrame:
         """
         Fits the object with the provided data.
 
@@ -327,15 +335,15 @@ class ShapRFECV(BaseFitComputePlotClass):
 
     def fit(
         self,
-        X,
-        y,
-        sample_weight=None,
-        columns_to_keep=None,
-        column_names=None,
-        groups=None,
-        shap_variance_penalty_factor=None,
-        **shap_kwargs,
-    ):
+        X: Data,
+        y: Labels,
+        sample_weight: Labels | None = None,
+        columns_to_keep: list[str] | None = None,
+        column_names: Sequence[Feature] | None = None,
+        groups: Labels | None = None,
+        shap_variance_penalty_factor: float | None = None,
+        **shap_kwargs: Any,
+    ) -> ShapRFECV:
         """
         Fits the object with the provided data.
 
@@ -402,15 +410,11 @@ class ShapRFECV(BaseFitComputePlotClass):
             len_columns_to_keep = len(columns_to_keep)
 
         # Validate matching column names, if both columns_to_keep and column_names are provided
-        if column_names and not all(x in column_names for x in list(X.columns)):
+        if column_names and isinstance(X, pd.DataFrame) and not all(x in column_names for x in list(X.columns)):
             raise ValueError("Column names in columns_to_keep and column_names do not match.")
 
         # Validate total number of columns to select against the total number of columns
-        if (
-            column_names
-            and columns_to_keep
-            and (self.min_features_to_select + len_columns_to_keep) > len(self.column_names)
-        ):
+        if column_names and columns_to_keep and (self.min_features_to_select + len_columns_to_keep) > len(column_names):
             raise ValueError("Minimum features to select plus columns_to_keep exceeds total number of features.")
 
         # Check shap_variance_penalty_factor has acceptable value
@@ -431,7 +435,8 @@ class ShapRFECV(BaseFitComputePlotClass):
                     "sample_weight is passed only to the fit method of the model, not the evaluation metrics."
                 )
             sample_weight = assure_pandas_series(sample_weight, index=self.X.index)
-        self.cv = check_cv(self.cv, self.y, classifier=is_classifier(self.model))
+        cv = check_cv(self.cv, self.y, classifier=is_classifier(self.model))
+        self.cv = cv
 
         remaining_features = current_features_set = self.column_names
         round_number = 0
@@ -458,7 +463,10 @@ class ShapRFECV(BaseFitComputePlotClass):
 
             # Optimize parameters
             if self.search_model:
-                current_search_model = clone(self.model).fit(X=current_X, y=self.y, groups=groups)
+                # With metadata routing enabled, searches without a group-aware consumer
+                # reject even groups=None. Keep passing real groups for group-aware CV.
+                search_fit_kwargs = {} if groups is None else {"groups": groups}
+                current_search_model = clone(self.model).fit(X=current_X, y=self.y, **search_fit_kwargs)
                 current_model = current_search_model.estimator.set_params(**current_search_model.best_params_)
             else:
                 current_model = clone(self.model)
@@ -476,7 +484,7 @@ class ShapRFECV(BaseFitComputePlotClass):
                         sample_weight=sample_weight,
                         **shap_kwargs,
                     )
-                    for train_index, val_index in self.cv.split(current_X, self.y, groups)
+                    for train_index, val_index in cv.split(current_X, self.y, groups)
                 )
             else:
                 # Perform CV to estimate feature importance with SHAP
@@ -490,7 +498,7 @@ class ShapRFECV(BaseFitComputePlotClass):
                         sample_weight=sample_weight,
                         **shap_kwargs,
                     )
-                    for train_index, val_index in self.cv.split(current_X, self.y, groups)
+                    for train_index, val_index in cv.split(current_X, self.y, groups)
                 )
 
             if self.y.nunique() == 2 or is_regressor(current_model):
@@ -534,7 +542,7 @@ class ShapRFECV(BaseFitComputePlotClass):
         self.fitted = True
         return self
 
-    def plot(self, show=True, **figure_kwargs):
+    def plot(self, show: bool = True, **figure_kwargs: Any) -> Figure:
         """
         Generates plot of the model performance for each iteration of feature elimination.
 
@@ -586,23 +594,23 @@ class ShapRFECV(BaseFitComputePlotClass):
         return fig
 
     @staticmethod
-    def _validate_step(step):
+    def _validate_step(step: int | float) -> int | float:
         if not isinstance(step, (int, float)) or step <= 0:
             raise ValueError(f"Invalid step value: {step}. Must be a positive int or float.")
         return step
 
     @staticmethod
-    def _validate_min_features(min_features):
+    def _validate_min_features(min_features: int) -> int:
         if not isinstance(min_features, int) or min_features <= 0:
             raise ValueError(f"Invalid min_features_to_select value: {min_features}. Must be a positive int.")
         return min_features
 
     @staticmethod
     def _calculate_number_of_features_to_remove(
-        current_num_of_features,
-        num_features_to_remove,
-        min_num_features_to_keep,
-    ):
+        current_num_of_features: int,
+        num_features_to_remove: int,
+        min_num_features_to_keep: int,
+    ) -> int:
         """
         Calculates the number of features to be removed.
 
@@ -630,7 +638,9 @@ class ShapRFECV(BaseFitComputePlotClass):
         # Return smallest between `nr_of_max_allowed_feature_removed` and `num_features_to_remove`
         return min(num_features_to_remove, nr_of_max_allowed_feature_removed)
 
-    def _get_current_features_to_remove(self, shap_importance_df, columns_to_keep=None):
+    def _get_current_features_to_remove(
+        self, shap_importance_df: pd.DataFrame, columns_to_keep: list[str] | None = None
+    ) -> list[Feature]:
         """
         Implements the logic used to determine which features to remove.
 
@@ -686,14 +696,14 @@ class ShapRFECV(BaseFitComputePlotClass):
 
     def _report_current_results(
         self,
-        round_number,
-        current_features_set,
-        features_to_remove,
-        train_metric_mean,
-        train_metric_std,
-        val_metric_mean,
-        val_metric_std,
-    ):
+        round_number: int,
+        current_features_set: list[Feature],
+        features_to_remove: list[Feature],
+        train_metric_mean: float,
+        train_metric_std: float,
+        val_metric_mean: float,
+        val_metric_std: float,
+    ) -> None:
         """
         This function adds the results from a current iteration to the report.
 
@@ -738,14 +748,14 @@ class ShapRFECV(BaseFitComputePlotClass):
 
     def _get_feature_shap_values_per_fold(
         self,
-        X,
-        y,
-        model,
-        train_index,
-        val_index,
-        sample_weight=None,
-        **shap_kwargs,
-    ):
+        X: pd.DataFrame,
+        y: pd.Series,
+        model: Any,
+        train_index: NDArray[Any],
+        val_index: NDArray[Any],
+        sample_weight: pd.Series | None = None,
+        **shap_kwargs: Any,
+    ) -> tuple[NDArray[Any], float, float]:
         """
         This function calculates the shap values on validation set, and Train and Val score.
 
@@ -799,8 +809,8 @@ class ShapRFECV(BaseFitComputePlotClass):
         return shap_values, score_train, score_val
 
     def _filter_and_identify_features_based_on_importance(
-        self, shap_importance_df, columns_to_keep, current_features_set
-    ):
+        self, shap_importance_df: pd.DataFrame, columns_to_keep: list[str] | None, current_features_set: list[Feature]
+    ) -> tuple[list[Feature], list[Feature]]:
         """
         Filters out features to be removed from the current feature set based on SHAP importance,
         while maintaining the original order of the features.
@@ -832,7 +842,32 @@ class ShapRFECV(BaseFitComputePlotClass):
 
         return remaining_features, features_to_remove
 
-    def get_reduced_features_set(self, num_features, standard_error_threshold=1.0, return_type="feature_names"):
+    @overload
+    def get_reduced_features_set(
+        self,
+        num_features: int | str,
+        standard_error_threshold: float = ...,
+        return_type: Literal["feature_names"] = ...,
+    ) -> list[Feature]: ...
+
+    @overload
+    def get_reduced_features_set(
+        self, num_features: int | str, standard_error_threshold: float = ..., return_type: Literal["support"] = ...
+    ) -> list[bool]: ...
+
+    @overload
+    def get_reduced_features_set(
+        self, num_features: int | str, standard_error_threshold: float = ..., return_type: Literal["ranking"] = ...
+    ) -> list[int]: ...
+
+    @overload
+    def get_reduced_features_set(
+        self, num_features: int | str, standard_error_threshold: float = ..., return_type: str = ...
+    ) -> list[Feature] | list[bool] | list[int]: ...
+
+    def get_reduced_features_set(
+        self, num_features: int | str, standard_error_threshold: float = 1.0, return_type: str = "feature_names"
+    ) -> list[Feature] | list[bool] | list[int]:
         """
         Gets the features set after the feature elimination process, for a given number of features.
 
@@ -841,13 +876,15 @@ class ShapRFECV(BaseFitComputePlotClass):
                 If int: Number of features in the reduced features set.
                 If str: One of the following automatic num feature selection methods supported:
                     1. best: strictly selects the num_features with the highest model score.
-                    2. best_coherent: For iterations that are within standard_error_threshold of the highest
-                    score, select the iteration with the lowest standard deviation of model score.
-                    3. best_parsimonious: For iterations that are within standard_error_threshold of the
-                    highest score, select the iteration with the fewest features.
+                    2. best_coherent: Among iterations within the allowed score range, select the one
+                    with the lowest standard deviation of model score.
+                    3. best_parsimonious: Among iterations within the allowed score range, select the
+                    one with the fewest features.
 
             standard_error_threshold (float):
-                If num_features is 'best_coherent' or 'best_parsimonious', this parameter is used.
+                Multiplier of the best iteration's validation-score standard deviation (not the standard
+                error of the mean). Candidates must score at least best_mean - threshold * best_std.
+                Used by 'best_coherent' and 'best_parsimonious'; zero requires the best score.
 
             return_type:
                 Accepts possible values of 'feature_names', 'support' or 'ranking'. These are defined as:
@@ -856,8 +893,8 @@ class ShapRFECV(BaseFitComputePlotClass):
                     3. ranking: returns numeric ranking of features
 
         Returns:
-            (list of str):
-                Reduced features set.
+            (list):
+                Feature names, a boolean support mask, or integer ranks, according to return_type.
         """
         self._check_if_fitted()
 
@@ -867,7 +904,7 @@ class ShapRFECV(BaseFitComputePlotClass):
                 best_method=num_features, standard_error_threshold=standard_error_threshold
             )
         elif not isinstance(num_features, int):
-            ValueError(
+            raise ValueError(
                 "Parameter num_features can be of type int, or of type str with "
                 "possible values of 'best', 'best_coherent' or 'best_parsimonious'"
             )
@@ -885,15 +922,14 @@ class ShapRFECV(BaseFitComputePlotClass):
         else:
             raise ValueError("Invalid return_type. Must be 'feature_names', 'support', or 'ranking'.")
 
-    def _get_best_num_features(self, best_method, standard_error_threshold=1.0):
+    def _get_best_num_features(self, best_method: str, standard_error_threshold: float = 1.0) -> int:
         """
         Helper function to identify the best number of features to select as per some automatic
         feature selection strategy. Strategies supported are:
             1. best: strictly selects the num_features with the highest model score.
-            2. best_coherent: For iterations that are within standard_error_threshold of the highest
-            score, select the iteration with the lowest standard deviation of model score.
-            3. best_parsimonious: For iterations that are within standard_error_threshold of the
-            highest score, select the iteration with the fewest features.
+            2. best_coherent: Within best_mean - threshold * best_std, select the iteration with
+            the lowest standard deviation of model score.
+            3. best_parsimonious: Within the same score range, select the fewest features.
 
         Args:
             best_method (str):
@@ -902,7 +938,7 @@ class ShapRFECV(BaseFitComputePlotClass):
 
             standard_error_threshold (float):
                 Parameter used if best_method is 'best_coherent' or 'best_parsimonious'.
-                Numeric value greater than zero.
+                Non-negative multiplier of the best iteration's validation-score standard deviation.
 
         Returns:
             (int)
@@ -923,15 +959,23 @@ class ShapRFECV(BaseFitComputePlotClass):
 
         elif best_method == "best_coherent":
             # Selects within a threshold but prioritizes lower standard deviation
-            highest_score = shap_report["val_metric_mean"].max()
-            within_threshold = shap_report[shap_report["val_metric_mean"] >= highest_score - standard_error_threshold]
+            best_score_index = shap_report["val_metric_mean"].idxmax()
+            highest_score = cast(float, shap_report.loc[best_score_index, "val_metric_mean"])
+            best_score_std = cast(float, shap_report.loc[best_score_index, "val_metric_std"])
+            within_threshold = shap_report[
+                shap_report["val_metric_mean"] >= highest_score - standard_error_threshold * best_score_std
+            ]
             lowest_std_index = within_threshold["val_metric_std"].idxmin()
             best_num_features = within_threshold.loc[lowest_std_index, "num_features"]
 
         elif best_method == "best_parsimonious":
             # Selects the fewest number of features within the threshold of the highest score
-            highest_score = shap_report["val_metric_mean"].max()
-            within_threshold = shap_report[shap_report["val_metric_mean"] >= highest_score - standard_error_threshold]
+            best_score_index = shap_report["val_metric_mean"].idxmax()
+            highest_score = cast(float, shap_report.loc[best_score_index, "val_metric_mean"])
+            best_score_std = cast(float, shap_report.loc[best_score_index, "val_metric_std"])
+            within_threshold = shap_report[
+                shap_report["val_metric_mean"] >= highest_score - standard_error_threshold * best_score_std
+            ]
             fewest_features_index = within_threshold["num_features"].idxmin()
             best_num_features = within_threshold.loc[fewest_features_index, "num_features"]
 
@@ -944,9 +988,9 @@ class ShapRFECV(BaseFitComputePlotClass):
         if self.verbose > 1:
             logger.info("%s", shap_report)
 
-        return best_num_features
+        return int(cast(int, best_num_features))
 
-    def _get_feature_names(self, num_features):
+    def _get_feature_names(self, num_features: int) -> list[Feature]:
         """
         Helper function that takes num_features and returns the associated list of column/feature names.
 
@@ -970,14 +1014,9 @@ class ShapRFECV(BaseFitComputePlotClass):
                 f"You can select one of the following: {valid_nums}"
             )
 
-        # Assuming 'features_set' contains the list of feature names for the row
-        return matching_rows.iloc[0]["features_set"]
+        return cast(list[Feature], matching_rows.iloc[0]["features_set"])
 
-        # Assuming 'features_set' contains the list of feature names for the row
-        return matching_rows.iloc[0]["features_set"]
-
-    @staticmethod
-    def _get_feature_support(self, feature_names_selected):
+    def _get_feature_support(self, feature_names_selected: list[Feature]) -> list[bool]:
         """
         Helper function that takes feature_names_selected and returns a boolean mask representing the columns
         that were selected by the RFECV method.
@@ -994,14 +1033,14 @@ class ShapRFECV(BaseFitComputePlotClass):
 
         return support
 
-    def _get_feature_ranking(self):
+    def _get_feature_ranking(self) -> list[int]:
         """
-        Returns the feature ranking, such that ranking_[i] corresponds to the ranking position
-        of the i-th feature. Selected (i.e., estimated best) features are assigned rank 1.
+        Returns ranks in original column order. Features in the smallest evaluated set have
+        rank zero; eliminated features are ranked from one, starting with those removed last.
 
         Returns:
-            (list of bools)
-                Boolean mask representing the features selected.
+            (list of int)
+                Zero-based feature ranks.
         """
         flipped_report_df = self.report_df.iloc[::-1]
 
@@ -1011,7 +1050,7 @@ class ShapRFECV(BaseFitComputePlotClass):
 
         # Eliminated features are ranked by shap importance
         features_eliminated = np.concatenate(flipped_report_df["eliminated_features"].to_numpy())
-        features_eliminated_dict = {int(v): k + 1 for (k, v) in enumerate(features_eliminated)}
+        features_eliminated_dict: dict[Feature, int] = {v: k + 1 for (k, v) in enumerate(features_eliminated)}
 
         # Combine dicts with rank info
         features_eliminated_dict.update(features_not_eliminated_dict)
@@ -1022,8 +1061,15 @@ class ShapRFECV(BaseFitComputePlotClass):
         return ranking
 
     def _get_fit_params_lightGBM(
-        self, X_train, y_train, X_val, y_val, sample_weight=None, train_index=None, val_index=None
-    ):
+        self,
+        X_train: pd.DataFrame,
+        y_train: pd.Series,
+        X_val: pd.DataFrame,
+        y_val: pd.Series,
+        sample_weight: pd.Series | None = None,
+        train_index: NDArray[Any] | None = None,
+        val_index: NDArray[Any] | None = None,
+    ) -> dict[str, Any]:
         """Get the fit parameters for for a LightGBM Model.
 
         Args:
@@ -1061,26 +1107,36 @@ class ShapRFECV(BaseFitComputePlotClass):
         """
         from lightgbm import early_stopping, log_evaluation
 
-        fit_params = {
+        assert self.early_stopping_rounds is not None
+
+        fit_params: dict[str, Any] = {
             "X": X_train,
             "y": y_train,
             "eval_set": [(X_val, y_val)],
             "eval_metric": self.eval_metric,
             "callbacks": [
-                early_stopping(self.early_stopping_rounds, first_metric_only=True),
+                early_stopping(self.early_stopping_rounds, first_metric_only=True, verbose=self.verbose >= 2),
                 log_evaluation(1 if self.verbose >= 2 else 0),
             ],
         }
 
         if sample_weight is not None:
+            assert train_index is not None and val_index is not None
             fit_params["sample_weight"] = sample_weight.iloc[train_index]
             fit_params["eval_sample_weight"] = [sample_weight.iloc[val_index]]
 
         return fit_params
 
     def _get_fit_params_XGBoost(
-        self, X_train, y_train, X_val, y_val, sample_weight=None, train_index=None, val_index=None
-    ):
+        self,
+        X_train: pd.DataFrame,
+        y_train: pd.Series,
+        X_val: pd.DataFrame,
+        y_val: pd.Series,
+        sample_weight: pd.Series | None = None,
+        train_index: NDArray[Any] | None = None,
+        val_index: NDArray[Any] | None = None,
+    ) -> dict[str, Any]:
         """Get the fit parameters for for a XGBoost Model.
 
         Args:
@@ -1116,20 +1172,28 @@ class ShapRFECV(BaseFitComputePlotClass):
         Returns:
             dict: fit parameters
         """
-        fit_params = {
+        fit_params: dict[str, Any] = {
             "X": X_train,
             "y": y_train,
             "eval_set": [(X_val, y_val)],
         }
         if sample_weight is not None:
+            assert train_index is not None and val_index is not None
             fit_params["sample_weight"] = sample_weight.iloc[train_index]
             fit_params["eval_sample_weight"] = [sample_weight.iloc[val_index]]
 
         return fit_params
 
     def _get_fit_params_CatBoost(
-        self, X_train, y_train, X_val, y_val, sample_weight=None, train_index=None, val_index=None
-    ):
+        self,
+        X_train: pd.DataFrame,
+        y_train: pd.Series,
+        X_val: pd.DataFrame,
+        y_val: pd.Series,
+        sample_weight: pd.Series | None = None,
+        train_index: NDArray[Any] | None = None,
+        val_index: NDArray[Any] | None = None,
+    ) -> dict[str, Any]:
         """Get the fit parameters for for a CatBoost Model.
 
         Args:
@@ -1168,20 +1232,29 @@ class ShapRFECV(BaseFitComputePlotClass):
         from catboost import Pool
 
         cat_features = [col for col in X_train.select_dtypes(include=["category"]).columns]
-        fit_params = {
+        fit_params: dict[str, Any] = {
             "X": Pool(X_train, y_train, cat_features=cat_features),
             "eval_set": Pool(X_val, y_val, cat_features=cat_features),
             # Evaluation metric should be passed during initialization
         }
         if sample_weight is not None:
+            assert train_index is not None and val_index is not None
             fit_params["X"].set_weight(sample_weight.iloc[train_index])
             fit_params["eval_set"].set_weight(sample_weight.iloc[val_index])
 
         return fit_params
 
     def _get_fit_params(
-        self, model, X_train, y_train, X_val, y_val, sample_weight=None, train_index=None, val_index=None
-    ):
+        self,
+        model: Any,
+        X_train: pd.DataFrame,
+        y_train: pd.Series,
+        X_val: pd.DataFrame,
+        y_val: pd.Series,
+        sample_weight: pd.Series | None = None,
+        train_index: NDArray[Any] | None = None,
+        val_index: NDArray[Any] | None = None,
+    ) -> dict[str, Any]:
         """Get the fit parameters for the specified classifier or regressor.
 
         Args:
@@ -1271,14 +1344,14 @@ class ShapRFECV(BaseFitComputePlotClass):
 
     def _get_feature_shap_values_per_fold_early_stopping(
         self,
-        X,
-        y,
-        model,
-        train_index,
-        val_index,
-        sample_weight=None,
-        **shap_kwargs,
-    ):
+        X: pd.DataFrame,
+        y: pd.Series,
+        model: Any,
+        train_index: NDArray[Any],
+        val_index: NDArray[Any],
+        sample_weight: pd.Series | None = None,
+        **shap_kwargs: Any,
+    ) -> tuple[NDArray[Any], float, float]:
         """
         This function calculates the shap values on validation set, and Train and Val score.
 

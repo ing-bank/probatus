@@ -29,8 +29,8 @@ Run the same checks as GitHub Actions from the repository root:
 uv run --locked --all-extras python scripts/check.py
 ```
 
-This installs the environment from `uv.lock`, then runs all pre-commit hooks, the test suite
-with coverage for the whole package, and the documentation build. Checks stop at the first failure.
+This installs the environment from `uv.lock`, then runs all pre-commit hooks, whole-library type checking, the test suite
+with line and branch coverage for the whole package, and the documentation build. Checks stop at the first failure.
 Hooks can fix files; review their changes and rerun the command when that happens.
 `--locked` rejects an outdated lockfile instead of silently changing dependencies.
 
@@ -85,7 +85,18 @@ uv run --all-extras ruff format .
 
 The development dependencies include notebook execution support. To edit notebooks in JupyterLab, run
 `uv run --all-extras --with jupyterlab jupyter lab`.
-Mypy remains the type checker; nbQA runs it on notebooks.
+Mypy checks every function in `probatus/`, including private helpers, and rejects missing annotations.
+Run it directly with `uv run --locked --all-extras mypy probatus`, or use
+`python scripts/check.py --checks types` in the development environment. Pandas stubs are installed
+with the development extra. The wheel includes `py.typed` so downstream type checkers can use the hints.
+Array elements, third-party estimators, and library-specific keyword arguments use `Any` where
+probatus cannot impose a single concrete type. Keep ordinary inputs and return values specific.
+nbQA also runs mypy on notebook examples.
+
+Coverage uses `source = ["probatus"]` and branch measurement in `pyproject.toml`, so new modules are
+included automatically, even when no test imports them. The shared CI command writes `coverage.xml`
+for Codecov and prints missing lines and branches locally. Add behavioral regression tests alongside
+bug fixes, especially for feature-elimination policies and model integration paths.
 
 Probatus uses Python's standard `logging` module. To display informational messages from estimators with
 `verbose=2`, configure logging in your application:

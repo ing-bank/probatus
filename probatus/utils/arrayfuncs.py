@@ -1,10 +1,17 @@
+from __future__ import annotations
+
 import warnings
+from collections.abc import Sequence
+from typing import Any
 
 import numpy as np
 import pandas as pd
+from numpy.typing import NDArray
+
+from probatus._typing import Data, Feature, Labels
 
 
-def assure_pandas_df(x, column_names=None):
+def assure_pandas_df(x: Data, column_names: Sequence[Feature] | None = None) -> pd.DataFrame:
     """
     Returns x as pandas DataFrame. X can be a list, list of lists, numpy array, pandas DataFrame or pandas Series.
 
@@ -16,16 +23,16 @@ def assure_pandas_df(x, column_names=None):
     """
     if isinstance(x, pd.DataFrame):
         if column_names is not None:
-            x.columns = column_names
+            x.columns = list(column_names)
     elif isinstance(x, (np.ndarray, pd.Series, list)):
-        x = pd.DataFrame(x, columns=column_names)
+        x = pd.DataFrame(x, columns=None if column_names is None else list(column_names))
     else:
         raise TypeError("Please supply a list, numpy array, pandas Series or pandas DataFrame")
 
     return x
 
 
-def assure_pandas_series(x, index=None):
+def assure_pandas_series(x: Labels, index: pd.Index | list[Any] | NDArray[Any] | None = None) -> pd.Series:
     """
     Returns x as pandas Series. X can be a list, numpy array, or pandas Series.
 
@@ -36,18 +43,19 @@ def assure_pandas_series(x, index=None):
         pandas Series
     """
     if isinstance(x, pd.Series):
-        if isinstance(index, (list, np.ndarray)):
-            index = pd.Index(index)
+        if index is None:
+            return x
+        target_index = pd.Index(index)
         current_x_index = pd.Index(x.index.values)
-        if current_x_index.equals(index):
+        if current_x_index.equals(target_index):
             # If exact match then keep it as it is
             return x
-        elif current_x_index.sort_values().equals(index.sort_values()):
+        elif current_x_index.sort_values().equals(target_index.sort_values()):
             # If both have the same values but in different order, then reorder
-            return x[index]
+            return x[target_index]
         else:
             # If indexes have different values, overwrite
-            x.index = index
+            x.index = target_index
             return x
     elif any([isinstance(x, (np.ndarray, list))]):
         return pd.Series(x, index=index)
@@ -55,7 +63,9 @@ def assure_pandas_series(x, index=None):
         raise TypeError("Please supply a list, numpy array, pandas Series")
 
 
-def preprocess_data(X, X_name=None, column_names=None, verbose=0):
+def preprocess_data(
+    X: Data, X_name: str | None = None, column_names: Sequence[Feature] | None = None, verbose: int = 0
+) -> tuple[pd.DataFrame, list[Feature]]:
     """
     Preprocess data.
 
@@ -116,10 +126,15 @@ def preprocess_data(X, X_name=None, column_names=None, verbose=0):
     if not object_columns.empty:
         X[object_columns] = X[object_columns].astype("category")
 
-    return X, X.columns.tolist()
+    return X, list(X.columns)
 
 
-def preprocess_labels(y, y_name=None, index=None, verbose=0):
+def preprocess_labels(
+    y: Labels,
+    y_name: str | None = None,
+    index: pd.Index | list[Any] | NDArray[Any] | None = None,
+    verbose: int = 0,
+) -> pd.Series:
     """
     Does basic preparation of the labels. Turns them into Series, and WARS in case the target is not binary.
 

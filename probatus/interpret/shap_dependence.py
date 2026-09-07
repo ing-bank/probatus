@@ -1,8 +1,16 @@
+from __future__ import annotations
+
+from collections.abc import Sequence
+from typing import Any, cast
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from matplotlib.axes import Axes
+from numpy.typing import NDArray
 from sklearn.preprocessing import KBinsDiscretizer
 
+from probatus._typing import Data, Feature, Labels
 from probatus.utils import BaseFitComputePlotClass, preprocess_data, preprocess_labels, shap_to_df
 
 
@@ -32,7 +40,7 @@ class DependencePlotter(BaseFitComputePlotClass):
     <img src="../img/model_interpret_dep.png"/>
     """
 
-    def __init__(self, model, verbose=0, random_state=None):
+    def __init__(self, model: Any, verbose: int = 0, random_state: int | None = None) -> None:
         """
         Initializes the class.
 
@@ -55,13 +63,21 @@ class DependencePlotter(BaseFitComputePlotClass):
         self.verbose = verbose
         self.random_state = random_state
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """
         Represent string method.
         """
         return f"Shap dependence plotter for {self.model.__class__.__name__}"
 
-    def fit(self, X, y, column_names=None, class_names=None, precalc_shap=None, **shap_kwargs):
+    def fit(
+        self,
+        X: Data,
+        y: Labels,
+        column_names: Sequence[Feature] | None = None,
+        class_names: list[str] | None = None,
+        precalc_shap: NDArray[Any] | None = None,
+        **shap_kwargs: Any,
+    ) -> DependencePlotter:
         """
         Fits the plotter to the model and data by computing the shap values.
 
@@ -93,9 +109,7 @@ class DependencePlotter(BaseFitComputePlotClass):
         self.y = preprocess_labels(y, y_name="y", index=self.X.index, verbose=self.verbose)
 
         # Set class names
-        self.class_names = class_names
-        if self.class_names is None:
-            self.class_names = ["Negative Class", "Positive Class"]
+        self.class_names = ["Negative Class", "Positive Class"] if class_names is None else class_names
 
         self.shap_vals_df = shap_to_df(
             self.model,
@@ -109,7 +123,7 @@ class DependencePlotter(BaseFitComputePlotClass):
         self.fitted = True
         return self
 
-    def compute(self):
+    def compute(self) -> pd.DataFrame:
         """
         Computes the report returned to the user, namely the SHAP values generated on the dataset.
 
@@ -120,7 +134,15 @@ class DependencePlotter(BaseFitComputePlotClass):
         self._check_if_fitted()
         return self.shap_vals_df
 
-    def fit_compute(self, X, y, column_names=None, class_names=None, precalc_shap=None, **shap_kwargs):
+    def fit_compute(
+        self,
+        X: Data,
+        y: Labels,
+        column_names: Sequence[Feature] | None = None,
+        class_names: list[str] | None = None,
+        precalc_shap: NDArray[Any] | None = None,
+        **shap_kwargs: Any,
+    ) -> pd.DataFrame:
         """
         Fits the plotter to the model and data by computing the shap values.
 
@@ -159,14 +181,14 @@ class DependencePlotter(BaseFitComputePlotClass):
 
     def plot(
         self,
-        feature,
-        figsize=(15, 10),
-        bins=10,
-        show=True,
-        min_q=0,
-        max_q=1,
-        alpha=1.0,
-    ):
+        feature: Feature,
+        figsize: tuple[float, float] = (15, 10),
+        bins: int | list[float] | NDArray[Any] = 10,
+        show: bool = True,
+        min_q: float = 0,
+        max_q: float = 1,
+        alpha: float = 1.0,
+    ) -> list[Axes]:
         """
         Plots the shap values for data points for a given feature, as well as the target rate and values distribution.
 
@@ -223,7 +245,7 @@ class DependencePlotter(BaseFitComputePlotClass):
 
         return [ax1, ax2]
 
-    def _dependence_plot(self, feature, ax=None):
+    def _dependence_plot(self, feature: Feature, ax: Axes | None = None) -> Axes:
         """
         Plots shap values for data points with respect to specified feature.
 
@@ -241,6 +263,7 @@ class DependencePlotter(BaseFitComputePlotClass):
         if isinstance(feature, int):
             feature = self.column_names[feature]
 
+        ax = plt.gca() if ax is None else ax
         X, y, shap_val = self._get_X_y_shap_with_q_cut(feature=feature)
 
         ax.scatter(X[y == 0], shap_val[y == 0], label=self.class_names[0], color="lightblue", alpha=self.alpha)
@@ -253,7 +276,9 @@ class DependencePlotter(BaseFitComputePlotClass):
 
         return ax
 
-    def _target_rate_plot(self, feature, bins=10, ax=None):
+    def _target_rate_plot(
+        self, feature: Feature, bins: int | list[float] | NDArray[Any] = 10, ax: Axes | None = None
+    ) -> tuple[list[float] | NDArray[Any], Axes, pd.Series]:
         """
         Plots the distributions of the specific features, as well as the target rate as function of the feature.
 
@@ -272,6 +297,7 @@ class DependencePlotter(BaseFitComputePlotClass):
                 Tuple of boundaries of bins used, axis on which plot is drawn, total ratio of target (positive over
                 negative).
         """
+        ax = plt.gca() if ax is None else ax
         x, y, shap_val = self._get_X_y_shap_with_q_cut(feature=feature)
 
         # Create bins if not explicitly supplied
@@ -279,7 +305,7 @@ class DependencePlotter(BaseFitComputePlotClass):
             simple_binner = KBinsDiscretizer(n_bins=bins, encode="ordinal", strategy="uniform").fit(
                 np.array(x).reshape(-1, 1)
             )
-            bins = simple_binner.bin_edges_[0]
+            bins = cast(NDArray[Any], simple_binner.bin_edges_[0])
             bins[0], bins[-1] = -np.inf, np.inf
 
         # Determine bin for datapoints
@@ -292,7 +318,7 @@ class DependencePlotter(BaseFitComputePlotClass):
 
         # Extract target ratio and mean feature value
         target_ratio = dfs["y"].mean()
-        x_vals = dfs[feature].mean()
+        x_vals = dfs[[feature]].mean().iloc[:, 0]
 
         # Transform the first and last bin to work with plt.hist method
         if bins[0] == -np.inf:
@@ -301,7 +327,7 @@ class DependencePlotter(BaseFitComputePlotClass):
             bins[-1] = x.max()
 
         # Plot target rate
-        ax.hist(x, bins=bins, lw=2, alpha=0.4)
+        ax.hist(x, bins=list(bins), lw=2, alpha=0.4)
         ax.set_ylabel("Counts")
         ax2 = ax.twinx()
         ax2.plot(x_vals, target_ratio, color="red")
@@ -311,7 +337,7 @@ class DependencePlotter(BaseFitComputePlotClass):
 
         return bins, ax, target_ratio
 
-    def _get_X_y_shap_with_q_cut(self, feature):
+    def _get_X_y_shap_with_q_cut(self, feature: Feature) -> tuple[pd.Series, pd.Series, pd.Series]:
         """
         Extracts all X, y pairs and shap values that fall within defined quantiles of the feature.
 

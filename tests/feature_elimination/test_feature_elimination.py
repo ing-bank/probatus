@@ -208,9 +208,9 @@ def test_calculate_number_of_features_to_remove():
 @pytest.mark.parametrize(
     "method, threshold, expected_features",
     [
-        ("best", 0.03, ["signal", "stable", "extra"]),
-        ("best_coherent", 0.03, ["signal", "stable", "extra", "noise"]),
-        ("best_parsimonious", 0.03, ["signal", "stable"]),
+        ("best", 0.75, ["signal", "stable", "extra"]),
+        ("best_coherent", 0.75, ["signal", "stable", "extra", "noise"]),
+        ("best_parsimonious", 0.75, ["signal", "stable"]),
         ("best", 0.0, ["signal", "stable", "extra"]),
         ("best_coherent", 0.0, ["signal", "stable", "extra"]),
         ("best_parsimonious", 0.0, ["signal", "stable", "extra"]),
@@ -218,7 +218,7 @@ def test_calculate_number_of_features_to_remove():
 )
 def test_shap_automatic_num_feature_selection(decision_tree_classifier, method, threshold, expected_features):
     # Test selection policies against a fixed CV report, independently of model/SHAP version changes.
-    # Three features score best; four are most stable within 0.03; two are the smallest set within 0.03.
+    # Three features score best; four are most stable within 0.75 * 0.04; two are the smallest set within that range.
     # The one-feature result is even more stable, but its score is outside the threshold.
     shap_elimination = ShapRFECV(decision_tree_classifier)
     shap_elimination.report_df = pd.DataFrame(

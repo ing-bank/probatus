@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
+from typing import Any
 
 from probatus.utils import NotFittedError
 
@@ -10,7 +13,7 @@ class BaseFitComputeClass(ABC):
 
     fitted = False
 
-    def _check_if_fitted(self):
+    def _check_if_fitted(self) -> None:
         """
         Checks if object has been fitted. If not, NotFittedError is raised.
         """
@@ -18,21 +21,21 @@ class BaseFitComputeClass(ABC):
             raise (NotFittedError("The object has not been fitted. Please run fit() method first"))
 
     @abstractmethod
-    def fit(self, *args, **kwargs):
+    def fit(self, *args: Any, **kwargs: Any) -> Any:
         """
         Placeholder that must be overwritten by subclass.
         """
         pass
 
     @abstractmethod
-    def compute(self, *args, **kwargs):
+    def compute(self, *args: Any, **kwargs: Any) -> Any:
         """
         Placeholder that must be overwritten by subclass.
         """
         pass
 
     @abstractmethod
-    def fit_compute(self, *args, **kwargs):
+    def fit_compute(self, *args: Any, **kwargs: Any) -> Any:
         """
         Placeholder that must be overwritten by subclass.
         """
@@ -45,7 +48,7 @@ class BaseFitComputePlotClass(BaseFitComputeClass):
     """
 
     @abstractmethod
-    def plot(self, *args, **kwargs):
+    def plot(self, *args: Any, **kwargs: Any) -> Any:
         """
         Placeholder method for plotting.
         """

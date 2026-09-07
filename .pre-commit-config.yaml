@@ -22,11 +22,12 @@ repos:
     hooks:
       - id: mypy
         name: "mypy: Static type checking"
-        entry: uv run --locked --all-extras mypy
+        entry: uv run --locked --all-extras mypy probatus tests/typing
+        pass_filenames: false
         language: system
         require_serial: true
         types: [python]
-        files: ^probatus/
+        files: ^(probatus/|tests/typing/)
   - repo: local
     hooks:
       - id: ruff-check
