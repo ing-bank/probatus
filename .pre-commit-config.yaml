@@ -1,6 +1,6 @@
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v3.2.0
+    rev: v6.0.0
     hooks:
       - id: check-case-conflict # Different OSes
         name: "Check case conflict: Naming of files is compatible with all OSes"
@@ -11,7 +11,7 @@ repos:
       - id: trailing-whitespace
         name: "Trailing whitespace: Remove empty spaces"
   - repo: https://github.com/nbQA-dev/nbQA
-    rev: 1.8.5
+    rev: 1.9.1
     hooks:
       - id: nbqa-ruff
         name: "ruff nb: Check for errors, styling issues and complexity"
@@ -20,8 +20,8 @@ repos:
       - id: nbqa-isort
         name: "isort nb: Sort file imports"
       - id: nbqa-pyupgrade
-        name: "pyupgrade nb: Updates code to Python 3.9+ code convention"
-        args: [&py_version --py38-plus]
+        name: "pyupgrade nb: Updates code to Python 3.10+ code convention"
+        args: [&py_version --py310-plus]
       - id: nbqa-black
         name: "black nb: PEP8 compliant code formatter"
   - repo: local
@@ -53,8 +53,8 @@ repos:
         types: [python]
         args: [-L mot] # Skip the word "mot"
   - repo: https://github.com/asottile/pyupgrade
-    rev: v3.4.0
+    rev: v3.21.2
     hooks:
       - id: pyupgrade
-        name: "pyupgrade: Updates code to Python 3.9+ code convention"
+        name: "pyupgrade: Updates code to Python 3.10+ code convention"
         args: [*py_version]

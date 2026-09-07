@@ -26,6 +26,17 @@ Development install:
 pip install -e '.[all]'
 ```
 
+For the reproducible environment recorded in `uv.lock`, use `uv sync --all-extras`.
+Refresh it with `uv lock --upgrade`, then run the tests and `uv run --all-extras mkdocs build`.
+The minimum versions in `pyproject.toml` allow newer releases; the lockfile records the resolved versions for each supported Python version.
+
+Python 3.10 uses SHAP 0.49.x and XGBoost 3.0.x: SHAP 0.50 dropped Python 3.10 support,
+and older SHAP cannot load XGBoost 3.1's vector-valued base score.
+Python 3.11 and newer use SHAP 0.50+ and XGBoost 3.2.x. XGBoost 3.3+ enables categorical
+handling by default, which SHAP 0.52 rejects for interventional explanations even on numerical data.
+Recheck these compatibility limits when upgrading SHAP.
+See the [SHAP release notes](https://shap.readthedocs.io/en/stable/release_notes.html).
+
 Unit testing:
 
 ```shell
@@ -48,7 +59,7 @@ This will allow you to quickly see if the work you made contains some adaptions 
 
 ## Standards
 
-- Python 3.9+
+- Python 3.10–3.13
 - Follow [PEP8](http://pep8.org/) as closely as possible (except line length)
 - [google docstring format](https://sphinxcontrib-napoleon.readthedocs.io/en/latest/)
 - Git: Include a short description of *what* and *why* was done, *how* can be seen in the code. Use present tense, imperative mood

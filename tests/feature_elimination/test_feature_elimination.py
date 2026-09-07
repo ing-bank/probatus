@@ -205,35 +205,42 @@ def test_calculate_number_of_features_to_remove():
     )
 
 
-def test_shap_automatic_num_feature_selection(decision_tree_classifier, random_state):
-    X = pd.DataFrame(
+@pytest.mark.parametrize(
+    "method, threshold, expected_features",
+    [
+        ("best", 0.03, ["signal", "stable", "extra"]),
+        ("best_coherent", 0.03, ["signal", "stable", "extra", "noise"]),
+        ("best_parsimonious", 0.03, ["signal", "stable"]),
+        ("best", 0.0, ["signal", "stable", "extra"]),
+        ("best_coherent", 0.0, ["signal", "stable", "extra"]),
+        ("best_parsimonious", 0.0, ["signal", "stable", "extra"]),
+    ],
+)
+def test_shap_automatic_num_feature_selection(decision_tree_classifier, method, threshold, expected_features):
+    # Test selection policies against a fixed CV report, independently of model/SHAP version changes.
+    # Three features score best; four are most stable within 0.03; two are the smallest set within 0.03.
+    # The one-feature result is even more stable, but its score is outside the threshold.
+    shap_elimination = ShapRFECV(decision_tree_classifier)
+    shap_elimination.report_df = pd.DataFrame(
         {
-            "col_1": [1, 0, 1, 0, 1, 0, 1, 0],
-            "col_2": [0, 0, 0, 0, 0, 1, 1, 1],
-            "col_3": [1, 1, 1, 0, 0, 0, 0, 0],
-        }
+            "num_features": [4, 3, 2, 1],
+            "features_set": [
+                ["signal", "stable", "extra", "noise"],
+                ["signal", "stable", "extra"],
+                ["signal", "stable"],
+                ["signal"],
+            ],
+            "val_metric_mean": [0.89, 0.90, 0.88, 0.60],
+            "val_metric_std": [0.01, 0.04, 0.02, 0.0],
+        },
+        index=[1, 2, 3, 4],
     )
-    y = pd.Series([0, 0, 0, 0, 1, 1, 1, 1])
+    shap_elimination.fitted = True
 
-    shap_elimination = ShapRFECV(
-        decision_tree_classifier,
-        random_state=random_state,
-        step=1,
-        cv=2,
-        scoring="roc_auc",
-        n_jobs=1,
+    assert (
+        shap_elimination.get_reduced_features_set(num_features=method, standard_error_threshold=threshold)
+        == expected_features
     )
-    _ = shap_elimination.fit_compute(X, y, approximate=True, check_additivity=False)
-
-    best_features = shap_elimination.get_reduced_features_set(num_features="best")
-    best_coherent_features = shap_elimination.get_reduced_features_set(
-        num_features="best_coherent",
-    )
-    best_parsimonious_features = shap_elimination.get_reduced_features_set(num_features="best_parsimonious")
-
-    assert best_features == ["col_2"]
-    assert best_coherent_features == ["col_1", "col_2", "col_3"]
-    assert best_parsimonious_features == ["col_2"]
 
 
 def test_get_feature_shap_values_per_fold(X, y, decision_tree_classifier, random_state):
@@ -254,7 +261,8 @@ def test_get_feature_shap_values_per_fold(X, y, decision_tree_classifier, random
     assert shap_values.shape == (2, 3)
 
 
-def test_shap_rfe_same_features_are_kept_after_each_run(random_state_1234):
+@pytest.mark.parametrize("n_jobs", [1, 2])
+def test_shap_rfe_same_features_are_kept_after_each_run(random_state_1234, n_jobs):
     """
     Test a use case which appears to be flickering with Probatus 1.8.9 and lower.
 
@@ -283,42 +291,44 @@ def test_shap_rfe_same_features_are_kept_after_each_run(random_state_1234):
         class_weight="balanced",
     )
 
-    shap_elimination = ShapRFECV(
-        random_forest,
-        step=0.2,
-        cv=5,
-        scoring="f1_macro",
-        n_jobs=1,
-        random_state=random_state_1234,
-    )
+    reports = []
+    selected_features = []
+    for _ in range(2):
+        shap_elimination = ShapRFECV(
+            random_forest,
+            step=0.2,
+            cv=5,
+            scoring="f1_macro",
+            n_jobs=n_jobs,
+            random_state=random_state_1234,
+        )
+        reports.append(shap_elimination.fit_compute(X, y, check_additivity=True))
+        selected_features.append(shap_elimination.get_reduced_features_set("best"))
 
-    report = shap_elimination.fit_compute(X, y, check_additivity=True)
-    # Return the set of features with the best validation accuracy
-
-    kept_features = list(report.iloc[[report["val_metric_mean"].idxmax() - 1]]["features_set"].to_list()[0])
-
-    # Results from the first run
-    assert [
-        "f1",
-        "f2",
-        "f3",
-        "f5",
-        "f6",
-        "f10",
-        "f11",
-        "f12",
-        "f13",
-        "f14",
-        "f15",
-        "f16",
-        "f17",
-        "f18",
-        "f19",
-        "f20",
-    ] == kept_features
+    # Reproducibility means identical runs in the installed stack, not matching an old stack's feature list.
+    pd.testing.assert_frame_equal(reports[0], reports[1], check_exact=True)
+    assert selected_features[0] == selected_features[1]
+    assert reports[0]["num_features"].tolist()[0] == len(feature_names)
+    assert reports[0]["num_features"].tolist()[-1] == 1
+    for features in reports[0]["features_set"]:
+        assert features == [feature for feature in feature_names if feature in features]
 
 
-def test_shap_rfe_penalty_factor(X, y, decision_tree_classifier, random_state):
+@pytest.mark.parametrize(
+    "penalty_factor, expected_feature, first_eliminated",
+    [(None, "col_2", "col_3"), (0.0, "col_2", "col_3"), (1.0, "col_1", "col_2")],
+)
+def test_shap_rfe_penalty_factor(
+    X, y, decision_tree_classifier, random_state, monkeypatch, penalty_factor, expected_feature, first_eliminated
+):
+    # col_2 has greater mean importance (3) but also greater variability (3) than col_1 (mean 2, std 0).
+    # Supplying known SHAP values isolates the penalty's effect while retaining fitting, CV and elimination.
+    shap_values = pd.DataFrame({"col_1": [2.0] * 8, "col_2": [0.0, 6.0] * 4, "col_3": [0.5] * 8}, index=X.index)
+
+    def controlled_shap_calc(model, X, **kwargs):
+        return shap_values.loc[X.index, X.columns].to_numpy()
+
+    monkeypatch.setattr("probatus.feature_elimination.feature_elimination.shap_calc", controlled_shap_calc)
     shap_elimination = ShapRFECV(
         decision_tree_classifier,
         random_state=random_state,
@@ -327,12 +337,11 @@ def test_shap_rfe_penalty_factor(X, y, decision_tree_classifier, random_state):
         scoring="roc_auc",
         n_jobs=1,
     )
-    report = shap_elimination.fit_compute(
-        X, y, shap_variance_penalty_factor=1.0, approximate=True, check_additivity=False
-    )
+    report = shap_elimination.fit_compute(X, y, shap_variance_penalty_factor=penalty_factor)
 
-    assert report.shape[0] == 3
-    assert shap_elimination.get_reduced_features_set(1) == ["col_1"]
+    assert report["num_features"].tolist() == [3, 2, 1]
+    assert report.iloc[0]["eliminated_features"] == [first_eliminated]
+    assert shap_elimination.get_reduced_features_set(1) == [expected_feature]
 
 
 def test_complex_dataset(complex_data, complex_lightgbm, random_state_1):

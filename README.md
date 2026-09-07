@@ -18,6 +18,8 @@
 
 ## Installation
 
+Probatus supports Python 3.10 through 3.13.
+
 ```bash
 pip install probatus
 ```
