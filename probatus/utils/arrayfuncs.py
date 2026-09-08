@@ -9,13 +9,14 @@ import pandas as pd
 from probatus._typing import (
     Array,
     Data,
-    DataSequence,
+    DataValue,
     Feature,
     Labels,
+    LabelValue,
 )
 
 
-def assure_pandas_df(x: Data, column_names: Sequence[Feature] | None = None) -> pd.DataFrame:
+def assure_pandas_df(x: Data[DataValue], column_names: Sequence[Feature] | None = None) -> pd.DataFrame:
     """
     Returns x as pandas DataFrame. X can be a list, list of lists, numpy array, pandas DataFrame or pandas Series.
 
@@ -36,7 +37,9 @@ def assure_pandas_df(x: Data, column_names: Sequence[Feature] | None = None) -> 
     return x
 
 
-def assure_pandas_series(x: Labels, index: pd.Index | DataSequence[Hashable] | Array | None = None) -> pd.Series:
+def assure_pandas_series(
+    x: Labels[LabelValue], index: pd.Index | Sequence[Hashable] | Array | None = None
+) -> pd.Series:
     """
     Returns x as pandas Series. X can be a list, numpy array, or pandas Series.
 
@@ -69,7 +72,7 @@ def assure_pandas_series(x: Labels, index: pd.Index | DataSequence[Hashable] | A
 
 
 def preprocess_data(
-    X: Data, X_name: str | None = None, column_names: Sequence[Feature] | None = None, verbose: int = 0
+    X: Data[DataValue], X_name: str | None = None, column_names: Sequence[Feature] | None = None, verbose: int = 0
 ) -> tuple[pd.DataFrame, list[Feature]]:
     """
     Preprocess data.
@@ -135,9 +138,9 @@ def preprocess_data(
 
 
 def preprocess_labels(
-    y: Labels,
+    y: Labels[LabelValue],
     y_name: str | None = None,
-    index: pd.Index | DataSequence[Hashable] | Array | None = None,
+    index: pd.Index | Sequence[Hashable] | Array | None = None,
     verbose: int = 0,
 ) -> pd.Series:
     """

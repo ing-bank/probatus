@@ -8,14 +8,16 @@ import numpy as np
 import pandas as pd
 from matplotlib.axes import Axes
 from sklearn.preprocessing import KBinsDiscretizer
-from typing_extensions import Unpack
+from typing_extensions import Self, Unpack
 
 from probatus._typing import (
     Data,
+    DataValue,
     Estimator,
     Feature,
     FloatArray,
     Labels,
+    LabelValue,
     ShapOptions,
 )
 from probatus.utils import BaseFitComputePlotClass, preprocess_data, preprocess_labels, shap_to_df
@@ -78,13 +80,13 @@ class DependencePlotter(BaseFitComputePlotClass[..., ..., pd.DataFrame]):
 
     def fit(
         self,
-        X: Data,
-        y: Labels,
+        X: Data[DataValue],
+        y: Labels[LabelValue],
         column_names: Sequence[Feature] | None = None,
         class_names: list[str] | None = None,
         precalc_shap: FloatArray | None = None,
         **shap_kwargs: Unpack[ShapOptions],
-    ) -> DependencePlotter:
+    ) -> Self:
         """
         Fits the plotter to the model and data by computing the shap values.
 
@@ -143,8 +145,8 @@ class DependencePlotter(BaseFitComputePlotClass[..., ..., pd.DataFrame]):
 
     def fit_compute(
         self,
-        X: Data,
-        y: Labels,
+        X: Data[DataValue],
+        y: Labels[LabelValue],
         column_names: Sequence[Feature] | None = None,
         class_names: list[str] | None = None,
         precalc_shap: FloatArray | None = None,

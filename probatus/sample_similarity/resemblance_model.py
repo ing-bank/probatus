@@ -12,14 +12,16 @@ from matplotlib.axes import Axes
 from shap import summary_plot
 from sklearn.inspection import permutation_importance
 from sklearn.model_selection import train_test_split
-from typing_extensions import Unpack
+from typing_extensions import Self, Unpack
 
 from probatus._typing import (
     Data,
+    DataValue,
     Estimator,
     Feature,
     FigureOptions,
     FloatArray,
+    OtherDataValue,
     ResemblanceFit,
     ShapOptions,
     SummaryOptions,
@@ -109,8 +111,12 @@ class BaseResemblanceModel(BaseFitComputePlotClass[..., ..., Report | tuple[Repo
         self.report: pd.DataFrame | None = None
 
     def fit(
-        self, X1: Data, X2: Data, column_names: Sequence[Feature] | None = None, class_names: list[str] | None = None
-    ) -> BaseResemblanceModel[Report]:
+        self,
+        X1: Data[DataValue],
+        X2: Data[OtherDataValue],
+        column_names: Sequence[Feature] | None = None,
+        class_names: list[str] | None = None,
+    ) -> Self:
         """
         Base fit functionality that should be executed before each fit.
 
@@ -242,8 +248,8 @@ class BaseResemblanceModel(BaseFitComputePlotClass[..., ..., Report | tuple[Repo
     @overload
     def fit_compute(
         self,
-        X1: Data,
-        X2: Data,
+        X1: Data[DataValue],
+        X2: Data[OtherDataValue],
         column_names: Sequence[Feature] | None = ...,
         class_names: list[str] | None = ...,
         return_scores: Literal[False] = ...,
@@ -253,8 +259,8 @@ class BaseResemblanceModel(BaseFitComputePlotClass[..., ..., Report | tuple[Repo
     @overload
     def fit_compute(
         self,
-        X1: Data,
-        X2: Data,
+        X1: Data[DataValue],
+        X2: Data[OtherDataValue],
         column_names: Sequence[Feature] | None = ...,
         class_names: list[str] | None = ...,
         return_scores: Literal[True] = ...,
@@ -264,8 +270,8 @@ class BaseResemblanceModel(BaseFitComputePlotClass[..., ..., Report | tuple[Repo
     @overload
     def fit_compute(
         self,
-        X1: Data,
-        X2: Data,
+        X1: Data[DataValue],
+        X2: Data[OtherDataValue],
         column_names: Sequence[Feature] | None = ...,
         class_names: list[str] | None = ...,
         return_scores: bool = ...,
@@ -274,8 +280,8 @@ class BaseResemblanceModel(BaseFitComputePlotClass[..., ..., Report | tuple[Repo
 
     def fit_compute(
         self,
-        X1: Data,
-        X2: Data,
+        X1: Data[DataValue],
+        X2: Data[OtherDataValue],
         column_names: Sequence[Feature] | None = None,
         class_names: list[str] | None = None,
         return_scores: bool = False,
@@ -422,8 +428,12 @@ class PermutationImportanceResemblance(BaseResemblanceModel[pd.DataFrame]):
         self.plot_title = "Permutation Feature Importance of Resemblance Model"
 
     def fit(
-        self, X1: Data, X2: Data, column_names: Sequence[Feature] | None = None, class_names: list[str] | None = None
-    ) -> PermutationImportanceResemblance:
+        self,
+        X1: Data[DataValue],
+        X2: Data[OtherDataValue],
+        column_names: Sequence[Feature] | None = None,
+        class_names: list[str] | None = None,
+    ) -> Self:
         """
         This function assigns labels to each sample, 0 to the first sample, 1 to the second.
 
@@ -651,12 +661,12 @@ class SHAPImportanceResemblance(BaseResemblanceModel[pd.DataFrame]):
 
     def fit(
         self,
-        X1: Data,
-        X2: Data,
+        X1: Data[DataValue],
+        X2: Data[OtherDataValue],
         column_names: Sequence[Feature] | None = None,
         class_names: list[str] | None = None,
         **shap_kwargs: Unpack[ShapOptions],
-    ) -> SHAPImportanceResemblance:
+    ) -> Self:
         """
         This function assigns labels to each sample, 0 to the first sample, 1 to the second.
 

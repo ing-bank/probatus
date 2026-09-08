@@ -13,24 +13,29 @@ from matplotlib.figure import Figure
 from sklearn.base import clone, is_classifier, is_regressor
 from sklearn.model_selection import check_cv
 from sklearn.model_selection._search import BaseSearchCV
-from typing_extensions import Unpack
+from typing_extensions import Self, Unpack
 
 from probatus._typing import (
     CV,
     BoostingFitParams,
     CatBoostFitParams,
     Data,
+    DataValue,
     EarlyStoppingEstimator,
     Estimator,
     EvalMetric,
     Feature,
     FigureOptions,
     FloatArray,
+    GroupValue,
     IndexArray,
     Labels,
+    LabelValue,
     SearchEstimator,
     SearchFitParams,
     ShapOptions,
+    WeightedEstimator,
+    WeightValue,
 )
 from probatus.utils import (
     BaseFitComputePlotClass,
@@ -275,12 +280,12 @@ class ShapRFECV(BaseFitComputePlotClass[..., ..., pd.DataFrame]):
 
     def fit_compute(
         self,
-        X: Data,
-        y: Labels,
-        sample_weight: Labels | None = None,
+        X: Data[DataValue],
+        y: Labels[LabelValue],
+        sample_weight: Labels[WeightValue] | None = None,
         columns_to_keep: list[str] | None = None,
         column_names: Sequence[Feature] | None = None,
-        groups: Labels | None = None,
+        groups: Labels[GroupValue] | None = None,
         shap_variance_penalty_factor: float | None = None,
         **shap_kwargs: Unpack[ShapOptions],
     ) -> pd.DataFrame:
@@ -351,15 +356,15 @@ class ShapRFECV(BaseFitComputePlotClass[..., ..., pd.DataFrame]):
 
     def fit(
         self,
-        X: Data,
-        y: Labels,
-        sample_weight: Labels | None = None,
+        X: Data[DataValue],
+        y: Labels[LabelValue],
+        sample_weight: Labels[WeightValue] | None = None,
         columns_to_keep: list[str] | None = None,
         column_names: Sequence[Feature] | None = None,
-        groups: Labels | None = None,
+        groups: Labels[GroupValue] | None = None,
         shap_variance_penalty_factor: float | None = None,
         **shap_kwargs: Unpack[ShapOptions],
-    ) -> ShapRFECV:
+    ) -> Self:
         """
         Fits the object with the provided data.
 
@@ -481,7 +486,7 @@ class ShapRFECV(BaseFitComputePlotClass[..., ..., pd.DataFrame]):
             if self.search_model:
                 # With metadata routing enabled, searches without a group-aware consumer
                 # reject even groups=None. Keep passing real groups for group-aware CV.
-                search_fit_kwargs: SearchFitParams = {} if groups is None else {"groups": groups}
+                search_fit_kwargs: SearchFitParams[GroupValue] = {} if groups is None else {"groups": groups}
                 current_search_model = cast(SearchEstimator, clone(self.model)).fit(
                     X=current_X, y=self.y, **search_fit_kwargs
                 )
@@ -814,7 +819,8 @@ class ShapRFECV(BaseFitComputePlotClass[..., ..., pd.DataFrame]):
         y_train, y_val = y.iloc[train_index], y.iloc[val_index]
 
         if sample_weight is not None:
-            model = model.fit(X_train, y_train, sample_weight=sample_weight.iloc[train_index])
+            # Sample weights require this additional estimator capability.
+            model = cast(WeightedEstimator, model).fit(X_train, y_train, sample_weight=sample_weight.iloc[train_index])
         else:
             model = model.fit(X_train, y_train)
 

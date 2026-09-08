@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Hashable, Sequence
-from typing import Literal, cast, overload
+from typing import Literal, TypeVar, cast, overload
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -13,13 +13,16 @@ from typing_extensions import Unpack
 
 from probatus._typing import (
     Data,
-    DataSequence,
+    DataValue,
     DependenceOptions,
     Estimator,
     Feature,
     FloatArray,
     InterpretPlotOptions,
     Labels,
+    LabelValue,
+    OtherDataValue,
+    OtherLabelValue,
     ShapOptions,
     ShapOptionsWithoutApproximation,
 )
@@ -34,6 +37,8 @@ from probatus.utils import (
     shap_calc,
 )
 from probatus.utils.scoring import Scorer
+
+IndexValue = TypeVar("IndexValue", bound=Hashable)
 
 
 class ShapModelInterpreter(BaseFitComputePlotClass[..., ..., pd.DataFrame | tuple[pd.DataFrame, float, float]]):
@@ -114,10 +119,10 @@ class ShapModelInterpreter(BaseFitComputePlotClass[..., ..., pd.DataFrame | tupl
 
     def fit(
         self,
-        X_train: Data,
-        X_test: Data,
-        y_train: Labels,
-        y_test: Labels,
+        X_train: Data[DataValue],
+        X_test: Data[OtherDataValue],
+        y_train: Labels[LabelValue],
+        y_test: Labels[OtherLabelValue],
         column_names: Sequence[Feature] | None = None,
         class_names: list[str] | None = None,
         **shap_kwargs: Unpack[ShapOptions],
@@ -326,10 +331,10 @@ class ShapModelInterpreter(BaseFitComputePlotClass[..., ..., pd.DataFrame | tupl
     @overload
     def fit_compute(
         self,
-        X_train: Data,
-        X_test: Data,
-        y_train: Labels,
-        y_test: Labels,
+        X_train: Data[DataValue],
+        X_test: Data[OtherDataValue],
+        y_train: Labels[LabelValue],
+        y_test: Labels[OtherLabelValue],
         column_names: Sequence[Feature] | None = ...,
         class_names: list[str] | None = ...,
         return_scores: Literal[False] = ...,
@@ -340,10 +345,10 @@ class ShapModelInterpreter(BaseFitComputePlotClass[..., ..., pd.DataFrame | tupl
     @overload
     def fit_compute(
         self,
-        X_train: Data,
-        X_test: Data,
-        y_train: Labels,
-        y_test: Labels,
+        X_train: Data[DataValue],
+        X_test: Data[OtherDataValue],
+        y_train: Labels[LabelValue],
+        y_test: Labels[OtherLabelValue],
         column_names: Sequence[Feature] | None = ...,
         class_names: list[str] | None = ...,
         return_scores: Literal[True] = ...,
@@ -354,10 +359,10 @@ class ShapModelInterpreter(BaseFitComputePlotClass[..., ..., pd.DataFrame | tupl
     @overload
     def fit_compute(
         self,
-        X_train: Data,
-        X_test: Data,
-        y_train: Labels,
-        y_test: Labels,
+        X_train: Data[DataValue],
+        X_test: Data[OtherDataValue],
+        y_train: Labels[LabelValue],
+        y_test: Labels[OtherLabelValue],
         column_names: Sequence[Feature] | None = ...,
         class_names: list[str] | None = ...,
         return_scores: bool = ...,
@@ -367,10 +372,10 @@ class ShapModelInterpreter(BaseFitComputePlotClass[..., ..., pd.DataFrame | tupl
 
     def fit_compute(
         self,
-        X_train: Data,
-        X_test: Data,
-        y_train: Labels,
-        y_test: Labels,
+        X_train: Data[DataValue],
+        X_test: Data[OtherDataValue],
+        y_train: Labels[LabelValue],
+        y_test: Labels[OtherLabelValue],
         column_names: Sequence[Feature] | None = None,
         class_names: list[str] | None = None,
         return_scores: bool = False,
@@ -442,8 +447,8 @@ class ShapModelInterpreter(BaseFitComputePlotClass[..., ..., pd.DataFrame | tupl
         self,
         plot_type: str,
         target_set: str = "test",
-        target_columns: str | DataSequence[Feature] | None = None,
-        samples_index: int | str | DataSequence[Hashable] | pd.Index | None = None,
+        target_columns: str | Sequence[Feature] | None = None,
+        samples_index: int | str | list[IndexValue] | pd.Index | None = None,
         show: bool = True,
         **plot_kwargs: Unpack[InterpretPlotOptions],
     ) -> Axes | list[Axes] | list[list[Axes]]:
@@ -555,12 +560,14 @@ class ShapModelInterpreter(BaseFitComputePlotClass[..., ..., pd.DataFrame | tupl
             if samples_index is None:
                 raise (ValueError("For sample plot, you need to specify the samples_index be plotted plot"))
             elif isinstance(samples_index, int) or isinstance(samples_index, str):
-                samples_index = [samples_index]
+                selected_samples: Sequence[Hashable] | pd.Index = [samples_index]
             elif not (isinstance(samples_index, list) or isinstance(samples_index, pd.Index)):
                 raise (TypeError("sample_index must be one of the following: int, str, list or pd.Index"))
+            else:
+                selected_samples = samples_index
 
             sample_axes: list[Axes] = []
-            for sample_index in samples_index:
+            for sample_index in selected_samples:
                 sample_loc = target_X.index.get_loc(sample_index)
 
                 waterfall_legacy(

@@ -4,8 +4,10 @@ from sklearn.metrics import get_scorer
 
 from probatus._typing import (
     Data,
+    DataValue,
     Estimator,
     Labels,
+    LabelValue,
     ScorerCallable,
 )
 
@@ -92,7 +94,7 @@ class Scorer:
         else:
             self.scorer = get_scorer(self.metric_name)
 
-    def score(self, model: Estimator, X: Data, y: Labels) -> float:
+    def score(self, model: Estimator, X: Data[DataValue], y: Labels[LabelValue]) -> float:
         """
         Scores the samples model based on the provided metric name.
 

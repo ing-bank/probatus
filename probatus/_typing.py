@@ -2,50 +2,52 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Hashable, Iterable, Iterator, Sequence
-from typing import Literal, Protocol, TypeAlias, TypedDict, TypeVar, overload
+from collections.abc import Callable, Hashable, Iterable, Sequence
+from typing import Generic, Literal, Protocol, TypeAlias, TypeVar
 
 import numpy as np
 import pandas as pd
 from matplotlib.colors import Colormap
 from numpy.typing import NDArray
-from typing_extensions import Unpack
+from typing_extensions import Self, TypedDict, Unpack
 
 Feature: TypeAlias = Hashable
 Array: TypeAlias = NDArray[np.generic]
 FloatArray: TypeAlias = NDArray[np.float32 | np.float64]
 IndexArray: TypeAlias = NDArray[np.int32 | np.int64]
-Scalar: TypeAlias = str | int | float | bool | np.generic | None
-_Value = TypeVar("_Value", covariant=True)
-
-
-class DataSequence(Protocol[_Value]):
-    """Read-only list operations; copy excludes bare strings from tabular inputs."""
-
-    def __len__(self) -> int: ...
-    def __iter__(self) -> Iterator[_Value]: ...
-    @overload
-    def __getitem__(self, index: int, /) -> _Value: ...
-    @overload
-    def __getitem__(self, index: slice, /) -> Sequence[_Value]: ...
-    def copy(self) -> Sequence[_Value]: ...
-
-
-Data: TypeAlias = pd.DataFrame | pd.Series | Array | DataSequence[Scalar | DataSequence[Scalar]]
-Labels: TypeAlias = pd.Series | Array | DataSequence[Scalar]
+# Lists are invariant: preserve their element types instead of requiring list[object].
+DataValue = TypeVar("DataValue")
+OtherDataValue = TypeVar("OtherDataValue")
+LabelValue = TypeVar("LabelValue")
+OtherLabelValue = TypeVar("OtherLabelValue")
+WeightValue = TypeVar("WeightValue")
+GroupValue = TypeVar("GroupValue")
+Data: TypeAlias = pd.DataFrame | pd.Series | Array | list[DataValue]
+Labels: TypeAlias = pd.Series | Array | list[LabelValue]
 Color: TypeAlias = str | tuple[float, float, float] | tuple[float, float, float, float]
 
 
 class Estimator(Protocol):
     """The sklearn-style estimator operations used by probatus."""
 
-    def fit(self, X: pd.DataFrame, y: pd.Series, sample_weight: pd.Series | None = None) -> Estimator: ...
+    def fit(self, X: pd.DataFrame, y: pd.Series) -> Self: ...
     def predict(self, X: pd.DataFrame) -> Array: ...
     def get_params(self, deep: bool = True) -> dict[str, object]: ...
-    def set_params(self, **params: object) -> Estimator: ...
+    def set_params(self, **params: object) -> Self: ...
 
 
-ScorerCallable: TypeAlias = Callable[[Estimator, Data, Labels], float]
+class WeightedEstimator(Estimator, Protocol):
+    """Additional fit capability used only when sample weights are supplied."""
+
+    def fit(self, X: pd.DataFrame, y: pd.Series, *, sample_weight: pd.Series | None = None) -> Self: ...
+
+
+class ScorerCallable(Protocol):
+    """A scorer accepting the supported input containers and returning a scalar."""
+
+    def __call__(self, model: Estimator, X: Data[DataValue], y: Labels[LabelValue], /) -> float: ...
+
+
 # Boosting libraries use different callback arguments; the numeric result is shared.
 EvalMetric: TypeAlias = str | Callable[..., float | tuple[str, float] | tuple[str, float, bool]]
 
@@ -63,7 +65,7 @@ class CVSplitter(Protocol):
     """The splitter interface consumed by feature elimination."""
 
     def split(
-        self, X: Data, y: Labels | None = None, groups: Labels | None = None
+        self, X: Data[DataValue], y: Labels[LabelValue] | None = None, groups: Labels[GroupValue] | None = None
     ) -> Iterable[tuple[IndexArray, IndexArray]]: ...
 
 
@@ -164,7 +166,7 @@ TrainingCallback: TypeAlias = Callable[..., None]
 class PoolData(Protocol):
     """The CatBoost Pool operation used by the early-stopping adapter."""
 
-    def set_weight(self, weight: pd.Series) -> PoolData: ...
+    def set_weight(self, weight: pd.Series) -> Self: ...
 
 
 class FrameFitParams(TypedDict):
@@ -212,8 +214,8 @@ class ResemblanceFit(Protocol):
 
     def __call__(
         self,
-        X1: Data,
-        X2: Data,
+        X1: Data[DataValue],
+        X2: Data[OtherDataValue],
         column_names: Sequence[Feature] | None = None,
         class_names: list[str] | None = None,
         **kwargs: Unpack[ShapOptions],
@@ -230,13 +232,12 @@ class SearchEstimator(Estimator, Protocol):
         self,
         X: pd.DataFrame,
         y: pd.Series,
-        sample_weight: pd.Series | None = None,
         *,
-        groups: Labels | None = None,
-    ) -> SearchEstimator: ...
+        groups: Labels[GroupValue] | None = None,
+    ) -> Self: ...
 
 
-class SearchFitParams(TypedDict, total=False):
+class SearchFitParams(TypedDict, Generic[GroupValue], total=False):
     """Metadata supplied to the cloned hyperparameter search."""
 
-    groups: Labels
+    groups: Labels[GroupValue]
