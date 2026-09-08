@@ -1,6 +1,14 @@
+from __future__ import annotations
+
 import warnings
 
+from probatus._typing import (
+    CV,
+    Estimator,
+    EvalMetric,
+)
 from probatus.feature_elimination import ShapRFECV
+from probatus.utils.scoring import Scorer
 
 
 class EarlyStoppingShapRFECV(ShapRFECV):
@@ -82,17 +90,17 @@ class EarlyStoppingShapRFECV(ShapRFECV):
 
     def __init__(
         self,
-        model,
-        step=1,
-        min_features_to_select=1,
-        cv=None,
-        scoring="roc_auc",
-        n_jobs=-1,
-        verbose=0,
-        random_state=None,
-        early_stopping_rounds=5,
-        eval_metric="auc",
-    ):
+        model: Estimator,
+        step: int | float = 1,
+        min_features_to_select: int = 1,
+        cv: CV = None,
+        scoring: str | Scorer = "roc_auc",
+        n_jobs: int | None = -1,
+        verbose: int = 0,
+        random_state: int | None = None,
+        early_stopping_rounds: int | None = 5,
+        eval_metric: EvalMetric | None = "auc",
+    ) -> None:
         """
         This method initializes the class.
 

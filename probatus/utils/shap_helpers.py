@@ -1,4 +1,8 @@
+from __future__ import annotations
+
 import warnings
+from collections.abc import Sequence
+from typing import Literal, cast, overload
 
 import numpy as np
 import pandas as pd
@@ -6,19 +10,72 @@ from shap import Explainer
 from shap.explainers import TreeExplainer
 from shap.utils import sample
 from sklearn.pipeline import Pipeline
+from typing_extensions import Unpack
+
+from probatus._typing import (
+    Array,
+    Estimator,
+    ExplainerOptions,
+    Feature,
+    FloatArray,
+    ShapCalculationOptions,
+    ShapExplainer,
+)
+
+
+@overload
+def shap_calc(
+    model: Estimator,
+    X: pd.DataFrame | Array,
+    return_explainer: Literal[False] = False,
+    verbose: int = 0,
+    random_state: int | None = None,
+    sample_size: int = 100,
+    approximate: bool = False,
+    check_additivity: bool = True,
+    **shap_kwargs: Unpack[ExplainerOptions],
+) -> FloatArray: ...
+
+
+@overload
+def shap_calc(
+    model: Estimator,
+    X: pd.DataFrame | Array,
+    return_explainer: Literal[True],
+    verbose: int = 0,
+    random_state: int | None = None,
+    sample_size: int = 100,
+    approximate: bool = False,
+    check_additivity: bool = True,
+    **shap_kwargs: Unpack[ExplainerOptions],
+) -> tuple[FloatArray, ShapExplainer]: ...
+
+
+@overload
+def shap_calc(
+    model: Estimator,
+    X: pd.DataFrame | Array,
+    return_explainer: bool,
+    verbose: int = 0,
+    random_state: int | None = None,
+    sample_size: int = 100,
+    approximate: bool = False,
+    check_additivity: bool = True,
+    **shap_kwargs: Unpack[ExplainerOptions],
+) -> FloatArray | tuple[FloatArray, ShapExplainer]: ...
 
 
 def shap_calc(
-    model,
-    X,
-    return_explainer=False,
-    verbose=0,
-    random_state=None,
-    sample_size=100,
-    approximate=False,
-    check_additivity=True,
-    **shap_kwargs,
-):
+    model: Estimator,
+    X: pd.DataFrame | Array,
+    return_explainer: bool = False,
+    verbose: int = 0,
+    random_state: int | None = None,
+    sample_size: int = 100,
+    approximate: bool = False,
+    check_additivity: bool = True,
+    **shap_kwargs: Unpack[ExplainerOptions],
+) -> FloatArray | tuple[FloatArray, ShapExplainer]:
     """
     Helper function to calculate the shapley values for a given model.
 
@@ -63,6 +120,9 @@ def shap_calc(
             "data transformations before running the probatus module."
         )
 
+    explainer: ShapExplainer
+    shap_values: FloatArray | list[FloatArray]
+
     # Suppress warnings regarding XGboost and Lightgbm models.
     with warnings.catch_warnings():
         warnings.simplefilter("ignore" if verbose <= 1 else "default")
@@ -71,7 +131,9 @@ def shap_calc(
         # tree_path_dependent, or when X contains categorical features
         # related to issue:
         # https://github.com/slundberg/shap/issues/480
-        if shap_kwargs.get("feature_perturbation") == "tree_path_dependent" or X.select_dtypes("category").shape[1] > 0:
+        if shap_kwargs.get("feature_perturbation") == "tree_path_dependent" or (
+            isinstance(X, pd.DataFrame) and X.select_dtypes("category").shape[1] > 0
+        ):
             # Calculate Shap values.
             explainer = Explainer(model, seed=random_state, **shap_kwargs)
         else:
@@ -103,12 +165,18 @@ def shap_calc(
             )
             shap_values = shap_values[1]
 
+    values = cast(FloatArray, np.asarray(shap_values))
     if return_explainer:
-        return shap_values, explainer
-    return shap_values
+        return values, explainer
+    return values
 
 
-def shap_to_df(model, X, precalc_shap=None, **kwargs):
+def shap_to_df(
+    model: Estimator,
+    X: pd.DataFrame | Array,
+    precalc_shap: FloatArray | None = None,
+    **kwargs: Unpack[ShapCalculationOptions],
+) -> pd.DataFrame:
     """
     Calculates the shap values and return the pandas DataFrame with the columns and the index of the original.
 
@@ -130,16 +198,19 @@ def shap_to_df(model, X, precalc_shap=None, **kwargs):
     """
     shap_values = precalc_shap if precalc_shap is not None else shap_calc(model, X, **kwargs)
 
-    try:
+    if isinstance(X, pd.DataFrame):
         return pd.DataFrame(shap_values, columns=X.columns, index=X.index)
-    except AttributeError:
-        if isinstance(X, np.ndarray) and len(X.shape) == 2:
-            return pd.DataFrame(shap_values, columns=[f"col_{ix}" for ix in range(X.shape[1])])
-        else:
-            raise TypeError("X must be a dataframe or a 2d array")
+    if isinstance(X, np.ndarray) and X.ndim == 2:
+        return pd.DataFrame(shap_values, columns=[f"col_{ix}" for ix in range(X.shape[1])])
+    raise TypeError("X must be a dataframe or a 2d array")
 
 
-def calculate_shap_importance(shap_values, columns, output_columns_suffix="", shap_variance_penalty_factor=None):
+def calculate_shap_importance(
+    shap_values: FloatArray,
+    columns: Sequence[Feature],
+    output_columns_suffix: str = "",
+    shap_variance_penalty_factor: float | None = None,
+) -> pd.DataFrame:
     """
     Returns the average shapley value for each column of the dataframe, as well as the average absolute shap value.
 
@@ -192,7 +263,7 @@ def calculate_shap_importance(shap_values, columns, output_columns_suffix="", sh
             f"mean_shap_value{output_columns_suffix}": shap_mean,
             f"penalized_mean_abs_shap_value{output_columns_suffix}": penalized_shap_abs_mean,
         },
-        index=columns,
+        index=list(columns),
     ).astype(float)
 
     importance_df = importance_df.sort_values(f"penalized_mean_abs_shap_value{output_columns_suffix}", ascending=False)

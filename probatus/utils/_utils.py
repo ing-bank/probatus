@@ -1,4 +1,19 @@
-def assure_list_of_strings(variable, variable_name):
+from __future__ import annotations
+
+from typing import TypeVar, overload
+
+_Feature = TypeVar("_Feature")
+
+
+@overload
+def assure_list_of_strings(variable: str, variable_name: str) -> list[str]: ...
+
+
+@overload
+def assure_list_of_strings(variable: list[_Feature], variable_name: str) -> list[_Feature]: ...
+
+
+def assure_list_of_strings(variable: str | list[_Feature], variable_name: str) -> list[str] | list[_Feature]:
     """
     Make sure object is a list of strings.
     """

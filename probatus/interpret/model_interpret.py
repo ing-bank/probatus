@@ -1,9 +1,31 @@
+from __future__ import annotations
+
+from collections.abc import Hashable, Sequence
+from typing import Literal, TypeVar, cast, overload
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from matplotlib.axes import Axes
 from shap import summary_plot
 from shap.plots._waterfall import waterfall_legacy
+from typing_extensions import Unpack
 
+from probatus._typing import (
+    Data,
+    DataValue,
+    DependenceOptions,
+    Estimator,
+    Feature,
+    FloatArray,
+    InterpretPlotOptions,
+    Labels,
+    LabelValue,
+    OtherDataValue,
+    OtherLabelValue,
+    ShapOptions,
+    ShapOptionsWithoutApproximation,
+)
 from probatus.interpret import DependencePlotter
 from probatus.utils import (
     BaseFitComputePlotClass,
@@ -14,9 +36,12 @@ from probatus.utils import (
     preprocess_labels,
     shap_calc,
 )
+from probatus.utils.scoring import Scorer
+
+IndexValue = TypeVar("IndexValue", bound=Hashable)
 
 
-class ShapModelInterpreter(BaseFitComputePlotClass):
+class ShapModelInterpreter(BaseFitComputePlotClass[..., ..., pd.DataFrame | tuple[pd.DataFrame, float, float]]):
     """
     This class is a wrapper that allows to easily analyse a model's features.
 
@@ -60,7 +85,9 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
     <img src="../img/model_interpret_sample.png" width="320" />
     """
 
-    def __init__(self, model, scoring="roc_auc", verbose=0, random_state=None):
+    def __init__(
+        self, model: Estimator, scoring: str | Scorer = "roc_auc", verbose: int = 0, random_state: int | None = None
+    ) -> None:
         """
         Initializes the class.
 
@@ -92,14 +119,14 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
 
     def fit(
         self,
-        X_train,
-        X_test,
-        y_train,
-        y_test,
-        column_names=None,
-        class_names=None,
-        **shap_kwargs,
-    ):
+        X_train: Data[DataValue],
+        X_test: Data[OtherDataValue],
+        y_train: Labels[LabelValue],
+        y_test: Labels[OtherLabelValue],
+        column_names: Sequence[Feature] | None = None,
+        class_names: list[str] | None = None,
+        **shap_kwargs: Unpack[ShapOptions],
+    ) -> None:
         """
         Fits the object and calculates the shap values for the provided datasets.
 
@@ -186,16 +213,16 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
 
     @staticmethod
     def _prep_shap_related_variables(
-        model,
-        X,
-        y,
-        approximate=False,
-        verbose=0,
-        random_state=None,
-        column_names=None,
-        class_names=None,
-        **shap_kwargs,
-    ):
+        model: Estimator,
+        X: pd.DataFrame,
+        y: pd.Series,
+        approximate: bool = False,
+        verbose: int = 0,
+        random_state: int | None = None,
+        column_names: Sequence[Feature] | None = None,
+        class_names: list[str] | None = None,
+        **shap_kwargs: Unpack[ShapOptionsWithoutApproximation],
+    ) -> tuple[FloatArray, float, DependencePlotter]:
         """
         The function prepares the variables related to shap that are used to interpret the model.
 
@@ -229,7 +256,24 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
         )
         return shap_values, expected_value, tdp
 
-    def compute(self, return_scores=False, shap_variance_penalty_factor=None):
+    @overload
+    def compute(
+        self, return_scores: Literal[False] = ..., shap_variance_penalty_factor: float | None = ...
+    ) -> pd.DataFrame: ...
+
+    @overload
+    def compute(
+        self, return_scores: Literal[True] = ..., shap_variance_penalty_factor: float | None = ...
+    ) -> tuple[pd.DataFrame, float, float]: ...
+
+    @overload
+    def compute(
+        self, return_scores: bool = ..., shap_variance_penalty_factor: float | None = ...
+    ) -> pd.DataFrame | tuple[pd.DataFrame, float, float]: ...
+
+    def compute(
+        self, return_scores: bool = False, shap_variance_penalty_factor: float | None = None
+    ) -> pd.DataFrame | tuple[pd.DataFrame, float, float]:
         """
         Computes the DataFrame that presents the importance of each feature.
 
@@ -284,18 +328,60 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
         else:
             return self.importance_df
 
+    @overload
     def fit_compute(
         self,
-        X_train,
-        X_test,
-        y_train,
-        y_test,
-        column_names=None,
-        class_names=None,
-        return_scores=False,
-        shap_variance_penalty_factor=None,
-        **shap_kwargs,
-    ):
+        X_train: Data[DataValue],
+        X_test: Data[OtherDataValue],
+        y_train: Labels[LabelValue],
+        y_test: Labels[OtherLabelValue],
+        column_names: Sequence[Feature] | None = ...,
+        class_names: list[str] | None = ...,
+        return_scores: Literal[False] = ...,
+        shap_variance_penalty_factor: float | None = ...,
+        **shap_kwargs: Unpack[ShapOptions],
+    ) -> pd.DataFrame: ...
+
+    @overload
+    def fit_compute(
+        self,
+        X_train: Data[DataValue],
+        X_test: Data[OtherDataValue],
+        y_train: Labels[LabelValue],
+        y_test: Labels[OtherLabelValue],
+        column_names: Sequence[Feature] | None = ...,
+        class_names: list[str] | None = ...,
+        return_scores: Literal[True] = ...,
+        shap_variance_penalty_factor: float | None = ...,
+        **shap_kwargs: Unpack[ShapOptions],
+    ) -> tuple[pd.DataFrame, float, float]: ...
+
+    @overload
+    def fit_compute(
+        self,
+        X_train: Data[DataValue],
+        X_test: Data[OtherDataValue],
+        y_train: Labels[LabelValue],
+        y_test: Labels[OtherLabelValue],
+        column_names: Sequence[Feature] | None = ...,
+        class_names: list[str] | None = ...,
+        return_scores: bool = ...,
+        shap_variance_penalty_factor: float | None = ...,
+        **shap_kwargs: Unpack[ShapOptions],
+    ) -> pd.DataFrame | tuple[pd.DataFrame, float, float]: ...
+
+    def fit_compute(
+        self,
+        X_train: Data[DataValue],
+        X_test: Data[OtherDataValue],
+        y_train: Labels[LabelValue],
+        y_test: Labels[OtherLabelValue],
+        column_names: Sequence[Feature] | None = None,
+        class_names: list[str] | None = None,
+        return_scores: bool = False,
+        shap_variance_penalty_factor: float | None = None,
+        **shap_kwargs: Unpack[ShapOptions],
+    ) -> pd.DataFrame | tuple[pd.DataFrame, float, float]:
         """
         Fits the object and calculates the shap values for the provided datasets.
 
@@ -357,7 +443,15 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
         )
         return self.compute(return_scores=return_scores, shap_variance_penalty_factor=shap_variance_penalty_factor)
 
-    def plot(self, plot_type, target_set="test", target_columns=None, samples_index=None, show=True, **plot_kwargs):
+    def plot(
+        self,
+        plot_type: str,
+        target_set: str = "test",
+        target_columns: str | Sequence[Feature] | None = None,
+        samples_index: int | str | list[IndexValue] | pd.Index | None = None,
+        show: bool = True,
+        **plot_kwargs: Unpack[InterpretPlotOptions],
+    ) -> Axes | list[Axes] | list[list[Axes]]:
         """
         Plots the appropriate SHAP plot.
 
@@ -395,11 +489,14 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
                 An Axes with the plot, or list of axes when multiple plots are returned.
         """
         # Choose correct columns
+        ax: Axes | list[Axes] | list[list[Axes]]
         if target_columns is None:
             target_columns = self.column_names
 
-        target_columns = assure_list_of_strings(target_columns, "target_columns")
-        target_columns_indices = [self.column_names.index(target_column) for target_column in target_columns]
+        selected_columns = assure_list_of_strings(
+            target_columns if isinstance(target_columns, str) else list(target_columns), "target_columns"
+        )
+        target_columns_indices = [self.column_names.index(target_column) for target_column in selected_columns]
 
         # Choose the correct dataset
         if target_set == "test":
@@ -416,7 +513,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
             raise (ValueError('The target_set parameter can be either "train" or "test".'))
 
         if plot_type in ["importance", "summary"]:
-            target_X = target_X[target_columns]
+            target_X = target_X[selected_columns]
             target_shap_values = target_shap_values[:, target_columns_indices]
             # Set summary plot settings
             if plot_type == "importance":
@@ -451,27 +548,32 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
             else:
                 plt.close()
         elif plot_type == "dependence":
-            ax = []
-            for feature_name in target_columns:
-                ax.append(target_tdp.plot(feature=feature_name, figsize=(10, 7), show=show, **plot_kwargs))
+            ax = [
+                target_tdp.plot(
+                    feature=feature_name, figsize=(10, 7), show=show, **cast(DependenceOptions, plot_kwargs)
+                )
+                for feature_name in selected_columns
+            ]
 
         elif plot_type == "sample":
             # Ensure the correct samples_index type
             if samples_index is None:
                 raise (ValueError("For sample plot, you need to specify the samples_index be plotted plot"))
             elif isinstance(samples_index, int) or isinstance(samples_index, str):
-                samples_index = [samples_index]
+                selected_samples: Sequence[Hashable] | pd.Index = [samples_index]
             elif not (isinstance(samples_index, list) or isinstance(samples_index, pd.Index)):
                 raise (TypeError("sample_index must be one of the following: int, str, list or pd.Index"))
+            else:
+                selected_samples = samples_index
 
-            ax = []
-            for sample_index in samples_index:
+            sample_axes: list[Axes] = []
+            for sample_index in selected_samples:
                 sample_loc = target_X.index.get_loc(sample_index)
 
                 waterfall_legacy(
                     target_expected_value,
                     target_shap_values[sample_loc, :],
-                    target_X.loc[sample_index],
+                    target_X.iloc[sample_loc],
                     show=False,
                     **plot_kwargs,
                 )
@@ -479,11 +581,12 @@ class ShapModelInterpreter(BaseFitComputePlotClass):
                 plot_title = f"SHAP Sample Explanation of {target_set} sample for index={sample_index}"
                 current_ax = plt.gca()
                 current_ax.set_title(plot_title)
-                ax.append(current_ax)
+                sample_axes.append(current_ax)
                 if show:
                     plt.show()
                 else:
                     plt.close()
+            ax = sample_axes
         else:
             raise ValueError("Wrong plot type, select from 'importance', 'summary', or 'dependence'")
 
