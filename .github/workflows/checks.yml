@@ -37,7 +37,7 @@ jobs:
       - name: Run shared checks
         run: uv run --locked --all-extras python scripts/check.py
       - name: Upload coverage to Codecov
-        if: inputs.upload-coverage
+        if: inputs.upload-coverage && github.ref == 'refs/heads/main'
         uses: codecov/codecov-action@v4
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
