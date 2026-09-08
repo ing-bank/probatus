@@ -245,30 +245,26 @@ def calculate_shap_importance(
 
     abs_shap_values = np.abs(shap_values)
     if np.ndim(shap_values) > 2:  # multi-class case
-        sum_abs_shap = np.sum(abs_shap_values, axis=0)
-        sum_shap = np.sum(shap_values, axis=0)
-        shap_abs_mean = np.mean(sum_abs_shap, axis=0)
-        shap_mean = np.mean(sum_shap, axis=0)
-        penalized_shap_abs_mean = shap_abs_mean - (np.std(sum_abs_shap, axis=0) * shap_variance_penalty_factor)
-    else:
-        # Find average shap importance for neg and pos class
-        shap_abs_mean = np.mean(abs_shap_values, axis=0)
-        shap_mean = np.mean(shap_values, axis=0)
+        abs_shap_values = np.sum(abs_shap_values, axis=0)
+        shap_values = np.sum(shap_values, axis=0)
+
+    shap_abs_mean = np.mean(abs_shap_values, axis=0)
+    shap_mean = np.mean(shap_values, axis=0)
+    # A disabled penalty needs no variance calculation or sample-sized variance temporary.
+    penalized_shap_abs_mean = shap_abs_mean
+    if shap_variance_penalty_factor != 0:
         penalized_shap_abs_mean = shap_abs_mean - (np.std(abs_shap_values, axis=0) * shap_variance_penalty_factor)
 
-    # Prepare the values in a df and set the correct column types
+    # Sort positions so feature names (including duplicates) retain pandas' tie ordering.
+    order = pd.Series(penalized_shap_abs_mean, dtype=float).sort_values(ascending=False).index
+
+    # Construct only the public columns, directly in the output dtype.
     importance_df = pd.DataFrame(
         {
             f"mean_abs_shap_value{output_columns_suffix}": shap_abs_mean,
             f"mean_shap_value{output_columns_suffix}": shap_mean,
-            f"penalized_mean_abs_shap_value{output_columns_suffix}": penalized_shap_abs_mean,
         },
         index=list(columns),
-    ).astype(float)
-
-    importance_df = importance_df.sort_values(f"penalized_mean_abs_shap_value{output_columns_suffix}", ascending=False)
-
-    # Drop penalized column
-    importance_df = importance_df.drop(columns=[f"penalized_mean_abs_shap_value{output_columns_suffix}"])
-
-    return importance_df
+        dtype=float,
+    )
+    return importance_df.iloc[order]
