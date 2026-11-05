@@ -213,3 +213,14 @@ def test_base_class_same_data(X1, decision_tree_classifier, random_state):
     assert train_score == 0.5
     assert test_score == 0.5
     assert actual_report is None
+
+
+def test_shap_resemblance_parallel_matches_single_process(complex_data_split, complex_lightgbm, random_state):
+    X1, X2, _, _ = complex_data_split
+    results = []
+    for n_jobs in (1, 2):
+        rm = SHAPImportanceResemblance(complex_lightgbm, test_prc=0.5, n_jobs=n_jobs, random_state=random_state)
+        results.append((rm.fit_compute(X1, X2), rm.get_shap_values()))
+    (serial_report, serial_values), (parallel_report, parallel_values) = results
+    pd.testing.assert_frame_equal(parallel_report, serial_report)
+    np.testing.assert_array_equal(parallel_values, serial_values)

@@ -181,3 +181,17 @@ def test_shap_interpret_complex_data(complex_data_split_with_categorical, comple
     assert not (isinstance(ax6, list))
     assert isinstance(ax7, list) and len(ax7) == 2
     assert isinstance(ax8, list) and len(ax8) == 2
+
+
+def test_shap_interpret_parallel_matches_single_process(complex_data_split, complex_lightgbm, random_state):
+    X_train, X_test, y_train, y_test = complex_data_split
+    model = complex_lightgbm.fit(X_train, y_train)
+    results = []
+    for n_jobs in (1, 2):
+        shap_interpret = ShapModelInterpreter(model, random_state=random_state, n_jobs=n_jobs)
+        importance_df = shap_interpret.fit_compute(X_train, X_test, y_train, y_test)
+        results.append((importance_df, shap_interpret.shap_values_train, shap_interpret.shap_values_test))
+    (serial_df, serial_train, serial_test), (parallel_df, parallel_train, parallel_test) = results
+    pd.testing.assert_frame_equal(parallel_df, serial_df)
+    np.testing.assert_array_equal(parallel_train, serial_train)
+    np.testing.assert_array_equal(parallel_test, serial_test)
