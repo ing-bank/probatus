@@ -104,6 +104,7 @@ class ShapCalculationOptions(ShapOptions, total=False):
 
     verbose: int
     random_state: int | None
+    n_jobs: int | None
 
 
 class FigureOptions(TypedDict, total=False):

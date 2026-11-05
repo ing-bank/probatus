@@ -173,3 +173,10 @@ def test__repr__(model, random_state):
     """
     plotter = DependencePlotter(model, random_state)
     assert str(plotter) == "Shap dependence plotter for RandomForestClassifier"
+
+
+def test_parallel_matches_single_process(X_y, model, random_state):
+    X, y = X_y
+    serial = DependencePlotter(model, random_state=random_state, n_jobs=1).fit_compute(X, y)
+    parallel = DependencePlotter(model, random_state=random_state, n_jobs=2).fit_compute(X, y)
+    pd.testing.assert_frame_equal(parallel, serial)

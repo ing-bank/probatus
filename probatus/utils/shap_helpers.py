@@ -2,12 +2,15 @@ from __future__ import annotations
 
 import warnings
 from collections.abc import Sequence
+from itertools import pairwise
 from typing import Literal, cast, overload
 
 import numpy as np
 import pandas as pd
+from joblib import Parallel, delayed, effective_n_jobs
 from shap import Explainer
-from shap.explainers import TreeExplainer
+from shap.explainers import LinearExplainer, TreeExplainer
+from shap.maskers import Independent
 from shap.utils import sample
 from sklearn.pipeline import Pipeline
 from typing_extensions import Unpack
@@ -33,6 +36,7 @@ def shap_calc(
     sample_size: int = 100,
     approximate: bool = False,
     check_additivity: bool = True,
+    n_jobs: int | None = 1,
     **shap_kwargs: Unpack[ExplainerOptions],
 ) -> FloatArray: ...
 
@@ -47,6 +51,7 @@ def shap_calc(
     sample_size: int = 100,
     approximate: bool = False,
     check_additivity: bool = True,
+    n_jobs: int | None = 1,
     **shap_kwargs: Unpack[ExplainerOptions],
 ) -> tuple[FloatArray, ShapExplainer]: ...
 
@@ -61,6 +66,7 @@ def shap_calc(
     sample_size: int = 100,
     approximate: bool = False,
     check_additivity: bool = True,
+    n_jobs: int | None = 1,
     **shap_kwargs: Unpack[ExplainerOptions],
 ) -> FloatArray | tuple[FloatArray, ShapExplainer]: ...
 
@@ -74,10 +80,16 @@ def shap_calc(
     sample_size: int = 100,
     approximate: bool = False,
     check_additivity: bool = True,
+    n_jobs: int | None = 1,
     **shap_kwargs: Unpack[ExplainerOptions],
 ) -> FloatArray | tuple[FloatArray, ShapExplainer]:
     """
     Helper function to calculate the shapley values for a given model.
+
+    By default, tree-based models are explained against a background sample of `sample_size` rows
+    (SHAP's interventional approach). Passing `feature_perturbation="tree_path_dependent"` is usually
+    several times faster for tree-based models, but it produces slightly different SHAP values, so
+    feature rankings can change.
 
     Args:
         model (model):
@@ -105,6 +117,11 @@ def shap_calc(
 
         check_additivity (boolean):
             if False SHAP will disable the additivity check for tree-based models.
+
+        n_jobs (int, optional):
+            Number of processes used to compute SHAP values for tree-based models explained against a
+            background sample. The rows are split into chunks, so the result is identical to `n_jobs=1`.
+            Other explainers always run in a single process. None means 1, -1 means using all processors.
 
         **shap_kwargs: kwargs of the shap.Explainer
 
@@ -135,7 +152,7 @@ def shap_calc(
             isinstance(X, pd.DataFrame) and X.select_dtypes("category").shape[1] > 0
         ):
             # Calculate Shap values.
-            explainer = Explainer(model, seed=random_state, **shap_kwargs)
+            explainer = _build_explainer(model, None, random_state, **shap_kwargs)
         else:
             # Create the background data,required for non tree based models.
             # A single datapoint can passed as mask
@@ -145,11 +162,13 @@ def shap_calc(
             else:
                 pass
             mask = sample(X, sample_size, random_state=random_state)
-            explainer = Explainer(model, seed=random_state, masker=mask, **shap_kwargs)
+            explainer = _build_explainer(model, mask, random_state, **shap_kwargs)
 
         # For tree-explainers allow for using check_additivity and approximate arguments
         if isinstance(explainer, TreeExplainer):
-            shap_values = explainer.shap_values(X, check_additivity=check_additivity, approximate=approximate)
+            shap_values = _tree_shap_values(
+                explainer, X, check_additivity=check_additivity, approximate=approximate, verbose=verbose, n_jobs=n_jobs
+            )
 
             # From SHAP version 0.43+ https://github.com/shap/shap/pull/3121 required to
             # get the second dimension of calculated Shap values.
@@ -169,6 +188,68 @@ def shap_calc(
     if return_explainer:
         return values, explainer
     return values
+
+
+def _build_explainer(
+    model: Estimator,
+    masker: pd.DataFrame | Array | None,
+    random_state: int | None,
+    **shap_kwargs: Unpack[ExplainerOptions],
+) -> ShapExplainer:
+    """
+    Builds the explainer `shap.Explainer` selects automatically, without parsing tree models twice.
+
+    The automatic selection parses a tree ensemble once to check support, then again to build the explainer.
+    Requesting the tree algorithm directly skips the check. Linear models are checked first, as shap does.
+    """
+    linear = masker is not None and LinearExplainer.supports_model_with_masker(model, Independent(masker))
+    if "algorithm" not in shap_kwargs and not linear:
+        try:
+            return cast(
+                ShapExplainer, Explainer(model, masker=masker, seed=random_state, algorithm="tree", **shap_kwargs)
+            )
+        except Exception:
+            # Not a tree model: fall back to the automatic selection, which also re-raises genuine errors.
+            pass
+    return cast(ShapExplainer, Explainer(model, masker=masker, seed=random_state, **shap_kwargs))
+
+
+def _tree_shap_values(
+    explainer: TreeExplainer,
+    X: pd.DataFrame | Array,
+    check_additivity: bool,
+    approximate: bool,
+    verbose: int,
+    n_jobs: int | None,
+) -> FloatArray:
+    """
+    Computes tree SHAP values, splitting the rows over processes when a background sample is used.
+
+    SHAP's interventional computation runs in a single thread and holds the GIL, so it is parallelised
+    across processes. Each row's values depend only on that row and the background sample, so the
+    result is identical to a single call. Other modes are fast or already multithreaded, so run as one call.
+    """
+    n_chunks = min(effective_n_jobs(n_jobs), X.shape[0])
+    if n_chunks <= 1 or approximate or explainer.feature_perturbation != "interventional":
+        return explainer.shap_values(X, check_additivity=check_additivity, approximate=approximate)
+
+    # With a background sample, shap sets the expected value when the explainer is built, so the
+    # workers' copies of the explainer have nothing to report back.
+    bounds = np.linspace(0, X.shape[0], n_chunks + 1).astype(int)
+    chunks = [X.iloc[start:end] if isinstance(X, pd.DataFrame) else X[start:end] for start, end in pairwise(bounds)]
+    parts = Parallel(n_jobs=n_chunks)(
+        delayed(_tree_shap_values_chunk)(explainer, chunk, check_additivity, verbose) for chunk in chunks
+    )
+    return np.concatenate(parts, axis=0)
+
+
+def _tree_shap_values_chunk(
+    explainer: TreeExplainer, X: pd.DataFrame | Array, check_additivity: bool, verbose: int
+) -> FloatArray:
+    """Computes SHAP values for one chunk of rows in a worker process, with the caller's warning filter."""
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore" if verbose <= 1 else "default")
+        return explainer.shap_values(X, check_additivity=check_additivity)
 
 
 def shap_to_df(
@@ -245,30 +326,26 @@ def calculate_shap_importance(
 
     abs_shap_values = np.abs(shap_values)
     if np.ndim(shap_values) > 2:  # multi-class case
-        sum_abs_shap = np.sum(abs_shap_values, axis=0)
-        sum_shap = np.sum(shap_values, axis=0)
-        shap_abs_mean = np.mean(sum_abs_shap, axis=0)
-        shap_mean = np.mean(sum_shap, axis=0)
-        penalized_shap_abs_mean = shap_abs_mean - (np.std(sum_abs_shap, axis=0) * shap_variance_penalty_factor)
-    else:
-        # Find average shap importance for neg and pos class
-        shap_abs_mean = np.mean(abs_shap_values, axis=0)
-        shap_mean = np.mean(shap_values, axis=0)
+        abs_shap_values = np.sum(abs_shap_values, axis=0)
+        shap_values = np.sum(shap_values, axis=0)
+
+    shap_abs_mean = np.mean(abs_shap_values, axis=0)
+    shap_mean = np.mean(shap_values, axis=0)
+    # A disabled penalty needs no variance calculation or sample-sized variance temporary.
+    penalized_shap_abs_mean = shap_abs_mean
+    if shap_variance_penalty_factor != 0:
         penalized_shap_abs_mean = shap_abs_mean - (np.std(abs_shap_values, axis=0) * shap_variance_penalty_factor)
 
-    # Prepare the values in a df and set the correct column types
+    # Sort positions so feature names (including duplicates) retain pandas' tie ordering.
+    order = pd.Series(penalized_shap_abs_mean, dtype=float).sort_values(ascending=False).index
+
+    # Construct only the public columns, directly in the output dtype.
     importance_df = pd.DataFrame(
         {
             f"mean_abs_shap_value{output_columns_suffix}": shap_abs_mean,
             f"mean_shap_value{output_columns_suffix}": shap_mean,
-            f"penalized_mean_abs_shap_value{output_columns_suffix}": penalized_shap_abs_mean,
         },
         index=list(columns),
-    ).astype(float)
-
-    importance_df = importance_df.sort_values(f"penalized_mean_abs_shap_value{output_columns_suffix}", ascending=False)
-
-    # Drop penalized column
-    importance_df = importance_df.drop(columns=[f"penalized_mean_abs_shap_value{output_columns_suffix}"])
-
-    return importance_df
+        dtype=float,
+    )
+    return importance_df.iloc[order]

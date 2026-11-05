@@ -336,6 +336,9 @@ class ShapRFECV(BaseFitComputePlotClass[..., ..., pd.DataFrame]):
                 It also enables `approximate` and `check_additivity` parameters, passed while calculating SHAP values.
                 The `approximate=True` causes less accurate, but faster SHAP values calculation, while
                 `check_additivity=False` disables the additivity check inside SHAP.
+                For tree-based models, `feature_perturbation="tree_path_dependent"` is usually several times faster
+                than the default, which explains against a background sample. It gives slightly different SHAP
+                values, so feature rankings can change.
 
         Returns:
             (pd.DataFrame):
@@ -419,6 +422,9 @@ class ShapRFECV(BaseFitComputePlotClass[..., ..., pd.DataFrame]):
                 It also enables `approximate` and `check_additivity` parameters, passed while calculating SHAP values.
                 The `approximate=True` causes less accurate, but faster SHAP values calculation, while
                 `check_additivity=False` disables the additivity check inside SHAP.
+                For tree-based models, `feature_perturbation="tree_path_dependent"` is usually several times faster
+                than the default, which explains against a background sample. It gives slightly different SHAP
+                values, so feature rankings can change.
 
         Returns:
             (ShapRFECV): Fitted object.
@@ -811,6 +817,9 @@ class ShapRFECV(BaseFitComputePlotClass[..., ..., pd.DataFrame]):
                 It also enables `approximate` and `check_additivity` parameters, passed while calculating SHAP values.
                 The `approximate=True` causes less accurate, but faster SHAP values calculation, while
                 `check_additivity=False` disables the additivity check inside SHAP.
+                For tree-based models, `feature_perturbation="tree_path_dependent"` is usually several times faster
+                than the default, which explains against a background sample. It gives slightly different SHAP
+                values, so feature rankings can change.
         Returns:
             (np.array, float, float):
                 Tuple with the results: Shap Values on validation fold, train score, validation score.
@@ -1408,6 +1417,9 @@ class ShapRFECV(BaseFitComputePlotClass[..., ..., pd.DataFrame]):
                 It also enables `approximate` and `check_additivity` parameters, passed while calculating SHAP values.
                 The `approximate=True` causes less accurate, but faster SHAP values calculation, while
                 `check_additivity=False` disables the additivity check inside SHAP.
+                For tree-based models, `feature_perturbation="tree_path_dependent"` is usually several times faster
+                than the default, which explains against a background sample. It gives slightly different SHAP
+                values, so feature rankings can change.
         Returns:
             (np.array, float, float):
                 Tuple with the results: Shap Values on validation fold, train score, validation score.

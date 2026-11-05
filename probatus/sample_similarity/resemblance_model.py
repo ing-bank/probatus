@@ -632,7 +632,9 @@ class SHAPImportanceResemblance(BaseResemblanceModel[pd.DataFrame]):
                 Percentage of data used to test the model. By default 0.25 is set.
 
             n_jobs (int, optional):
-                Number of parallel executions. If -1 use all available cores. By default 1.
+                Number of processes used to compute SHAP values for tree-based models explained against a
+                background sample (the default). The result is identical to `n_jobs=1`. If -1 use all available
+                cores. By default 1.
 
             verbose (int, optional):
                 Controls verbosity of the output:
@@ -697,6 +699,9 @@ class SHAPImportanceResemblance(BaseResemblanceModel[pd.DataFrame]):
                 It also enables `approximate` and `check_additivity` parameters, passed while calculating SHAP values.
                 The `approximate=True` causes less accurate, but faster SHAP values calculation, while
                 `check_additivity=False` disables the additivity check inside SHAP.
+                For tree-based models, `feature_perturbation="tree_path_dependent"` is usually several times faster
+                than the default, which explains against a background sample. It gives slightly different SHAP
+                values, so feature rankings can change.
 
         Returns:
             (SHAPImportanceResemblance):
@@ -706,7 +711,12 @@ class SHAPImportanceResemblance(BaseResemblanceModel[pd.DataFrame]):
 
         assert self.X_test is not None
         self.shap_values_test = shap_calc(
-            self.model, self.X_test, verbose=self.verbose, random_state=self.random_state, **shap_kwargs
+            self.model,
+            self.X_test,
+            verbose=self.verbose,
+            random_state=self.random_state,
+            n_jobs=self.n_jobs,
+            **shap_kwargs,
         )
         self.report = calculate_shap_importance(self.shap_values_test, self.column_names)
         return self
