@@ -49,7 +49,9 @@ class DependencePlotter(BaseFitComputePlotClass[..., ..., pd.DataFrame]):
     <img src="../img/model_interpret_dep.png"/>
     """
 
-    def __init__(self, model: Estimator, verbose: int = 0, random_state: int | None = None) -> None:
+    def __init__(
+        self, model: Estimator, verbose: int = 0, random_state: int | None = None, n_jobs: int | None = 1
+    ) -> None:
         """
         Initializes the class.
 
@@ -67,10 +69,16 @@ class DependencePlotter(BaseFitComputePlotClass[..., ..., pd.DataFrame]):
             random_state (int, optional):
                 Random state set for the nr of samples. If it is None, the results will not be reproducible. For
                 reproducible results set it to an integer.
+
+            n_jobs (int, optional):
+                Number of processes used to compute SHAP values for tree-based models explained against a
+                background sample (the default). The result is identical to `n_jobs=1`. None means 1, -1 means
+                using all processors.
         """
         self.model = model
         self.verbose = verbose
         self.random_state = random_state
+        self.n_jobs = n_jobs
 
     def __repr__(self) -> str:
         """
@@ -113,6 +121,9 @@ class DependencePlotter(BaseFitComputePlotClass[..., ..., pd.DataFrame]):
                 It also enables `approximate` and `check_additivity` parameters, passed while calculating SHAP values.
                 The `approximate=True` causes less accurate, but faster SHAP values calculation, while
                 `check_additivity=False` disables the additivity check inside SHAP.
+                For tree-based models, `feature_perturbation="tree_path_dependent"` is usually several times faster
+                than the default, which explains against a background sample. It gives slightly different SHAP
+                values, so feature rankings can change.
         """
         self.X, self.column_names = preprocess_data(X, X_name="X", column_names=column_names, verbose=self.verbose)
         self.y = preprocess_labels(y, y_name="y", index=self.X.index, verbose=self.verbose)
@@ -126,6 +137,7 @@ class DependencePlotter(BaseFitComputePlotClass[..., ..., pd.DataFrame]):
             precalc_shap=precalc_shap,
             verbose=self.verbose,
             random_state=self.random_state,
+            n_jobs=self.n_jobs,
             **shap_kwargs,
         )
 
@@ -180,6 +192,9 @@ class DependencePlotter(BaseFitComputePlotClass[..., ..., pd.DataFrame]):
                 It also enables `approximate` and `check_additivity` parameters, passed while calculating SHAP values.
                 The `approximate=True` causes less accurate, but faster SHAP values calculation, while
                 `check_additivity=False` disables the additivity check inside SHAP.
+                For tree-based models, `feature_perturbation="tree_path_dependent"` is usually several times faster
+                than the default, which explains against a background sample. It gives slightly different SHAP
+                values, so feature rankings can change.
 
         Returns:
             (pd.DataFrame):

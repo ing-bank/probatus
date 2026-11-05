@@ -86,7 +86,12 @@ class ShapModelInterpreter(BaseFitComputePlotClass[..., ..., pd.DataFrame | tupl
     """
 
     def __init__(
-        self, model: Estimator, scoring: str | Scorer = "roc_auc", verbose: int = 0, random_state: int | None = None
+        self,
+        model: Estimator,
+        scoring: str | Scorer = "roc_auc",
+        verbose: int = 0,
+        random_state: int | None = None,
+        n_jobs: int | None = 1,
     ) -> None:
         """
         Initializes the class.
@@ -111,11 +116,17 @@ class ShapModelInterpreter(BaseFitComputePlotClass[..., ..., pd.DataFrame | tupl
             random_state (int, optional):
                 Random state set for the nr of samples. If it is None, the results will not be reproducible. For
                 reproducible results set it to an integer.
+
+            n_jobs (int, optional):
+                Number of processes used to compute SHAP values for tree-based models explained against a
+                background sample (the default). The result is identical to `n_jobs=1`. None means 1, -1 means
+                using all processors.
         """
         self.model = model
         self.scorer = get_single_scorer(scoring)
         self.verbose = verbose
         self.random_state = random_state
+        self.n_jobs = n_jobs
 
     def fit(
         self,
@@ -156,6 +167,9 @@ class ShapModelInterpreter(BaseFitComputePlotClass[..., ..., pd.DataFrame | tupl
                 It also enables `approximate` and `check_additivity` parameters, passed while calculating SHAP values.
                 The `approximate=True` causes less accurate, but faster SHAP values calculation, while
                 `check_additivity=False` disables the additivity check inside SHAP.
+                For tree-based models, `feature_perturbation="tree_path_dependent"` is usually several times faster
+                than the default, which explains against a background sample. It gives slightly different SHAP
+                values, so feature rankings can change.
         """
 
         self.X_train, self.column_names = preprocess_data(
@@ -191,6 +205,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass[..., ..., pd.DataFrame | tupl
             class_names=self.class_names,
             verbose=self.verbose,
             random_state=self.random_state,
+            n_jobs=self.n_jobs,
             **shap_kwargs,
         )
 
@@ -206,6 +221,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass[..., ..., pd.DataFrame | tupl
             class_names=self.class_names,
             verbose=self.verbose,
             random_state=self.random_state,
+            n_jobs=self.n_jobs,
             **shap_kwargs,
         )
 
@@ -221,6 +237,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass[..., ..., pd.DataFrame | tupl
         random_state: int | None = None,
         column_names: Sequence[Feature] | None = None,
         class_names: list[str] | None = None,
+        n_jobs: int | None = 1,
         **shap_kwargs: Unpack[ShapOptionsWithoutApproximation],
     ) -> tuple[FloatArray, float, DependencePlotter]:
         """
@@ -237,6 +254,7 @@ class ShapModelInterpreter(BaseFitComputePlotClass[..., ..., pd.DataFrame | tupl
             verbose=verbose,
             random_state=random_state,
             return_explainer=True,
+            n_jobs=n_jobs,
             **shap_kwargs,
         )
 
@@ -426,6 +444,9 @@ class ShapModelInterpreter(BaseFitComputePlotClass[..., ..., pd.DataFrame | tupl
                 It also enables `approximate` and `check_additivity` parameters, passed while calculating SHAP values.
                 The `approximate=True` causes less accurate, but faster SHAP values calculation, while
                 `check_additivity=False` disables the additivity check inside SHAP.
+                For tree-based models, `feature_perturbation="tree_path_dependent"` is usually several times faster
+                than the default, which explains against a background sample. It gives slightly different SHAP
+                values, so feature rankings can change.
 
         Returns:
             (pd.DataFrame or tuple(pd.DataFrame, float, float)):
