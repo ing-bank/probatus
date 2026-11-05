@@ -44,7 +44,7 @@ uv run --locked --all-extras python scripts/check.py --checks tests --notebooks
 
 Notebook execution tests are skipped by default, just as in CI; `--notebooks` enables them.
 Local checks use your operating system. GitHub additionally runs the same command across
-Python 3.10–3.13 on Linux, macOS, and Windows. Coverage uploads and publishing remain GitHub steps.
+Python 3.10–3.14 on Linux, macOS, and Windows. Coverage uploads and publishing remain GitHub steps.
 The workflow definitions share `.github/workflows/checks.yml`; the actual validation commands
 live in `scripts/check.py` so local checks and CI stay in sync.
 
@@ -113,7 +113,7 @@ logging.basicConfig(level=logging.INFO)
 
 ## Standards
 
-- Python 3.10–3.13
+- Python 3.10–3.14
 - Follow [PEP8](http://pep8.org/) as closely as possible (except line length)
 - [google docstring format](https://sphinxcontrib-napoleon.readthedocs.io/en/latest/)
 - Git: Include a short description of *what* and *why* was done, *how* can be seen in the code. Use present tense, imperative mood
